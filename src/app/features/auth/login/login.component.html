@@ -26,7 +26,7 @@
           type="email"
           formControlName="email"
           autocomplete="email"
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:bg-gray-100"
+          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-gray-100"
           [class.border-red-400]="form.controls.email.invalid && form.controls.email.touched"
           placeholder="you@example.com"
         />
@@ -42,7 +42,7 @@
           type="password"
           formControlName="password"
           autocomplete="current-password"
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:bg-gray-100"
+          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-gray-100"
           [class.border-red-400]="form.controls.password.invalid && form.controls.password.touched"
           placeholder="••••••••"
         />
@@ -54,7 +54,7 @@
       <button
         type="submit"
         [disabled]="loading()"
-        class="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        class="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {{ loading() ? 'Signing in…' : 'Sign in' }}
       </button>
@@ -63,7 +63,7 @@
 
     <p class="mt-6 text-center text-sm text-gray-500">
       Don't have an account?
-      <a routerLink="/register" class="font-medium text-blue-600 hover:underline">Sign up</a>
+      <a routerLink="/register" class="font-medium text-primary hover:underline">Sign up</a>
     </p>
   </div>
 </div>

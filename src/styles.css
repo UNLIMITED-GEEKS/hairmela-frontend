@@ -1,3 +1,62 @@
-/* You can add global styles to this file, and also import other style files */
-
 @import 'tailwindcss';
+
+@theme {
+  /* ── Breakpoints ─────────────────────────────────────────────────────────── */
+  --breakpoint-xxs: 340px;
+  --breakpoint-xs: 475px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-xm: 900px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-xxl: 1440px;
+  --breakpoint-2xl: 1536px;
+
+  /* ── Font families ───────────────────────────────────────────────────────── */
+  --font-family-sans: 'Inter', system-ui, sans-serif;
+  --font-family-inter: 'Inter', sans-serif;
+  --font-family-poppins: 'Poppins', sans-serif;
+
+  /* ── Primary — dark red ──────────────────────────────────────────────────── */
+  --color-primary:           #9B1C1C;
+  --color-primary-hover:     #7F1D1D;
+  --color-primary-light:     #FEE2E2;
+  --color-primary-foreground:#FFFFFF;
+
+  /* ── Neutral / surface ───────────────────────────────────────────────────── */
+  --color-surface:           #FFFFFF;
+  --color-surface-raised:    #F9FAFB;
+  --color-surface-overlay:   #F3F4F6;
+  --color-border:            #E5E7EB;
+  --color-border-strong:     #D1D5DB;
+
+  /* ── Text ────────────────────────────────────────────────────────────────── */
+  --color-text-primary:      #111827;
+  --color-text-secondary:    #6B7280;
+  --color-text-disabled:     #9CA3AF;
+  --color-text-inverse:      #FFFFFF;
+
+  /* ── Semantic ────────────────────────────────────────────────────────────── */
+  --color-success:           #16A34A;
+  --color-success-light:     #DCFCE7;
+  --color-error:             #DC2626;
+  --color-error-light:       #FEE2E2;
+  --color-warning:           #D97706;
+  --color-warning-light:     #FEF3C7;
+  --color-info:              #2563EB;
+  --color-info-light:        #DBEAFE;
+
+  /* ── Shadows ─────────────────────────────────────────────────────────────── */
+  --shadow-card: 0px 1px 4px 2px rgba(50, 71, 92, 0.02), 0px 2px 6px 1px rgba(50, 71, 92, 0.04), 0px 1px 6px 2px rgba(50, 71, 92, 0.06);
+  --shadow-modal: 0px 0px 32px 0px rgba(0, 0, 0, 0.10);
+  --shadow-dropdown: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+
+  /* ── Animations ──────────────────────────────────────────────────────────── */
+  --animate-fade-in: fade-in 0.2s ease-out;
+  --animate-spin-slow: spin 1.5s linear infinite;
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+}
