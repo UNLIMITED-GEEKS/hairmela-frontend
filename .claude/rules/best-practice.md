@@ -6,6 +6,72 @@
 
 The MVP is the **walk-in queue product**: salon owners set up their salon, staff, services, and hours; customers sign in, join a barber's line, and watch their position live. Four capability groups are explicitly post-MVP and listed in the backlog at the end: **booking/appointments**, **notifications + web push**, **anonymous public access + analytics**, and **forgot/reset password**. Auth in the MVP is login + signup only.
 
+**Email verification is deferred to post-MVP.** The backend's `@RequiresVerifiedEmail` decorator and `VerifiedEmailGuard` exist but are not applied to any route — verification is not enforced server-side. On the frontend: do not show the `VerifyEmailPrompt`, do not gate any action on `emailVerified`, and do not handle `EMAIL_NOT_VERIFIED` errors (they won't arrive). The verify-email landing page (`/verify-email`) still ships so the emailed link has somewhere to land, but it is purely informational for now.
+
+---
+
+## UI Reference (Designer Sketches)
+
+These sketches are the source of truth for the two core flows. Build to match them.
+
+---
+
+### Barber POV — Staff Console (`/salons/:salonId/queues/:queueId/console`)
+
+Two-panel layout side by side:
+
+**Left panel — Current Client card**
+- Header label: "Current Client"
+- Large circle in the center displaying the serving client's first name prominently (e.g. "John")
+- Below the name: a running timer (e.g. `45:35`) counting up from when the session started
+- Below the timer: estimated finish time (e.g. `eft: 2pm`) derived from the service duration
+- Two action buttons at the bottom:
+  - "View Queue" — toggles to the right panel / queue list view
+  - "End Session" — completes the current client (maps to Complete action on the member)
+
+**Right panel — Queue list**
+- Header: "Total Count: 7" (total waiting)
+- Two column headers: "Clients on queue" | "Wait time"
+- Scrollable list of waiting clients, each row: client first name + estimated wait (e.g. `4m 5s`)
+- Two action buttons at the bottom:
+  - "Add Queue" — reserved for future barber-side manual add; not in MVP scope
+  - "Back" — returns focus to the left panel
+
+---
+
+### Customer POV — Visit + Join flow (`/s/:slug` → `/s/:slug/q/:queueId`)
+
+Four screens in sequence:
+
+**Screen 1 — Salon landing page (`/s/:slug`)**
+- Salon avatar/photo at top left + salon name prominently below
+- Short description line ("Barbers in sunny shop")
+- Barber cards in a row, each showing: barber name + availability badge (green "Available" / red "Unavailable")
+- Tapping a barber card navigates to that barber's queue flow
+
+**Screen 2 — Choose Service**
+- Title: "Choose Service"
+- Scrollable list of services, each row: service name + duration (e.g. `Classic Haircuts & Fades — 45mins`)
+- Selected service highlighted in blue
+- Two buttons at the bottom: "Join queue" (confirms selection + joins) | "Back"
+
+**Screen 3 — Position in line (MyEntryCard)**
+- Large circle center-screen showing:
+  - "Position in line" label
+  - Position number large (e.g. `7`)
+  - Estimated wait below (e.g. `est: 5m`)
+- "Add Kids" button — opens party member rows (name + service picker per extra person)
+- Two buttons at the bottom: "View queue" (goes to Screen 4) | "Back"
+
+**Screen 4 — Live queue view for this barber (`/s/:slug/q/:queueId`)**
+- Barber photo/avatar + name ("Dany the barber") + availability badge
+- Two column headers: "Waiting" | "Estimated time"
+- Scrollable queue list, each row: client label (anonymized: "Client 1", "Client 2"…) + wait time
+- The user's own row highlighted green with label "Me"
+- Two buttons at the bottom:
+  - "Leave queue" (red/destructive — confirm dialog before calling DELETE)
+  - "Back"
+
 ---
 
 ## Architecture Overview
@@ -32,7 +98,7 @@ The frontend never enforces security — the backend does. The frontend mirrors 
 | `@SalonRoles(...)` | `salonRoleGuard` + `*hasRole` | `GET /salons/:salonId/me` via `MembershipStore` |
 | `@OrgOwner` | `orgOwnerGuard` | `GET /organizations/mine` |
 | `@RequiresTier(n)` | `tierGuard` + `*requiresTier` (visible-but-locked) | `tier` from `/salons/:salonId/me` |
-| `@RequiresVerifiedEmail` | `VerifyEmailPrompt` (proactive) + `EMAIL_NOT_VERIFIED` handler (reactive) | `currentUser.emailVerified` |
+| `@RequiresVerifiedEmail` | ~~`VerifyEmailPrompt` + `EMAIL_NOT_VERIFIED` handler~~ — **deferred post-MVP; guard not applied on backend** | — |
 | `@ActiveSalon` (downgrade freeze) | `tierFreeze` directive + frozen banner + `SALON_FROZEN` handler | `isFrozen` from `/salons/:salonId/me` |
 | Error envelope + stable codes | `ApiError` type + error interceptor branching on `code` | `core/errors` |
 | Pagination meta | Generated `PaginatedResponse` models + shared `Pagination` component | generated client |
@@ -160,12 +226,12 @@ Each feature folder follows: `*.component.ts/html/scss` (orchestration only), `*
 On boot: refresh token present → `POST /auth/refresh` → store new pair → `GET /auth/me` → hydrate `CurrentUserStore`. Any failure → clear tokens, land logged-out. The app never renders an authed shell on a dead session.
 
 ### auth.service.ts
-- `login(dto)` / `register(dto)` via the generated client; on success store tokens + hydrate user. After registration: route to dashboard with a "verify your email" banner (the backend sends the verification email at registration; verification gates only sensitive actions — in MVP scope, accepting staff invites — so nothing else is blocked).
+- `login(dto)` / `register(dto)` via the generated client; on success store tokens + hydrate user. After registration: route to dashboard directly — no "verify your email" banner in MVP (email verification deferred).
 - `logout()` — disconnect the socket, clear tokens + stores, navigate `/login`. There is no backend logout endpoint (stateless JWT; revocation deferred) — logout is client-side. *(When push ships post-MVP, `DELETE /push/subscribe` must run first in this sequence, while the session is still valid.)*
 - `verifyEmail(token)` → `POST /auth/verify-email` (token in the **body**, taken from the landing page's query param); `resendVerification()` → `POST /auth/resend-verification`.
 
 ### current-user.store.ts
-`signal<User | null>` from `GET /auth/me`. `emailVerified` drives the verify prompt; refreshed after `verifyEmail` succeeds.
+`signal<User | null>` from `GET /auth/me`. `emailVerified` is available on the type but not acted on in MVP — no verify prompt, no gating.
 
 ### membership.store.ts + salon-context.service.ts
 - `getMembership(salonId)`: returns cached `{ role, isStaff, canManageSalon, canManageStaff, tier, isFrozen }` or fetches `GET /salons/:salonId/me`. This is the **only** role/tier-discovery mechanism in the app.
@@ -221,7 +287,7 @@ The frontend branches on `code`, never on `message` (backend contract). Central 
 | `TOKEN_INVALID` | Logout + redirect to login |
 | `INVALID_CREDENTIALS` | *local:* inline form error on login |
 | `EMAIL_ALREADY_REGISTERED` | *local:* inline error on register, link to login |
-| `EMAIL_NOT_VERIFIED` | Open `VerifyEmailPrompt` (explains the gate, resend button) |
+| `EMAIL_NOT_VERIFIED` | ~~Open `VerifyEmailPrompt`~~ — **not handled in MVP; backend guard not applied** |
 | `VALIDATION_FAILED` | *local:* map `details[{field, constraint}]` onto form controls; toast fallback |
 | `TIER_REQUIRED` | Upgrade nudge — owner sees the plan screen link, non-owner sees "ask the owner" |
 | `SALON_FROZEN` | Frozen-salon prompt: "this salon is over the plan's limit — upgrade to reactivate" (owner) / informational notice (others) |
@@ -281,7 +347,8 @@ Each feature lists routes, components, the backend endpoints consumed (generated
 | VerifyEmailLandingComponent | Reads `?token=` from the emailed link, POSTs it, shows success/failure, refreshes `/auth/me` | POST /auth/verify-email |
 
 **Guards:** `guestGuard` on login/register; the verify-email landing is public (users may open the link in a fresh browser).
-**Why the verify landing is in scope when auth is "login + signup only":** the backend sends the verification email *at registration* — from the first real signup, that link must land somewhere, and verification gates invite acceptance (Phase 3). One small component. Forgot/reset password are in the post-MVP backlog.
+**Guards:** `guestGuard` on login/register; the verify-email landing is public (users may open the link in a fresh browser).
+**Note:** verification is not enforced in MVP — the landing page just shows a success/failure message. Forgot/reset password are in the post-MVP backlog.
 
 ### Dashboard — `features/dashboard/`
 
@@ -335,7 +402,7 @@ Each feature lists routes, components, the backend endpoints consumed (generated
 | ChangeRoleComponent | ADMIN ↔ STAFF; `CANNOT_REMOVE_OWNER` routes to the transfer flow | PATCH .../staff/:staffId/role |
 | TransferOwnershipComponent | Atomic promote+demote with explicit confirm ("you will become ADMIN"); **OWNER only** | PATCH .../staff/transfer-ownership |
 | RemoveStaffComponent | Confirm dialog spelling out the cascade (queue closed, entries cancelled, customers notified) | DELETE .../staff/:staffId |
-| MyInviteActionsComponent | Accept / Decline for the *invitee* (used by the dashboard's PendingInvites). Accepting requires verified email → proactive `VerifyEmailPrompt` before calling; `EMAIL_NOT_VERIFIED` handled if raced | POST .../staff/accept, POST .../staff/decline |
+| MyInviteActionsComponent | Accept / Decline for the *invitee* (used by the dashboard's PendingInvites). No email verification gate in MVP — accept/decline directly | POST .../staff/accept, POST .../staff/decline |
 
 **Guards:** management = `salonRoleGuard(OWNER, ADMIN)`; accept/decline = `authGuard` only — the invitee has no SalonStaff role yet, mirroring the backend's JwtAuthGuard-only routes (the invite is matched by the user's email). There is no "link existing user" flow: linking is invite + automatic claim on registration.
 
@@ -507,7 +574,7 @@ Mirrors the backend's discipline: foundation → enforcement layers → features
 |---|---|---|
 | 1 | **Foundation & Auth:** workspace, environments, generated API client wiring (`generate:api`), error envelope types + `error-codes.ts`, interceptors (jwt → refresh → error), TokenStore + CurrentUserStore + session initializer, app shell + ToastService, **Login, Register**, verify-email landing, `authGuard`/`guestGuard` | 1 |
 | 2 | **Authorization layer:** MembershipStore + SalonContextService, `salonRoleGuard`, `orgOwnerGuard`, `tierGuard`, `*hasRole`, `*requiresTier`, `tierFreeze`, frozen-salon banner | 2 |
-| 3 | **Dashboard, Org, Salons, Staff:** My Salons (`/salons/mine`), pending invites + accept/decline + verify-email gating, org overview/rename + plan explainer, create salon (address/timezone/hours), settings, slug, share/QR (client-side), delete; staff list/invite/role/transfer/remove | 3 |
+| 3 | **Dashboard, Org, Salons, Staff:** My Salons (`/salons/mine`), pending invites + accept/decline (no email gating), org overview/rename + plan explainer, create salon (address/timezone/hours), settings, slug, share/QR (client-side), delete; staff list/invite/role/transfer/remove | 3 |
 | 4 | **Media:** image-uploader (client-side mime/size validation matching backend caps), avatar, gallery + reorder — wired into salon, staff, profile | 4 |
 | 5 | **Services:** catalog CRUD, staff-service assignment, default service | 5 |
 | 6 | **Schedules + Closures** | 6 |
@@ -536,7 +603,7 @@ Every backend capability has a frontend home — or a named place in the backlog
 - `/salons/mine` → Dashboard My Salons
 - Org-owner authority → orgOwnerGuard + Organization feature
 - Tiers + downgrade freeze + `SALON_FROZEN` → tierGuard + `*requiresTier` + `tierFreeze` + error handling
-- Verified-email gating → VerifyEmailPrompt + `EMAIL_NOT_VERIFIED` handling (invite acceptance now; booking when it ships)
+- Verified-email gating → **deferred post-MVP**; backend guard not applied; `VerifyEmailPrompt` and `EMAIL_NOT_VERIFIED` handling ship when verification is enforced
 - Salons (slug, settings, address, timezone, soft delete + cascades) → Salons feature; QR client-side against the stable `/s/:slug` route
 - Enriched public slug payload (`{ salon, staff[] }` with queueIds) → Visit feature
 - Staff lifecycle (invite → claim → accept/decline → role change → transfer → remove) → Staff feature + dashboard invites
