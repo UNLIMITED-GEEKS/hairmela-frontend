@@ -44,6 +44,13 @@ export const salonRoutes: Routes = [
       import('./salon-media/salon-media.component').then((m) => m.SalonMediaComponent),
   },
   {
+    path: 'services',
+    canActivate: [salonRoleGuard],
+    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
+    loadChildren: () =>
+      import('../../features/services/services.routes').then((m) => m.servicesRoutes),
+  },
+  {
     path: 'staff',
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },

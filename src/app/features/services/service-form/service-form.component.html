@@ -1,0 +1,85 @@
+@if (loading()) {
+  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+    <span class="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+  </div>
+} @else {
+  <div class="min-h-screen bg-gray-50 px-4 py-8">
+    <div class="max-w-lg mx-auto space-y-6">
+
+      <div class="flex items-center gap-3">
+        <a routerLink=".." class="text-gray-400 hover:text-gray-600">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </a>
+        <h1 class="text-lg font-semibold text-gray-900">
+          {{ isEdit() ? 'Edit service' : 'New service' }}
+        </h1>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="save()" class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+
+        <!-- Name -->
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium text-gray-700">Service name</label>
+          <input formControlName="name" type="text" placeholder="e.g. Classic Haircut"
+            class="w-full min-h-11 px-3 rounded-lg border border-gray-300 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary
+                   disabled:bg-gray-50"
+            [class.border-red-400]="form.get('name')?.invalid && form.get('name')?.touched" />
+          @if (form.get('name')?.errors?.['nameTaken']) {
+            <p class="text-xs text-red-500">A service with this name already exists</p>
+          } @else if (form.get('name')?.errors?.['required'] && form.get('name')?.touched) {
+            <p class="text-xs text-red-500">Name is required</p>
+          }
+        </div>
+
+        <!-- Duration -->
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium text-gray-700">Duration (minutes)</label>
+          <input formControlName="duration" type="number" min="1" placeholder="30"
+            class="w-full min-h-11 px-3 rounded-lg border border-gray-300 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            [class.border-red-400]="form.get('duration')?.invalid && form.get('duration')?.touched" />
+          @if (form.get('duration')?.errors?.['min'] && form.get('duration')?.touched) {
+            <p class="text-xs text-red-500">Duration must be at least 1 minute</p>
+          }
+        </div>
+
+        <!-- Price -->
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium text-gray-700">Price (₦)</label>
+          <input formControlName="price" type="text" placeholder="0.00"
+            class="w-full min-h-11 px-3 rounded-lg border border-gray-300 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            [class.border-red-400]="form.get('price')?.invalid && form.get('price')?.touched" />
+          @if (form.get('price')?.errors?.['required'] && form.get('price')?.touched) {
+            <p class="text-xs text-red-500">Price is required</p>
+          }
+        </div>
+
+        <!-- Description -->
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium text-gray-700">
+            Description <span class="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <textarea formControlName="description" rows="2" placeholder="Short description…"
+            class="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm resize-none
+                   focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+          </textarea>
+        </div>
+
+        <button type="submit" [disabled]="form.invalid || saving()"
+          class="w-full min-h-11 bg-primary text-white text-sm font-medium rounded-lg
+                 hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
+          @if (saving()) {
+            <span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          }
+          {{ isEdit() ? 'Save changes' : 'Create service' }}
+        </button>
+
+      </form>
+
+    </div>
+  </div>
+}
