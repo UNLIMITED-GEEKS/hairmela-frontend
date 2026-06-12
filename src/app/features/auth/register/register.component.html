@@ -1,0 +1,99 @@
+<div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+  <div class="w-full max-w-sm">
+    <div class="mb-8 text-center">
+      <h1 class="text-2xl font-bold text-gray-900">Create an account</h1>
+      <p class="mt-1 text-sm text-gray-500">Join HairMela and manage your salon</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="space-y-4">
+
+      @if (errorMessage()) {
+        <div class="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700" role="alert">
+          {{ errorMessage() }}
+          @if (errorMessage()?.includes('already exists')) {
+            <a routerLink="/login" class="ml-1 font-medium underline">Sign in instead</a>
+          }
+        </div>
+      }
+
+      <div class="flex gap-3">
+        <div class="flex-1">
+          <label for="firstName" class="block text-sm font-medium text-gray-700 mb-1">First name</label>
+          <input
+            id="firstName"
+            type="text"
+            formControlName="firstName"
+            autocomplete="given-name"
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+            [class.border-red-400]="form.controls.firstName.invalid && form.controls.firstName.touched"
+            placeholder="Ada"
+          />
+          @if (form.controls.firstName.invalid && form.controls.firstName.touched) {
+            <p class="mt-1 text-xs text-red-600">Required.</p>
+          }
+        </div>
+        <div class="flex-1">
+          <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">Last name</label>
+          <input
+            id="lastName"
+            type="text"
+            formControlName="lastName"
+            autocomplete="family-name"
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+            [class.border-red-400]="form.controls.lastName.invalid && form.controls.lastName.touched"
+            placeholder="Obi"
+          />
+          @if (form.controls.lastName.invalid && form.controls.lastName.touched) {
+            <p class="mt-1 text-xs text-red-600">Required.</p>
+          }
+        </div>
+      </div>
+
+      <div>
+        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          autocomplete="email"
+          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+          [class.border-red-400]="form.controls.email.invalid && form.controls.email.touched"
+          placeholder="you@example.com"
+        />
+        @if (form.controls.email.invalid && form.controls.email.touched) {
+          <p class="mt-1 text-xs text-red-600">Enter a valid email address.</p>
+        }
+      </div>
+
+      <div>
+        <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          autocomplete="new-password"
+          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+          [class.border-red-400]="form.controls.password.invalid && form.controls.password.touched"
+          placeholder="Min. 8 characters"
+        />
+        @if (form.controls.password.invalid && form.controls.password.touched) {
+          <p class="mt-1 text-xs text-red-600">Password must be at least 8 characters.</p>
+        }
+      </div>
+
+      <button
+        type="submit"
+        [disabled]="loading()"
+        class="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        {{ loading() ? 'Creating account…' : 'Create account' }}
+      </button>
+
+    </form>
+
+    <p class="mt-6 text-center text-sm text-gray-500">
+      Already have an account?
+      <a routerLink="/login" class="font-medium text-blue-600 hover:underline">Sign in</a>
+    </p>
+  </div>
+</div>

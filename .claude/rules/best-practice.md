@@ -83,7 +83,7 @@ Four screens in sequence:
 **API types & services:** **Generated** by `ng-openapi-gen` from the backend's `/docs-json` — never hand-mirrored
 **Real-time:** `socket.io-client` wrapped in `QueueSocketService` (backend namespace `/queues`, JWT in the auth payload)
 **Forms:** Typed Reactive Forms
-**Styling:** Component-scoped SCSS + shared design tokens (co-founder is design lead); BEM naming
+**Styling:** Tailwind CSS utility classes; SCSS only when Tailwind genuinely cannot do it (complex keyframe animations, third-party overrides)
 **Error contract:** The backend's uniform error envelope — the frontend **branches on `code`, never on `message`**
 
 ---
@@ -211,7 +211,7 @@ src/app/
     └── account/
 ```
 
-Each feature folder follows: `*.component.ts/html/scss` (orchestration only), `*.service.ts` (feature logic over the generated client), `*.types.ts` (view-model types only — API types come from `core/api`).
+Each feature folder follows: `*.component.ts` + `*.component.html` (orchestration only), `*.service.ts` (feature logic over the generated client), `*.types.ts` (view-model types only — API types come from `core/api`). A `*.component.scss` is only added when custom CSS is genuinely needed beyond Tailwind.
 
 ---
 
@@ -531,6 +531,11 @@ The salon page customers land on from the shared link / QR code. **Sign-in requi
 - **SOLID · DRY · YAGNI · separation of concerns.** Business logic in services; components orchestrate only.
 - **Immutability:** `readonly` fields, spread updates. Never mutate a signal's value — `update()` / `set()` only (`this._items.update(items => [...items, item])`).
 - **Type safety:** strict mode; no `any` (use `unknown` + narrowing); explicit return types on all functions; view-model shapes in a feature `*.types.ts`; API shapes only from `core/api`.
+- **Never duplicate UI logic.** Shared UI behaviour lives in a shared service or component and is injected/imported — never copy-pasted. Specifically:
+  - **`ConfirmDialogService`** — the single way to ask the user to confirm a destructive action. Called imperatively: `confirmDialog.open({ title, message, confirmLabel, danger })` returns `Observable<boolean>`. Every destructive flow (delete salon, remove staff, leave queue, cancel entry, transfer ownership, no-show, end session) calls this service — none of them own their own dialog markup.
+  - **`ToastService`** — the single way to show a notification. Called as `toast.success(msg)` / `toast.error(msg)` / `toast.info(msg)`. The error interceptor calls it; features call it for local confirmations. No component owns its own toast markup.
+  - **`StatusBadgeComponent`** — the single place queue/entry/member status colours and labels are defined. Used in staff list, queue board, live queue, my entry card.
+  - **`LoadingSpinnerComponent`** and **`EmptyStateComponent`** — used in every list view; never inline-duplicated.
 
 ### Angular
 - Standalone components (default — never set the flag); `input()` / `output()` functions, not decorators; `inject()`, not constructor injection; host bindings in the `host` object, not `@HostBinding`/`@HostListener`.
@@ -550,10 +555,18 @@ The salon page customers land on from the shared link / QR code. **Sign-in requi
 - No try-catch for control flow — `catchError` in pipelines, guard clauses for nulls. Try-catch only in async/await bodies, cleanup, or third-party calls that throw.
 
 ### Style & structure
-- Per-feature layout: `component.ts/html/scss` + `feature.service.ts` + `feature.types.ts` (+ a pure-function helper service when calculations grow).
+- Per-feature layout: `component.ts` + `component.html` + `feature.service.ts` + `feature.types.ts` (+ a pure-function helper service when calculations grow).
 - Member order in components: inputs → outputs → injected deps → signals → computed → effects → lifecycle → protected → private. Template-accessed members `protected`; internals `private`; `$` suffix on Observables.
-- SCSS: BEM (`.block__element--modifier`); design tokens from the shared layer; no inline styles; avoid `::ng-deep` (if a UI library is adopted later, scope any override to a panel class).
+- **Templates are always external files** — never `template:` inline in the decorator.
+- **Styling is Tailwind-first** — apply all styles via Tailwind utility classes in the HTML. Only create a `.scss` file when Tailwind genuinely cannot do it (e.g. complex keyframe animations, third-party overrides). When a `.scss` file is not needed, omit `styleUrl` entirely.
 - Cleanup `ResizeObserver`/`MutationObserver`/manual listeners via `DestroyRef`.
+
+### Mobile Responsiveness
+- **Every component and page must be mobile responsive — no exceptions.** HairMela is primarily a mobile-use product (customers join queues on their phones; barbers manage queues from a phone or tablet).
+- Design mobile-first: start with the smallest viewport and scale up using Tailwind's `sm:`, `md:`, `lg:` prefixes.
+- No fixed pixel widths that break on small screens. Use `w-full`, `max-w-*`, `flex`, and `grid` with responsive variants.
+- Touch targets must be at least 44×44px (buttons, links, interactive rows).
+- Test every screen at 375px (iPhone SE), 390px (iPhone 14), and 768px (tablet) before marking it done.
 
 ### Accessibility
 - Target WCAG AA; run AXE on the high-traffic flows each phase: login/register, salon visit page, join flow, staff console. Live regions (`aria-live="polite"`) for position changes and the called banner — a queue app's core output is a changing number; screen readers must hear it change.
