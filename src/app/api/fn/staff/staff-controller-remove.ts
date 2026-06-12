@@ -9,6 +9,10 @@ import { RequestBuilder } from '../../request-builder';
 
 
 export interface StaffControllerRemove$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
   staffId: string;
 }

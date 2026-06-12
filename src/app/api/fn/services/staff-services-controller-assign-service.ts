@@ -9,7 +9,15 @@ import { RequestBuilder } from '../../request-builder';
 
 
 export interface StaffServicesControllerAssignService$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
+
+/**
+ * SalonStaff UUID
+ */
   staffId: string;
   serviceId: string;
 }

@@ -11,6 +11,10 @@ import { Media } from '../../models/media';
 import { ReorderMediaDto } from '../../models/reorder-media-dto';
 
 export interface MediaReorderControllerReorderSalonGallery$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
       body: ReorderMediaDto
 }

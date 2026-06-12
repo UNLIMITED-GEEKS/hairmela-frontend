@@ -10,6 +10,10 @@ import { RequestBuilder } from '../../request-builder';
 import { TrendDataPointDto } from '../../models/trend-data-point-dto';
 
 export interface AnalyticsControllerGetTrends$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
 
 /**

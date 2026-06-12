@@ -9,6 +9,10 @@ import { RequestBuilder } from '../../request-builder';
 
 
 export interface SalonClosuresControllerDelete$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
   closureId: string;
 }

@@ -9,8 +9,17 @@ import { RequestBuilder } from '../../request-builder';
 
 
 export interface StaffClosuresControllerDelete$Params {
+
+/**
+ * SalonStaff UUID
+ */
   staffId: string;
   closureId: string;
+
+/**
+ * Salon UUID
+ */
+  salonId: string;
 }
 
 export function staffClosuresControllerDelete(http: HttpClient, rootUrl: string, params: StaffClosuresControllerDelete$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
@@ -18,6 +27,7 @@ export function staffClosuresControllerDelete(http: HttpClient, rootUrl: string,
   if (params) {
     rb.path('staffId', params.staffId, {});
     rb.path('closureId', params.closureId, {});
+    rb.path('salonId', params.salonId, {});
   }
 
   return http.request(

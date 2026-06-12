@@ -10,9 +10,18 @@ import { RequestBuilder } from '../../request-builder';
 import { QueueEntryMember } from '../../models/queue-entry-member';
 
 export interface QueueManagementControllerServeMember$Params {
+
+/**
+ * Queue UUID
+ */
   queueId: string;
   entryId: string;
   memberId: string;
+
+/**
+ * Salon UUID
+ */
+  salonId: string;
 }
 
 export function queueManagementControllerServeMember(http: HttpClient, rootUrl: string, params: QueueManagementControllerServeMember$Params, context?: HttpContext): Observable<StrictHttpResponse<QueueEntryMember>> {
@@ -21,6 +30,7 @@ export function queueManagementControllerServeMember(http: HttpClient, rootUrl: 
     rb.path('queueId', params.queueId, {});
     rb.path('entryId', params.entryId, {});
     rb.path('memberId', params.memberId, {});
+    rb.path('salonId', params.salonId, {});
   }
 
   return http.request(

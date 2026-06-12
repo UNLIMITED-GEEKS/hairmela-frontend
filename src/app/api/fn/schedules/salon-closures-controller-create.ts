@@ -11,6 +11,10 @@ import { Closure } from '../../models/closure';
 import { CreateClosureDto } from '../../models/create-closure-dto';
 
 export interface SalonClosuresControllerCreate$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
       body: CreateClosureDto
 }

@@ -11,9 +11,18 @@ import { ExtendMemberDto } from '../../models/extend-member-dto';
 import { QueueEntryMember } from '../../models/queue-entry-member';
 
 export interface QueueManagementControllerExtendMember$Params {
+
+/**
+ * Queue UUID
+ */
   queueId: string;
   entryId: string;
   memberId: string;
+
+/**
+ * Salon UUID
+ */
+  salonId: string;
       body: ExtendMemberDto
 }
 
@@ -23,6 +32,7 @@ export function queueManagementControllerExtendMember(http: HttpClient, rootUrl:
     rb.path('queueId', params.queueId, {});
     rb.path('entryId', params.entryId, {});
     rb.path('memberId', params.memberId, {});
+    rb.path('salonId', params.salonId, {});
     rb.body(params.body, 'application/json');
   }
 

@@ -10,7 +10,15 @@ import { RequestBuilder } from '../../request-builder';
 import { SetDefaultServiceDto } from '../../models/set-default-service-dto';
 
 export interface StaffServicesControllerSetDefaultService$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
+
+/**
+ * SalonStaff UUID
+ */
   staffId: string;
       body: SetDefaultServiceDto
 }

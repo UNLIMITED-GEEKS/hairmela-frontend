@@ -11,7 +11,15 @@ import { BookAppointmentDto } from '../../models/book-appointment-dto';
 import { QueueEntry } from '../../models/queue-entry';
 
 export interface BookingControllerBookAppointment$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
+
+/**
+ * Queue UUID
+ */
   queueId: string;
 
 /**

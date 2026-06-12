@@ -10,6 +10,10 @@ import { RequestBuilder } from '../../request-builder';
 import { SalonMembershipDto } from '../../models/salon-membership-dto';
 
 export interface SalonMembershipControllerGetMyMembership$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
 }
 

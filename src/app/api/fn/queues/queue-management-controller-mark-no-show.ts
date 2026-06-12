@@ -10,8 +10,17 @@ import { RequestBuilder } from '../../request-builder';
 import { QueueEntry } from '../../models/queue-entry';
 
 export interface QueueManagementControllerMarkNoShow$Params {
+
+/**
+ * Queue UUID
+ */
   queueId: string;
   entryId: string;
+
+/**
+ * Salon UUID
+ */
+  salonId: string;
 }
 
 export function queueManagementControllerMarkNoShow(http: HttpClient, rootUrl: string, params: QueueManagementControllerMarkNoShow$Params, context?: HttpContext): Observable<StrictHttpResponse<QueueEntry>> {
@@ -19,6 +28,7 @@ export function queueManagementControllerMarkNoShow(http: HttpClient, rootUrl: s
   if (params) {
     rb.path('queueId', params.queueId, {});
     rb.path('entryId', params.entryId, {});
+    rb.path('salonId', params.salonId, {});
   }
 
   return http.request(

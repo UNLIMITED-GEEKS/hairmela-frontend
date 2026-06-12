@@ -11,7 +11,16 @@ import { Queue } from '../../models/queue';
 import { SetQueueStatusDto } from '../../models/set-queue-status-dto';
 
 export interface QueueManagementControllerSetStatus$Params {
+
+/**
+ * Queue UUID
+ */
   queueId: string;
+
+/**
+ * Salon UUID
+ */
+  salonId: string;
       body: SetQueueStatusDto
 }
 
@@ -19,6 +28,7 @@ export function queueManagementControllerSetStatus(http: HttpClient, rootUrl: st
   const rb = new RequestBuilder(rootUrl, queueManagementControllerSetStatus.PATH, 'patch');
   if (params) {
     rb.path('queueId', params.queueId, {});
+    rb.path('salonId', params.salonId, {});
     rb.body(params.body, 'application/json');
   }
 

@@ -9,8 +9,16 @@ import { RequestBuilder } from '../../request-builder';
 
 
 export interface BookingControllerCancelAppointment$Params {
+
+/**
+ * Queue UUID
+ */
   queueId: string;
   entryId: string;
+
+/**
+ * Salon UUID
+ */
   salonId: string;
 }
 

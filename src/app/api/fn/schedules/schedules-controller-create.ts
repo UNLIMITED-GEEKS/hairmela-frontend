@@ -11,7 +11,15 @@ import { CreateScheduleDto } from '../../models/create-schedule-dto';
 import { StaffSchedule } from '../../models/staff-schedule';
 
 export interface SchedulesControllerCreate$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
+
+/**
+ * SalonStaff UUID
+ */
   staffId: string;
       body: CreateScheduleDto
 }

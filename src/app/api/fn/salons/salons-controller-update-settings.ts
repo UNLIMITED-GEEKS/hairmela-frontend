@@ -11,6 +11,10 @@ import { Salon } from '../../models/salon';
 import { UpdateSalonSettingsDto } from '../../models/update-salon-settings-dto';
 
 export interface SalonsControllerUpdateSettings$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
       body: UpdateSalonSettingsDto
 }

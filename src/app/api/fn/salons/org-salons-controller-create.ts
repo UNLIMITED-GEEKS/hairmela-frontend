@@ -10,6 +10,10 @@ import { RequestBuilder } from '../../request-builder';
 import { CreateSalonDto } from '../../models/create-salon-dto';
 
 export interface OrgSalonsControllerCreate$Params {
+
+/**
+ * Organization UUID
+ */
   orgId: string;
       body: CreateSalonDto
 }

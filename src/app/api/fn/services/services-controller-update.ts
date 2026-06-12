@@ -10,6 +10,10 @@ import { RequestBuilder } from '../../request-builder';
 import { UpdateServiceDto } from '../../models/update-service-dto';
 
 export interface ServicesControllerUpdate$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
   serviceId: string;
       body: UpdateServiceDto

@@ -10,7 +10,15 @@ import { RequestBuilder } from '../../request-builder';
 import { AvailableSlotDto } from '../../models/available-slot-dto';
 
 export interface AvailabilityControllerGetSlots$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
+
+/**
+ * SalonStaff UUID
+ */
   staffId: string;
 
 /**

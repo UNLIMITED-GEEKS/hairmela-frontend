@@ -10,6 +10,10 @@ import { RequestBuilder } from '../../request-builder';
 import { StaffPerformanceItemDto } from '../../models/staff-performance-item-dto';
 
 export interface AnalyticsControllerGetStaffPerformance$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
 
 /**

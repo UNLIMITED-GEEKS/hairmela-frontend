@@ -10,6 +10,10 @@ import { RequestBuilder } from '../../request-builder';
 import { CreateServiceDto } from '../../models/create-service-dto';
 
 export interface ServicesControllerCreate$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
       body: CreateServiceDto
 }

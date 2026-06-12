@@ -10,6 +10,10 @@ import { RequestBuilder } from '../../request-builder';
 import { InviteStaffDto } from '../../models/invite-staff-dto';
 
 export interface StaffControllerInvite$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
       body: InviteStaffDto
 }

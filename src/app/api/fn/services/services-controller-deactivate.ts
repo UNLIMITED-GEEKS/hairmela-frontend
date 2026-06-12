@@ -9,6 +9,10 @@ import { RequestBuilder } from '../../request-builder';
 
 
 export interface ServicesControllerDeactivate$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
   serviceId: string;
 }

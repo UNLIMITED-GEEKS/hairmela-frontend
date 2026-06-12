@@ -10,13 +10,23 @@ import { RequestBuilder } from '../../request-builder';
 import { QueueEntry } from '../../models/queue-entry';
 
 export interface QueueManagementControllerCallNext$Params {
+
+/**
+ * Queue UUID
+ */
   queueId: string;
+
+/**
+ * Salon UUID
+ */
+  salonId: string;
 }
 
 export function queueManagementControllerCallNext(http: HttpClient, rootUrl: string, params: QueueManagementControllerCallNext$Params, context?: HttpContext): Observable<StrictHttpResponse<QueueEntry>> {
   const rb = new RequestBuilder(rootUrl, queueManagementControllerCallNext.PATH, 'post');
   if (params) {
     rb.path('queueId', params.queueId, {});
+    rb.path('salonId', params.salonId, {});
   }
 
   return http.request(

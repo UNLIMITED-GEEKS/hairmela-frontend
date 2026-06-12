@@ -10,6 +10,10 @@ import { RequestBuilder } from '../../request-builder';
 import { TransferOwnershipDto } from '../../models/transfer-ownership-dto';
 
 export interface StaffControllerTransferOwnership$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
       body: TransferOwnershipDto
 }

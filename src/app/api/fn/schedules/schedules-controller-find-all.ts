@@ -10,13 +10,23 @@ import { RequestBuilder } from '../../request-builder';
 import { StaffSchedule } from '../../models/staff-schedule';
 
 export interface SchedulesControllerFindAll$Params {
+
+/**
+ * SalonStaff UUID
+ */
   staffId: string;
+
+/**
+ * Salon UUID
+ */
+  salonId: string;
 }
 
 export function schedulesControllerFindAll(http: HttpClient, rootUrl: string, params: SchedulesControllerFindAll$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<StaffSchedule>>> {
   const rb = new RequestBuilder(rootUrl, schedulesControllerFindAll.PATH, 'get');
   if (params) {
     rb.path('staffId', params.staffId, {});
+    rb.path('salonId', params.salonId, {});
   }
 
   return http.request(

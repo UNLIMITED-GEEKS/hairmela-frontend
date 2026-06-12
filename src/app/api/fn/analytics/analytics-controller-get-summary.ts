@@ -10,6 +10,10 @@ import { RequestBuilder } from '../../request-builder';
 import { QueueSummaryDto } from '../../models/queue-summary-dto';
 
 export interface AnalyticsControllerGetSummary$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
 
 /**

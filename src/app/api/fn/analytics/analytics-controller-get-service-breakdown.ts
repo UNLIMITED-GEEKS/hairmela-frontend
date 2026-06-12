@@ -10,6 +10,10 @@ import { RequestBuilder } from '../../request-builder';
 import { ServiceBreakdownItemDto } from '../../models/service-breakdown-item-dto';
 
 export interface AnalyticsControllerGetServiceBreakdown$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
 
 /**

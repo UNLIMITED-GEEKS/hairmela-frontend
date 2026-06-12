@@ -10,6 +10,10 @@ import { RequestBuilder } from '../../request-builder';
 import { Closure } from '../../models/closure';
 
 export interface SalonClosuresControllerFindAll$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
 }
 

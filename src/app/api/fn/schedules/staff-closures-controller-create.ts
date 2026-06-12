@@ -11,7 +11,16 @@ import { Closure } from '../../models/closure';
 import { CreateClosureDto } from '../../models/create-closure-dto';
 
 export interface StaffClosuresControllerCreate$Params {
+
+/**
+ * SalonStaff UUID
+ */
   staffId: string;
+
+/**
+ * Salon UUID
+ */
+  salonId: string;
       body: CreateClosureDto
 }
 
@@ -19,6 +28,7 @@ export function staffClosuresControllerCreate(http: HttpClient, rootUrl: string,
   const rb = new RequestBuilder(rootUrl, staffClosuresControllerCreate.PATH, 'post');
   if (params) {
     rb.path('staffId', params.staffId, {});
+    rb.path('salonId', params.salonId, {});
     rb.body(params.body, 'application/json');
   }
 

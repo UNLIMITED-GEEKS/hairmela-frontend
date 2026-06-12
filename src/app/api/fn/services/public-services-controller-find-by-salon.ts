@@ -9,6 +9,10 @@ import { RequestBuilder } from '../../request-builder';
 
 
 export interface PublicServicesControllerFindBySalon$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
 }
 

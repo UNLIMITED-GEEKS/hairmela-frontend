@@ -10,6 +10,10 @@ import { RequestBuilder } from '../../request-builder';
 import { StaffWithQueueDto } from '../../models/staff-with-queue-dto';
 
 export interface StaffControllerFindAll$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
 }
 

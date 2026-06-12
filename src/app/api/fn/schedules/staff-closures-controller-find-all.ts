@@ -10,13 +10,23 @@ import { RequestBuilder } from '../../request-builder';
 import { Closure } from '../../models/closure';
 
 export interface StaffClosuresControllerFindAll$Params {
+
+/**
+ * SalonStaff UUID
+ */
   staffId: string;
+
+/**
+ * Salon UUID
+ */
+  salonId: string;
 }
 
 export function staffClosuresControllerFindAll(http: HttpClient, rootUrl: string, params: StaffClosuresControllerFindAll$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<Closure>>> {
   const rb = new RequestBuilder(rootUrl, staffClosuresControllerFindAll.PATH, 'get');
   if (params) {
     rb.path('staffId', params.staffId, {});
+    rb.path('salonId', params.salonId, {});
   }
 
   return http.request(

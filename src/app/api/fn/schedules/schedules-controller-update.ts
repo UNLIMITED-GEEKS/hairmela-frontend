@@ -11,7 +11,15 @@ import { StaffSchedule } from '../../models/staff-schedule';
 import { UpdateScheduleDto } from '../../models/update-schedule-dto';
 
 export interface SchedulesControllerUpdate$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
+
+/**
+ * SalonStaff UUID
+ */
   staffId: string;
   scheduleId: string;
       body: UpdateScheduleDto

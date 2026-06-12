@@ -10,6 +10,10 @@ import { RequestBuilder } from '../../request-builder';
 import { Salon } from '../../models/salon';
 
 export interface SalonsControllerFindOne$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
 }
 

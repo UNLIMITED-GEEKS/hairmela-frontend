@@ -11,7 +11,15 @@ import { JoinQueueDto } from '../../models/join-queue-dto';
 import { QueueEntry } from '../../models/queue-entry';
 
 export interface WalkInControllerJoinQueue$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
+
+/**
+ * Queue UUID
+ */
   queueId: string;
       body: JoinQueueDto
 }

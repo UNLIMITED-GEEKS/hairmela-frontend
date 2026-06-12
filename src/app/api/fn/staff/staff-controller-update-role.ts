@@ -10,6 +10,10 @@ import { RequestBuilder } from '../../request-builder';
 import { UpdateStaffRoleDto } from '../../models/update-staff-role-dto';
 
 export interface StaffControllerUpdateRole$Params {
+
+/**
+ * Salon UUID
+ */
   salonId: string;
   staffId: string;
       body: UpdateStaffRoleDto

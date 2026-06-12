@@ -9,8 +9,17 @@ import { RequestBuilder } from '../../request-builder';
 
 
 export interface WalkInControllerLeaveQueue$Params {
+
+/**
+ * Queue UUID
+ */
   queueId: string;
   entryId: string;
+
+/**
+ * Salon UUID
+ */
+  salonId: string;
 }
 
 export function walkInControllerLeaveQueue(http: HttpClient, rootUrl: string, params: WalkInControllerLeaveQueue$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
@@ -18,6 +27,7 @@ export function walkInControllerLeaveQueue(http: HttpClient, rootUrl: string, pa
   if (params) {
     rb.path('queueId', params.queueId, {});
     rb.path('entryId', params.entryId, {});
+    rb.path('salonId', params.salonId, {});
   }
 
   return http.request(

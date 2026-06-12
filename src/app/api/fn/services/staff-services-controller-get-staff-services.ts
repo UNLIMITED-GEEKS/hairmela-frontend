@@ -9,13 +9,23 @@ import { RequestBuilder } from '../../request-builder';
 
 
 export interface StaffServicesControllerGetStaffServices$Params {
+
+/**
+ * SalonStaff UUID
+ */
   staffId: string;
+
+/**
+ * Salon UUID
+ */
+  salonId: string;
 }
 
 export function staffServicesControllerGetStaffServices(http: HttpClient, rootUrl: string, params: StaffServicesControllerGetStaffServices$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
   const rb = new RequestBuilder(rootUrl, staffServicesControllerGetStaffServices.PATH, 'get');
   if (params) {
     rb.path('staffId', params.staffId, {});
+    rb.path('salonId', params.salonId, {});
   }
 
   return http.request(
