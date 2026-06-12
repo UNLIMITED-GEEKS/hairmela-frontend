@@ -7,6 +7,7 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
+import { ServiceBreakdownItemDto } from '../../models/service-breakdown-item-dto';
 
 export interface AnalyticsControllerGetServiceBreakdown$Params {
   salonId: string;
@@ -27,7 +28,7 @@ export interface AnalyticsControllerGetServiceBreakdown$Params {
   timezone?: string;
 }
 
-export function analyticsControllerGetServiceBreakdown(http: HttpClient, rootUrl: string, params: AnalyticsControllerGetServiceBreakdown$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
+export function analyticsControllerGetServiceBreakdown(http: HttpClient, rootUrl: string, params: AnalyticsControllerGetServiceBreakdown$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<ServiceBreakdownItemDto>>> {
   const rb = new RequestBuilder(rootUrl, analyticsControllerGetServiceBreakdown.PATH, 'get');
   if (params) {
     rb.path('salonId', params.salonId, {});
@@ -37,11 +38,11 @@ export function analyticsControllerGetServiceBreakdown(http: HttpClient, rootUrl
   }
 
   return http.request(
-    rb.build({ responseType: 'text', accept: '*/*', context })
+    rb.build({ responseType: 'json', accept: 'application/json', context })
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return (r as HttpResponse<any>).clone({ body: undefined }) as StrictHttpResponse<void>;
+      return r as StrictHttpResponse<Array<ServiceBreakdownItemDto>>;
     })
   );
 }

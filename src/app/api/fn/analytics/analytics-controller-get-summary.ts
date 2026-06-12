@@ -7,6 +7,7 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
+import { QueueSummaryDto } from '../../models/queue-summary-dto';
 
 export interface AnalyticsControllerGetSummary$Params {
   salonId: string;
@@ -22,7 +23,7 @@ export interface AnalyticsControllerGetSummary$Params {
   timezone?: string;
 }
 
-export function analyticsControllerGetSummary(http: HttpClient, rootUrl: string, params: AnalyticsControllerGetSummary$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
+export function analyticsControllerGetSummary(http: HttpClient, rootUrl: string, params: AnalyticsControllerGetSummary$Params, context?: HttpContext): Observable<StrictHttpResponse<QueueSummaryDto>> {
   const rb = new RequestBuilder(rootUrl, analyticsControllerGetSummary.PATH, 'get');
   if (params) {
     rb.path('salonId', params.salonId, {});
@@ -31,11 +32,11 @@ export function analyticsControllerGetSummary(http: HttpClient, rootUrl: string,
   }
 
   return http.request(
-    rb.build({ responseType: 'text', accept: '*/*', context })
+    rb.build({ responseType: 'json', accept: 'application/json', context })
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return (r as HttpResponse<any>).clone({ body: undefined }) as StrictHttpResponse<void>;
+      return r as StrictHttpResponse<QueueSummaryDto>;
     })
   );
 }

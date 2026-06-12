@@ -4,8 +4,10 @@
 export interface SalonMembershipDto {
   canManageSalon: boolean;
   canManageStaff: boolean;
+  isFrozen: boolean;
   isStaff: boolean;
   role: {
 };
   salonId: string;
+  tier: number;
 }

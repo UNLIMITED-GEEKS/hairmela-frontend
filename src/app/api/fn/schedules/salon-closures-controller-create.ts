@@ -7,6 +7,7 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
+import { Closure } from '../../models/closure';
 import { CreateClosureDto } from '../../models/create-closure-dto';
 
 export interface SalonClosuresControllerCreate$Params {
@@ -14,7 +15,7 @@ export interface SalonClosuresControllerCreate$Params {
       body: CreateClosureDto
 }
 
-export function salonClosuresControllerCreate(http: HttpClient, rootUrl: string, params: SalonClosuresControllerCreate$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
+export function salonClosuresControllerCreate(http: HttpClient, rootUrl: string, params: SalonClosuresControllerCreate$Params, context?: HttpContext): Observable<StrictHttpResponse<Closure>> {
   const rb = new RequestBuilder(rootUrl, salonClosuresControllerCreate.PATH, 'post');
   if (params) {
     rb.path('salonId', params.salonId, {});
@@ -22,11 +23,11 @@ export function salonClosuresControllerCreate(http: HttpClient, rootUrl: string,
   }
 
   return http.request(
-    rb.build({ responseType: 'text', accept: '*/*', context })
+    rb.build({ responseType: 'json', accept: 'application/json', context })
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return (r as HttpResponse<any>).clone({ body: undefined }) as StrictHttpResponse<void>;
+      return r as StrictHttpResponse<Closure>;
     })
   );
 }

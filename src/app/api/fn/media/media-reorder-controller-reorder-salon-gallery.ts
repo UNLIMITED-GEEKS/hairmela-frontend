@@ -7,6 +7,7 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
+import { Media } from '../../models/media';
 import { ReorderMediaDto } from '../../models/reorder-media-dto';
 
 export interface MediaReorderControllerReorderSalonGallery$Params {
@@ -14,7 +15,7 @@ export interface MediaReorderControllerReorderSalonGallery$Params {
       body: ReorderMediaDto
 }
 
-export function mediaReorderControllerReorderSalonGallery(http: HttpClient, rootUrl: string, params: MediaReorderControllerReorderSalonGallery$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
+export function mediaReorderControllerReorderSalonGallery(http: HttpClient, rootUrl: string, params: MediaReorderControllerReorderSalonGallery$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<Media>>> {
   const rb = new RequestBuilder(rootUrl, mediaReorderControllerReorderSalonGallery.PATH, 'patch');
   if (params) {
     rb.path('salonId', params.salonId, {});
@@ -22,11 +23,11 @@ export function mediaReorderControllerReorderSalonGallery(http: HttpClient, root
   }
 
   return http.request(
-    rb.build({ responseType: 'text', accept: '*/*', context })
+    rb.build({ responseType: 'json', accept: 'application/json', context })
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return (r as HttpResponse<any>).clone({ body: undefined }) as StrictHttpResponse<void>;
+      return r as StrictHttpResponse<Array<Media>>;
     })
   );
 }

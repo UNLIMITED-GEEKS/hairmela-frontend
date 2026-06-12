@@ -7,23 +7,24 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
+import { StaffWithQueueDto } from '../../models/staff-with-queue-dto';
 
 export interface StaffControllerFindAll$Params {
   salonId: string;
 }
 
-export function staffControllerFindAll(http: HttpClient, rootUrl: string, params: StaffControllerFindAll$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
+export function staffControllerFindAll(http: HttpClient, rootUrl: string, params: StaffControllerFindAll$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<StaffWithQueueDto>>> {
   const rb = new RequestBuilder(rootUrl, staffControllerFindAll.PATH, 'get');
   if (params) {
     rb.path('salonId', params.salonId, {});
   }
 
   return http.request(
-    rb.build({ responseType: 'text', accept: '*/*', context })
+    rb.build({ responseType: 'json', accept: 'application/json', context })
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return (r as HttpResponse<any>).clone({ body: undefined }) as StrictHttpResponse<void>;
+      return r as StrictHttpResponse<Array<StaffWithQueueDto>>;
     })
   );
 }

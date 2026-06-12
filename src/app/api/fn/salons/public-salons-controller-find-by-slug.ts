@@ -7,13 +7,13 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { Salon } from '../../models/salon';
+import { SalonPublicDto } from '../../models/salon-public-dto';
 
 export interface PublicSalonsControllerFindBySlug$Params {
   slug: string;
 }
 
-export function publicSalonsControllerFindBySlug(http: HttpClient, rootUrl: string, params: PublicSalonsControllerFindBySlug$Params, context?: HttpContext): Observable<StrictHttpResponse<Salon>> {
+export function publicSalonsControllerFindBySlug(http: HttpClient, rootUrl: string, params: PublicSalonsControllerFindBySlug$Params, context?: HttpContext): Observable<StrictHttpResponse<SalonPublicDto>> {
   const rb = new RequestBuilder(rootUrl, publicSalonsControllerFindBySlug.PATH, 'get');
   if (params) {
     rb.path('slug', params.slug, {});
@@ -24,7 +24,7 @@ export function publicSalonsControllerFindBySlug(http: HttpClient, rootUrl: stri
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<Salon>;
+      return r as StrictHttpResponse<SalonPublicDto>;
     })
   );
 }

@@ -7,6 +7,7 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
+import { QueueEntryMember } from '../../models/queue-entry-member';
 
 export interface QueueManagementControllerCompleteMember$Params {
   queueId: string;
@@ -14,7 +15,7 @@ export interface QueueManagementControllerCompleteMember$Params {
   memberId: string;
 }
 
-export function queueManagementControllerCompleteMember(http: HttpClient, rootUrl: string, params: QueueManagementControllerCompleteMember$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
+export function queueManagementControllerCompleteMember(http: HttpClient, rootUrl: string, params: QueueManagementControllerCompleteMember$Params, context?: HttpContext): Observable<StrictHttpResponse<QueueEntryMember>> {
   const rb = new RequestBuilder(rootUrl, queueManagementControllerCompleteMember.PATH, 'patch');
   if (params) {
     rb.path('queueId', params.queueId, {});
@@ -23,11 +24,11 @@ export function queueManagementControllerCompleteMember(http: HttpClient, rootUr
   }
 
   return http.request(
-    rb.build({ responseType: 'text', accept: '*/*', context })
+    rb.build({ responseType: 'json', accept: 'application/json', context })
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return (r as HttpResponse<any>).clone({ body: undefined }) as StrictHttpResponse<void>;
+      return r as StrictHttpResponse<QueueEntryMember>;
     })
   );
 }

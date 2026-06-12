@@ -8,6 +8,7 @@ import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
 import { ExtendMemberDto } from '../../models/extend-member-dto';
+import { QueueEntryMember } from '../../models/queue-entry-member';
 
 export interface QueueManagementControllerExtendMember$Params {
   queueId: string;
@@ -16,7 +17,7 @@ export interface QueueManagementControllerExtendMember$Params {
       body: ExtendMemberDto
 }
 
-export function queueManagementControllerExtendMember(http: HttpClient, rootUrl: string, params: QueueManagementControllerExtendMember$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
+export function queueManagementControllerExtendMember(http: HttpClient, rootUrl: string, params: QueueManagementControllerExtendMember$Params, context?: HttpContext): Observable<StrictHttpResponse<QueueEntryMember>> {
   const rb = new RequestBuilder(rootUrl, queueManagementControllerExtendMember.PATH, 'patch');
   if (params) {
     rb.path('queueId', params.queueId, {});
@@ -26,11 +27,11 @@ export function queueManagementControllerExtendMember(http: HttpClient, rootUrl:
   }
 
   return http.request(
-    rb.build({ responseType: 'text', accept: '*/*', context })
+    rb.build({ responseType: 'json', accept: 'application/json', context })
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return (r as HttpResponse<any>).clone({ body: undefined }) as StrictHttpResponse<void>;
+      return r as StrictHttpResponse<QueueEntryMember>;
     })
   );
 }

@@ -7,23 +7,24 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
+import { Media } from '../../models/media';
 
 export interface PublicMediaControllerGetSalonMedia$Params {
   entityId: string;
 }
 
-export function publicMediaControllerGetSalonMedia(http: HttpClient, rootUrl: string, params: PublicMediaControllerGetSalonMedia$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
+export function publicMediaControllerGetSalonMedia(http: HttpClient, rootUrl: string, params: PublicMediaControllerGetSalonMedia$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<Media>>> {
   const rb = new RequestBuilder(rootUrl, publicMediaControllerGetSalonMedia.PATH, 'get');
   if (params) {
     rb.path('entityId', params.entityId, {});
   }
 
   return http.request(
-    rb.build({ responseType: 'text', accept: '*/*', context })
+    rb.build({ responseType: 'json', accept: 'application/json', context })
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return (r as HttpResponse<any>).clone({ body: undefined }) as StrictHttpResponse<void>;
+      return r as StrictHttpResponse<Array<Media>>;
     })
   );
 }

@@ -7,6 +7,7 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
+import { AvailableSlotDto } from '../../models/available-slot-dto';
 
 export interface AvailabilityControllerGetSlots$Params {
   salonId: string;
@@ -18,7 +19,7 @@ export interface AvailabilityControllerGetSlots$Params {
   date: string;
 }
 
-export function availabilityControllerGetSlots(http: HttpClient, rootUrl: string, params: AvailabilityControllerGetSlots$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
+export function availabilityControllerGetSlots(http: HttpClient, rootUrl: string, params: AvailabilityControllerGetSlots$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<AvailableSlotDto>>> {
   const rb = new RequestBuilder(rootUrl, availabilityControllerGetSlots.PATH, 'get');
   if (params) {
     rb.path('salonId', params.salonId, {});
@@ -27,11 +28,11 @@ export function availabilityControllerGetSlots(http: HttpClient, rootUrl: string
   }
 
   return http.request(
-    rb.build({ responseType: 'text', accept: '*/*', context })
+    rb.build({ responseType: 'json', accept: 'application/json', context })
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return (r as HttpResponse<any>).clone({ body: undefined }) as StrictHttpResponse<void>;
+      return r as StrictHttpResponse<Array<AvailableSlotDto>>;
     })
   );
 }

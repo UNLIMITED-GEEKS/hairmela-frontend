@@ -27,6 +27,8 @@ export type { OrganizationsControllerFindOne$Params as OrganizationsControllerFi
 export { organizationsControllerFindOne as organizationsControllerFindOne } from './fn/organizations/organizations-controller-find-one';
 export type { OrganizationsControllerUpdate$Params as OrganizationsControllerUpdate$Params } from './fn/organizations/organizations-controller-update';
 export { organizationsControllerUpdate as organizationsControllerUpdate } from './fn/organizations/organizations-controller-update';
+export type { UserSalonsControllerFindMine$Params as UserSalonsControllerFindMine$Params } from './fn/salons/user-salons-controller-find-mine';
+export { userSalonsControllerFindMine as userSalonsControllerFindMine } from './fn/salons/user-salons-controller-find-mine';
 export type { UserSalonsControllerCreate$Params as UserSalonsControllerCreate$Params } from './fn/salons/user-salons-controller-create';
 export { userSalonsControllerCreate as userSalonsControllerCreate } from './fn/salons/user-salons-controller-create';
 export type { PublicSalonsControllerFindBySlug$Params as PublicSalonsControllerFindBySlug$Params } from './fn/salons/public-salons-controller-find-by-slug';
@@ -95,6 +97,8 @@ export type { SchedulesControllerCreate$Params as SchedulesControllerCreate$Para
 export { schedulesControllerCreate as schedulesControllerCreate } from './fn/schedules/schedules-controller-create';
 export type { SchedulesControllerDelete$Params as SchedulesControllerDelete$Params } from './fn/schedules/schedules-controller-delete';
 export { schedulesControllerDelete as schedulesControllerDelete } from './fn/schedules/schedules-controller-delete';
+export type { SchedulesControllerUpdate$Params as SchedulesControllerUpdate$Params } from './fn/schedules/schedules-controller-update';
+export { schedulesControllerUpdate as schedulesControllerUpdate } from './fn/schedules/schedules-controller-update';
 export type { StaffClosuresControllerFindAll$Params as StaffClosuresControllerFindAll$Params } from './fn/schedules/staff-closures-controller-find-all';
 export { staffClosuresControllerFindAll as staffClosuresControllerFindAll } from './fn/schedules/staff-closures-controller-find-all';
 export type { StaffClosuresControllerCreate$Params as StaffClosuresControllerCreate$Params } from './fn/schedules/staff-closures-controller-create';
