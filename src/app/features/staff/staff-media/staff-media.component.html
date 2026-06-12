@@ -1,0 +1,60 @@
+@if (loading()) {
+  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+    <span class="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+  </div>
+} @else {
+  <div class="min-h-screen bg-gray-50 px-4 py-8">
+    <div class="max-w-lg mx-auto space-y-6">
+
+      <div class="flex items-center gap-3">
+        <a routerLink=".." class="text-gray-400 hover:text-gray-600">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </a>
+        <h1 class="text-lg font-semibold text-gray-900">Staff photos</h1>
+      </div>
+
+      <!-- Profile photo -->
+      <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+        <h2 class="text-sm font-semibold text-gray-700">Profile photo</h2>
+        <div class="flex items-center gap-4">
+          <app-avatar [src]="profilePhoto()?.url" size="xl" />
+          @if (canEdit()) {
+            <app-image-uploader
+              entityType="STAFF"
+              [entityId]="_staffId"
+              mediaType="PROFILE"
+              label="Change photo"
+              (uploaded)="onProfileUploaded($event)"
+              class="flex-1" />
+          }
+        </div>
+      </div>
+
+      <!-- Gallery — staff gallery reorder uses salon-level endpoint; omit reorder for staff -->
+      <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-semibold text-gray-700">Gallery</h2>
+          <span class="text-xs text-gray-400">{{ galleryPhotos().length }} photo{{ galleryPhotos().length === 1 ? '' : 's' }}</span>
+        </div>
+
+        <app-gallery
+          [items]="galleryPhotos()"
+          [salonId]="null"
+          [canEdit]="canEdit()"
+          (deleted)="onDeleted($event)" />
+
+        @if (canEdit()) {
+          <app-image-uploader
+            entityType="STAFF"
+            [entityId]="_staffId"
+            mediaType="GALLERY"
+            label="Add photo"
+            (uploaded)="onGalleryUploaded($event)" />
+        }
+      </div>
+
+    </div>
+  </div>
+}

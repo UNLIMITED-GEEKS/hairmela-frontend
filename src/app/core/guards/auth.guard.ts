@@ -2,7 +2,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { TokenStore } from '../auth/token.store';
 
-export const authGuard: CanActivateFn = (route) => {
+export const authGuard: CanActivateFn = () => {
   const tokenStore = inject(TokenStore);
   const router = inject(Router);
 
@@ -10,8 +10,8 @@ export const authGuard: CanActivateFn = (route) => {
     return true;
   }
 
-  const attempted = route.url.map((s) => s.path).join('/');
+  const attempted = router.url;
   return router.createUrlTree(['/login'], {
-    queryParams: attempted ? { returnUrl: attempted } : {},
+    queryParams: attempted && attempted !== '/' ? { returnUrl: attempted } : {},
   });
 };

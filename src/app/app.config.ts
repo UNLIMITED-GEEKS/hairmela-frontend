@@ -1,6 +1,7 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideAppInitializer } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideCloudinaryLoader } from '@angular/common';
 
 import { routes } from './app.routes';
 import { provideApiConfiguration } from './api/api-configuration';
@@ -17,5 +18,6 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([jwtInterceptor, refreshInterceptor, errorInterceptor])),
     provideApiConfiguration(environment.apiBaseUrl),
     provideAppInitializer(sessionInit()),
+    provideCloudinaryLoader(`https://res.cloudinary.com/${environment.cloudinaryCloudName}`),
   ],
 };

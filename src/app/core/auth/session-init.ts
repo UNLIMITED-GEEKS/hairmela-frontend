@@ -4,7 +4,6 @@ import { firstValueFrom } from 'rxjs';
 import { TokenStore } from './token.store';
 import { CurrentUserStore } from './current-user.store';
 import { ApiConfiguration } from '../../api/api-configuration';
-import { authControllerRefresh } from '../../api/fn/auth/auth-controller-refresh';
 import { authenticatedAuthControllerGetMe } from '../../api/fn/auth/authenticated-auth-controller-get-me';
 
 export function sessionInit(): () => Promise<void> {
@@ -18,10 +17,13 @@ export function sessionInit(): () => Promise<void> {
     if (!refreshToken) return;
 
     try {
-      const tokensResponse = await firstValueFrom(
-        authControllerRefresh(http, apiConfig.rootUrl, {})
+      const tokens = await firstValueFrom(
+        http.post<{ accessToken: string; refreshToken: string }>(
+          `${apiConfig.rootUrl}/v1/auth/refresh`,
+          { refreshToken },
+        )
       );
-      tokenStore.setTokens(tokensResponse.body.accessToken, tokensResponse.body.refreshToken);
+      tokenStore.setTokens(tokens.accessToken, tokens.refreshToken);
 
       const userResponse = await firstValueFrom(
         authenticatedAuthControllerGetMe(http, apiConfig.rootUrl, {})

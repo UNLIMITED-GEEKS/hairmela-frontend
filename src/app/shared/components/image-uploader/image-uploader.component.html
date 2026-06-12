@@ -1,0 +1,20 @@
+<label class="block cursor-pointer">
+  <div class="relative flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-6 transition-colors hover:border-primary hover:bg-primary/5">
+    @if (uploading()) {
+      <span class="inline-block h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></span>
+      <span class="text-sm text-gray-500">Uploading…</span>
+    } @else if (previewUrl()) {
+      <img [src]="previewUrl()" alt="Preview" class="h-24 w-24 rounded-lg object-cover" />
+      <span class="text-xs text-gray-400">Tap to change</span>
+    } @else {
+      <svg class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+          d="M3 16.5V18a2 2 0 002 2h14a2 2 0 002-2v-1.5M16 10l-4-4m0 0L8 10m4-4v12" />
+      </svg>
+      <span class="text-sm font-medium text-gray-600">{{ label() }}</span>
+      <span class="text-xs text-gray-400">JPEG, PNG or WebP · max 5 MB</span>
+    }
+    <input type="file" accept="image/jpeg,image/png,image/webp" class="sr-only"
+      (change)="onFileChange($event)" [disabled]="uploading()" />
+  </div>
+</label>

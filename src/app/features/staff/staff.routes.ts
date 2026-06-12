@@ -20,4 +20,11 @@ export const staffRoutes: Routes = [
     loadComponent: () =>
       import('./staff-detail/staff-detail.component').then((m) => m.StaffDetailComponent),
   },
+  {
+    path: ':staffId/media',
+    canActivate: [salonRoleGuard],
+    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
+    loadComponent: () =>
+      import('./staff-media/staff-media.component').then((m) => m.StaffMediaComponent),
+  },
 ];
