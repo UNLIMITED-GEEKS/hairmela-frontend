@@ -1,0 +1,106 @@
+@if (loading()) {
+  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+    <span class="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+  </div>
+} @else {
+  <div class="min-h-screen bg-gray-50 px-4 py-8">
+    <div class="max-w-lg mx-auto space-y-5">
+
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <a routerLink=".." class="text-gray-400 hover:text-gray-600">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+          </a>
+          <h1 class="text-lg font-semibold text-gray-900">Closures</h1>
+        </div>
+        <button type="button" (click)="showAddForm.set(!showAddForm())"
+          class="min-h-10 px-4 flex items-center gap-1.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Add closure
+        </button>
+      </div>
+
+      <!-- Tabs (only shown when staffId is present) -->
+      @if (_staffId) {
+        <div class="flex gap-1 bg-gray-100 p-1 rounded-lg">
+          <button type="button" (click)="setTab('salon')"
+            class="flex-1 min-h-9 text-sm font-medium rounded-md transition-colors"
+            [class]="activeTab() === 'salon' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'">
+            Salon
+          </button>
+          <button type="button" (click)="setTab('staff')"
+            class="flex-1 min-h-9 text-sm font-medium rounded-md transition-colors"
+            [class]="activeTab() === 'staff' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'">
+            This staff
+          </button>
+        </div>
+      }
+
+      <!-- Add form -->
+      @if (showAddForm()) {
+        <form [formGroup]="addForm" (ngSubmit)="add()"
+          class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+          <h2 class="text-sm font-semibold text-gray-700">New closure</h2>
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium text-gray-700">Date</label>
+            <input formControlName="date" type="date"
+              class="w-full min-h-11 px-3 rounded-lg border border-gray-300 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              [class.border-red-400]="addForm.get('date')?.invalid && addForm.get('date')?.touched" />
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium text-gray-700">
+              Reason <span class="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <input formControlName="reason" type="text" placeholder="e.g. Public holiday"
+              class="w-full min-h-11 px-3 rounded-lg border border-gray-300 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" />
+          </div>
+          <div class="flex gap-3">
+            <button type="submit" [disabled]="addForm.invalid || saving()"
+              class="flex-1 min-h-11 bg-primary text-white text-sm font-medium rounded-lg
+                     hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
+              @if (saving()) {
+                <span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              }
+              Save
+            </button>
+            <button type="button" (click)="showAddForm.set(false)"
+              class="flex-1 min-h-11 border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+              Cancel
+            </button>
+          </div>
+        </form>
+      }
+
+      <!-- Closure list -->
+      @if (activeClosures.length === 0) {
+        <div class="bg-white rounded-xl border border-gray-200 p-10 text-center">
+          <p class="text-sm text-gray-400">No closures scheduled</p>
+        </div>
+      } @else {
+        <div class="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+          @for (closure of activeClosures; track closure.id) {
+            <div class="flex items-center gap-3 px-4 py-4 min-h-14">
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900">{{ closure.date }}</p>
+                @if (closure.reason) {
+                  <p class="text-xs text-gray-400 mt-0.5">{{ closure.reason }}</p>
+                }
+              </div>
+              <button type="button" (click)="delete(closure)"
+                class="min-h-9 px-3 text-xs font-medium text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors shrink-0">
+                Remove
+              </button>
+            </div>
+          }
+        </div>
+      }
+
+    </div>
+  </div>
+}

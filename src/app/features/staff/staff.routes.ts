@@ -36,4 +36,20 @@ export const staffRoutes: Routes = [
         (m) => m.StaffServiceAssignComponent,
       ),
   },
+  {
+    path: ':staffId/schedules',
+    canActivate: [salonRoleGuard],
+    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
+    loadComponent: () =>
+      import('../../features/schedules/weekly-schedule.component').then(
+        (m) => m.WeeklyScheduleComponent,
+      ),
+  },
+  {
+    path: ':staffId/closures',
+    canActivate: [salonRoleGuard],
+    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
+    loadComponent: () =>
+      import('../../features/closures/closures.component').then((m) => m.ClosuresComponent),
+  },
 ];
