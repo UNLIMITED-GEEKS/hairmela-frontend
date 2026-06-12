@@ -1,0 +1,34 @@
+<div class="space-y-3">
+  @for (item of salons(); track item.salon.id) {
+    <div class="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4 min-h-[72px]">
+      <!-- Salon initials avatar -->
+      <div class="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+        <span class="text-primary font-semibold text-sm">
+          {{ item.salon.name.charAt(0).toUpperCase() }}
+        </span>
+      </div>
+
+      <!-- Info -->
+      <div class="flex-1 min-w-0">
+        <p class="font-medium text-gray-900 truncate">{{ item.salon.name }}</p>
+        <p class="text-xs text-gray-400 truncate">{{ item.salon.address.city }}, {{ item.salon.address.country }}</p>
+      </div>
+
+      <!-- Role badge -->
+      <span class="shrink-0 text-xs font-medium px-2.5 py-1 rounded-full {{ roleBadgeClass(item.role) }}">
+        {{ roleLabel(item.role) }}
+      </span>
+
+      <!-- Go arrow -->
+      <button
+        type="button"
+        (click)="navigateToSalon(item.salon.id)"
+        class="min-w-11 min-h-11 flex items-center justify-center text-gray-400 hover:text-primary transition-colors"
+        [attr.aria-label]="'Open ' + item.salon.name">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    </div>
+  }
+</div>

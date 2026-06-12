@@ -200,6 +200,9 @@ src/app/
 └── features/                        ← lazy-loaded
     ├── auth/            (login, register, verify-email)
     ├── dashboard/
+    │   ├── customer/        (CustomerDashboardComponent — active queues, visit history post-MVP)
+    │   ├── salon/           (SalonDashboardComponent — my salons, pending invites, quick actions)
+    │   └── shared/          (NoSalonsEmptyState — used by both views)
     ├── organization/
     ├── salons/
     ├── staff/           (management + invite accept/decline)
@@ -354,12 +357,33 @@ Each feature lists routes, components, the backend endpoints consumed (generated
 
 **Routes:** `/dashboard`
 
+The dashboard shell (`DashboardComponent`) calls `GET /salons/mine` once on load. An empty result means a pure customer — it renders `CustomerDashboardComponent`. A non-empty result means the user has salon memberships — it renders `SalonDashboardComponent`. One route, two views, no extra API call.
+
+**Folder structure:**
+```
+features/dashboard/
+├── dashboard.component.ts/.html          ← shell / router between the two views
+├── customer/
+│   └── customer-dashboard.component.ts/.html   ← active queues (MVP shell); visit history post-MVP
+├── salon/
+│   ├── salon-dashboard.component.ts/.html      ← my salons list + pending invites
+│   ├── my-salons-list/
+│   │   └── my-salons-list.component.ts/.html
+│   └── pending-invites/
+│       └── pending-invites.component.ts/.html
+└── shared/
+    └── no-salons-empty-state/
+        └── no-salons-empty-state.component.ts/.html   ← "create a salon" CTA; used by both views
+```
+
 | Component | Purpose | Endpoint |
 |---|---|---|
-| DashboardComponent | Post-login landing | — |
+| DashboardComponent | Shell — fetches `/salons/mine`, routes to salon or customer view | GET /salons/mine |
+| SalonDashboardComponent | Salon staff/owner landing: my salons list + pending invites | — |
 | MySalonsListComponent | Every salon where the user is active staff, with role badge + role-filtered quick actions | GET /salons/mine → `{ salon, role }[]` |
-| PendingInvitesComponent | Surfaces STAFF_INVITED notifications with inline Accept / Decline. This is a **single scoped call** to `GET /notifications` (filtered by type) — invites are a core membership flow; the full inbox feature stays in the backlog | GET /notifications + staff accept/decline |
-| NoSalonsEmptyState | Pure customers: "create a salon" CTA | — |
+| PendingInvitesComponent | Surfaces STAFF_INVITED notifications with inline Accept / Decline. Single scoped call to `GET /notifications` filtered by type — invites are a core membership flow; full inbox stays in the backlog | GET /notifications + staff accept/decline |
+| CustomerDashboardComponent | Pure-customer landing: active queue positions (MVP shell); visit history post-MVP | — |
+| NoSalonsEmptyState | Shared: "create a salon" CTA — shown to salon users with no salons yet, and optionally to customers | — |
 
 **Guards:** `authGuard`.
 

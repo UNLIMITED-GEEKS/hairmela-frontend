@@ -1,0 +1,48 @@
+@if (loading()) {
+  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+    <span class="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+  </div>
+} @else {
+  <div class="min-h-screen bg-gray-50 px-4 py-8">
+    <div class="max-w-lg mx-auto">
+
+      <h1 class="text-xl font-semibold text-gray-900 mb-6">Organisation Settings</h1>
+
+      <form [formGroup]="form" (ngSubmit)="save()" class="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
+
+        <div>
+          <label for="org-name" class="block text-sm font-medium text-gray-700 mb-1.5">
+            Organisation name
+          </label>
+          <input
+            id="org-name"
+            type="text"
+            formControlName="name"
+            class="w-full min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg
+                   focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary
+                   disabled:bg-gray-50 disabled:text-gray-400 transition-colors"
+            placeholder="My Organisation" />
+          @if (form.get('name')?.invalid && form.get('name')?.touched) {
+            <p class="mt-1.5 text-xs text-red-600">Name must be at least 2 characters.</p>
+          }
+          @if (form.get('name')?.errors?.['server']) {
+            <p class="mt-1.5 text-xs text-red-600">{{ form.get('name')?.errors?.['server'] }}</p>
+          }
+        </div>
+
+        <button
+          type="submit"
+          [disabled]="form.invalid || saving()"
+          class="w-full min-h-11 bg-primary text-white text-sm font-medium rounded-lg
+                 hover:bg-primary-dark disabled:opacity-50 active:scale-95 transition-all">
+          @if (saving()) {
+            <span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          } @else {
+            Save changes
+          }
+        </button>
+
+      </form>
+    </div>
+  </div>
+}

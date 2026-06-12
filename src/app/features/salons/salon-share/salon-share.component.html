@@ -1,0 +1,47 @@
+@if (loading()) {
+  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+    <span class="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+  </div>
+} @else {
+  <div class="min-h-screen bg-gray-50 px-4 py-8">
+    <div class="max-w-lg mx-auto space-y-6">
+
+      <div>
+        <h1 class="text-xl font-semibold text-gray-900 mb-1">Share your salon</h1>
+        <p class="text-sm text-gray-500">Customers scan the QR code or open the link to join your queue.</p>
+      </div>
+
+      <!-- QR code -->
+      <div class="bg-white rounded-xl border border-gray-200 p-6 flex flex-col items-center gap-4">
+        @if (qrDataUrl()) {
+          <img [src]="qrDataUrl()" alt="QR code for salon queue" class="w-48 h-48" />
+        } @else {
+          <div class="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center">
+            <span class="inline-block w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></span>
+          </div>
+        }
+
+        <button type="button" (click)="downloadQr()" [disabled]="!qrDataUrl()"
+          class="min-h-11 px-6 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg
+                 hover:bg-gray-50 disabled:opacity-50 active:scale-95 transition-all">
+          Download PNG
+        </button>
+      </div>
+
+      <!-- Share URL -->
+      <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+        <p class="text-sm font-medium text-gray-700">Share link</p>
+        <div class="flex items-center gap-2">
+          <input type="text" [value]="shareUrl()" readonly
+            class="flex-1 min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg bg-gray-50 text-gray-600 truncate" />
+          <button type="button" (click)="copyLink()"
+            class="min-h-11 px-4 py-2.5 bg-primary text-white text-sm font-medium rounded-lg
+                   hover:bg-primary-dark active:scale-95 transition-all shrink-0">
+            Copy
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+}

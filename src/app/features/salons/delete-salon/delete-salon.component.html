@@ -1,0 +1,45 @@
+<div class="min-h-screen bg-gray-50 px-4 py-8">
+  <div class="max-w-lg mx-auto space-y-6">
+
+    <div>
+      <h1 class="text-xl font-semibold text-gray-900 mb-1">Delete Salon</h1>
+      <p class="text-sm text-gray-500">This action is permanent and cannot be undone.</p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-red-200 p-5 space-y-3">
+      <h2 class="text-sm font-semibold text-red-700">What happens when you delete</h2>
+      <ul class="space-y-2 text-sm text-gray-600">
+        <li class="flex items-start gap-2">
+          <span class="mt-0.5 text-red-400 shrink-0">•</span>
+          All active queues will be closed immediately
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="mt-0.5 text-red-400 shrink-0">•</span>
+          All waiting entries will be cancelled
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="mt-0.5 text-red-400 shrink-0">•</span>
+          Customers in the queue will be notified
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="mt-0.5 text-red-400 shrink-0">•</span>
+          Staff members will lose access to this salon
+        </li>
+      </ul>
+    </div>
+
+    <button
+      type="button"
+      (click)="confirmDelete()"
+      [disabled]="deleting() || !salonName()"
+      class="w-full min-h-11 bg-red-600 text-white text-sm font-medium rounded-lg
+             hover:bg-red-700 disabled:opacity-50 active:scale-95 transition-all">
+      @if (deleting()) {
+        <span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+      } @else {
+        Delete "{{ salonName() }}"
+      }
+    </button>
+
+  </div>
+</div>

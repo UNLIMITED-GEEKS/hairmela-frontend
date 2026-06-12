@@ -1,0 +1,59 @@
+<div class="min-h-screen bg-gray-50 px-4 py-8">
+  <div class="max-w-lg mx-auto">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-xl font-semibold text-gray-900">Staff</h1>
+      <a *hasRole="['OWNER', 'ADMIN']"
+        [routerLink]="['invite']"
+        class="min-h-11 px-4 py-2.5 bg-primary text-white text-sm font-medium rounded-lg
+               hover:bg-primary-dark active:scale-95 transition-all">
+        Invite
+      </a>
+    </div>
+
+    @if (loading()) {
+      <div class="flex justify-center py-16">
+        <span class="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+      </div>
+    } @else if (staffList().length === 0) {
+      <div class="text-center py-16">
+        <p class="text-sm text-gray-500">No staff yet. Invite someone to get started.</p>
+      </div>
+    } @else {
+      <div class="space-y-2">
+        @for (item of staffList(); track item.staff.id) {
+          <a [routerLink]="[item.staff.id]"
+            class="flex items-center gap-3 bg-white rounded-xl border border-gray-200 px-4 py-3 min-h-[68px]
+                   hover:bg-gray-50 transition-colors">
+
+            <!-- Avatar -->
+            <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <span class="text-primary font-semibold text-sm">
+                {{ staffName(item.staff).charAt(0).toUpperCase() }}
+              </span>
+            </div>
+
+            <!-- Info -->
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-gray-900 truncate">{{ staffName(item.staff) }}</p>
+              <p class="text-xs text-gray-400 truncate">{{ item.staff.email }}</p>
+            </div>
+
+            <!-- Badges -->
+            <div class="flex flex-col items-end gap-1 shrink-0">
+              <span class="text-xs font-medium px-2 py-0.5 rounded-full {{ roleBadgeClass(item.staff.role) }}">
+                {{ item.staff.role }}
+              </span>
+              <span class="text-xs font-medium px-2 py-0.5 rounded-full {{ statusBadgeClass(item.staff.status) }}">
+                {{ item.staff.status }}
+              </span>
+            </div>
+
+          </a>
+        }
+      </div>
+    }
+
+  </div>
+</div>

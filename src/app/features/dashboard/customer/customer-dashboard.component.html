@@ -1,0 +1,11 @@
+<div class="min-h-screen bg-gray-50 px-4 py-8">
+  <div class="max-w-lg mx-auto">
+    <h1 class="text-xl font-semibold text-gray-900 mb-2">Welcome</h1>
+    <p class="text-sm text-gray-500 mb-8">Find a salon and join a queue to get started.</p>
+
+    <app-no-salons-empty-state
+      message="You haven't joined any salons yet."
+      ctaLabel="Create a salon"
+      (ctaClick)="navigateToCreateSalon()" />
+  </div>
+</div>

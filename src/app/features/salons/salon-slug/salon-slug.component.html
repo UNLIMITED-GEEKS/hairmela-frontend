@@ -1,0 +1,49 @@
+@if (loading()) {
+  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+    <span class="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+  </div>
+} @else {
+  <div class="min-h-screen bg-gray-50 px-4 py-8">
+    <div class="max-w-lg mx-auto">
+      <h1 class="text-xl font-semibold text-gray-900 mb-2">Salon URL</h1>
+      <p class="text-sm text-gray-500 mb-6">
+        This is the public link customers use to join your queue. Changing it will break any printed QR codes.
+      </p>
+
+      <form [formGroup]="form" (ngSubmit)="save()" class="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
+
+        <div>
+          <label for="slug" class="block text-sm font-medium text-gray-700 mb-1.5">Slug</label>
+          <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden
+                      focus-within:ring-2 focus-within:ring-primary/40 focus-within:border-primary transition-colors">
+            <span class="px-3 py-2.5 text-sm text-gray-400 bg-gray-50 border-r border-gray-300 shrink-0">
+              /s/
+            </span>
+            <input id="slug" type="text" formControlName="slug"
+              class="flex-1 min-h-11 px-3 py-2.5 text-sm focus:outline-none" />
+          </div>
+          @if (form.get('slug')?.errors?.['taken']) {
+            <p class="mt-1.5 text-xs text-red-600">This slug is already taken. Try another.</p>
+          }
+          @if (form.get('slug')?.errors?.['pattern'] && form.get('slug')?.touched) {
+            <p class="mt-1.5 text-xs text-red-600">Only lowercase letters, numbers, and hyphens allowed.</p>
+          }
+          @if (form.get('slug')?.errors?.['minlength'] && form.get('slug')?.touched) {
+            <p class="mt-1.5 text-xs text-red-600">Must be at least 3 characters.</p>
+          }
+        </div>
+
+        <button type="submit" [disabled]="form.invalid || saving()"
+          class="w-full min-h-11 bg-primary text-white text-sm font-medium rounded-lg
+                 hover:bg-primary-dark disabled:opacity-50 active:scale-95 transition-all">
+          @if (saving()) {
+            <span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          } @else {
+            Save slug
+          }
+        </button>
+
+      </form>
+    </div>
+  </div>
+}
