@@ -1,0 +1,154 @@
+@if (loading()) {
+  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+    <span class="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+  </div>
+} @else {
+  <div class="min-h-screen bg-gray-50 flex flex-col">
+
+    <!-- Top bar: queue status toggle -->
+    <div class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between gap-3">
+      <a [routerLink]="['../../../../..']" class="text-gray-500 hover:text-gray-700 min-w-11 min-h-11 flex items-center justify-center -ml-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+      </a>
+
+      <div class="flex items-center gap-2">
+        @for (s of statusOptions; track s) {
+          <button
+            (click)="setStatus(s)"
+            [disabled]="acting() || queueStatus() === s"
+            [class]="'px-3 py-1.5 rounded-full text-xs font-semibold transition-colors min-h-9 ' +
+              (queueStatus() === s
+                ? (s === 'OPEN' ? 'bg-green-100 text-green-700' : s === 'PAUSED' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700')
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 disabled:opacity-50')">
+            {{ s }}
+          </button>
+        }
+      </div>
+
+      <button
+        (click)="callNext()"
+        [disabled]="acting() || queueStatus() !== 'OPEN' || waitingEntries().length === 0"
+        class="bg-primary text-white text-sm font-semibold px-4 py-2 rounded-xl min-h-11 disabled:opacity-50 whitespace-nowrap">
+        Call next
+      </button>
+    </div>
+
+    <!-- Two-panel body -->
+    <div class="flex-1 flex overflow-hidden">
+
+      <!-- LEFT PANEL — Current Client -->
+      @if (activePanel() === 'current') {
+        <div class="flex-1 flex flex-col px-5 py-6">
+
+          <!-- Header -->
+          <div class="mb-6">
+            <div class="bg-sky-100 text-sky-800 text-sm font-semibold px-4 py-2 rounded-xl text-center w-full">
+              Current Client
+            </div>
+          </div>
+
+          <!-- Circle -->
+          <div class="flex-1 flex items-center justify-center">
+            <div class="w-56 h-56 rounded-full border-4 border-primary flex flex-col items-center justify-center gap-1 text-center">
+              @if (servingMember(); as member) {
+                <span class="text-4xl font-bold text-primary">{{ member.memberName.split(' ')[0] }}</span>
+                <span class="text-xl font-semibold text-primary" aria-live="polite">{{ timerDisplay() }}</span>
+                <span class="text-sm text-sky-600">eft: {{ estimatedFinish(member.serviceDuration) }}</span>
+              } @else {
+                <span class="text-lg text-gray-400 font-medium">No client</span>
+                <span class="text-sm text-gray-400">Queue is free</span>
+              }
+            </div>
+          </div>
+
+          <!-- Buttons -->
+          <div class="mt-6 flex gap-3">
+            <button
+              (click)="activePanel.set('queue')"
+              class="flex-1 bg-primary text-white font-semibold py-3 rounded-xl min-h-12 text-sm">
+              View Queue
+            </button>
+            <button
+              (click)="endSession()"
+              [disabled]="!servingMember() || acting()"
+              class="flex-1 bg-white border-2 border-primary text-primary font-semibold py-3 rounded-xl min-h-12 text-sm disabled:opacity-50">
+              End Session
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- RIGHT PANEL — Queue List -->
+      @if (activePanel() === 'queue') {
+        <div class="flex-1 flex flex-col px-5 py-6">
+
+          <!-- Header: total count -->
+          <div class="mb-4">
+            <div class="bg-yellow-100 text-yellow-800 text-sm font-bold px-4 py-2 rounded-xl inline-block">
+              Total Count: {{ waitingEntries().length }}
+            </div>
+          </div>
+
+          <!-- Column headers -->
+          <div class="flex gap-2 mb-2">
+            <div class="flex-1 bg-sky-100 text-sky-800 text-xs font-semibold px-3 py-2 rounded-lg">
+              Clients on queue
+            </div>
+            <div class="w-28 bg-sky-100 text-sky-800 text-xs font-semibold px-3 py-2 rounded-lg text-center">
+              Wait time
+            </div>
+          </div>
+
+          <!-- Queue rows -->
+          <div class="flex-1 overflow-y-auto space-y-2">
+            @for (entry of waitingEntries(); track entry.entryId) {
+              @for (member of entry.members; track member.memberId) {
+                <div class="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3 min-h-12">
+                  <span class="text-sm font-medium text-gray-800">{{ member.memberName }}</span>
+                  <div class="flex items-center gap-3">
+                    <span class="text-sm text-gray-500 w-20 text-right">{{ formatWait(entry.estimatedWaitMinutes) }}</span>
+                    <button
+                      (click)="cancelEntry(entry.entryId)"
+                      [disabled]="acting()"
+                      class="text-red-400 hover:text-red-600 min-w-8 min-h-8 flex items-center justify-center disabled:opacity-50"
+                      aria-label="Cancel entry">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              }
+            }
+            @if (waitingEntries().length === 0) {
+              <div class="flex flex-col items-center justify-center py-12 text-gray-400">
+                <svg class="w-10 h-10 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.48-.634-2.07M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.768.231-1.48.634-2.07M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <p class="text-sm">Queue is empty</p>
+              </div>
+            }
+          </div>
+
+          <!-- Buttons -->
+          <div class="mt-4 flex gap-3">
+            <button
+              disabled
+              class="flex-1 bg-yellow-100 text-yellow-700 font-semibold py-3 rounded-xl min-h-12 text-sm opacity-50 cursor-not-allowed">
+              Add Queue
+            </button>
+            <button
+              (click)="activePanel.set('current')"
+              class="flex-1 bg-white border-2 border-gray-300 text-gray-700 font-semibold py-3 rounded-xl min-h-12 text-sm">
+              Back
+            </button>
+          </div>
+        </div>
+      }
+
+    </div><!-- end two-panel body -->
+
+  </div>
+}

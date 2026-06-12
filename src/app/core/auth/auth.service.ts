@@ -6,6 +6,7 @@ import { ApiConfiguration } from '../../api/api-configuration';
 import { TokenStore } from './token.store';
 import { CurrentUserStore } from './current-user.store';
 import { MembershipStore } from '../salon-context/membership.store';
+import { QueueSocketService } from '../socket/queue-socket.service';
 import { LoginDto } from '../../api/models/login-dto';
 import { RegisterDto } from '../../api/models/register-dto';
 import { UserResponseDto } from '../../api/models/user-response-dto';
@@ -23,11 +24,13 @@ export class AuthService {
   private readonly _tokenStore = inject(TokenStore);
   private readonly _currentUserStore = inject(CurrentUserStore);
   private readonly _membershipStore = inject(MembershipStore);
+  private readonly _socketService = inject(QueueSocketService);
 
   login(dto: LoginDto): Observable<UserResponseDto> {
     return authControllerLogin(this._http, this._apiConfig.rootUrl, { body: dto }).pipe(
       tap((res) => this._tokenStore.setTokens(res.body.accessToken, res.body.refreshToken)),
       switchMap(() => this._fetchAndStoreUser()),
+      tap(() => this._socketService.connect()),
     );
   }
 
@@ -38,6 +41,7 @@ export class AuthService {
   }
 
   logout(): void {
+    this._socketService.disconnect();
     this._tokenStore.clearTokens();
     this._currentUserStore.clear();
     this._membershipStore.invalidateAll();

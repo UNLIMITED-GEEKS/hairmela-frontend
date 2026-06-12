@@ -1,0 +1,319 @@
+import {
+  Component,
+  DestroyRef,
+  OnDestroy,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { filter, switchMap, tap } from 'rxjs';
+import { ApiConfiguration } from '../../../api/api-configuration';
+import { QueueSocketService } from '../../../core/socket/queue-socket.service';
+import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/confirm-dialog.service';
+import { ToastService } from '../../../core/toast/toast.service';
+import { ErrorCodes } from '../../../core/errors/error-codes';
+import { isApiError } from '../../../core/errors/api-error.types';
+import { TimelineEntryDto } from '../../../core/socket/socket.types';
+import { queueManagementControllerCallNext } from '../../../api/fn/queues/queue-management-controller-call-next';
+import { queueManagementControllerSetStatus } from '../../../api/fn/queues/queue-management-controller-set-status';
+import { queueManagementControllerServeMember } from '../../../api/fn/queues/queue-management-controller-serve-member';
+import { queueManagementControllerCompleteMember } from '../../../api/fn/queues/queue-management-controller-complete-member';
+import { queueManagementControllerExtendMember } from '../../../api/fn/queues/queue-management-controller-extend-member';
+import { queueManagementControllerMarkNoShow } from '../../../api/fn/queues/queue-management-controller-mark-no-show';
+import { publicQueueControllerGetTimeline } from '../../../api/fn/queues/public-queue-controller-get-timeline';
+import { Queue } from '../../../api/models/queue';
+
+@Component({
+  selector: 'app-queue-console',
+  templateUrl: './queue-console.component.html',
+  imports: [RouterLink],
+})
+export class QueueConsoleComponent implements OnInit, OnDestroy {
+  private readonly _route = inject(ActivatedRoute);
+  private readonly _http = inject(HttpClient);
+  private readonly _apiConfig = inject(ApiConfiguration);
+  private readonly _socket = inject(QueueSocketService);
+  private readonly _confirmDialog = inject(ConfirmDialogService);
+  private readonly _toast = inject(ToastService);
+  private readonly _destroyRef = inject(DestroyRef);
+
+  protected readonly activePanel = signal<'current' | 'queue'>('current');
+  protected readonly loading = signal(true);
+  protected readonly acting = signal(false);
+  protected readonly queue = signal<Queue | null>(null);
+  protected readonly timeline = signal<TimelineEntryDto[]>([]);
+  protected readonly timerDisplay = signal('00:00');
+  protected readonly statusOptions: Array<'OPEN' | 'PAUSED' | 'CLOSED'> = ['OPEN', 'PAUSED', 'CLOSED'];
+
+  private _timerInterval: ReturnType<typeof setInterval> | null = null;
+  private _sessionStartMs: number | null = null;
+
+  protected get _salonId(): string {
+    return this._route.snapshot.paramMap.get('salonId') ?? '';
+  }
+
+  protected get _queueId(): string {
+    return this._route.snapshot.paramMap.get('queueId') ?? '';
+  }
+
+  protected readonly servingEntry = computed(() =>
+    this.timeline().find((e) => e.members.some((m) => m.status === 'SERVING')),
+  );
+
+  protected readonly servingMember = computed(() =>
+    this.servingEntry()?.members.find((m) => m.status === 'SERVING'),
+  );
+
+  protected readonly waitingEntries = computed(() =>
+    this.timeline().filter((e) => e.members.every((m) => m.status === 'WAITING')),
+  );
+
+  protected readonly queueStatus = computed(() => this.queue()?.status ?? 'CLOSED');
+
+  ngOnInit(): void {
+    this._loadInitialTimeline();
+    this._socket.watchQueueAsStaff(this._queueId);
+    this._socket
+      .queueTimeline$(this._queueId)
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe((entries) => this.timeline.set(entries));
+
+    this._loadQueueStatus();
+  }
+
+  ngOnDestroy(): void {
+    this._socket.unwatchQueue(this._queueId);
+    this._stopTimer();
+  }
+
+  private _loadInitialTimeline(): void {
+    publicQueueControllerGetTimeline(this._http, this._apiConfig.rootUrl, {
+      queueId: this._queueId,
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.timeline.set(res.body);
+          this.loading.set(false);
+          this._maybeStartTimer();
+        },
+        error: () => this.loading.set(false),
+      });
+  }
+
+  private _loadQueueStatus(): void {
+    this._http
+      .get<Queue>(`${this._apiConfig.rootUrl}/v1/salons/${this._salonId}/queues/${this._queueId}`)
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({ next: (q) => this.queue.set(q) });
+  }
+
+  private _maybeStartTimer(): void {
+    const serving = this.servingEntry();
+    if (!serving) { this._stopTimer(); return; }
+    this._sessionStartMs = Date.now();
+    this._startTimer();
+  }
+
+  private _startTimer(): void {
+    this._stopTimer();
+    this._timerInterval = setInterval(() => {
+      if (!this._sessionStartMs) return;
+      const elapsed = Math.floor((Date.now() - this._sessionStartMs) / 1000);
+      const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+      const s = String(elapsed % 60).padStart(2, '0');
+      this.timerDisplay.set(`${m}:${s}`);
+    }, 1000);
+  }
+
+  private _stopTimer(): void {
+    if (this._timerInterval) {
+      clearInterval(this._timerInterval);
+      this._timerInterval = null;
+    }
+    this.timerDisplay.set('00:00');
+  }
+
+  protected setStatus(status: 'OPEN' | 'PAUSED' | 'CLOSED'): void {
+    if (this.acting()) return;
+    this.acting.set(true);
+    queueManagementControllerSetStatus(this._http, this._apiConfig.rootUrl, {
+      salonId: this._salonId,
+      queueId: this._queueId,
+      body: { status },
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.queue.set(res.body);
+          this.acting.set(false);
+        },
+        error: () => this.acting.set(false),
+      });
+  }
+
+  protected callNext(): void {
+    if (this.acting()) return;
+    this.acting.set(true);
+    queueManagementControllerCallNext(this._http, this._apiConfig.rootUrl, {
+      salonId: this._salonId,
+      queueId: this._queueId,
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: () => {
+          this.acting.set(false);
+          this._sessionStartMs = Date.now();
+          this._startTimer();
+          this.activePanel.set('current');
+        },
+        error: (err) => {
+          this.acting.set(false);
+          if (isApiError(err) && (
+            err.code === ErrorCodes.ENTRY_ALREADY_SERVING ||
+            err.code === ErrorCodes.ENTRY_NOT_WAITING
+          )) {
+            this._toast.info('Resolve the current client first before calling the next one.');
+          }
+        },
+      });
+  }
+
+  protected endSession(): void {
+    const member = this.servingMember();
+    const entry = this.servingEntry();
+    if (!member || !entry || this.acting()) return;
+
+    this._confirmDialog
+      .open({
+        title: 'End session?',
+        message: `Mark ${member.memberName} as complete?`,
+        confirmLabel: 'End Session',
+        danger: false,
+      })
+      .pipe(
+        filter((ok) => ok),
+        tap(() => this.acting.set(true)),
+        switchMap(() =>
+          queueManagementControllerCompleteMember(this._http, this._apiConfig.rootUrl, {
+            salonId: this._salonId,
+            queueId: this._queueId,
+            entryId: entry.entryId,
+            memberId: member.memberId,
+          }),
+        ),
+        takeUntilDestroyed(this._destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.acting.set(false);
+          this._stopTimer();
+        },
+        error: () => this.acting.set(false),
+      });
+  }
+
+  protected serveMember(entryId: string, memberId: string): void {
+    if (this.acting()) return;
+    this.acting.set(true);
+    queueManagementControllerServeMember(this._http, this._apiConfig.rootUrl, {
+      salonId: this._salonId,
+      queueId: this._queueId,
+      entryId,
+      memberId,
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: () => this.acting.set(false),
+        error: () => this.acting.set(false),
+      });
+  }
+
+  protected noShow(entryId: string): void {
+    if (this.acting()) return;
+    this._confirmDialog
+      .open({
+        title: 'Mark as no-show?',
+        message: 'This client will be removed from the queue.',
+        confirmLabel: 'No-show',
+        danger: true,
+      })
+      .pipe(
+        filter((ok) => ok),
+        tap(() => this.acting.set(true)),
+        switchMap(() =>
+          queueManagementControllerMarkNoShow(this._http, this._apiConfig.rootUrl, {
+            salonId: this._salonId,
+            queueId: this._queueId,
+            entryId,
+          }),
+        ),
+        takeUntilDestroyed(this._destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.acting.set(false);
+          this._stopTimer();
+        },
+        error: () => this.acting.set(false),
+      });
+  }
+
+  protected cancelEntry(entryId: string): void {
+    if (this.acting()) return;
+    this._confirmDialog
+      .open({
+        title: 'Cancel entry?',
+        message: 'Remove this client from the queue entirely.',
+        confirmLabel: 'Cancel',
+        danger: true,
+      })
+      .pipe(
+        filter((ok) => ok),
+        tap(() => this.acting.set(true)),
+        switchMap(() =>
+          this._http.delete(
+            `${this._apiConfig.rootUrl}/v1/salons/${this._salonId}/queues/${this._queueId}/entries/${entryId}`,
+          ),
+        ),
+        takeUntilDestroyed(this._destroyRef),
+      )
+      .subscribe({
+        next: () => this.acting.set(false),
+        error: () => this.acting.set(false),
+      });
+  }
+
+  protected extendMember(entryId: string, memberId: string, minutes: number): void {
+    if (this.acting()) return;
+    this.acting.set(true);
+    queueManagementControllerExtendMember(this._http, this._apiConfig.rootUrl, {
+      salonId: this._salonId,
+      queueId: this._queueId,
+      entryId,
+      memberId,
+      body: { extraMinutes: minutes },
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: () => this.acting.set(false),
+        error: () => this.acting.set(false),
+      });
+  }
+
+  protected formatWait(minutes: number): string {
+    if (minutes < 1) return '< 1m';
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  }
+
+  protected estimatedFinish(serviceDurationMinutes: number): string {
+    const finish = new Date(Date.now() + serviceDurationMinutes * 60 * 1000);
+    return finish.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  }
+}

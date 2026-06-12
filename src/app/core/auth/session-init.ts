@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { TokenStore } from './token.store';
 import { CurrentUserStore } from './current-user.store';
 import { ApiConfiguration } from '../../api/api-configuration';
+import { QueueSocketService } from '../socket/queue-socket.service';
 import { authenticatedAuthControllerGetMe } from '../../api/fn/auth/authenticated-auth-controller-get-me';
 
 export function sessionInit(): () => Promise<void> {
@@ -12,6 +13,7 @@ export function sessionInit(): () => Promise<void> {
     const tokenStore = inject(TokenStore);
     const currentUserStore = inject(CurrentUserStore);
     const apiConfig = inject(ApiConfiguration);
+    const socketService = inject(QueueSocketService);
 
     const refreshToken = tokenStore.getRefreshToken();
     if (!refreshToken) return;
@@ -29,6 +31,7 @@ export function sessionInit(): () => Promise<void> {
         authenticatedAuthControllerGetMe(http, apiConfig.rootUrl, {})
       );
       currentUserStore.set(userResponse.body);
+      socketService.connect();
     } catch {
       tokenStore.clearTokens();
       currentUserStore.clear();

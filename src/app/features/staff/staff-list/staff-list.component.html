@@ -40,14 +40,21 @@
               <p class="text-xs text-gray-400 truncate">{{ item.staff.email }}</p>
             </div>
 
-            <!-- Badges -->
-            <div class="flex flex-col items-end gap-1 shrink-0">
+            <!-- Badges + console link -->
+            <div class="flex flex-col items-end gap-1.5 shrink-0">
               <span class="text-xs font-medium px-2 py-0.5 rounded-full {{ roleBadgeClass(item.staff.role) }}">
                 {{ item.staff.role }}
               </span>
               <span class="text-xs font-medium px-2 py-0.5 rounded-full {{ statusBadgeClass(item.staff.status) }}">
                 {{ item.staff.status }}
               </span>
+              @if (item.queueId) {
+                <a [routerLink]="['/salons', salonId, 'queues', item.queueId, 'console']"
+                  (click)="$event.stopPropagation()"
+                  class="text-xs font-medium px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 hover:bg-sky-200 transition-colors">
+                  Console
+                </a>
+              }
             </div>
 
           </a>

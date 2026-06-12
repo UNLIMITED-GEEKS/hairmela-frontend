@@ -66,6 +66,15 @@ export const routes: Routes = [
       import('./features/salons/salon.routes').then((m) => m.salonRoutes),
   },
 
+  // Staff queue console
+  {
+    path: 'salons/:salonId/queues/:queueId/console',
+    canActivate: [authGuard, salonRoleGuard],
+    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
+    loadComponent: () =>
+      import('./features/queue/queue-console/queue-console.component').then((m) => m.QueueConsoleComponent),
+  },
+
   // Customer-facing visit pages
   {
     path: 's/:slug',
