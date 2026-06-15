@@ -1,3 +1,17 @@
-<router-outlet />
+@if (_currentUser.user()) {
+  <header class="fixed top-0 inset-x-0 z-40 bg-white border-b border-gray-200 flex items-center justify-between px-4 h-12">
+    <span class="text-sm font-bold text-primary">HairMela</span>
+    <button
+      (click)="_auth.logout()"
+      class="text-sm font-medium text-gray-600 hover:text-red-600 min-h-11 min-w-11 flex items-center justify-end transition-colors">
+      Logout
+    </button>
+  </header>
+  <div class="pt-12">
+    <router-outlet />
+  </div>
+} @else {
+  <router-outlet />
+}
 <app-toast />
 <app-confirm-dialog />
