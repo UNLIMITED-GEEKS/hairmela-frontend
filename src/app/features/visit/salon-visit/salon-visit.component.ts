@@ -22,7 +22,9 @@ import { isApiError } from '../../../core/errors/api-error.types';
 import { TimelineEntryDto } from '../../../core/socket/socket.types';
 import { publicSalonsControllerFindBySlug } from '../../../api/fn/salons/public-salons-controller-find-by-slug';
 import { publicQueueControllerGetTimeline } from '../../../api/fn/queues/public-queue-controller-get-timeline';
+import { publicQueueControllerGetQueue } from '../../../api/fn/queues/public-queue-controller-get-queue';
 import { walkInControllerJoinQueue } from '../../../api/fn/queues/walk-in-controller-join-queue';
+import { walkInControllerLeaveQueue } from '../../../api/fn/queues/walk-in-controller-leave-queue';
 import { SalonPublicDto } from '../../../api/models/salon-public-dto';
 import { SalonPublicStaffDto } from '../../../api/models/salon-public-staff-dto';
 import { Service } from '../../../api/models/service';
@@ -141,7 +143,7 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
             const staff = res.body.staff.find((s) => s.queueId === queueIdFromRoute);
             if (staff) {
               this.selectedStaff.set(staff);
-              this._watchQueue(queueIdFromRoute, salonId, storedEntries);
+              this._watchQueue(queueIdFromRoute, storedEntries);
             }
           }
         },
@@ -160,10 +162,10 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
       .subscribe({ next: (services) => this.services.set(services) });
   }
 
-  private _watchQueue(queueId: string, salonId: string, storedEntries: ActiveEntry[]): void {
+  private _watchQueue(queueId: string, storedEntries: ActiveEntry[]): void {
     this._socket.watchQueue(queueId);
 
-    this._loadQueueStatus(salonId, queueId);
+    this._loadQueueStatus(queueId);
     this._loadInitialTimeline(queueId);
 
     this._socket
@@ -173,21 +175,32 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
         this.timeline.set(entries);
         const existing = storedEntries.find((e) => e.queueId === queueId);
         if (existing) {
-          this.activeEntry.set(existing);
           const myTimelineEntry = entries.find((e) => e.entryId === existing.entryId);
-          if (myTimelineEntry?.members.some((m) => m.status === 'SERVING')) {
-            this.calledVisible.set(true);
-            setTimeout(() => this.calledVisible.set(false), 5000);
+          if (myTimelineEntry) {
+            this.activeEntry.set(existing);
+            if (this.screen() === 'choose-service') {
+              this.screen.set('live-queue');
+            }
+            if (myTimelineEntry.members.some((m) => m.status === 'SERVING')) {
+              this.calledVisible.set(true);
+              setTimeout(() => this.calledVisible.set(false), 5000);
+            }
+          } else {
+            // Entry not in timeline — stale localStorage (different account or entry completed)
+            this._removeStoredEntry(queueId);
+            this.activeEntry.set(null);
+            if (this.screen() === 'live-queue') {
+              this.screen.set('choose-service');
+            }
           }
         }
       });
   }
 
-  private _loadQueueStatus(salonId: string, queueId: string): void {
-    this._http
-      .get<Queue>(`${this._apiConfig.rootUrl}/v1/salons/${salonId}/queues/${queueId}`)
+  private _loadQueueStatus(queueId: string): void {
+    publicQueueControllerGetQueue(this._http, this._apiConfig.rootUrl, { queueId })
       .pipe(takeUntilDestroyed(this._destroyRef))
-      .subscribe({ next: (q) => this.queueStatus.set(q.status) });
+      .subscribe({ next: (res) => this.queueStatus.set(res.body.status) });
   }
 
   private _loadInitialTimeline(queueId: string): void {
@@ -200,9 +213,12 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
     if (!staff.queueId) return;
     this.selectedStaff.set(staff);
     const salon = this.salon();
+    const storedEntries = this._loadStoredEntries();
     if (salon) {
-      this._watchQueue(staff.queueId, salon.id, this._loadStoredEntries());
+      this._watchQueue(staff.queueId, storedEntries);
     }
+    // Always start on choose-service; the timeline subscription will advance to live-queue
+    // once it confirms the stored entryId is actually present in the queue.
     this.screen.set('choose-service');
   }
 
@@ -249,15 +265,14 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
           this.activeEntry.set(entry);
           this._saveEntry(entry);
           this.joining.set(false);
-          this.screen.set('my-position');
+          this.screen.set('live-queue');
         },
         error: (err) => {
           this.joining.set(false);
-          if (isApiError(err) && err.code === ErrorCodes.QUEUE_NOT_OPEN) {
+          const body = err?.error;
+          if (isApiError(body) && body.code === ErrorCodes.QUEUE_NOT_OPEN) {
             this._toast.info('Queue is not open right now.');
             this.queueStatus.set('CLOSED');
-          } else if (isApiError(err) && err.code === ErrorCodes.PARTY_TOO_LARGE) {
-            this._toast.error(`Party is too large. Max party size: ${this.maxPartySize()}`);
           }
         },
       });
@@ -279,9 +294,11 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
         filter((ok) => ok),
         tap(() => this.leaving.set(true)),
         switchMap(() =>
-          this._http.delete(
-            `${this._apiConfig.rootUrl}/v1/salons/${entry.salonId}/queues/${entry.queueId}/walk-in/${entry.entryId}`,
-          ),
+          walkInControllerLeaveQueue(this._http, this._apiConfig.rootUrl, {
+            salonId: entry.salonId,
+            queueId: entry.queueId,
+            entryId: entry.entryId,
+          }),
         ),
         takeUntilDestroyed(this._destroyRef),
       )
@@ -340,7 +357,7 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
     switch (this.screen()) {
       case 'choose-service': this.screen.set('landing'); break;
       case 'my-position': this.screen.set('choose-service'); break;
-      case 'live-queue': this.screen.set('my-position'); break;
+      case 'live-queue': this.screen.set('landing'); break;
     }
   }
 

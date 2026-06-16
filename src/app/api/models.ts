@@ -45,6 +45,7 @@ export type { SetDefaultServiceDto } from './models/set-default-service-dto';
 export type { SetQueueStatusDto } from './models/set-queue-status-dto';
 export type { StaffPerformanceItemDto } from './models/staff-performance-item-dto';
 export type { StaffSchedule } from './models/staff-schedule';
+export type { StaffService } from './models/staff-service';
 export type { StaffWithQueueDto } from './models/staff-with-queue-dto';
 export type { TimelineEntryDto } from './models/timeline-entry-dto';
 export type { TimelineMemberDto } from './models/timeline-member-dto';

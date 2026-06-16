@@ -2,11 +2,14 @@ import { Component, DestroyRef, inject, OnInit, signal, computed } from '@angula
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { forkJoin } from 'rxjs';
+import { forkJoin, map } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
+import { publicServicesControllerFindBySalon } from '../../../api/fn/services/public-services-controller-find-by-salon';
+import { staffServicesControllerGetStaffServices } from '../../../api/fn/services/staff-services-controller-get-staff-services';
 import { staffServicesControllerAssignService } from '../../../api/fn/services/staff-services-controller-assign-service';
 import { staffServicesControllerRemoveService } from '../../../api/fn/services/staff-services-controller-remove-service';
 import { staffServicesControllerSetDefaultService } from '../../../api/fn/services/staff-services-controller-set-default-service';
+import { staffControllerFindAll } from '../../../api/fn/staff/staff-controller-find-all';
 import { Service } from '../../../api/models/service';
 import { ToastService } from '../../../core/toast/toast.service';
 
@@ -43,19 +46,22 @@ export class StaffServiceAssignComponent implements OnInit {
 
   ngOnInit(): void {
     forkJoin({
-      all: this._http.get<Service[]>(
-        `${this._apiConfig.rootUrl}/v1/salons/${this._salonId}/services`,
-      ),
-      assigned: this._http.get<(Service & { isDefault?: boolean })[]>(
-        `${this._apiConfig.rootUrl}/v1/salons/${this._salonId}/staff/${this._staffId}/services`,
-      ),
+      all: publicServicesControllerFindBySalon(this._http, this._apiConfig.rootUrl, {
+        salonId: this._salonId,
+      }).pipe(map((res) => res.body)),
+      assigned: staffServicesControllerGetStaffServices(this._http, this._apiConfig.rootUrl, {
+        salonId: this._salonId,
+        staffId: this._staffId,
+      }).pipe(map((res) => res.body)),
+      staffList: staffControllerFindAll(this._http, this._apiConfig.rootUrl, {
+        salonId: this._salonId,
+      }).pipe(map((res) => res.body)),
     }).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
-      next: ({ all, assigned }) => {
-        this.allServices.set(all.filter((s) => s.isActive));
-        const assignedList = assigned ?? [];
-        this.assignedIds.set(new Set(assignedList.map((s) => s.id)));
-        const def = assignedList.find((s) => s.isDefault);
-        this.defaultServiceId.set(def?.id ?? null);
+      next: ({ all, assigned, staffList }) => {
+        this.allServices.set((all ?? []).filter((s) => s.isActive));
+        this.assignedIds.set(new Set((assigned ?? []).map((ss) => ss.serviceId)));
+        const staffRecord = staffList.find((s) => s.staff.id === this._staffId);
+        this.defaultServiceId.set(staffRecord?.staff.defaultServiceId ?? null);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
@@ -65,7 +71,6 @@ export class StaffServiceAssignComponent implements OnInit {
   protected toggle(service: Service): void {
     if (this.toggling()) return;
     const isAssigned = this.assignedIds().has(service.id);
-
     this.toggling.set(service.id);
 
     const call$ = isAssigned

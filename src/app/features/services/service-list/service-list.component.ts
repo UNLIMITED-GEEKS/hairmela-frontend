@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter, switchMap } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
+import { publicServicesControllerFindBySalon } from '../../../api/fn/services/public-services-controller-find-by-salon';
 import { servicesControllerDeactivate } from '../../../api/fn/services/services-controller-deactivate';
 import { Service } from '../../../api/models/service';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
@@ -43,11 +44,11 @@ export class ServiceListComponent implements OnInit {
   }
 
   private _load(): void {
-    this._http.get<Service[]>(
-      `${this._apiConfig.rootUrl}/v1/salons/${this._salonId}/services`,
-    ).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
-      next: (services) => {
-        this.services.set(services);
+    publicServicesControllerFindBySalon(this._http, this._apiConfig.rootUrl, {
+      salonId: this._salonId,
+    }).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
+      next: (res) => {
+        this.services.set(res.body);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),

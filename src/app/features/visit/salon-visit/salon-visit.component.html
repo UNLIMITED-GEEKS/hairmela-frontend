@@ -109,12 +109,20 @@
         }
 
         <div class="mt-6 flex gap-3">
-          <button
-            (click)="joinQueue()"
-            [disabled]="joining() || queueStatus() === 'CLOSED'"
-            class="flex-1 bg-primary text-white font-semibold py-3.5 rounded-xl min-h-12 text-sm disabled:opacity-50">
-            @if (joining()) { Joining... } @else { Join que }
-          </button>
+          @if (activeEntry()?.queueId === selectedStaff()?.queueId) {
+            <button
+              (click)="goToLiveQueue()"
+              class="flex-1 bg-primary text-white font-semibold py-3.5 rounded-xl min-h-12 text-sm">
+              View queue
+            </button>
+          } @else {
+            <button
+              (click)="joinQueue()"
+              [disabled]="joining() || queueStatus() === 'CLOSED'"
+              class="flex-1 bg-primary text-white font-semibold py-3.5 rounded-xl min-h-12 text-sm disabled:opacity-50">
+              @if (joining()) { Joining... } @else { Join queue }
+            </button>
+          }
           <button
             (click)="goBack()"
             class="flex-1 bg-white border-2 border-gray-300 text-gray-700 font-semibold py-3.5 rounded-xl min-h-12 text-sm">

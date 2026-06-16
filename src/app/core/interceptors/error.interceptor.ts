@@ -54,6 +54,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           if (err.status >= 500) {
             const ref = body.requestId ? ` — ref ${body.requestId}` : '';
             toast.error(`Something went wrong${ref}. Please try again.`);
+          } else if (body.message) {
+            toast.error(body.message);
           }
           break;
       }

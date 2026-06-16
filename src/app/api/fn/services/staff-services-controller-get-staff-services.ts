@@ -7,6 +7,7 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
+import { StaffService } from '../../models/staff-service';
 
 export interface StaffServicesControllerGetStaffServices$Params {
 
@@ -21,7 +22,7 @@ export interface StaffServicesControllerGetStaffServices$Params {
   salonId: string;
 }
 
-export function staffServicesControllerGetStaffServices(http: HttpClient, rootUrl: string, params: StaffServicesControllerGetStaffServices$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
+export function staffServicesControllerGetStaffServices(http: HttpClient, rootUrl: string, params: StaffServicesControllerGetStaffServices$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<StaffService>>> {
   const rb = new RequestBuilder(rootUrl, staffServicesControllerGetStaffServices.PATH, 'get');
   if (params) {
     rb.path('staffId', params.staffId, {});
@@ -29,11 +30,11 @@ export function staffServicesControllerGetStaffServices(http: HttpClient, rootUr
   }
 
   return http.request(
-    rb.build({ responseType: 'text', accept: '*/*', context })
+    rb.build({ responseType: 'json', accept: 'application/json', context })
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return (r as HttpResponse<any>).clone({ body: undefined }) as StrictHttpResponse<void>;
+      return r as StrictHttpResponse<Array<StaffService>>;
     })
   );
 }

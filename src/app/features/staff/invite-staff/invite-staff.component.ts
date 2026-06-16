@@ -52,7 +52,8 @@ export class InviteStaffComponent {
       },
       error: (err: unknown) => {
         this.saving.set(false);
-        if (isApiError(err) && err.code === ErrorCodes.STAFF_ALREADY_INVITED) {
+        const body = (err as { error?: unknown })?.error;
+        if (isApiError(body) && body.code === ErrorCodes.STAFF_ALREADY_INVITED) {
           this.form.get('email')?.setErrors({ alreadyInvited: true });
         }
       },

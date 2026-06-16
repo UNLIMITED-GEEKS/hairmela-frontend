@@ -1,5 +1,5 @@
 import { Injectable, OnDestroy } from '@angular/core';
-import { Observable, Subject, BehaviorSubject } from 'rxjs';
+import { Observable, Subject, BehaviorSubject, ReplaySubject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { environment } from '../../../environments/environment';
 import { TokenStore } from '../auth/token.store';
@@ -14,7 +14,7 @@ export class QueueSocketService implements OnDestroy {
   private readonly _watchedQueues = new Set<string>();
   private readonly _watchedStaffQueues = new Set<string>();
 
-  private readonly _timelines = new Map<string, Subject<TimelineEntryDto[]>>();
+  private readonly _timelines = new Map<string, ReplaySubject<TimelineEntryDto[]>>();
   private readonly _called = new Map<string, Subject<CustomerCalledPayload>>();
   private readonly _connectionState$ = new BehaviorSubject<ConnectionState>('disconnected');
 
@@ -81,7 +81,7 @@ export class QueueSocketService implements OnDestroy {
 
   queueTimeline$(queueId: string): Observable<TimelineEntryDto[]> {
     if (!this._timelines.has(queueId)) {
-      this._timelines.set(queueId, new Subject<TimelineEntryDto[]>());
+      this._timelines.set(queueId, new ReplaySubject<TimelineEntryDto[]>(1));
     }
     return this._timelines.get(queueId)!.asObservable();
   }

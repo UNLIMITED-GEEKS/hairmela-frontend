@@ -113,6 +113,8 @@ export type { SalonClosuresControllerDelete$Params as SalonClosuresControllerDel
 export { salonClosuresControllerDelete as salonClosuresControllerDelete } from './fn/schedules/salon-closures-controller-delete';
 export type { AvailabilityControllerGetSlots$Params as AvailabilityControllerGetSlots$Params } from './fn/schedules/availability-controller-get-slots';
 export { availabilityControllerGetSlots as availabilityControllerGetSlots } from './fn/schedules/availability-controller-get-slots';
+export type { PublicQueueControllerGetQueue$Params as PublicQueueControllerGetQueue$Params } from './fn/queues/public-queue-controller-get-queue';
+export { publicQueueControllerGetQueue as publicQueueControllerGetQueue } from './fn/queues/public-queue-controller-get-queue';
 export type { PublicQueueControllerGetTimeline$Params as PublicQueueControllerGetTimeline$Params } from './fn/queues/public-queue-controller-get-timeline';
 export { publicQueueControllerGetTimeline as publicQueueControllerGetTimeline } from './fn/queues/public-queue-controller-get-timeline';
 export type { QueueManagementControllerSetStatus$Params as QueueManagementControllerSetStatus$Params } from './fn/queues/queue-management-controller-set-status';

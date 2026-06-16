@@ -7,6 +7,7 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
+import { Service } from '../../models/service';
 
 export interface PublicServicesControllerFindBySalon$Params {
 
@@ -16,18 +17,18 @@ export interface PublicServicesControllerFindBySalon$Params {
   salonId: string;
 }
 
-export function publicServicesControllerFindBySalon(http: HttpClient, rootUrl: string, params: PublicServicesControllerFindBySalon$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
+export function publicServicesControllerFindBySalon(http: HttpClient, rootUrl: string, params: PublicServicesControllerFindBySalon$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<Service>>> {
   const rb = new RequestBuilder(rootUrl, publicServicesControllerFindBySalon.PATH, 'get');
   if (params) {
     rb.path('salonId', params.salonId, {});
   }
 
   return http.request(
-    rb.build({ responseType: 'text', accept: '*/*', context })
+    rb.build({ responseType: 'json', accept: 'application/json', context })
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return (r as HttpResponse<any>).clone({ body: undefined }) as StrictHttpResponse<void>;
+      return r as StrictHttpResponse<Array<Service>>;
     })
   );
 }

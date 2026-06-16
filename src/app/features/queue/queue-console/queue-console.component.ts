@@ -7,7 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { filter, switchMap, tap } from 'rxjs';
@@ -24,7 +24,9 @@ import { queueManagementControllerServeMember } from '../../../api/fn/queues/que
 import { queueManagementControllerCompleteMember } from '../../../api/fn/queues/queue-management-controller-complete-member';
 import { queueManagementControllerExtendMember } from '../../../api/fn/queues/queue-management-controller-extend-member';
 import { queueManagementControllerMarkNoShow } from '../../../api/fn/queues/queue-management-controller-mark-no-show';
+import { queueManagementControllerCancelEntry } from '../../../api/fn/queues/queue-management-controller-cancel-entry';
 import { publicQueueControllerGetTimeline } from '../../../api/fn/queues/public-queue-controller-get-timeline';
+import { publicQueueControllerGetQueue } from '../../../api/fn/queues/public-queue-controller-get-queue';
 import { Queue } from '../../../api/models/queue';
 
 @Component({
@@ -106,10 +108,11 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
   }
 
   private _loadQueueStatus(): void {
-    this._http
-      .get<Queue>(`${this._apiConfig.rootUrl}/v1/salons/${this._salonId}/queues/${this._queueId}`)
-      .pipe(takeUntilDestroyed(this._destroyRef))
-      .subscribe({ next: (q) => this.queue.set(q) });
+    publicQueueControllerGetQueue(this._http, this._apiConfig.rootUrl, {
+      queueId: this._queueId,
+    }).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
+      next: (res) => this.queue.set(res.body),
+    });
   }
 
   private _maybeStartTimer(): void {
@@ -171,11 +174,12 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
           this._startTimer();
           this.activePanel.set('current');
         },
-        error: (err) => {
+        error: (err: unknown) => {
           this.acting.set(false);
-          if (isApiError(err) && (
-            err.code === ErrorCodes.ENTRY_ALREADY_SERVING ||
-            err.code === ErrorCodes.ENTRY_NOT_WAITING
+          const body = (err as { error?: unknown })?.error;
+          if (isApiError(body) && (
+            body.code === ErrorCodes.ENTRY_ALREADY_SERVING ||
+            body.code === ErrorCodes.ENTRY_NOT_WAITING
           )) {
             this._toast.info('Resolve the current client first before calling the next one.');
           }
@@ -276,9 +280,11 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
         filter((ok) => ok),
         tap(() => this.acting.set(true)),
         switchMap(() =>
-          this._http.delete(
-            `${this._apiConfig.rootUrl}/v1/salons/${this._salonId}/queues/${this._queueId}/entries/${entryId}`,
-          ),
+          queueManagementControllerCancelEntry(this._http, this._apiConfig.rootUrl, {
+            salonId: this._salonId,
+            queueId: this._queueId,
+            entryId,
+          }),
         ),
         takeUntilDestroyed(this._destroyRef),
       )

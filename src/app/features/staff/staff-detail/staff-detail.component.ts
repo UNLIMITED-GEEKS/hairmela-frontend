@@ -101,7 +101,8 @@ export class StaffDetailComponent implements OnInit {
       },
       error: (err: unknown) => {
         this.actioning.set(false);
-        if (isApiError(err) && err.code === ErrorCodes.CANNOT_REMOVE_OWNER) {
+        const body = (err as { error?: unknown })?.error;
+        if (isApiError(body) && body.code === ErrorCodes.CANNOT_REMOVE_OWNER) {
           this._toast.error('Cannot change the owner\'s role. Use Transfer Ownership instead.');
         }
       },
@@ -168,7 +169,8 @@ export class StaffDetailComponent implements OnInit {
       },
       error: (err: unknown) => {
         this.actioning.set(false);
-        if (isApiError(err) && err.code === ErrorCodes.CANNOT_REMOVE_OWNER) {
+        const body = (err as { error?: unknown })?.error;
+        if (isApiError(body) && body.code === ErrorCodes.CANNOT_REMOVE_OWNER) {
           this._toast.error('Cannot remove the owner. Transfer ownership first.');
         }
       },

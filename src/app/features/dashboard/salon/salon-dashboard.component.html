@@ -3,15 +3,8 @@
     <h1 class="text-xl font-semibold text-gray-900 mb-1">Dashboard</h1>
     <p class="text-sm text-gray-500 mb-8">Manage your salons and staff.</p>
 
-    <!-- Pending invites -->
-    <app-pending-invites (inviteActioned)="onInviteActioned()" />
-
     <!-- My salons -->
-    @if (loading()) {
-      <div class="flex justify-center py-8">
-        <span class="inline-block w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
-      </div>
-    } @else if (salons().length > 0) {
+    @if (salons().length > 0) {
       <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">My Salons</h2>
       <app-my-salons-list [salons]="salons()" />
     } @else {

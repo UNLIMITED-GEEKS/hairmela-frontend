@@ -13,6 +13,17 @@
         <p class="text-sm text-gray-500 mt-0.5">{{ salon.address.city }}, {{ salon.address.country }}</p>
       </div>
 
+      <!-- My Queue shortcut -->
+      @if (myQueueId()) {
+        <a [routerLink]="['/salons', salon.id, 'queues', myQueueId(), 'console']"
+          class="flex items-center justify-between bg-primary text-white px-5 py-4 rounded-xl min-h-14 hover:bg-primary/90 transition-colors">
+          <span class="text-sm font-semibold">My Queue</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </a>
+      }
+
       <!-- Quick actions -->
       <div class="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
 

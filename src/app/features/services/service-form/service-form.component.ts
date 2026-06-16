@@ -4,9 +4,9 @@ import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ApiConfiguration } from '../../../api/api-configuration';
+import { publicServicesControllerFindBySalon } from '../../../api/fn/services/public-services-controller-find-by-salon';
 import { servicesControllerCreate } from '../../../api/fn/services/services-controller-create';
 import { servicesControllerUpdate } from '../../../api/fn/services/services-controller-update';
-import { Service } from '../../../api/models/service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { isApiError } from '../../../core/errors/api-error.types';
 import { ErrorCodes } from '../../../core/errors/error-codes';
@@ -50,11 +50,11 @@ export class ServiceFormComponent implements OnInit {
     if (!sid) return;
 
     this.loading.set(true);
-    this._http.get<Service[]>(
-      `${this._apiConfig.rootUrl}/v1/salons/${this._salonId}/services`,
-    ).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
-      next: (services) => {
-        const service = services.find((s) => s.id === sid);
+    publicServicesControllerFindBySalon(this._http, this._apiConfig.rootUrl, {
+      salonId: this._salonId,
+    }).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
+      next: (res) => {
+        const service = res.body.find((s) => s.id === sid);
         if (service) {
           this.form.patchValue({
             name: service.name,
