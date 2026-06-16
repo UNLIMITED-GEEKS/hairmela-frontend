@@ -62,8 +62,29 @@ export class SalonShareComponent implements OnInit {
   }
 
   private async _generateQr(url: string): Promise<void> {
-    const { toDataURL } = await import('qrcode');
-    const dataUrl = await toDataURL(url, { width: 256, margin: 2 });
+    console.log('[QR] input url:', url);
+    const mod = await import('qrcode');
+    console.log('[QR] module keys:', Object.keys(mod).join(', '));
+    console.log('[QR] typeof mod.toDataURL:', typeof (mod as Record<string, unknown>)['toDataURL']);
+    console.log('[QR] typeof mod.default:', typeof (mod as Record<string, unknown>)['default']);
+    console.log('[QR] typeof mod.default?.toDataURL:', typeof ((mod as Record<string, unknown>)['default'] as Record<string, unknown> | undefined)?.['toDataURL']);
+
+    const fn =
+      typeof (mod as Record<string, unknown>)['toDataURL'] === 'function'
+        ? (mod as Record<string, unknown>)['toDataURL']
+        : typeof ((mod as Record<string, unknown>)['default'] as Record<string, unknown> | undefined)?.['toDataURL'] === 'function'
+          ? ((mod as Record<string, unknown>)['default'] as Record<string, unknown>)['toDataURL']
+          : null;
+
+    console.log('[QR] resolved fn:', typeof fn);
+
+    if (!fn) {
+      console.error('[QR] toDataURL not found on module');
+      return;
+    }
+
+    const dataUrl = await (fn as (url: string, opts: unknown) => Promise<string>)(url, { width: 256, margin: 2 });
+    console.log('[QR] dataUrl prefix:', typeof dataUrl === 'string' ? dataUrl.slice(0, 30) : String(dataUrl));
     this.qrDataUrl.set(dataUrl);
   }
 }
