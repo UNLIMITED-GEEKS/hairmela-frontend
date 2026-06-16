@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, signal, OnInit, ElementRef, viewChild } from '@angular/core';
+import { Component, DestroyRef, inject, signal, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -22,8 +22,6 @@ export class SalonShareComponent implements OnInit {
   protected readonly loading = signal(true);
   protected readonly shareUrl = signal('');
   protected readonly qrDataUrl = signal('');
-
-  readonly canvasRef = viewChild<ElementRef<HTMLCanvasElement>>('qrCanvas');
 
   private get _salonId(): string {
     return this._route.snapshot.paramMap.get('salonId') ?? '';
@@ -64,9 +62,8 @@ export class SalonShareComponent implements OnInit {
   }
 
   private async _generateQr(url: string): Promise<void> {
-    const QRCode = await import('qrcode');
-    const canvas = document.createElement('canvas');
-    await QRCode.toCanvas(canvas, url, { width: 256, margin: 2 });
-    this.qrDataUrl.set(canvas.toDataURL('image/png'));
+    const { toDataURL } = await import('qrcode');
+    const dataUrl = await toDataURL(url, { width: 256, margin: 2 });
+    this.qrDataUrl.set(dataUrl);
   }
 }
