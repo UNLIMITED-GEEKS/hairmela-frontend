@@ -54,8 +54,8 @@
             <div class="w-56 h-56 rounded-full border-4 border-primary flex flex-col items-center justify-center gap-1 text-center">
               @if (servingMember(); as member) {
                 <span class="text-4xl font-bold text-primary">{{ member.memberName.split(' ')[0] }}</span>
-                <span class="text-xl font-semibold text-primary" aria-live="polite">{{ timerDisplay() }}</span>
-                <span class="text-sm text-sky-600">eft: {{ estimatedFinish(member.serviceDuration) }}</span>
+                <span class="text-xl font-semibold text-primary" aria-live="polite">{{ timerFromServedAt() }}</span>
+                <span class="text-sm text-sky-600">@if (estimatedFinishTime()) { eft: {{ estimatedFinishTime() }} }</span>
               } @else {
                 <span class="text-lg text-gray-400 font-medium">No client</span>
                 <span class="text-sm text-gray-400">Queue is free</span>
@@ -108,7 +108,7 @@
                 <div class="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3 min-h-12">
                   <span class="text-sm font-medium text-gray-800">{{ member.memberName }}</span>
                   <div class="flex items-center gap-3">
-                    <span class="text-sm text-gray-500 w-20 text-right">{{ formatWait(entry.estimatedWaitMinutes) }}</span>
+                    <span class="text-sm text-gray-500 w-20 text-right" aria-live="polite">{{ liveWait(entry.entryId) }}</span>
                     <button
                       (click)="cancelEntry(entry.entryId)"
                       [disabled]="acting()"

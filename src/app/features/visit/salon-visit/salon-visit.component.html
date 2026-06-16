@@ -144,7 +144,7 @@
             @if (myEntry(); as entry) {
               <span class="text-sm text-orange-400 font-medium">Position in line</span>
               <span class="text-7xl font-bold text-orange-500" aria-live="polite">{{ entry.position }}</span>
-              <span class="text-base font-semibold text-sky-500">est: {{ formatWait(entry.estimatedWaitMinutes) }}</span>
+              <span class="text-base font-semibold text-sky-500" aria-live="polite">est: {{ liveWait(entry.entryId) }}</span>
             } @else {
               <span class="text-sm text-gray-400 px-4 text-center">Confirming your spot…</span>
             }
@@ -243,12 +243,12 @@
             @if (entry.entryId === activeEntry()?.entryId) {
               <div class="flex items-center justify-between bg-green-100 border border-green-300 rounded-xl px-4 py-3 min-h-12">
                 <span class="text-sm font-semibold text-green-800">Me</span>
-                <span class="text-sm text-green-700 w-32 text-right">{{ formatWait(entry.estimatedWaitMinutes) }}</span>
+                <span class="text-sm text-green-700 w-32 text-right" aria-live="polite">{{ liveWait(entry.entryId) }}</span>
               </div>
             } @else {
               <div class="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3 min-h-12">
                 <span class="text-sm text-gray-700">Client {{ i + 1 }}</span>
-                <span class="text-sm text-gray-400 w-32 text-right">{{ formatWait(entry.estimatedWaitMinutes) }}</span>
+                <span class="text-sm text-gray-400 w-32 text-right" aria-live="polite">{{ liveWait(entry.entryId) }}</span>
               </div>
             }
           }

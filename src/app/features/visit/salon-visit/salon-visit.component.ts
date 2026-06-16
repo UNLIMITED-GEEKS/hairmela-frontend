@@ -21,6 +21,7 @@ import { ErrorCodes } from '../../../core/errors/error-codes';
 import { isApiError } from '../../../core/errors/api-error.types';
 import { TimelineEntryDto } from '../../../core/socket/socket.types';
 import { publicSalonsControllerFindBySlug } from '../../../api/fn/salons/public-salons-controller-find-by-slug';
+import { publicServicesControllerFindBySalon } from '../../../api/fn/services/public-services-controller-find-by-salon';
 import { publicQueueControllerGetTimeline } from '../../../api/fn/queues/public-queue-controller-get-timeline';
 import { publicQueueControllerGetQueue } from '../../../api/fn/queues/public-queue-controller-get-queue';
 import { walkInControllerJoinQueue } from '../../../api/fn/queues/walk-in-controller-join-queue';
@@ -72,6 +73,10 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
   protected readonly activeEntry = signal<ActiveEntry | null>(null);
   protected readonly calledVisible = signal(false);
 
+  // Ticks every second — drives live wait time display for all rows
+  private readonly _tick = signal(0);
+  private _tickInterval: ReturnType<typeof setInterval> | null = null;
+
   protected readonly joinForm = this._fb.group({
     extraMembers: this._fb.array<ReturnType<typeof this._buildMemberGroup>>([]),
   });
@@ -104,6 +109,35 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
     ),
   );
 
+  // The SERVING member across the whole timeline (there's at most one)
+  private readonly _servingMember = computed(() => {
+    for (const entry of this.timeline()) {
+      const m = entry.members.find((m) => m.status === 'SERVING');
+      if (m) return m;
+    }
+    return null;
+  });
+
+  // Elapsed seconds since servedAt — recomputes every tick
+  private readonly _elapsedSeconds = computed(() => {
+    this._tick();
+    const servedAt = this._servingMember()?.servedAt;
+    if (!servedAt) return 0;
+    return Math.floor((Date.now() - new Date(servedAt).getTime()) / 1000);
+  });
+
+  // Live wait minutes per entry — ticks every second
+  protected readonly liveWaitMinutes = computed((): Map<string, number> => {
+    this._tick();
+    const elapsedMinutes = Math.floor(this._elapsedSeconds() / 60);
+    const map = new Map<string, number>();
+    for (const entry of this.timeline()) {
+      const adjusted = Math.max(0, entry.estimatedWaitMinutes - elapsedMinutes);
+      map.set(entry.entryId, adjusted);
+    }
+    return map;
+  });
+
   protected readonly isCalled = computed(() => {
     const entry = this.myEntry();
     if (!entry) return false;
@@ -113,6 +147,7 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const storedEntries = this._loadStoredEntries();
     this._loadSalon(storedEntries);
+    this._startTick();
 
     const queueIdFromRoute = this._route.snapshot.paramMap.get('queueId');
     if (queueIdFromRoute) {
@@ -123,6 +158,18 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     const staff = this.selectedStaff();
     if (staff?.queueId) this._socket.unwatchQueue(staff.queueId);
+    this._stopTick();
+  }
+
+  private _startTick(): void {
+    this._tickInterval = setInterval(() => this._tick.update((n) => n + 1), 1000);
+  }
+
+  private _stopTick(): void {
+    if (this._tickInterval) {
+      clearInterval(this._tickInterval);
+      this._tickInterval = null;
+    }
   }
 
   private _loadSalon(storedEntries: ActiveEntry[]): void {
@@ -156,10 +203,9 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
   }
 
   private _loadServices(salonId: string): void {
-    this._http
-      .get<Service[]>(`${this._apiConfig.rootUrl}/v1/salons/${salonId}/services`)
+    publicServicesControllerFindBySalon(this._http, this._apiConfig.rootUrl, { salonId })
       .pipe(takeUntilDestroyed(this._destroyRef))
-      .subscribe({ next: (services) => this.services.set(services) });
+      .subscribe({ next: (res) => this.services.set(res.body) });
   }
 
   private _watchQueue(queueId: string, storedEntries: ActiveEntry[]): void {
@@ -217,8 +263,8 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
     if (salon) {
       this._watchQueue(staff.queueId, storedEntries);
     }
-    // Always start on choose-service; the timeline subscription will advance to live-queue
-    // once it confirms the stored entryId is actually present in the queue.
+    // Always start on choose-service; timeline subscription advances to live-queue
+    // only after confirming the stored entryId is present in the live timeline.
     this.screen.set('choose-service');
   }
 
@@ -269,7 +315,7 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.joining.set(false);
-          const body = err?.error;
+          const body = (err as { error?: unknown })?.error;
           if (isApiError(body) && body.code === ErrorCodes.QUEUE_NOT_OPEN) {
             this._toast.info('Queue is not open right now.');
             this.queueStatus.set('CLOSED');
@@ -344,6 +390,10 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  }
+
+  protected liveWait(entryId: string): string {
+    return this.formatWait(this.liveWaitMinutes().get(entryId) ?? 0);
   }
 
   protected goToLiveQueue(): void {

@@ -51,8 +51,9 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
   protected readonly timerDisplay = signal('00:00');
   protected readonly statusOptions: Array<'OPEN' | 'PAUSED' | 'CLOSED'> = ['OPEN', 'PAUSED', 'CLOSED'];
 
-  private _timerInterval: ReturnType<typeof setInterval> | null = null;
-  private _sessionStartMs: number | null = null;
+  // Ticks every second — drives live wait time display for all rows
+  private readonly _tick = signal(0);
+  private _tickInterval: ReturnType<typeof setInterval> | null = null;
 
   protected get _salonId(): string {
     return this._route.snapshot.paramMap.get('salonId') ?? '';
@@ -76,6 +77,41 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
 
   protected readonly queueStatus = computed(() => this.queue()?.status ?? 'CLOSED');
 
+  // Elapsed seconds since servedAt — derived from the tick signal so it updates every second
+  private readonly _elapsedSeconds = computed(() => {
+    this._tick(); // subscribe to tick so this recomputes every second
+    const servedAt = this.servingMember()?.servedAt;
+    if (!servedAt) return 0;
+    return Math.floor((Date.now() - new Date(servedAt).getTime()) / 1000);
+  });
+
+  // Barber stopwatch — derived from servedAt, accurate on reload
+  protected readonly timerFromServedAt = computed(() => {
+    const s = this._elapsedSeconds();
+    const m = String(Math.floor(s / 60)).padStart(2, '0');
+    const sec = String(s % 60).padStart(2, '0');
+    return `${m}:${sec}`;
+  });
+
+  // Live wait minutes for every entry — ticks every second
+  protected readonly liveWaitMinutes = computed((): Map<string, number> => {
+    this._tick(); // subscribe to tick
+    const elapsedMinutes = Math.floor(this._elapsedSeconds() / 60);
+    const map = new Map<string, number>();
+    for (const entry of this.timeline()) {
+      const adjusted = Math.max(0, entry.estimatedWaitMinutes - elapsedMinutes);
+      map.set(entry.entryId, adjusted);
+    }
+    return map;
+  });
+
+  protected readonly estimatedFinishTime = computed(() => {
+    const member = this.servingMember();
+    if (!member?.servedAt) return null;
+    const finishMs = new Date(member.servedAt).getTime() + member.serviceDuration * 60 * 1000;
+    return new Date(finishMs).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  });
+
   ngOnInit(): void {
     this._loadInitialTimeline();
     this._socket.watchQueueAsStaff(this._queueId);
@@ -85,11 +121,23 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
       .subscribe((entries) => this.timeline.set(entries));
 
     this._loadQueueStatus();
+    this._startTick();
   }
 
   ngOnDestroy(): void {
     this._socket.unwatchQueue(this._queueId);
-    this._stopTimer();
+    this._stopTick();
+  }
+
+  private _startTick(): void {
+    this._tickInterval = setInterval(() => this._tick.update((n) => n + 1), 1000);
+  }
+
+  private _stopTick(): void {
+    if (this._tickInterval) {
+      clearInterval(this._tickInterval);
+      this._tickInterval = null;
+    }
   }
 
   private _loadInitialTimeline(): void {
@@ -101,7 +149,6 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
         next: (res) => {
           this.timeline.set(res.body);
           this.loading.set(false);
-          this._maybeStartTimer();
         },
         error: () => this.loading.set(false),
       });
@@ -113,32 +160,6 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
     }).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
       next: (res) => this.queue.set(res.body),
     });
-  }
-
-  private _maybeStartTimer(): void {
-    const serving = this.servingEntry();
-    if (!serving) { this._stopTimer(); return; }
-    this._sessionStartMs = Date.now();
-    this._startTimer();
-  }
-
-  private _startTimer(): void {
-    this._stopTimer();
-    this._timerInterval = setInterval(() => {
-      if (!this._sessionStartMs) return;
-      const elapsed = Math.floor((Date.now() - this._sessionStartMs) / 1000);
-      const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
-      const s = String(elapsed % 60).padStart(2, '0');
-      this.timerDisplay.set(`${m}:${s}`);
-    }, 1000);
-  }
-
-  private _stopTimer(): void {
-    if (this._timerInterval) {
-      clearInterval(this._timerInterval);
-      this._timerInterval = null;
-    }
-    this.timerDisplay.set('00:00');
   }
 
   protected setStatus(status: 'OPEN' | 'PAUSED' | 'CLOSED'): void {
@@ -170,8 +191,6 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.acting.set(false);
-          this._sessionStartMs = Date.now();
-          this._startTimer();
           this.activePanel.set('current');
         },
         error: (err: unknown) => {
@@ -213,10 +232,7 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
         takeUntilDestroyed(this._destroyRef),
       )
       .subscribe({
-        next: () => {
-          this.acting.set(false);
-          this._stopTimer();
-        },
+        next: () => this.acting.set(false),
         error: () => this.acting.set(false),
       });
   }
@@ -259,10 +275,7 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
         takeUntilDestroyed(this._destroyRef),
       )
       .subscribe({
-        next: () => {
-          this.acting.set(false);
-          this._stopTimer();
-        },
+        next: () => this.acting.set(false),
         error: () => this.acting.set(false),
       });
   }
@@ -318,8 +331,7 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
   }
 
-  protected estimatedFinish(serviceDurationMinutes: number): string {
-    const finish = new Date(Date.now() + serviceDurationMinutes * 60 * 1000);
-    return finish.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  protected liveWait(entryId: string): string {
+    return this.formatWait(this.liveWaitMinutes().get(entryId) ?? 0);
   }
 }
