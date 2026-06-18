@@ -59,6 +59,26 @@
           </div>
         }
 
+        <!-- Install app banner -->
+        @if (canInstall()) {
+          <button
+            (click)="installApp()"
+            class="w-full flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary-light/40 px-4 py-3 text-left hover:bg-primary-light/70 transition-colors">
+            <div class="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+              </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-gray-900">Install HairMela</p>
+              <p class="text-xs text-gray-500">Add to your home screen for faster access</p>
+            </div>
+            <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </button>
+        }
+
         <!-- Barber cards row — wraps on mobile -->
         <div class="flex flex-wrap gap-3">
           @for (staff of staffList(); track staff.staffId) {

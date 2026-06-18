@@ -1,7 +1,8 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideAppInitializer } from '@angular/core';
+import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideAppInitializer, isDevMode } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideCloudinaryLoader } from '@angular/common';
+import { provideServiceWorker } from '@angular/service-worker';
 
 import { routes } from './app.routes';
 import { provideApiConfiguration } from './api/api-configuration';
@@ -19,5 +20,9 @@ export const appConfig: ApplicationConfig = {
     provideApiConfiguration(environment.apiBaseUrl),
     provideAppInitializer(sessionInit()),
     provideCloudinaryLoader(`https://res.cloudinary.com/${environment.cloudinaryCloudName}`),
+    provideServiceWorker('ngsw-worker.js', {
+      enabled: !isDevMode(),
+      registrationStrategy: 'registerWhenStable:30000',
+    }),
   ],
 };

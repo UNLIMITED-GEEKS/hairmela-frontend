@@ -6,7 +6,9 @@ import {
   computed,
   inject,
   signal,
+  PLATFORM_ID,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -31,6 +33,11 @@ import { SalonPublicDto } from '../../../api/models/salon-public-dto';
 import { SalonPublicStaffDto } from '../../../api/models/salon-public-staff-dto';
 import { Service } from '../../../api/models/service';
 import { Queue } from '../../../api/models/queue';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
 
 interface ActiveEntry {
   queueId: string;
@@ -60,6 +67,10 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
   private readonly _toast = inject(ToastService);
   private readonly _destroyRef = inject(DestroyRef);
   private readonly _fb = inject(FormBuilder);
+  private readonly _platformId = inject(PLATFORM_ID);
+
+  private _installPrompt: BeforeInstallPromptEvent | null = null;
+  protected readonly canInstall = signal(false);
 
   protected readonly screen = signal<Screen>('landing');
   protected readonly loading = signal(true);
@@ -164,12 +175,63 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
     if (queueIdFromRoute) {
       this.screen.set('live-queue');
     }
+
+    if (isPlatformBrowser(this._platformId)) {
+      this._patchManifestStartUrl();
+
+      const handler = (e: Event) => {
+        e.preventDefault();
+        this._installPrompt = e as BeforeInstallPromptEvent;
+        this.canInstall.set(true);
+      };
+      window.addEventListener('beforeinstallprompt', handler);
+      window.addEventListener('appinstalled', () => this.canInstall.set(false));
+    }
   }
 
   ngOnDestroy(): void {
     const staff = this.selectedStaff();
     if (staff?.queueId) this._socket.unwatchQueue(staff.queueId);
     this._stopTick();
+    this._restoreManifest();
+  }
+
+  protected installApp(): void {
+    if (!this._installPrompt) return;
+    this._installPrompt.prompt();
+    this._installPrompt.userChoice.then(() => {
+      this._installPrompt = null;
+      this.canInstall.set(false);
+    });
+  }
+
+  private _patchManifestStartUrl(): void {
+    const slug = this._slug;
+    const startUrl = slug ? `/s/${slug}` : '/';
+    const manifestEl = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    if (!manifestEl) return;
+
+    fetch(manifestEl.href)
+      .then((r) => r.json())
+      .then((manifest: Record<string, unknown>) => {
+        const patched = { ...manifest, start_url: startUrl, scope: '/' };
+        const blob = new Blob([JSON.stringify(patched)], { type: 'application/manifest+json' });
+        const url = URL.createObjectURL(blob);
+        manifestEl.setAttribute('data-original-href', manifestEl.href);
+        manifestEl.href = url;
+      })
+      .catch(() => { /* leave manifest unchanged if fetch fails */ });
+  }
+
+  private _restoreManifest(): void {
+    const manifestEl = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    const original = manifestEl?.getAttribute('data-original-href');
+    if (manifestEl && original) {
+      const blobUrl = manifestEl.href;
+      manifestEl.href = original;
+      manifestEl.removeAttribute('data-original-href');
+      URL.revokeObjectURL(blobUrl);
+    }
   }
 
   private _startTick(): void {

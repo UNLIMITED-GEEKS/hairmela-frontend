@@ -107,6 +107,7 @@ export class StaffServiceAssignComponent implements OnInit {
       next: () => {
         this.defaultServiceId.set(serviceId);
         this.settingDefault.set(false);
+        this._servicesService.refreshStaffServices(this._salonId, this._staffId);
         this._toast.success('Default service updated');
       },
       error: () => this.settingDefault.set(false),
