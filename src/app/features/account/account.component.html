@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-gray-50 px-4 py-8">
+<div class="min-h-dvh bg-gray-50 px-4 py-8">
   <div class="max-w-lg mx-auto space-y-6">
     <div class="flex items-center gap-3">
       <a routerLink="/dashboard" class="text-gray-500 hover:text-gray-700">
@@ -44,8 +44,8 @@
         Log out
       </button>
     } @else {
-      <div class="flex justify-center py-16">
-        <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <div class="py-16">
+        <app-skeleton variant="avatar-row" [count]="1" />
       </div>
     }
   </div>

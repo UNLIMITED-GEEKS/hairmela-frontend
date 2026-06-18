@@ -9,11 +9,12 @@ import { SalonContextService } from '../../../core/salon-context/salon-context.s
 import { ImageUploaderComponent } from '../../../shared/components/image-uploader/image-uploader.component';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
 import { GalleryComponent } from '../../../shared/components/gallery/gallery.component';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-salon-media',
   templateUrl: './salon-media.component.html',
-  imports: [RouterLink, ImageUploaderComponent, AvatarComponent, GalleryComponent],
+  imports: [RouterLink, ImageUploaderComponent, AvatarComponent, GalleryComponent, SkeletonComponent],
 })
 export class SalonMediaComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);

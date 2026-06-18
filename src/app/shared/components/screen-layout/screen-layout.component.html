@@ -1,0 +1,19 @@
+<!-- Full viewport height, no overflow on the shell itself -->
+<div class="h-dvh bg-gray-50 flex flex-col">
+
+  <!-- Optional sticky header slot -->
+  <ng-content select="[slot=header]" />
+
+  <!-- Scrollable body — takes all remaining space -->
+  <div [class]="'flex-1 overflow-y-auto ' + (noPadding() ? '' : 'px-4 pt-6 pb-4') + ' ' + maxWidth() + ' mx-auto w-full'">
+    <ng-content />
+  </div>
+
+  <!-- Fixed bottom action bar -->
+  <div class="shrink-0 bg-gray-50 border-t border-gray-100 px-4 py-3 safe-area-bottom">
+    <div [class]="maxWidth() + ' mx-auto w-full'">
+      <ng-content select="[slot=actions]" />
+    </div>
+  </div>
+
+</div>

@@ -1,5 +1,6 @@
 import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -20,7 +21,7 @@ type ClosureScope = 'salon' | 'staff';
 @Component({
   selector: 'app-closures',
   templateUrl: './closures.component.html',
-  imports: [RouterLink, ReactiveFormsModule],
+  imports: [RouterLink, ReactiveFormsModule, SkeletonComponent],
 })
 export class ClosuresComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);

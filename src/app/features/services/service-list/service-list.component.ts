@@ -1,34 +1,26 @@
-import { Component, DestroyRef, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { filter, switchMap } from 'rxjs';
-import { ApiConfiguration } from '../../../api/api-configuration';
-import { publicServicesControllerFindBySalon } from '../../../api/fn/services/public-services-controller-find-by-salon';
-import { servicesControllerDeactivate } from '../../../api/fn/services/services-controller-deactivate';
 import { Service } from '../../../api/models/service';
+import { ServicesService } from '../services.service';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/confirm-dialog.service';
-import { ToastService } from '../../../core/toast/toast.service';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { filter } from 'rxjs';
 
 @Component({
   selector: 'app-service-list',
   templateUrl: './service-list.component.html',
-  imports: [RouterLink],
+  imports: [RouterLink, SkeletonComponent],
 })
 export class ServiceListComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
-  private readonly _router = inject(Router);
-  private readonly _http = inject(HttpClient);
-  private readonly _apiConfig = inject(ApiConfiguration);
-  private readonly _destroyRef = inject(DestroyRef);
+  private readonly _servicesService = inject(ServicesService);
   private readonly _confirmDialog = inject(ConfirmDialogService);
-  private readonly _toast = inject(ToastService);
 
   protected readonly salonContext = inject(SalonContextService);
-  protected readonly loading = signal(true);
-  protected readonly services = signal<Service[]>([]);
-  protected readonly actioning = signal<string | null>(null);
+  protected readonly loading = this._servicesService.loading;
+  protected readonly services = this._servicesService.services;
+  protected readonly actioning = this._servicesService.acting;
 
   protected readonly canManage = computed(() => {
     const role = this.salonContext.membership()?.role;
@@ -40,19 +32,7 @@ export class ServiceListComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this._load();
-  }
-
-  private _load(): void {
-    publicServicesControllerFindBySalon(this._http, this._apiConfig.rootUrl, {
-      salonId: this._salonId,
-    }).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
-      next: (res) => {
-        this.services.set(res.body);
-        this.loading.set(false);
-      },
-      error: () => this.loading.set(false),
-    });
+    this._servicesService.load(this._salonId);
   }
 
   protected deactivate(service: Service): void {
@@ -61,23 +41,8 @@ export class ServiceListComponent implements OnInit {
       message: 'This service will be unassigned from all staff and removed from new queues. In-flight queue entries keep their duration.',
       confirmLabel: 'Deactivate',
       danger: true,
-    }).pipe(
-      filter((ok) => ok),
-      switchMap(() => {
-        this.actioning.set(service.id);
-        return servicesControllerDeactivate(this._http, this._apiConfig.rootUrl, {
-          salonId: this._salonId,
-          serviceId: service.id,
-        });
-      }),
-      takeUntilDestroyed(this._destroyRef),
-    ).subscribe({
-      next: () => {
-        this.actioning.set(null);
-        this.services.update((list) => list.filter((s) => s.id !== service.id));
-        this._toast.success('Service deactivated');
-      },
-      error: () => this.actioning.set(null),
+    }).pipe(filter((ok) => ok)).subscribe(() => {
+      this._servicesService.deactivate(this._salonId, service.id);
     });
   }
 

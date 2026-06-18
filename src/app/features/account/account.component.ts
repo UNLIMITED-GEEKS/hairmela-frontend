@@ -3,11 +3,12 @@ import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { CurrentUserStore } from '../../core/auth/current-user.store';
 import { AuthService } from '../../core/auth/auth.service';
+import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-account',
   templateUrl: './account.component.html',
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, DatePipe, SkeletonComponent],
 })
 export class AccountComponent {
   protected readonly _currentUser = inject(CurrentUserStore);

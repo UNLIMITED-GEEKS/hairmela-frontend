@@ -27,11 +27,7 @@
                 [disabled]="actioning() !== null"
                 class="min-h-9 px-3 py-1.5 text-xs font-medium text-white bg-primary rounded-lg
                        hover:bg-primary-dark disabled:opacity-50 transition-colors">
-                @if (actioning() === item.notification.id) {
-                  <span class="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                } @else {
-                  Accept
-                }
+                {{ actioning() === item.notification.id ? '…' : 'Accept' }}
               </button>
             </div>
           }

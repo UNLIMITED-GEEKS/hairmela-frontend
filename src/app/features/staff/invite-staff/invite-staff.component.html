@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-gray-50 px-4 py-8">
+<div class="min-h-dvh bg-gray-50 px-4 py-8">
   <div class="max-w-lg mx-auto">
 
     <h1 class="text-xl font-semibold text-gray-900 mb-6">Invite Staff</h1>
@@ -53,11 +53,7 @@
         <button type="submit" [disabled]="form.invalid || saving()"
           class="flex-1 min-h-11 bg-primary text-white text-sm font-medium rounded-lg
                  hover:bg-primary-dark disabled:opacity-50 active:scale-95 transition-all">
-          @if (saving()) {
-            <span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-          } @else {
-            Send invite
-          }
+          {{ saving() ? 'Sending…' : 'Send invite' }}
         </button>
       </div>
 

@@ -1,7 +1,7 @@
 <label class="block cursor-pointer">
   <div class="relative flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-6 transition-colors hover:border-primary hover:bg-primary/5">
     @if (uploading()) {
-      <span class="inline-block h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></span>
+      <div class="skeleton-pulse h-6 w-6 rounded-full"></div>
       <span class="text-sm text-gray-500">Uploading…</span>
     } @else if (previewUrl()) {
       <img [src]="previewUrl()" alt="Preview" class="h-24 w-24 rounded-lg object-cover" />

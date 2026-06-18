@@ -7,9 +7,12 @@ import { salonsControllerFindOne } from '../../../api/fn/salons/salons-controlle
 import { ToastService } from '../../../core/toast/toast.service';
 import { environment } from '../../../../environments/environment';
 
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+
 @Component({
   selector: 'app-salon-share',
   templateUrl: './salon-share.component.html',
+  imports: [SkeletonComponent],
 })
 export class SalonShareComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);

@@ -1,47 +1,28 @@
-import { Component, DestroyRef, inject, signal, OnInit } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ApiConfiguration } from '../../../api/api-configuration';
-import { StaffWithQueueDto } from '../../../api/models/staff-with-queue-dto';
+import { Component, OnInit, inject } from '@angular/core';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { SalonStaff } from '../../../api/models/salon-staff';
-import { staffControllerFindAll } from '../../../api/fn/staff/staff-controller-find-all';
+import { StaffService } from '../staff.service';
 import { HasRoleDirective } from '../../../shared/directives/has-role.directive';
-import { ToastService } from '../../../core/toast/toast.service';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-staff-list',
   templateUrl: './staff-list.component.html',
-  imports: [RouterLink, HasRoleDirective],
+  imports: [RouterLink, HasRoleDirective, SkeletonComponent],
 })
 export class StaffListComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
-  private readonly _router = inject(Router);
-  private readonly _http = inject(HttpClient);
-  private readonly _apiConfig = inject(ApiConfiguration);
-  private readonly _destroyRef = inject(DestroyRef);
-  private readonly _toast = inject(ToastService);
+  private readonly _staffService = inject(StaffService);
 
-  protected readonly staffList = signal<StaffWithQueueDto[]>([]);
-  protected readonly loading = signal(true);
+  protected readonly staffList = this._staffService.staffList;
+  protected readonly loading = this._staffService.loading;
 
   protected get salonId(): string {
     return this._route.snapshot.paramMap.get('salonId') ?? '';
   }
 
   ngOnInit(): void {
-    staffControllerFindAll(this._http, this._apiConfig.rootUrl, { salonId: this.salonId }).pipe(
-      takeUntilDestroyed(this._destroyRef),
-    ).subscribe({
-      next: (res) => {
-        this.staffList.set(res.body);
-        this.loading.set(false);
-      },
-      error: () => {
-        this._toast.error('Failed to load staff');
-        this.loading.set(false);
-      },
-    });
+    this._staffService.load(this.salonId);
   }
 
   protected roleBadgeClass(role: SalonStaff['role']): string {

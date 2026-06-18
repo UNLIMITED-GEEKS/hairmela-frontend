@@ -81,10 +81,9 @@ export const routes: Routes = [
       import('./features/queue/queue-console/queue-console.component').then((m) => m.QueueConsoleComponent),
   },
 
-  // Customer-facing visit pages
+  // Customer-facing visit pages — public; auth is checked at join time
   {
     path: 's/:slug',
-    canActivate: [authGuard],
     loadChildren: () =>
       import('./features/visit/visit.routes').then((m) => m.visitRoutes),
   },

@@ -9,11 +9,12 @@ import { salonsControllerUpdateSlug } from '../../../api/fn/salons/salons-contro
 import { ToastService } from '../../../core/toast/toast.service';
 import { isApiError } from '../../../core/errors/api-error.types';
 import { ErrorCodes } from '../../../core/errors/error-codes';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-salon-slug',
   templateUrl: './salon-slug.component.html',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, SkeletonComponent],
 })
 export class SalonSlugComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);

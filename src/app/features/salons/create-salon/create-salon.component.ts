@@ -8,6 +8,7 @@ import { userSalonsControllerCreate } from '../../../api/fn/salons/user-salons-c
 import { ToastService } from '../../../core/toast/toast.service';
 import { isApiError } from '../../../core/errors/api-error.types';
 import { ErrorCodes } from '../../../core/errors/error-codes';
+import { DashboardService } from '../../dashboard/dashboard.service';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -38,6 +39,7 @@ export class CreateSalonComponent {
   private readonly _fb = inject(FormBuilder);
   private readonly _destroyRef = inject(DestroyRef);
   private readonly _toast = inject(ToastService);
+  private readonly _dashboardService = inject(DashboardService);
 
   protected readonly saving = signal(false);
   protected readonly days = DAYS;
@@ -100,6 +102,8 @@ export class CreateSalonComponent {
       next: () => {
         this.saving.set(false);
         this._toast.success('Salon created');
+        this._dashboardService.clear();
+        this._dashboardService.load();
         this._router.navigate(['/dashboard']);
       },
       error: (err: unknown) => {

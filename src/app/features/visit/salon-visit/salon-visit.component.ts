@@ -26,6 +26,7 @@ import { publicQueueControllerGetTimeline } from '../../../api/fn/queues/public-
 import { publicQueueControllerGetQueue } from '../../../api/fn/queues/public-queue-controller-get-queue';
 import { walkInControllerJoinQueue } from '../../../api/fn/queues/walk-in-controller-join-queue';
 import { walkInControllerLeaveQueue } from '../../../api/fn/queues/walk-in-controller-leave-queue';
+import { walkInControllerAddMembersToEntry } from '../../../api/fn/queues/walk-in-controller-add-members-to-entry';
 import { SalonPublicDto } from '../../../api/models/salon-public-dto';
 import { SalonPublicStaffDto } from '../../../api/models/salon-public-staff-dto';
 import { Service } from '../../../api/models/service';
@@ -41,10 +42,12 @@ type Screen = 'landing' | 'choose-service' | 'my-position' | 'live-queue';
 
 const ENTRY_STORAGE_KEY = 'hairmela_active_entries';
 
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+
 @Component({
   selector: 'app-salon-visit',
   templateUrl: './salon-visit.component.html',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, SkeletonComponent],
 })
 export class SalonVisitComponent implements OnInit, OnDestroy {
   private readonly _route = inject(ActivatedRoute);
@@ -62,7 +65,8 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
   protected readonly loading = signal(true);
   protected readonly joining = signal(false);
   protected readonly leaving = signal(false);
-  protected readonly showAddParty = signal(false);
+  protected readonly showAddKidsModal = signal(false);
+  protected readonly addingKids = signal(false);
 
   protected readonly salonData = signal<SalonPublicDto | null>(null);
   protected readonly services = signal<Service[]>([]);
@@ -109,6 +113,7 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
     ),
   );
 
+
   // The SERVING member across the whole timeline (there's at most one)
   private readonly _servingMember = computed(() => {
     for (const entry of this.timeline()) {
@@ -142,6 +147,12 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
     const entry = this.myEntry();
     if (!entry) return false;
     return entry.members.some((m) => m.status === 'SERVING');
+  });
+
+  protected readonly partyMembers = computed(() => {
+    const entry = this.myEntry();
+    if (!entry) return [];
+    return entry.members.filter((m) => !m.isLeader);
   });
 
   ngOnInit(): void {
@@ -225,7 +236,7 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
           if (myTimelineEntry) {
             this.activeEntry.set(existing);
             if (this.screen() === 'choose-service') {
-              this.screen.set('live-queue');
+              this.screen.set('my-position');
             }
             if (myTimelineEntry.members.some((m) => m.status === 'SERVING')) {
               this.calledVisible.set(true);
@@ -235,7 +246,7 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
             // Entry not in timeline — stale localStorage (different account or entry completed)
             this._removeStoredEntry(queueId);
             this.activeEntry.set(null);
-            if (this.screen() === 'live-queue') {
+            if (this.screen() === 'live-queue' || this.screen() === 'my-position') {
               this.screen.set('choose-service');
             }
           }
@@ -257,14 +268,20 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
 
   protected selectBarber(staff: SalonPublicStaffDto): void {
     if (!staff.queueId) return;
+
+    if (!this._currentUser.user()) {
+      this._toast.info('You must be logged in to join the queue.');
+      const returnUrl = this._router.url;
+      this._router.navigate(['/register'], { queryParams: { returnUrl } });
+      return;
+    }
+
     this.selectedStaff.set(staff);
     const salon = this.salon();
     const storedEntries = this._loadStoredEntries();
     if (salon) {
       this._watchQueue(staff.queueId, storedEntries);
     }
-    // Always start on choose-service; timeline subscription advances to live-queue
-    // only after confirming the stored entryId is present in the live timeline.
     this.screen.set('choose-service');
   }
 
@@ -284,21 +301,12 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
 
     const user = this._currentUser.user();
     const leaderName = user ? `${user.firstName}` : 'Me';
-    const extraMembersValue = this.extraMembers.value as { name: string; serviceId: string }[];
-
-    const members = [
-      { memberName: leaderName, serviceId: this.selectedServiceId() ?? undefined },
-      ...extraMembersValue.map((m) => ({
-        memberName: m.name,
-        serviceId: m.serviceId || undefined,
-      })),
-    ];
 
     this.joining.set(true);
     walkInControllerJoinQueue(this._http, this._apiConfig.rootUrl, {
       salonId: salon.id,
       queueId: staff.queueId,
-      body: { members },
+      body: { members: [{ memberName: leaderName, serviceId: this.selectedServiceId() ?? undefined }] },
     })
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe({
@@ -311,7 +319,7 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
           this.activeEntry.set(entry);
           this._saveEntry(entry);
           this.joining.set(false);
-          this.screen.set('live-queue');
+          this.screen.set('my-position');
         },
         error: (err) => {
           this.joining.set(false);
@@ -319,6 +327,49 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
           if (isApiError(body) && body.code === ErrorCodes.QUEUE_NOT_OPEN) {
             this._toast.info('Queue is not open right now.');
             this.queueStatus.set('CLOSED');
+          }
+        },
+      });
+  }
+
+  protected addKids(): void {
+    const entry = this.activeEntry();
+    const salon = this.salon();
+    const staff = this.selectedStaff();
+    if (!entry || !salon || !staff?.queueId || this.addingKids()) return;
+
+    const kidsValue = this.extraMembers.value as { name: string; serviceId: string }[];
+    const validKids = kidsValue.filter((k) => k.name?.trim());
+    if (validKids.length === 0) {
+      this.closeAddKidsModal();
+      return;
+    }
+
+    this.addingKids.set(true);
+    walkInControllerAddMembersToEntry(this._http, this._apiConfig.rootUrl, {
+      salonId: salon.id,
+      queueId: entry.queueId,
+      entryId: entry.entryId,
+      body: {
+        members: validKids.map((k) => ({
+          memberName: k.name.trim(),
+          serviceId: k.serviceId || undefined,
+        })),
+      },
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: () => {
+          this.addingKids.set(false);
+          this.extraMembers.clear();
+          this.closeAddKidsModal();
+          this._toast.success('Kids added to your queue entry.');
+        },
+        error: (err) => {
+          this.addingKids.set(false);
+          const body = (err as { error?: unknown })?.error;
+          if (isApiError(body) && body.code === ErrorCodes.PARTY_TOO_LARGE) {
+            this._toast.error('Party size exceeds the maximum allowed.');
           }
         },
       });
@@ -360,14 +411,27 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
       });
   }
 
+  protected openAddKidsModal(): void {
+    this.showAddKidsModal.set(true);
+    if (this.extraMembers.length === 0) {
+      this.extraMembers.push(this._buildMemberGroup());
+    }
+  }
+
+  protected closeAddKidsModal(): void {
+    this.showAddKidsModal.set(false);
+  }
+
   protected addPartyMember(): void {
     if (this.extraMembers.length >= this.maxPartySize() - 1) return;
     this.extraMembers.push(this._buildMemberGroup());
-    this.showAddParty.set(true);
   }
 
   protected removePartyMember(i: number): void {
     this.extraMembers.removeAt(i);
+    if (this.extraMembers.length === 0) {
+      this.showAddKidsModal.set(false);
+    }
   }
 
   private _buildMemberGroup() {
@@ -405,9 +469,15 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
 
   protected goBack(): void {
     switch (this.screen()) {
-      case 'choose-service': this.screen.set('landing'); break;
-      case 'my-position': this.screen.set('choose-service'); break;
-      case 'live-queue': this.screen.set('landing'); break;
+      case 'choose-service':
+        this.screen.set('landing');
+        break;
+      case 'my-position':
+        this.screen.set('landing');
+        break;
+      case 'live-queue':
+        this.screen.set('my-position');
+        break;
     }
   }
 

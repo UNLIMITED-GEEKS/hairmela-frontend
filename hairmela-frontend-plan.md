@@ -59,14 +59,14 @@ Four screens in sequence:
 - Large circle center-screen showing:
   - "Position in line" label
   - Position number large (e.g. `7`)
-  - Estimated wait below (e.g. `est: 5m`)
+  - Estimated wait below (e.g. `est: 5m`) — live countdown ticking every second
 - "Add Kids" button — opens party member rows (name + service picker per extra person)
 - Two buttons at the bottom: "View queue" (goes to Screen 4) | "Back"
 
 **Screen 4 — Live queue view for this barber (`/s/:slug/q/:queueId`)**
 - Barber photo/avatar + name ("Dany the barber") + availability badge
 - Two column headers: "Waiting" | "Estimated time"
-- Scrollable queue list, each row: client label (anonymized: "Client 1", "Client 2"…) + wait time
+- Scrollable queue list, each row: client label (anonymized: "Client 1", "Client 2"…) + wait time — live countdown ticking every second
 - The user's own row highlighted green with label "Me"
 - Two buttons at the bottom:
   - "Leave queue" (red/destructive — confirm dialog before calling DELETE)
@@ -128,11 +128,20 @@ The backend serves OpenAPI at `/docs-json` with the CLI plugin inferring every D
 - `src/app/api/**` is generated — never hand-edited, regenerated after every backend DTO change. A stale client shows up as TypeScript errors, which is the point.
 - The generated `ApiConfiguration.rootUrl` is set from `environment.apiBaseUrl` in `app.config.ts` — the single place the API URL exists.
 - Generated services are the only HTTP entry points. Thin feature services wrap them where orchestration is needed; components never inject generated services *and* `HttpClient` side by side.
+- The generated client uses **functional API** (`fn/` directory) — import individual functions, not service classes.
 
 **What is NOT generated (maintained by hand in `core/`):**
 - `error-codes.ts` — mirror of the backend's stable code enum (small, changes rarely, breaks loudly)
-- `api-error.types.ts` — the error envelope shape `{ statusCode, code, message, details, timestamp, path, requestId }`; includes the `isApiError(body)` type guard which must be called on `err.error` (the parsed response body), **never on the raw `HttpErrorResponse`**
-- Socket payload types (`TimelineEntryDto`, `CustomerCalledPayload`) — WebSocket events aren't in the OpenAPI spec
+- `api-error.types.ts` — the error envelope shape `{ statusCode, code, message, details, timestamp, path, requestId }`; includes the `isApiError(body)` type guard — **must be called on `err.error` (the parsed body), never on the raw `HttpErrorResponse`**
+- `socket.types.ts` — re-exports `TimelineEntryDto` from the generated models; defines `CustomerCalledPayload` and `ConnectionState`
+
+**`isApiError` usage pattern:**
+```typescript
+error: (err: unknown) => {
+  const body = (err as { error?: unknown })?.error;
+  if (isApiError(body) && body.code === ErrorCodes.SOME_CODE) { ... }
+}
+```
 
 ---
 
@@ -147,7 +156,7 @@ src/app/
 ├── app.routes.ts                    ← top-level lazy routes
 ├── app.component.ts                 ← shell: header, nav, toast outlet
 │
-├── api/                             ← GENERATED (fn/ + models/) — do not edit; regenerate with npm run generate:api
+├── api/                             ← GENERATED (fn/ + models/) — never edit; run npm run generate:api
 │
 ├── core/                            ← singletons (providedIn: 'root'), loaded once
 │   ├── auth/
@@ -157,7 +166,8 @@ src/app/
 │   │   └── session-init.ts          ← app initializer: silent refresh → /auth/me → hydrate
 │   ├── salon-context/
 │   │   ├── salon-context.service.ts ← active salonId from route; exposes membership signal
-│   │   └── membership.store.ts      ← per-salon cache of GET /salons/:salonId/me
+│   │   ├── membership.store.ts      ← per-salon cache of GET /salons/:salonId/me
+│   │   └── membership.types.ts      ← SalonRole enum + Membership interface
 │   ├── guards/
 │   │   ├── auth.guard.ts
 │   │   ├── guest.guard.ts
@@ -173,40 +183,38 @@ src/app/
 │   │   └── api-error.types.ts       ← envelope type + isApiError() type guard
 │   ├── socket/
 │   │   ├── queue-socket.service.ts
-│   │   └── socket.types.ts
+│   │   └── socket.types.ts          ← re-exports TimelineEntryDto; CustomerCalledPayload; ConnectionState
 │   └── toast/
-│       └── toast.service.ts
+│       ├── toast.service.ts
+│       └── toast.component.ts
 │
 ├── shared/                          ← reusable, imported per-feature
 │   ├── directives/
 │   │   ├── has-role.directive.ts        ← *hasRole="['OWNER','ADMIN']"
 │   │   ├── requires-tier.directive.ts   ← *requiresTier="2" (lock | hide modes)
 │   │   └── tier-freeze.directive.ts     ← [tierFreeze]="membership().isFrozen"
-│   ├── components/
-│   │   ├── pagination/                  ← consumes PaginatedResponse meta
-│   │   ├── confirm-dialog/
-│   │   ├── image-uploader/              ← file pick, client-side validate (jpeg/png/webp, ≤5 MB), multipart
-│   │   ├── gallery/                     ← display + drag-reorder
-│   │   ├── avatar/                      ← NgOptimizedImage + fallback initials
-│   │   ├── qr-code/                     ← client-side QR from appBaseUrl + slug (render + PNG download)
-│   │   ├── status-badge/                ← queue/entry/member status pills
-│   │   ├── verify-email-prompt/         ← shown proactively + on EMAIL_NOT_VERIFIED; resend button
-│   │   ├── empty-state/
-│   │   └── loading-spinner/
-│   └── pipes/
-│       ├── time-ago.pipe.ts
-│       ├── duration.pipe.ts             ← minutes → "1h 20m"
-│       └── salon-time.pipe.ts           ← UTC → salon IANA timezone display
+│   └── components/
+│       ├── confirm-dialog/              ← ConfirmDialogService + ConfirmDialogComponent
+│       ├── image-uploader/              ← file pick, client-side validate (jpeg/png/webp, ≤5 MB), multipart
+│       ├── gallery/                     ← display + drag-reorder
+│       └── avatar/                      ← initials fallback
 │
 └── features/                        ← lazy-loaded
     ├── auth/            (login, register, verify-email)
     ├── dashboard/
-    │   ├── customer/        (CustomerDashboardComponent — active queues, visit history post-MVP)
-    │   ├── salon/           (SalonDashboardComponent — my salons, pending invites, quick actions)
-    │   └── shared/          (NoSalonsEmptyState — used by both views)
+    │   ├── dashboard.component.ts/.html     ← shell: fetches /salons/mine, routes to salon or customer view
+    │   ├── customer/
+    │   │   └── customer-dashboard.component.ts/.html
+    │   ├── salon/
+    │   │   ├── salon-dashboard.component.ts/.html
+    │   │   ├── my-salons-list/
+    │   │   └── pending-invites/             ← also used by /notifications
+    │   └── shared/
+    │       └── no-salons-empty-state/
+    ├── notifications/   (/notifications — wraps PendingInvitesComponent)
     ├── organization/
     ├── salons/
-    ├── staff/           (management + invite accept/decline)
+    ├── staff/
     ├── services/
     ├── schedules/
     ├── closures/
@@ -215,7 +223,7 @@ src/app/
     └── account/
 ```
 
-Each feature folder follows: `*.component.ts` + `*.component.html` (orchestration only), `*.service.ts` (feature logic over the generated client), `*.types.ts` (view-model types only — API types come from `core/api`). A `*.component.scss` is only added when custom CSS is genuinely needed beyond Tailwind.
+Each feature folder follows: `*.component.ts` + `*.component.html` (orchestration only). A `*.component.scss` is only added when custom CSS is genuinely needed beyond Tailwind.
 
 ---
 
@@ -231,7 +239,7 @@ On boot: refresh token present → `POST /auth/refresh` → store new pair → `
 
 ### auth.service.ts
 - `login(dto)` / `register(dto)` via the generated client; on success store tokens + hydrate user. After registration: route to dashboard directly — no "verify your email" banner in MVP (email verification deferred).
-- `logout()` — disconnect the socket, clear tokens + stores, navigate `/login`. There is no backend logout endpoint (stateless JWT; revocation deferred) — logout is client-side. *(When push ships post-MVP, `DELETE /push/subscribe` must run first in this sequence, while the session is still valid.)*
+- `logout()` — disconnect the socket, clear tokens + stores, navigate `/login`. There is no backend logout endpoint (stateless JWT; revocation deferred) — logout is client-side.
 - `verifyEmail(token)` → `POST /auth/verify-email` (token in the **body**, taken from the landing page's query param); `resendVerification()` → `POST /auth/resend-verification`.
 
 ### current-user.store.ts
@@ -239,7 +247,7 @@ On boot: refresh token present → `POST /auth/refresh` → store new pair → `
 
 ### membership.store.ts + salon-context.service.ts
 - `getMembership(salonId)`: returns cached `{ role, isStaff, canManageSalon, canManageStaff, tier, isFrozen }` or fetches `GET /salons/:salonId/me`. This is the **only** role/tier-discovery mechanism in the app.
-- Cache invalidation: on accept/decline invite, role change, ownership transfer, and logout. One plain `Map<salonId, Membership>` — no LRU machinery (a user belongs to a handful of salons; YAGNI).
+- Cache invalidation: on accept/decline invite, role change, ownership transfer, and logout. One plain `Map<salonId, Membership>` — no LRU machinery.
 - `SalonContextService` derives the active `salonId` from the route and exposes the active membership as a signal — guards and the three directives all read from here, so route protection and template state share one source and can never disagree.
 
 ---
@@ -252,7 +260,7 @@ On boot: refresh token present → `POST /auth/refresh` → store new pair → `
 | `guestGuard` | Authenticated → redirect `/dashboard` | `/login`, `/register` |
 | `salonRoleGuard` | Reads `:salonId`, awaits `MembershipStore.getMembership()`, checks `route.data.roles`. `CUSTOMER` or insufficient role → redirect to the salon's visit page or dashboard | salon management routes |
 | `orgOwnerGuard` | User owns `:orgId` (via `GET /organizations/mine`, cached) | `/org/*` |
-| `tierGuard` | `membership.tier >= route.data.requiredTier` → pass; else redirect to the plan explainer. Built in Phase 2 with the rest of the enforcement layer; its route consumers (analytics, booking) arrive post-MVP, while the `*requiresTier` directive is in active use from Phase 3 | tier-gated routes (post-MVP) |
+| `tierGuard` | `membership.tier >= route.data.requiredTier` → pass; else redirect to the plan explainer. Built; its route consumers (analytics, booking) arrive post-MVP | tier-gated routes (post-MVP) |
 
 Guards are async-safe: they await the membership fetch (first visit to a salon) rather than reading a possibly-empty cache.
 
@@ -260,30 +268,30 @@ Guards are async-safe: they await the membership fetch (first visit to a salon) 
 
 ## Directives (template-level control)
 
-**`*hasRole`** — structural; renders content only if the active-salon membership role is in the list. Reads `SalonContextService`, so it's correct per salon (same user: OWNER controls at Salon A, none at Salon B).
+**`*hasRole`** — structural; renders content only if the active-salon membership role is in the list. Reads `SalonContextService`.
 ```html
 <button *hasRole="['OWNER','ADMIN']">Invite staff</button>
 ```
 
-**`*requiresTier`** — default mode **lock**: render disabled with a lock icon + "Upgrade to enable" nudge. In MVP this gates the things Tier 1 limits — inviting beyond one barber, creating beyond one salon — and dresses the locked teasers for post-MVP Tier 2 features. `mode: 'hide'` for the rare case a locked control would confuse. The nudge routes to the org plan screen. Reads `membership().tier`.
+**`*requiresTier`** — default mode **lock**: render disabled with a lock icon + "Upgrade to enable" nudge. `mode: 'hide'` for the rare case a locked control would confuse. Reads `membership().tier`.
 
-**`tierFreeze`** (attribute) — downgrade scenario. When `membership().isFrozen`, wrapped controls render read-only with a "frozen — upgrade to edit" overlay, mirroring exactly what the backend's `@ActiveSalon` guard rejects (new joins, invites). Enforcement is server-side; this is honest UI, with `SALON_FROZEN` handled centrally if a frozen action slips through anyway.
+**`tierFreeze`** (attribute) — when `membership().isFrozen`, wrapped controls render read-only with a "frozen — upgrade to edit" overlay. Enforcement is server-side; this is honest UI, with `SALON_FROZEN` handled centrally if a frozen action slips through anyway.
 
 ---
 
 ## Interceptors (functional, ordered: jwt → refresh → error)
 
-**`jwtInterceptor`** — attaches `Authorization: Bearer <access>` to requests targeting `environment.apiBaseUrl`, skipping `/auth/login`, `/auth/register`, `/auth/refresh`, and public reads. Never attaches tokens to third-party hosts (Cloudinary URLs are plain GETs).
+**`jwtInterceptor`** — attaches `Authorization: Bearer <access>` to requests targeting `environment.apiBaseUrl`, skipping `/auth/login`, `/auth/register`, `/auth/refresh`, and public reads.
 
 **`refreshInterceptor`** — on 401 with code `TOKEN_EXPIRED`: single-flight refresh (one `POST /auth/refresh` shared by all concurrent 401s via RxJS), queue and retry the originals with the new access token. Refresh fails or code is `TOKEN_INVALID` → full logout. Never retries the refresh call itself.
 
-**`errorInterceptor`** — parses the envelope into `ApiError` (with an `isApiError` guard for non-envelope failures like network drops), branches on `code` per the table below, and rethrows a typed error so features can add flow-specific handling. Unknown/500 errors: generic toast **including the `requestId`** ("Something went wrong — ref b3f1c9e2") so a user report can be matched to the backend's correlated logs and Sentry events.
+**`errorInterceptor`** — parses the envelope into `ApiError` (with an `isApiError` guard for non-envelope failures like network drops), branches on `code` per the table below, and rethrows a typed error so features can add flow-specific handling. Unknown/500 errors: generic toast **including the `requestId`** so a user report can be matched to backend logs.
 
 ---
 
 ## Error Handling Convention (code → UI behavior)
 
-The frontend branches on `code`, never on `message` (backend contract). Central handling lives in the interceptor; rows marked *local* are handled by the owning feature. Codes for deferred features (`SLOT_*`, `CANCELLATION_WINDOW_PASSED`) get their handlers when those features ship.
+The frontend branches on `code`, never on `message` (backend contract). Central handling lives in the interceptor; rows marked *local* are handled by the owning feature.
 
 | Code(s) | Behavior |
 |---|---|
@@ -291,7 +299,7 @@ The frontend branches on `code`, never on `message` (backend contract). Central 
 | `TOKEN_INVALID` | Logout + redirect to login |
 | `INVALID_CREDENTIALS` | *local:* inline form error on login |
 | `EMAIL_ALREADY_REGISTERED` | *local:* inline error on register, link to login |
-| `EMAIL_NOT_VERIFIED` | ~~Open `VerifyEmailPrompt`~~ — **not handled in MVP; backend guard not applied** |
+| `EMAIL_NOT_VERIFIED` | **not handled in MVP; backend guard not applied** |
 | `VALIDATION_FAILED` | *local:* map `details[{field, constraint}]` onto form controls; toast fallback |
 | `TIER_REQUIRED` | Upgrade nudge — owner sees the plan screen link, non-owner sees "ask the owner" |
 | `SALON_FROZEN` | Frozen-salon prompt: "this salon is over the plan's limit — upgrade to reactivate" (owner) / informational notice (others) |
@@ -300,20 +308,18 @@ The frontend branches on `code`, never on `message` (backend contract). Central 
 | `CANNOT_REMOVE_OWNER` | Toast directing to the Transfer Ownership flow |
 | `PARTY_TOO_LARGE` | *local:* inline error on join form (form also pre-caps at `settings.maxPartySize`) |
 | `QUEUE_NOT_OPEN`, `QUEUE_ALREADY_CLOSED` | Toast + refresh queue state; join CTA disabled |
-| `ENTRY_NOT_WAITING`, `ENTRY_ALREADY_SERVING`, `MEMBER_NOT_SERVING`, `ENTRY_NOT_FOUND`, `MEMBER_NOT_FOUND` | *local (console):* "resolve the current customer first" flow + timeline re-sync — the console treats a 409 on call-next as a prompt to complete/no-show the SERVING entry |
+| `ENTRY_NOT_WAITING`, `ENTRY_ALREADY_SERVING`, `MEMBER_NOT_SERVING`, `ENTRY_NOT_FOUND`, `MEMBER_NOT_FOUND` | *local (console):* "resolve the current customer first" toast + timeline re-sync |
 | `*_NOT_FOUND` (salon/org/staff/service/queue/notification) | Toast + navigate to the nearest safe parent view |
-| HTTP 429 (when backend throttling lands post-MVP) | Toast "too many requests — wait a moment"; cheap to handle now |
 | Network error / non-envelope | "You appear to be offline" toast; queue views show the socket's reconnecting state |
 
 ---
 
 ## WebSocket Client (QueueSocketService)
 
-Wraps `socket.io-client` against the backend's `/queues` namespace, implementing the gateway contract exactly.
+Wraps `socket.io-client` against the backend's `/queues` namespace.
 
 **Connection:**
-- `io(environment.socketUrl + '/queues', { auth: { token } })` — JWT in the **auth payload**, never the query string (the backend moved it there specifically to keep tokens out of proxy logs; the frontend must not undo that).
-- All MVP users are signed in, so connections carry credentials; the gateway's anonymous-viewer mode goes live with the post-MVP public-access work.
+- `io(environment.socketUrl + '/queues', { auth: { token } })` — JWT in the **auth payload**, never the query string.
 - On login/logout the socket reconnects/disconnects.
 
 **API:**
@@ -322,344 +328,322 @@ Wraps `socket.io-client` against the backend's `/queues` namespace, implementing
 |---|---|
 | `connect()` / `disconnect()` | Lifecycle; reads token from `TokenStore` at connect time |
 | `watchQueue(queueId)` | emit `joinQueue` — public room; server immediately replies with the current `queueTimeline` |
-| `watchQueueAsStaff(queueId)` | emit `joinQueueStaff` (token re-verified server-side; also joins `queue:{id}:staff`) |
+| `watchQueueAsStaff(queueId)` | emit `joinQueueStaff` (token re-verified server-side) |
 | `unwatchQueue(queueId)` | emit `leaveQueue` |
-| `queueTimeline$(queueId)` | Observable of `TimelineEntry[]` — the full recomputed timeline on every `queue.updated` |
-| `customerCalled$(queueId)` | room-level called broadcast (anonymized — used for "now serving" display) |
+| `queueTimeline$(queueId)` | Observable of `TimelineEntryDto[]` — the full recomputed timeline on every `queue.updated` |
+| `customerCalled$(queueId)` | room-level called broadcast (anonymized) |
 | `connectionState$` | connected / reconnecting — surfaced as a banner on live views |
 
-The gateway also emits personal `notification` events to `user:{userId}` rooms; the client subscribes to those when the notifications feature ships post-MVP.
+**Reconnect discipline:** on reconnect, re-emit `joinQueue`/`joinQueueStaff` for every watched queue. The immediate `queueTimeline` reply doubles as state resync after a connection gap.
 
-**Reconnect discipline:** on reconnect, re-emit `joinQueue`/`joinQueueStaff` for every watched queue (socket.io does not restore rooms). The immediate `queueTimeline` reply doubles as state resync after a connection gap — no REST refetch needed.
+---
 
-**Privacy note carried from the backend:** room payloads are anonymized (first name + initial / position / status). The UI must not pretend otherwise — full member details render only in the staff console (staff room / role-guarded REST) and in the customer's own entry card.
+## Live Wait Time Countdown
+
+**The core product promise:** wait times tick down in real time for every connected customer — no refresh, no polling.
+
+**How it works:**
+- `TimelineMemberDto.servedAt: string | null` — ISO timestamp stamped by the backend when a member transitions to SERVING
+- Every live view (console + customer visit) runs a single `setInterval` ticking a `_tick` signal every second
+- `_elapsedSeconds` is a `computed()` that reads `_tick` and calculates `(Date.now() - new Date(servedAt).getTime()) / 1000`
+- `liveWaitMinutes` is a `computed()` `Map<entryId, number>` that subtracts elapsed minutes from each entry's `estimatedWaitMinutes`
+- All displayed wait times call `liveWait(entryId)` which formats from this map
+- The barber's stopwatch (`timerFromServedAt`) derives from the same `servedAt` — accurate on console reload
+
+**Why this works for all clients simultaneously:** every browser connected to the queue room receives the same `queueTimeline` snapshot (including `servedAt`) when the barber calls next. Each browser independently runs the countdown arithmetic from that shared timestamp — they all tick in sync without any additional socket events.
 
 ---
 
 ## Feature Modules
 
-Each feature lists routes, components, the backend endpoints consumed (generated client methods), and guards. Role/tier annotations mirror the backend tables exactly.
-
 ### Auth — `features/auth/`
 
 **Routes:** `/login`, `/register`, `/verify-email`
 
-| Component | Purpose | Endpoint |
-|---|---|---|
-| LoginComponent | Email/password; return-url redirect | POST /auth/login |
-| RegisterComponent | email, password, first/last name, optional phone. No org setup step — the backend auto-creates org + free subscription on registration. Post-signup, pending staff invites surface automatically (backend `claimInvites` linked them by email) | POST /auth/register |
-| VerifyEmailLandingComponent | Reads `?token=` from the emailed link, POSTs it, shows success/failure, refreshes `/auth/me` | POST /auth/verify-email |
+| Component | Endpoint |
+|---|---|
+| `LoginComponent` | POST /auth/login |
+| `RegisterComponent` | POST /auth/register |
+| `VerifyEmailComponent` | POST /auth/verify-email |
 
-**Guards:** `guestGuard` on login/register; the verify-email landing is public (users may open the link in a fresh browser).
-**Note:** verification is not enforced in MVP — the landing page just shows a success/failure message. Forgot/reset password are in the post-MVP backlog.
+**Guards:** `guestGuard` on login/register; verify-email is public.
 
 ### Dashboard — `features/dashboard/`
 
-**Routes:** `/dashboard`
+**Route:** `/dashboard`
 
-The dashboard shell (`DashboardComponent`) calls `GET /salons/mine` once on load. An empty result means a pure customer — it renders `CustomerDashboardComponent`. A non-empty result means the user has salon memberships — it renders `SalonDashboardComponent`. One route, two views, no extra API call.
+Shell (`DashboardComponent`) calls `GET /salons/mine` once. Empty result → `CustomerDashboardComponent`. Non-empty → `SalonDashboardComponent`.
 
-**Folder structure:**
-```
-features/dashboard/
-├── dashboard.component.ts/.html          ← shell / router between the two views
-├── customer/
-│   └── customer-dashboard.component.ts/.html   ← active queues (MVP shell); visit history post-MVP
-├── salon/
-│   ├── salon-dashboard.component.ts/.html      ← my salons list + pending invites
-│   ├── my-salons-list/
-│   │   └── my-salons-list.component.ts/.html
-│   └── pending-invites/
-│       └── pending-invites.component.ts/.html
-└── shared/
-    └── no-salons-empty-state/
-        └── no-salons-empty-state.component.ts/.html   ← "create a salon" CTA; used by both views
-```
-
-| Component | Purpose | Endpoint |
-|---|---|---|
-| DashboardComponent | Shell — fetches `/salons/mine`, routes to salon or customer view | GET /salons/mine |
-| SalonDashboardComponent | Salon staff/owner landing: my salons list | — |
-| MySalonsListComponent | Every salon where the user is active staff, with role badge + role-filtered quick actions | GET /salons/mine → `{ salon, role }[]` |
-| PendingInvitesComponent | Accessible via a bell/notification icon. Surfaces STAFF_INVITED notifications with inline Accept / Decline. Navigates to `/notifications`. | GET /notifications + staff accept/decline |
-| CustomerDashboardComponent | Pure-customer landing: active queue positions (MVP shell); visit history post-MVP | — |
-| NoSalonsEmptyState | Shared: "create a salon" CTA — shown to salon users with no salons yet, and optionally to customers | — |
+| Component | Endpoint |
+|---|---|
+| `DashboardComponent` | GET /salons/mine |
+| `SalonDashboardComponent` | — (renders MySalonsList) |
+| `MySalonsListComponent` | GET /salons/mine → `{ salon, role }[]` |
+| `PendingInvitesComponent` | GET /notifications + staff accept/decline — **also used by `/notifications`** |
+| `CustomerDashboardComponent` | — |
+| `NoSalonsEmptyStateComponent` | — |
 
 **Guards:** `authGuard`.
 
-> **Implementation note:** Pending invites were moved out of the main dashboard view and are now surfaced behind a bell/notifications icon that navigates to `/notifications`. This keeps the salon dashboard uncluttered while keeping invites discoverable.
+### Notifications — `features/notifications/`
+
+**Route:** `/notifications`
+
+`NotificationsComponent` wraps `PendingInvitesComponent`. Accessible from the bell icon in the app shell. After accept/decline, navigates to `/dashboard`.
+
+**Guards:** `authGuard`.
 
 ### Organization — `features/organization/`
 
-**Routes:** `/org/:orgId`
+**Routes:** `/org/:orgId`, `/org/:orgId/settings`, `/org/:orgId/plan`
 
-| Component | Purpose | Endpoint |
-|---|---|---|
-| OrgOverviewComponent | Org name, salons, **read-only** plan/tier display | GET /organizations/:orgId + membership tier |
-| OrgSettingsComponent | Rename org | PATCH /organizations/:orgId |
-| PlanExplainerComponent | Static Tier 1/2/3 comparison — the target of every upgrade nudge. **No upgrade/downgrade actions:** the backend exposes no subscription HTTP routes (deferred). Copy says "contact us to upgrade" until they exist | — |
+| Component | Endpoint |
+|---|---|
+| `OrgOverviewComponent` | GET /organizations/:orgId |
+| `OrgSettingsComponent` | PATCH /organizations/:orgId |
+| `PlanExplainerComponent` | — (static) |
 
-**Guards:** `authGuard + orgOwnerGuard`. Org selection via `GET /organizations/mine`.
+**Guards:** `authGuard + orgOwnerGuard`.
 
 ### Salons — `features/salons/`
 
-**Routes:** `/salons/new`, `/salons/:salonId`, `/salons/:salonId/settings`
+**Routes:** `/salons/new`, `/salons/:salonId`, `/salons/:salonId/settings`, `/salons/:salonId/slug`, `/salons/:salonId/share`, `/salons/:salonId/delete`, `/salons/:salonId/media`
 
-| Component | Purpose | Endpoint |
-|---|---|---|
-| CreateSalonComponent | Name, structured address (country/state/city/street — the Address table), IANA timezone picker (default Africa/Lagos), operating hours, default slot duration | POST /salons |
-| SalonOverviewComponent | Summary: today's queues, staff, quick links — role-filtered via `*hasRole` | GET /salons/:salonId |
-| SalonSettingsComponent | Operating hours, defaultSlotDuration, settings JSON (noShowWindow, allowWalkIns, maxPartySize) | PATCH /salons/:salonId, PATCH .../settings |
-| SalonSlugComponent | View/edit slug; `SALON_SLUG_TAKEN` inline; **OWNER only** | PATCH /salons/:salonId/slug |
-| SalonShareComponent | Client-side QR (`appBaseUrl + '/s/' + slug`) render + PNG download + copy link. The QR target is the visit page route, which never changes — printed codes stay valid when public access ships | — |
-| DeleteSalonComponent | Confirm dialog spelling out the cascade (queues closed, entries cancelled, customers notified); **OWNER only** | DELETE /salons/:salonId |
+| Component | Endpoint |
+|---|---|
+| `CreateSalonComponent` | POST /salons |
+| `SalonOverviewComponent` | GET /salons/:salonId |
+| `SalonSettingsComponent` | PATCH /salons/:salonId, PATCH .../settings |
+| `SalonSlugComponent` | PATCH /salons/:salonId/slug |
+| `SalonShareComponent` | — (client-side QR via `qrcode` npm package → `mod.default.toDataURL`) |
+| `DeleteSalonComponent` | DELETE /salons/:salonId |
+| `SalonMediaComponent` | GET/POST/DELETE/PATCH /salons/:salonId/media |
 
-**Guards:** `/salons/new` = `authGuard` only — the backend's `POST /salons` is plain Authenticated and auto-creates an org if needed; salon-count limits are enforced server-side (`SALON_LIMIT_REACHED` → upgrade nudge). `:salonId` = `salonRoleGuard(OWNER, ADMIN, STAFF)`; settings = `(OWNER, ADMIN)`; slug + delete controls additionally `*hasRole="['OWNER']"`.
+**QR note:** `qrcode` is a CJS package. In the production ESM bundle the API lands under `mod.default`, not at the top level. Always resolve as: `const toDataURL = (mod.default as ...).toDataURL ?? mod.toDataURL`.
+
+**Guards:** `/salons/new` = `authGuard` only. `:salonId` = `salonRoleGuard(OWNER, ADMIN, STAFF)`; settings/slug/delete additionally scoped by role data.
 
 ### Staff — `features/staff/`
 
-**Routes:** `/salons/:salonId/staff`, `/salons/:salonId/staff/:staffId`
+**Routes:** `/salons/:salonId/staff`, `/salons/:salonId/staff/:staffId`, `/salons/:salonId/staff/:staffId/media`, `/salons/:salonId/staff/:staffId/schedules`
 
-| Component | Purpose | Endpoint |
-|---|---|---|
-| StaffListComponent | Paginated list, role + status badges (PENDING/ACTIVE/INACTIVE). Response is `{ staff, queueId }[]` — `queueId` is available directly from the list, so the console link resolves without an extra request | GET /salons/:salonId/staff → `{ staff, queueId }[]` |
-| InviteStaffComponent | Email + role (ADMIN/STAFF — backend: cannot assign OWNER). Handles `STAFF_ALREADY_INVITED`; re-inviting INACTIVE members is supported server-side. Invite controls wear `*requiresTier` lock at the tier's staff limit, and `tierFreeze` on frozen salons | POST .../staff/invite |
-| StaffDetailComponent | Profile, role, services offered, gallery | — |
-| ChangeRoleComponent | ADMIN ↔ STAFF; `CANNOT_REMOVE_OWNER` routes to the transfer flow | PATCH .../staff/:staffId/role |
-| TransferOwnershipComponent | Atomic promote+demote with explicit confirm ("you will become ADMIN"); **OWNER only** | PATCH .../staff/transfer-ownership |
-| RemoveStaffComponent | Confirm dialog spelling out the cascade (queue closed, entries cancelled, customers notified) | DELETE .../staff/:staffId |
-| MyInviteActionsComponent | Accept / Decline for the *invitee* (used by the dashboard's PendingInvites). No email verification gate in MVP — accept/decline directly | POST .../staff/accept, POST .../staff/decline |
+| Component | Endpoint |
+|---|---|
+| `StaffListComponent` | GET /salons/:salonId/staff → `{ staff, queueId }[]` |
+| `InviteStaffComponent` | POST .../staff/invite |
+| `StaffDetailComponent` | PATCH .../staff/:staffId/role, DELETE .../staff/:staffId, PATCH .../staff/transfer-ownership |
+| `StaffMediaComponent` | GET/POST/DELETE/PATCH .../staff/:staffId/media |
+| `PendingInvitesComponent` | POST .../staff/accept, POST .../staff/decline |
 
-**Guards:** management = `salonRoleGuard(OWNER, ADMIN)`; accept/decline = `authGuard` only — the invitee has no SalonStaff role yet, mirroring the backend's JwtAuthGuard-only routes (the invite is matched by the user's email). There is no "link existing user" flow: linking is invite + automatic claim on registration.
+**Guards:** management = `salonRoleGuard(OWNER, ADMIN)`; accept/decline = `authGuard` only.
 
 ### Services — `features/services/`
 
-**Routes:** `/salons/:salonId/services`
+**Routes:** `/salons/:salonId/services`, `/salons/:salonId/services/new`, `/salons/:salonId/services/:serviceId/edit`, `/salons/:salonId/staff/:staffId/services`
 
-| Component | Purpose | Endpoint |
-|---|---|---|
-| ServiceListComponent | Catalog list (name, duration, price — display only, no payments) | GET /salons/:salonId/services (`publicServicesControllerFindBySalon`) |
-| ServiceFormComponent | Create/edit; `SERVICE_NAME_TAKEN` inline | POST + PATCH .../services |
-| DeactivateServiceComponent | Confirm dialog noting the cascade (unassigned from staff, defaults nulled, staff notified; in-flight queue entries keep their duration snapshot) | DELETE .../services/:serviceId |
-| StaffServiceAssignComponent | Per-staff service checklist + default-service picker. Uses `forkJoin` of: all services (`publicServicesControllerFindBySalon`), assigned services (`staffServicesControllerGetStaffServices` → returns `StaffService[]` where service details are nested at `.service` and the FK is `.serviceId`), and staff list (`staffControllerFindAll`) to get `defaultServiceId` from `SalonStaff.defaultServiceId`. | GET /salons/:salonId/services, GET .../staff/:staffId/services, GET .../staff, POST/DELETE .../staff/:staffId/services(/:serviceId), PATCH .../staff/:staffId/default-service |
+| Component | Endpoint |
+|---|---|
+| `ServiceListComponent` | GET /salons/:salonId/services (`publicServicesControllerFindBySalon`) |
+| `ServiceFormComponent` | POST + PATCH .../services; prefills via `publicServicesControllerFindBySalon` |
+| `StaffServiceAssignComponent` | `forkJoin` of: `publicServicesControllerFindBySalon`, `staffServicesControllerGetStaffServices`, `staffControllerFindAll`; POST/DELETE .../staff/:staffId/services(/:serviceId), PATCH .../default-service |
 
-**Guards:** catalog CRUD = `(OWNER, ADMIN)`; assignment routes allow `(OWNER, ADMIN, STAFF)` per backend — STAFF manage their own list (UI surfaces "my services" to STAFF; editing others' stays behind `*hasRole="['OWNER','ADMIN']"`).
+**Model note:** `GET .../staff/:staffId/services` returns `StaffService[]` — shape `{ id, serviceId, staffId, service: Service, staff: SalonStaff }`. Service details are nested under `.service`; default service ID is at `SalonStaff.defaultServiceId` fetched via the staff list.
 
-> **Model note:** `GET /salons/:salonId/staff/:staffId/services` returns `StaffService[]` — each item has shape `{ id, serviceId, staffId, service: Service, staff: SalonStaff }`. The service details are nested under `.service`; `isDefault` is not on this model. Default service ID lives at `SalonStaff.defaultServiceId`, fetched via the staff list endpoint.
+**Guards:** catalog CRUD = `(OWNER, ADMIN)`; assignment = `(OWNER, ADMIN, STAFF)`.
 
 ### Schedules — `features/schedules/`
 
-**Routes:** `/salons/:salonId/staff/:staffId/schedules`
+**Route:** `/salons/:salonId/staff/:staffId/schedules` (linked from `StaffDetailComponent`)
 
-| Component | Purpose | Endpoint |
-|---|---|---|
-| WeeklyScheduleComponent | 7-day grid of per-day working hours (HH:mm, salon timezone). Working hours drive the backend's queue auto-open/auto-close, so this matters even without appointments | GET .../schedules |
-| ScheduleDayEditor | Add / edit / remove a day's hours | POST + PATCH + DELETE .../schedules(/:scheduleId) |
+| Component | Endpoint |
+|---|---|
+| `WeeklyScheduleComponent` | GET/POST/PATCH/DELETE .../schedules(/:scheduleId) |
 
-**Guards:** `salonRoleGuard(OWNER, ADMIN)` — staff self-editing is not in the backend contract; if wanted later, it's a backend authorization change first.
+**Guards:** `salonRoleGuard(OWNER, ADMIN)`.
 
 ### Closures — `features/closures/`
 
-**Routes:** `/salons/:salonId/closures` (salon-wide + per-staff tabs)
+**Route:** `/salons/:salonId/closures` (child of salon routes)
 
-| Component | Purpose | Endpoint |
-|---|---|---|
-| ClosureListComponent | Upcoming whole-day closures, paginated, date ASC | GET .../closures, GET .../staff/:staffId/closures |
-| AddClosureComponent | Date (`YYYY-MM-DD` string — matches backend storage, no timezone math) + reason; salon or staff scope | POST .../closures, POST .../staff/:staffId/closures |
-| DeleteClosureButton | Remove | DELETE (matching scope) |
+| Component | Endpoint |
+|---|---|
+| `ClosuresComponent` | GET/POST/DELETE .../closures + .../staff/:staffId/closures |
 
-**Guards:** `salonRoleGuard(OWNER, ADMIN)`. Partial-day closures are deferred backend-side.
+**Guards:** `salonRoleGuard(OWNER, ADMIN)`.
 
 ### Queue (staff console) — `features/queue/`
 
-**Routes:** `/salons/:salonId/queues/:queueId/console`
+**Route:** `/salons/:salonId/queues/:queueId/console`
 
-| Component | Purpose | Endpoint / Socket |
-|---|---|---|
-| QueueConsoleComponent | Live management view; joins as staff over the socket. Loads queue status via `GET /queues/:queueId` (public endpoint returning the full Queue object). | watchQueueAsStaff + GET /queues/:queueId/timeline (initial/fallback) + GET /queues/:queueId (status) |
-| QueueBoardComponent | Timeline order, per-entry cards with party members, statuses, computed waits. Renders both entry types — the timeline model includes APPOINTMENT entries even though no booking UI ships in MVP | `queueTimeline$` |
-| QueueStatusToggle | OPEN / PAUSED / CLOSED with state explainer (PAUSED keeps accepting joins; CLOSED rejects them) | PATCH .../status |
-| CallNextButton | Promote head WAITING → SERVING. A 409 means the current entry isn't resolved — the UI opens the resolve flow instead of showing a raw error | POST .../call-next |
-| EntryMemberRow | Per-member Serve / Complete / Extend (+minutes) controls; the entry auto-closes when all members are SERVED (server-side) | PATCH .../members/:memberId/serve · /complete · /extend |
-| NoShowButton / CancelEntryButton | Resolve an entry without serving | PATCH .../entries/:entryId/no-show, DELETE .../entries/:entryId |
-| EndOfDayPanel | After auto-close, remaining WAITING entries persist by design — bulk-resolve UI (cancel each) for ending the day | cancel per entry |
+`QueueConsoleComponent` — single component, two-panel layout (current client / queue list).
+
+| Responsibility | Endpoint / Socket |
+|---|---|
+| Initial timeline | GET /queues/:queueId/timeline (`publicQueueControllerGetTimeline`) |
+| Queue status | GET /queues/:queueId (`publicQueueControllerGetQueue`) |
+| Live timeline | `watchQueueAsStaff` + `queueTimeline$` |
+| Live stopwatch | `timerFromServedAt` computed from `servedAt` on the serving member — ticks every second via `_tick` signal |
+| Live wait times (queue panel) | `liveWait(entryId)` from `liveWaitMinutes` computed map — same `_tick` signal |
+| Set status | PATCH .../status |
+| Call next | POST .../call-next (409 → resolve-flow toast) |
+| Complete member | PATCH .../members/:memberId/complete |
+| No-show | PATCH .../entries/:entryId/no-show |
+| Cancel entry | DELETE .../entries/:entryId |
+| Extend member | PATCH .../members/:memberId/extend |
 
 **Guards:** `salonRoleGuard(OWNER, ADMIN, STAFF)`.
 
 ### Visit (customer-facing) — `features/visit/`
 
-The salon page customers land on from the shared link / QR code. **Sign-in required for MVP** (`authGuard`); the route and URL shape are final, so printed QR codes stay valid when anonymous public access ships post-MVP — that work removes the guard, it doesn't move the page.
-
 **Routes:** `/s/:slug`, `/s/:slug/q/:queueId`
 
-| Component | Purpose | Endpoint / Socket |
-|---|---|---|
-| SalonVisitComponent | Salon profile, gallery, services, hours, and barber cards (photo, services, live queue snippet) from the enriched slug payload. All queue state (join, leave, position, called banner) is handled inline in this single component — it manages `screen` state (`landing` → `choose-service` → `live-queue`) rather than separate child components. | GET /salons/slug/:slug → `{ salon, staff[] }` (each staff: queueId, photoUrl, serviceIds), GET /queues/:queueId (status), GET /queues/:queueId/timeline (initial), `queueTimeline$` (live) |
-| JoinQueueComponent (inline in SalonVisitComponent) | **Party-aware walk-in join:** leader row prefilled with the user's first name, plus "add person" rows up to `settings.maxPartySize` total, each with a name + service picker (no selection = barber's default service, per backend). Single batch POST. Disabled when CLOSED; notice when PAUSED. | POST /salons/:salonId/queues/:queueId/walk-in |
-| MyEntryCard (inline in SalonVisitComponent) | Live position matched from `queueTimeline$` by `entryId`. Entry reference `{queueId, entryId, salonId}` stored in `localStorage` key `hairmela_active_entries`. On each timeline update the stored entry is **validated against the live timeline** — if the `entryId` is absent, the entry is purged and the screen resets to `choose-service` (prevents stale localStorage from a previous account or completed session showing the wrong screen). | `queueTimeline$` |
-| CalledBanner (inline in SalonVisitComponent) | Auto-shown for 5 seconds when the user's entry members flip to SERVING in the timeline. | `queueTimeline$` |
-| LeaveQueueButton (inline in SalonVisitComponent) | Confirm dialog → `walkInControllerLeaveQueue` → purge localStorage entry + reset screen to landing. | DELETE /salons/:salonId/queues/:queueId/walk-in/:entryId |
+Both routes load the same `SalonVisitComponent`. The component manages all screens via a `screen` signal (`landing` → `choose-service` → `live-queue`). No separate child components for join/position/leave — all inline.
 
-**Guards:** `authGuard` (MVP). Join/leave need no salon role — any signed-in user is a customer (backend: no SalonStaff record = customer).
+| Responsibility | Endpoint / Socket |
+|---|---|
+| Salon + staff data | GET /salons/slug/:slug (`publicSalonsControllerFindBySlug`) |
+| Services | GET /salons/:salonId/services (`publicServicesControllerFindBySalon`) |
+| Queue status | GET /queues/:queueId (`publicQueueControllerGetQueue`) |
+| Initial timeline | GET /queues/:queueId/timeline (`publicQueueControllerGetTimeline`) |
+| Live timeline | `watchQueue` + `queueTimeline$` |
+| Live wait times | `liveWait(entryId)` from `liveWaitMinutes` computed map — same `_tick` pattern as console |
+| Join queue | POST /salons/:salonId/queues/:queueId/walk-in (`walkInControllerJoinQueue`) |
+| Leave queue | DELETE .../walk-in/:entryId (`walkInControllerLeaveQueue`) |
+| My active entry | `{queueId, entryId, salonId}[]` in `localStorage` key `hairmela_active_entries` |
+| Stale entry guard | On each timeline update, validate stored `entryId` is present; if absent, purge localStorage and reset to `choose-service` |
+| Called banner | Auto-shown 5s when entry members flip to SERVING in the timeline |
 
-> **Implementation note:** The visit flow is a single `SalonVisitComponent` managing all screens via a `screen` signal, not separate routed components. `GET /queues/:queueId` (public) is used to fetch current queue status; `publicServicesControllerFindBySalon` is used for services (not a direct `HttpClient` call).
+**Guards:** `authGuard` (MVP — removed when public access ships).
 
 ### Account — `features/account/`
 
-**Routes:** `/account`
+**Route:** `/account`
 
-| Component | Purpose | Endpoint |
-|---|---|---|
-| AccountComponent | **Read-only** profile (first name, last name, email, phone, member-since date) from `CurrentUserStore` (populated by `GET /auth/me` on boot). Shows initials avatar. Logout button calls `AuthService.logout()`. Editing is deferred — `PATCH /users/profile` does not exist backend-side. Email verification status and resend are visible but not enforced in MVP. | GET /auth/me (session init), POST /auth/resend-verification |
+`AccountComponent` — read-only profile. Shows initials avatar, first/last name, email, phone, member-since date. Logout button calls `AuthService.logout()`. Data comes from `CurrentUserStore` (populated at session init by `GET /auth/me`) — no additional API call on mount.
 
 **Guards:** `authGuard`.
 
 ---
 
-## Routing Map (top-level)
+## Routing Map (actual implementation)
 
 ```
-/login                                guestGuard
-/register                             guestGuard
-/verify-email                         public (?token= from email link)
+/login                                         guestGuard
+/register                                      guestGuard
+/verify-email                                  public
 
-/dashboard                            authGuard
-/account                              authGuard
+/dashboard                                     authGuard
+/account                                       authGuard
+/notifications                                 authGuard
 
-/org/:orgId                           authGuard + orgOwnerGuard
+/org/:orgId/**                                 authGuard + orgOwnerGuard
 
-/salons/new                           authGuard                       (backend enforces limits)
-/salons/:salonId                      authGuard + salonRoleGuard(OWNER, ADMIN, STAFF)
-/salons/:salonId/settings             authGuard + salonRoleGuard(OWNER, ADMIN)
-/salons/:salonId/staff/**             authGuard + salonRoleGuard(OWNER, ADMIN)
-/salons/:salonId/services/**          authGuard + salonRoleGuard(OWNER, ADMIN, STAFF)
-/salons/:salonId/staff/:id/schedules  authGuard + salonRoleGuard(OWNER, ADMIN)
-/salons/:salonId/closures/**          authGuard + salonRoleGuard(OWNER, ADMIN)
-/salons/:salonId/queues/:id/console   authGuard + salonRoleGuard(OWNER, ADMIN, STAFF)
+/salons/new                                    authGuard
+/salons/:salonId                               authGuard + salonRoleGuard(OWNER, ADMIN, STAFF)
+/salons/:salonId/settings                      authGuard + salonRoleGuard(OWNER, ADMIN)
+/salons/:salonId/slug                          authGuard + salonRoleGuard(OWNER)
+/salons/:salonId/share                         authGuard + salonRoleGuard(OWNER, ADMIN)
+/salons/:salonId/delete                        authGuard + salonRoleGuard(OWNER)
+/salons/:salonId/media                         authGuard + salonRoleGuard(OWNER, ADMIN, STAFF)
+/salons/:salonId/closures/**                   authGuard + salonRoleGuard(OWNER, ADMIN)
+/salons/:salonId/services/**                   authGuard + salonRoleGuard(OWNER, ADMIN, STAFF)
+/salons/:salonId/staff/**                      authGuard + salonRoleGuard(OWNER, ADMIN, STAFF)
+/salons/:salonId/queues/:queueId/console       authGuard + salonRoleGuard(OWNER, ADMIN, STAFF)
 
-/s/:slug                              authGuard (MVP — guard removed when public access ships)
-/s/:slug/q/:queueId                   authGuard (MVP — same)
+/s/:slug                                       authGuard (MVP — guard removed when public access ships)
+/s/:slug/q/:queueId                            authGuard (MVP — same)
 ```
 
 ---
 
 ## State Management Strategy
 
-- **Session:** `TokenStore` + `CurrentUserStore` signals — single source of truth for `authGuard` and the verify prompt.
-- **Per-salon authorization:** `MembershipStore` (plain Map cache) behind `SalonContextService` — single source for `salonRoleGuard`, `tierGuard`, and all three directives. One source means route guards and template directives can never disagree.
-- **Live queue state:** socket-fed signals scoped to the page (`toSignal` on `queueTimeline$`). The socket is the source of truth; REST `GET /queues/:queueId/timeline` is initial paint + reconnect fallback only. **Never cached** — staleness is the failure mode of a queue app.
-- **Lists (staff, services, closures):** fetched per view with pagination signals; no global entity cache for MVP (YAGNI — revisit only with measured need).
-- **My active entries:** `{queueId, entryId}[]` persisted to localStorage so a reload mid-wait doesn't lose the position card.
-- **RxJS:** socket streams, single-flight refresh queuing, debounced slug input. Everything else is signals.
+- **Session:** `TokenStore` + `CurrentUserStore` signals — single source of truth for `authGuard`.
+- **Per-salon authorization:** `MembershipStore` (plain Map cache) behind `SalonContextService` — single source for `salonRoleGuard`, `tierGuard`, and all three directives.
+- **Live queue state:** socket-fed signals scoped to the page. The socket is the source of truth; REST timeline is initial paint + reconnect fallback only. **Never cached.**
+- **Live countdown:** `_tick` signal incremented by `setInterval` every second → `liveWaitMinutes` computed map derived from `servedAt` on the serving member. Runs in both console and visit components while mounted.
+- **Lists (staff, services, closures):** fetched per view; no global entity cache for MVP.
+- **My active entries:** `{queueId, entryId, salonId}[]` persisted to `localStorage` key `hairmela_active_entries`. Validated against live timeline on every socket update — stale entries are purged.
+- **RxJS:** socket streams, single-flight refresh queuing. Everything else is signals.
 
 ---
 
 ## Frontend Engineering Standards
 
 ### Principles
-- **SOLID · DRY · YAGNI · separation of concerns.** Business logic in services; components orchestrate only.
-- **Immutability:** `readonly` fields, spread updates. Never mutate a signal's value — `update()` / `set()` only (`this._items.update(items => [...items, item])`).
-- **Type safety:** strict mode; no `any` (use `unknown` + narrowing); explicit return types on all functions; view-model shapes in a feature `*.types.ts`; API shapes only from `core/api`.
-- **Never duplicate UI logic.** Shared UI behaviour lives in a shared service or component and is injected/imported — never copy-pasted. Specifically:
-  - **`ConfirmDialogService`** — the single way to ask the user to confirm a destructive action. Called imperatively: `confirmDialog.open({ title, message, confirmLabel, danger })` returns `Observable<boolean>`. Every destructive flow (delete salon, remove staff, leave queue, cancel entry, transfer ownership, no-show, end session) calls this service — none of them own their own dialog markup.
-  - **`ToastService`** — the single way to show a notification. Called as `toast.success(msg)` / `toast.error(msg)` / `toast.info(msg)`. The error interceptor calls it; features call it for local confirmations. No component owns its own toast markup.
-  - **`StatusBadgeComponent`** — the single place queue/entry/member status colours and labels are defined. Used in staff list, queue board, live queue, my entry card.
-  - **`LoadingSpinnerComponent`** and **`EmptyStateComponent`** — used in every list view; never inline-duplicated.
+- **SOLID · DRY · YAGNI · separation of concerns.**
+- **Immutability:** `readonly` fields, spread updates. Never mutate a signal's value — `update()` / `set()` only.
+- **Type safety:** strict mode; no `any`; explicit return types; no API types duplicated by hand.
+- **Never duplicate UI logic.** Specifically:
+  - **`ConfirmDialogService`** — the single way to confirm a destructive action. Returns `Observable<boolean>`.
+  - **`ToastService`** — `toast.success()` / `toast.error()` / `toast.info()`. No component owns its own toast markup.
 
 ### Angular
-- Standalone components (default — never set the flag); `input()` / `output()` functions, not decorators; `inject()`, not constructor injection; host bindings in the `host` object, not `@HostBinding`/`@HostListener`.
-- `signal()` for local mutable state, `computed()` for derived state (and memoizing heavy computations), `effect()` sparingly for side effects.
-- Templates: `@if` / `@for` (with `track` on a unique id) / `@switch`; `class`/`style` bindings, not `ngClass`/`ngStyle`; no arrow functions and no globals (`new Date()`) in templates — compute in the class.
-- `NgOptimizedImage` for all images — with a **Cloudinary loader** (`provideCloudinaryLoader`), since all production media is Cloudinary-hosted; free responsive sizing.
-- Every route lazy (`loadComponent`/`loadChildren`); every subscription cleaned up with `takeUntilDestroyed(this._destroyRef)`; `combineLatest` in object form.
-
-### Services & data
-- Singletons: `providedIn: 'root'`. One concern per service.
-- Data methods return `Observable` (or expose signals) — never raw Promises; the generated client is Observable-native.
-- **Caching policy (deliberately minimal):** membership per salon and static lookups only; invalidated on the mutations that change them; no LRU machinery. Live queue data is never cached.
-- No N+1 request chains: if the UI needs an aggregate the API doesn't serve in one call, that's a backend endpoint request — not a client-side fan-out.
+- Standalone components (default — never set the flag); `input()` / `output()` functions; `inject()`, not constructor injection.
+- `signal()` for local mutable state, `computed()` for derived state, `effect()` sparingly.
+- Templates: `@if` / `@for` (with `track`) / `@switch`; `class`/`style` bindings, not `ngClass`/`ngStyle`; no arrow functions or `new Date()` in templates.
+- Every route lazy (`loadComponent`/`loadChildren`); every subscription cleaned up with `takeUntilDestroyed(this._destroyRef)`.
+- **Templates are always external files** — never `template:` inline.
+- **Styling is Tailwind-first** — no `.scss` file unless Tailwind genuinely cannot do it. When no `.scss` needed, omit `styleUrl`.
 
 ### Error handling
-- Errors flow through the central interceptor; features add `catchError` only for the flow-specific codes named in the table above. Subscribe with `{ next, error }` — never swallow silently.
-- No try-catch for control flow — `catchError` in pipelines, guard clauses for nulls. Try-catch only in async/await bodies, cleanup, or third-party calls that throw.
-- **`isApiError` usage pattern:** Angular's `HttpClient` delivers a typed error as `HttpErrorResponse`. The parsed response body is at `err.error`. Always extract first: `const body = (err as { error?: unknown })?.error; if (isApiError(body) && body.code === ...) { ... }`. **Never call `isApiError(err)` directly on the `HttpErrorResponse` itself** — `err` is a `HttpErrorResponse` object, not the envelope, so the check will always fail.
-
-### Style & structure
-- Per-feature layout: `component.ts` + `component.html` + `feature.service.ts` + `feature.types.ts` (+ a pure-function helper service when calculations grow).
-- Member order in components: inputs → outputs → injected deps → signals → computed → effects → lifecycle → protected → private. Template-accessed members `protected`; internals `private`; `$` suffix on Observables.
-- **Templates are always external files** — never `template:` inline in the decorator.
-- **Styling is Tailwind-first** — apply all styles via Tailwind utility classes in the HTML. Only create a `.scss` file when Tailwind genuinely cannot do it (e.g. complex keyframe animations, third-party overrides). When a `.scss` file is not needed, omit `styleUrl` entirely.
-- Cleanup `ResizeObserver`/`MutationObserver`/manual listeners via `DestroyRef`.
+- `isApiError` must be called on `err.error` (the parsed body), **not** on the raw `HttpErrorResponse`.
+- Errors flow through the central interceptor; features add `catchError` only for flow-specific codes. Never swallow silently.
 
 ### Mobile Responsiveness
-- **Every component and page must be mobile responsive — no exceptions.** HairMela is primarily a mobile-use product (customers join queues on their phones; barbers manage queues from a phone or tablet).
-- Design mobile-first: start with the smallest viewport and scale up using Tailwind's `sm:`, `md:`, `lg:` prefixes.
-- No fixed pixel widths that break on small screens. Use `w-full`, `max-w-*`, `flex`, and `grid` with responsive variants.
-- Touch targets must be at least 44×44px (buttons, links, interactive rows).
-- Test every screen at 375px (iPhone SE), 390px (iPhone 14), and 768px (tablet) before marking it done.
+- **Every component and page must be mobile responsive — no exceptions.** HairMela is primarily a mobile-use product.
+- Design mobile-first: `sm:`, `md:`, `lg:` prefixes.
+- Touch targets at least 44×44px.
 
-### Accessibility
-- Target WCAG AA; run AXE on the high-traffic flows each phase: login/register, salon visit page, join flow, staff console. Live regions (`aria-live="polite"`) for position changes and the called banner — a queue app's core output is a changing number; screen readers must hear it change.
-
-### Configuration discipline (mirrors the backend's rule)
-- `environment.ts` owns `apiBaseUrl` (with `/v1`), `socketUrl`, `appBaseUrl` (for QR/share links). No URL literals in source. Production values injected at build.
-
-### Cross-platform readiness (Capacitor later, per roadmap)
-- No web-only APIs without graceful fallback (clipboard, vibration behind small wrappers); relative asset paths; API/socket URLs already environment-driven — the app must run unchanged inside a WebView. `npx cap add android` later without refactor.
+### Configuration discipline
+- `environment.ts` owns `apiBaseUrl` (with `/v1`), `socketUrl`, `appBaseUrl`. No URL literals in source.
 
 ---
 
-## Build Order
+## Build Status
 
-Mirrors the backend's discipline: foundation → enforcement layers → features, one concern per phase.
+All 7 MVP phases are complete ✅
 
-| Phase | Frontend Work | Status |
-|---|---|---|
-| 1 | **Foundation & Auth:** workspace, environments, generated API client wiring (`generate:api`), error envelope types + `error-codes.ts`, interceptors (jwt → refresh → error), TokenStore + CurrentUserStore + session initializer, app shell + ToastService, **Login, Register**, verify-email landing, `authGuard`/`guestGuard` | ✅ Done |
-| 2 | **Authorization layer:** MembershipStore + SalonContextService, `salonRoleGuard`, `orgOwnerGuard`, `tierGuard`, `*hasRole`, `*requiresTier`, `tierFreeze`, frozen-salon banner | ✅ Done |
-| 3 | **Dashboard, Org, Salons, Staff:** My Salons (`/salons/mine`), pending invites + accept/decline (moved to `/notifications` bell icon), org overview/rename + plan explainer, create salon (address/timezone/hours), settings, slug, share/QR (client-side), delete; staff list/invite/role/transfer/remove | ✅ Done |
-| 4 | **Media:** image-uploader (client-side mime/size validation matching backend caps), avatar, gallery + reorder — wired into salon, staff, profile | ✅ Done |
-| 5 | **Services:** catalog CRUD (`publicServicesControllerFindBySalon`), staff-service assignment (`StaffService` model, `defaultServiceId` from `SalonStaff`), default service | ✅ Done |
-| 6 | **Schedules + Closures** | ✅ Done |
-| 7 | **Queues:** QueueSocketService, staff console (status via `GET /queues/:queueId`, call-next + resolve flow, per-member serve/complete/extend, no-show, cancel, end-of-day), salon visit page (`/s/:slug`, authed), live queue view, party walk-in join, MyEntryCard + CalledBanner (timeline-driven with stale-localStorage validation), leave | ✅ Done |
-
-**MVP complete.** All 7 phases are shipped — a complete walk-in queue product: set up a salon, invite staff, define services and hours, run live queues, customers join and track in real time.
+| Phase | Work |
+|---|---|
+| 1 ✅ | Foundation & Auth: workspace, environments, generated API client, error types, interceptors, TokenStore, CurrentUserStore, session init, app shell, ToastService, Login, Register, verify-email landing, authGuard/guestGuard |
+| 2 ✅ | Authorization layer: MembershipStore, SalonContextService, salonRoleGuard, orgOwnerGuard, tierGuard, *hasRole, *requiresTier, tierFreeze |
+| 3 ✅ | Dashboard, Org, Salons, Staff: My Salons, pending invites (moved to /notifications bell), org overview/rename/plan, create salon, settings, slug, share/QR, delete, staff list/invite/role/transfer/remove |
+| 4 ✅ | Media: image-uploader, avatar, gallery + reorder — wired into salon, staff |
+| 5 ✅ | Services: catalog CRUD, staff-service assignment (StaffService model, defaultServiceId from SalonStaff), default service |
+| 6 ✅ | Schedules + Closures |
+| 7 ✅ | Queues: QueueSocketService, staff console, salon visit page, live queue, party walk-in join, live countdown (servedAt-based), stale-localStorage validation, CalledBanner, leave |
 
 ---
 
 ## Post-MVP Backlog (in intended order)
 
-1. **Notifications + Push:** full inbox page, unread badge, mark read/all, socket `notification$` toasts; PWA service worker (`@angular/pwa`) + `SwPush` subscribe/unsubscribe against the VAPID endpoints, contextual permission prompt (after joining a queue — never on first load), logout unsubscribe ordering (`DELETE /push/subscribe` before clearing the session)
-2. **Public access + Analytics:** remove `authGuard` from `/s/:slug` routes, anonymous socket viewing, staff public profiles, join handoff with return-url for signed-out visitors; analytics dashboard (summary cards, trends chart, service breakdown, staff performance — Tier 2, salon-timezone params, range picker)
-3. **Booking & appointments:** availability slot picker (`GET .../availability?date=`), book/cancel flows with tier-2 + verified-email gating, `SLOT_ALREADY_BOOKED`/`SLOT_NOT_AVAILABLE`/`CANCELLATION_WINDOW_PASSED` handling, my-appointments page (also needs the backend's customer-appointments listing route, which is referenced in its pagination defaults but not yet in its endpoint tables)
-4. **Auth completion & polish:** forgot password, reset password, optional Sentry browser SDK, full AXE pass on all public flows
-5. **Smaller deferrals:** profile editing (needs backend `PATCH /users/profile`), visit history / "book again", subscription self-service UI, staff self-editing of schedules, offline support beyond app shell, i18n, e2e suite (start with join → called → complete)
+1. **Notifications + Push:** full inbox page, unread badge, mark read/all, socket `notification$` toasts; PWA service worker (`@angular/pwa`) + `SwPush` subscribe/unsubscribe, contextual permission prompt (after joining a queue), logout unsubscribe ordering
+2. **Public access + Analytics:** remove `authGuard` from `/s/:slug` routes, anonymous socket viewing, join handoff with return-url for signed-out visitors; analytics dashboard (Tier 2)
+3. **Booking & appointments:** availability slot picker, book/cancel flows with tier-2 + verified-email gating, my-appointments page
+4. **Auth completion & polish:** forgot password, reset password, full AXE pass on all public flows
+5. **Smaller deferrals:** profile editing (needs backend `PATCH /users/profile`), visit history, subscription self-service UI, staff self-editing of schedules, i18n, e2e suite
 
 ---
 
 ## Coverage Check vs Backend
 
-Every backend capability has a frontend home — or a named place in the backlog:
-
 - Auth (register/login/refresh/verify/resend) → Auth feature + interceptors + session init; forgot/reset → backlog #4
-- Per-salon roles + `/salons/:salonId/me` introspection (incl. tier + isFrozen) → MembershipStore + salonRoleGuard + the three directives
-- `/salons/mine` → Dashboard My Salons
+- Per-salon roles + `/salons/:salonId/me` → MembershipStore + salonRoleGuard + three directives
+- `/salons/mine` → Dashboard
 - Org-owner authority → orgOwnerGuard + Organization feature
 - Tiers + downgrade freeze + `SALON_FROZEN` → tierGuard + `*requiresTier` + `tierFreeze` + error handling
-- Verified-email gating → **deferred post-MVP**; backend guard not applied; `VerifyEmailPrompt` and `EMAIL_NOT_VERIFIED` handling ship when verification is enforced
-- Salons (slug, settings, address, timezone, soft delete + cascades) → Salons feature; QR client-side against the stable `/s/:slug` route
-- Enriched public slug payload (`{ salon, staff[] }` with queueIds) → Visit feature
-- Staff lifecycle (invite → claim → accept/decline → role change → transfer → remove) → Staff feature + dashboard invites
-- `GET /salons/:salonId/staff` returns `{ staff, queueId }[]` — `StaffListComponent` gets the console link without a second request; no extra fan-out needed
-- Services + StaffService join + default service + deactivation cascade → Services feature
-- Schedules (POST/PATCH/DELETE) + Closures → Schedules/Closures features
-- Unified queue (timeline model, party members, per-member lifecycle, call-next resolve rule, no-show timer, PAUSED-accepts-joins, end-of-day) → Queue + Visit features
-- `GET /queues/:queueId` (public, returns full Queue object including status) → used by both `QueueConsoleComponent` and `SalonVisitComponent` for queue status; added to the backend in a patch after initial build
-- Appointments endpoints → backlog #3 (console already renders APPOINTMENT entries defensively)
-- Media (Cloudinary, 5 MB/image-mime caps, galleries, reorder) → shared media components
-- Notifications endpoints → scoped invite surfacing now; full inbox + push → backlog #1; SMS/WhatsApp are backend stubs — no UI
+- Verified-email gating → **deferred post-MVP**
+- Salons (slug, settings, address, timezone, delete + cascades) → Salons feature; QR via `qrcode` npm (`mod.default.toDataURL` in prod ESM bundle)
+- Enriched public slug payload → Visit feature
+- Staff lifecycle (invite → claim → accept/decline → role → transfer → remove) → Staff feature + /notifications
+- `GET /salons/:salonId/staff` → `{ staff, queueId }[]` — console link resolves without extra request
+- Services + StaffService join + default service → Services feature
+- Schedules + Closures → Schedules/Closures features
+- Queue timeline + `servedAt` → live countdown in both console and visit; `GET /queues/:queueId` (public) for status
+- Media (Cloudinary, 5 MB caps, galleries, reorder) → shared media components
+- Notifications endpoints → `/notifications` page (invites only); full inbox + push → backlog #1
 - Analytics endpoints → backlog #2
-- WebSocket contract (auth payload, rooms, `queueTimeline`/`customerCalled`, anonymized payloads, reconnect re-join) → QueueSocketService; `notification` stream → backlog #1
-- Error envelope + stable codes + requestId → core/errors + interceptor + code table
-- Pagination contract → generated meta models + shared Pagination component
+- WebSocket contract (auth payload, rooms, `queueTimeline`, reconnect re-join) → QueueSocketService
+- Error envelope + stable codes + requestId → core/errors + interceptor
 - /v1 versioning + no-hardcoded-URLs → environment configuration discipline

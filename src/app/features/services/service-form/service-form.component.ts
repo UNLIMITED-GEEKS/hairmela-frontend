@@ -1,5 +1,6 @@
 import { Component, DestroyRef, inject, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -10,11 +11,12 @@ import { servicesControllerUpdate } from '../../../api/fn/services/services-cont
 import { ToastService } from '../../../core/toast/toast.service';
 import { isApiError } from '../../../core/errors/api-error.types';
 import { ErrorCodes } from '../../../core/errors/error-codes';
+import { ServicesService } from '../services.service';
 
 @Component({
   selector: 'app-service-form',
   templateUrl: './service-form.component.html',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, SkeletonComponent],
 })
 export class ServiceFormComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
@@ -24,6 +26,7 @@ export class ServiceFormComponent implements OnInit {
   private readonly _destroyRef = inject(DestroyRef);
   private readonly _fb = inject(FormBuilder);
   private readonly _toast = inject(ToastService);
+  private readonly _servicesService = inject(ServicesService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -91,6 +94,8 @@ export class ServiceFormComponent implements OnInit {
       next: () => {
         this.saving.set(false);
         this._toast.success(sid ? 'Service updated' : 'Service created');
+        this._servicesService.clear();
+        this._servicesService.load(this._salonId);
         this._router.navigate(sid ? ['../../..'] : ['..'], { relativeTo: this._route });
       },
       error: (err: unknown) => {

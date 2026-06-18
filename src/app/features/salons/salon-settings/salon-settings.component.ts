@@ -9,6 +9,7 @@ import { salonsControllerFindOne } from '../../../api/fn/salons/salons-controlle
 import { salonsControllerUpdate } from '../../../api/fn/salons/salons-controller-update';
 import { salonsControllerUpdateSettings } from '../../../api/fn/salons/salons-controller-update-settings';
 import { ToastService } from '../../../core/toast/toast.service';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const TIMEZONES = [
@@ -20,7 +21,7 @@ const TIMEZONES = [
 @Component({
   selector: 'app-salon-settings',
   templateUrl: './salon-settings.component.html',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, SkeletonComponent],
 })
 export class SalonSettingsComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);

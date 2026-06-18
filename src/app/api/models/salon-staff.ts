@@ -11,6 +11,7 @@ export interface SalonStaff {
   email: string;
   id: string;
   invitedAt: string;
+  isAcceptingClients: boolean;
   role: 'OWNER' | 'ADMIN' | 'STAFF';
   salon: Salon;
   salonId: string;

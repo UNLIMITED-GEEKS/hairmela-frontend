@@ -1,26 +1,26 @@
 @if (loading()) {
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <span class="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+  <div class="min-h-dvh bg-gray-50 px-4 py-8">
+    <div class="max-w-lg mx-auto">
+      <app-skeleton variant="list-item" [count]="5" />
+    </div>
   </div>
 } @else {
-  <div class="min-h-screen bg-gray-50 px-4 py-8">
+  <div class="min-h-dvh bg-gray-50 px-4 py-8">
     <div class="max-w-lg mx-auto space-y-5">
 
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <a routerLink=".." class="text-gray-400 hover:text-gray-600">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-            </svg>
-          </a>
-          <h1 class="text-lg font-semibold text-gray-900">Closures</h1>
-        </div>
+      <div class="flex items-center gap-3">
+        <a routerLink=".." class="text-gray-400 hover:text-gray-600 min-w-11 min-h-11 flex items-center justify-center -ml-2 shrink-0">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </a>
+        <h1 class="text-lg font-semibold text-gray-900 flex-1">Closures</h1>
         <button type="button" (click)="showAddForm.set(!showAddForm())"
-          class="min-h-10 px-4 flex items-center gap-1.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          class="min-h-11 min-w-11 px-3 flex items-center gap-1.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors shrink-0">
+          <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
-          Add closure
+          <span class="hidden xs:inline">Add closure</span>
         </button>
       </div>
 
@@ -64,10 +64,7 @@
             <button type="submit" [disabled]="addForm.invalid || saving()"
               class="flex-1 min-h-11 bg-primary text-white text-sm font-medium rounded-lg
                      hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
-              @if (saving()) {
-                <span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-              }
-              Save
+              {{ saving() ? 'Saving…' : 'Save' }}
             </button>
             <button type="button" (click)="showAddForm.set(false)"
               class="flex-1 min-h-11 border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">

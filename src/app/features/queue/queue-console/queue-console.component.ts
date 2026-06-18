@@ -10,6 +10,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { filter, switchMap, tap } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { QueueSocketService } from '../../../core/socket/queue-socket.service';
@@ -27,12 +28,15 @@ import { queueManagementControllerMarkNoShow } from '../../../api/fn/queues/queu
 import { queueManagementControllerCancelEntry } from '../../../api/fn/queues/queue-management-controller-cancel-entry';
 import { publicQueueControllerGetTimeline } from '../../../api/fn/queues/public-queue-controller-get-timeline';
 import { publicQueueControllerGetQueue } from '../../../api/fn/queues/public-queue-controller-get-queue';
+import { walkInControllerStaffAddToQueue } from '../../../api/fn/queues/walk-in-controller-staff-add-to-queue';
 import { Queue } from '../../../api/models/queue';
+
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-queue-console',
   templateUrl: './queue-console.component.html',
-  imports: [RouterLink],
+  imports: [RouterLink, SkeletonComponent, ReactiveFormsModule],
 })
 export class QueueConsoleComponent implements OnInit, OnDestroy {
   private readonly _route = inject(ActivatedRoute);
@@ -42,10 +46,26 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
   private readonly _confirmDialog = inject(ConfirmDialogService);
   private readonly _toast = inject(ToastService);
   private readonly _destroyRef = inject(DestroyRef);
+  private readonly _fb = inject(FormBuilder);
 
   protected readonly activePanel = signal<'current' | 'queue'>('current');
   protected readonly loading = signal(true);
   protected readonly acting = signal(false);
+  protected readonly showAddQueueModal = signal(false);
+  protected readonly addingToQueue = signal(false);
+  protected readonly showEndPartyModal = signal(false);
+  protected readonly showExtendModal = signal(false);
+  protected readonly extendTargetEntryId = signal<string | null>(null);
+  protected readonly extendTargetMemberId = signal<string | null>(null);
+  protected readonly extendMinutes = signal<number | null>(null);
+
+  protected readonly addQueueForm = this._fb.group({
+    members: this._fb.array([this._buildMemberRow()]),
+  });
+
+  protected get addQueueMembers(): FormArray {
+    return this.addQueueForm.get('members') as FormArray;
+  }
   protected readonly queue = signal<Queue | null>(null);
   protected readonly timeline = signal<TimelineEntryDto[]>([]);
   protected readonly timerDisplay = signal('00:00');
@@ -74,6 +94,20 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
   protected readonly waitingEntries = computed(() =>
     this.timeline().filter((e) => e.members.every((m) => m.status === 'WAITING')),
   );
+
+  // All unfinished members in the serving entry except the primary SERVING one
+  protected readonly servingPartyMembers = computed(() => {
+    const entry = this.servingEntry();
+    if (!entry) return [];
+    return entry.members.filter((m) => m.status === 'WAITING' || m.status === 'SERVING');
+  });
+
+  // Queue list for right panel: serving entry first (if any), then all waiting entries
+  protected readonly queueListEntries = computed(() => {
+    const serving = this.servingEntry();
+    const waiting = this.waitingEntries();
+    return serving ? [serving, ...waiting] : waiting;
+  });
 
   protected readonly queueStatus = computed(() => this.queue()?.status ?? 'CLOSED');
 
@@ -154,6 +188,14 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
       });
   }
 
+  private _refreshTimeline(): void {
+    publicQueueControllerGetTimeline(this._http, this._apiConfig.rootUrl, {
+      queueId: this._queueId,
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({ next: (res) => this.timeline.set(res.body) });
+  }
+
   private _loadQueueStatus(): void {
     publicQueueControllerGetQueue(this._http, this._apiConfig.rootUrl, {
       queueId: this._queueId,
@@ -192,6 +234,7 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
         next: () => {
           this.acting.set(false);
           this.activePanel.set('current');
+          this._refreshTimeline();
         },
         error: (err: unknown) => {
           this.acting.set(false);
@@ -207,32 +250,86 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
   }
 
   protected endSession(): void {
-    const member = this.servingMember();
     const entry = this.servingEntry();
-    if (!member || !entry || this.acting()) return;
+    if (!entry || this.acting()) return;
 
-    this._confirmDialog
-      .open({
-        title: 'End session?',
-        message: `Mark ${member.memberName} as complete?`,
-        confirmLabel: 'End Session',
-        danger: false,
-      })
-      .pipe(
-        filter((ok) => ok),
-        tap(() => this.acting.set(true)),
+    const unfinished = entry.members.filter(
+      (m) => m.status === 'WAITING' || m.status === 'SERVING',
+    );
+
+    if (unfinished.length > 1) {
+      // Party has multiple unfinished members — ask barber what to do
+      this.showEndPartyModal.set(true);
+      return;
+    }
+
+    // Single member — complete directly
+    const member = unfinished[0];
+    if (!member) return;
+    this.acting.set(true);
+    queueManagementControllerCompleteMember(this._http, this._apiConfig.rootUrl, {
+      salonId: this._salonId,
+      queueId: this._queueId,
+      entryId: entry.entryId,
+      memberId: member.memberId,
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: () => { this.acting.set(false); this._refreshTimeline(); },
+        error: () => this.acting.set(false),
+      });
+  }
+
+  protected endAllMembers(): void {
+    const entry = this.servingEntry();
+    if (!entry || this.acting()) return;
+    this.showEndPartyModal.set(false);
+
+    const unfinished = entry.members.filter(
+      (m) => m.status === 'WAITING' || m.status === 'SERVING',
+    );
+
+    // Complete them sequentially — the last one closes the entry server-side
+    this.acting.set(true);
+    let chain$ = queueManagementControllerCompleteMember(this._http, this._apiConfig.rootUrl, {
+      salonId: this._salonId,
+      queueId: this._queueId,
+      entryId: entry.entryId,
+      memberId: unfinished[0].memberId,
+    });
+
+    for (let i = 1; i < unfinished.length; i++) {
+      const memberId = unfinished[i].memberId;
+      chain$ = chain$.pipe(
         switchMap(() =>
           queueManagementControllerCompleteMember(this._http, this._apiConfig.rootUrl, {
             salonId: this._salonId,
             queueId: this._queueId,
             entryId: entry.entryId,
-            memberId: member.memberId,
+            memberId,
           }),
         ),
-        takeUntilDestroyed(this._destroyRef),
-      )
+      ) as typeof chain$;
+    }
+
+    chain$.pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
+      next: () => { this.acting.set(false); this._refreshTimeline(); },
+      error: () => this.acting.set(false),
+    });
+  }
+
+  protected completeMember(entryId: string, memberId: string): void {
+    if (this.acting()) return;
+    this.acting.set(true);
+    queueManagementControllerCompleteMember(this._http, this._apiConfig.rootUrl, {
+      salonId: this._salonId,
+      queueId: this._queueId,
+      entryId,
+      memberId,
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe({
-        next: () => this.acting.set(false),
+        next: () => { this.acting.set(false); this._refreshTimeline(); },
         error: () => this.acting.set(false),
       });
   }
@@ -248,7 +345,36 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
     })
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe({
-        next: () => this.acting.set(false),
+        next: () => { this.acting.set(false); this._refreshTimeline(); },
+        error: () => this.acting.set(false),
+      });
+  }
+
+  protected openExtendModal(entryId: string, memberId: string): void {
+    this.extendTargetEntryId.set(entryId);
+    this.extendTargetMemberId.set(memberId);
+    this.extendMinutes.set(null);
+    this.showExtendModal.set(true);
+  }
+
+  protected confirmExtend(): void {
+    const entryId = this.extendTargetEntryId();
+    const memberId = this.extendTargetMemberId();
+    const minutes = this.extendMinutes();
+    if (!entryId || !memberId || !minutes || minutes < 1 || this.acting()) return;
+
+    this.acting.set(true);
+    this.showExtendModal.set(false);
+    queueManagementControllerExtendMember(this._http, this._apiConfig.rootUrl, {
+      salonId: this._salonId,
+      queueId: this._queueId,
+      entryId,
+      memberId,
+      body: { extraMinutes: minutes },
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: () => { this.acting.set(false); this._refreshTimeline(); },
         error: () => this.acting.set(false),
       });
   }
@@ -275,7 +401,7 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
         takeUntilDestroyed(this._destroyRef),
       )
       .subscribe({
-        next: () => this.acting.set(false),
+        next: () => { this.acting.set(false); this._refreshTimeline(); },
         error: () => this.acting.set(false),
       });
   }
@@ -302,24 +428,7 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
         takeUntilDestroyed(this._destroyRef),
       )
       .subscribe({
-        next: () => this.acting.set(false),
-        error: () => this.acting.set(false),
-      });
-  }
-
-  protected extendMember(entryId: string, memberId: string, minutes: number): void {
-    if (this.acting()) return;
-    this.acting.set(true);
-    queueManagementControllerExtendMember(this._http, this._apiConfig.rootUrl, {
-      salonId: this._salonId,
-      queueId: this._queueId,
-      entryId,
-      memberId,
-      body: { extraMinutes: minutes },
-    })
-      .pipe(takeUntilDestroyed(this._destroyRef))
-      .subscribe({
-        next: () => this.acting.set(false),
+        next: () => { this.acting.set(false); this._refreshTimeline(); },
         error: () => this.acting.set(false),
       });
   }
@@ -333,5 +442,64 @@ export class QueueConsoleComponent implements OnInit, OnDestroy {
 
   protected liveWait(entryId: string): string {
     return this.formatWait(this.liveWaitMinutes().get(entryId) ?? 0);
+  }
+
+  protected openAddQueueModal(): void {
+    this.addQueueMembers.clear();
+    this.addQueueMembers.push(this._buildMemberRow());
+    this.showAddQueueModal.set(true);
+  }
+
+  protected closeAddQueueModal(): void {
+    this.showAddQueueModal.set(false);
+  }
+
+  protected addQueueMemberRow(): void {
+    this.addQueueMembers.push(this._buildMemberRow());
+  }
+
+  protected removeQueueMemberRow(i: number): void {
+    this.addQueueMembers.removeAt(i);
+    if (this.addQueueMembers.length === 0) {
+      this.addQueueMembers.push(this._buildMemberRow());
+    }
+  }
+
+  protected staffAddToQueue(): void {
+    if (this.addingToQueue()) return;
+    const rows = this.addQueueMembers.value as { name: string; serviceId: string }[];
+    const valid = rows.filter((r) => r.name?.trim());
+    if (valid.length === 0) {
+      this._toast.error('Enter at least one name.');
+      return;
+    }
+    this.addingToQueue.set(true);
+    walkInControllerStaffAddToQueue(this._http, this._apiConfig.rootUrl, {
+      salonId: this._salonId,
+      queueId: this._queueId,
+      body: {
+        members: valid.map((r) => ({
+          memberName: r.name.trim(),
+          serviceId: r.serviceId || undefined,
+        })),
+      },
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: () => {
+          this.addingToQueue.set(false);
+          this.closeAddQueueModal();
+          this._toast.success('Client added to queue.');
+          this._refreshTimeline();
+        },
+        error: () => this.addingToQueue.set(false),
+      });
+  }
+
+  private _buildMemberRow() {
+    return this._fb.group({
+      name: ['', Validators.required],
+      serviceId: [''],
+    });
   }
 }

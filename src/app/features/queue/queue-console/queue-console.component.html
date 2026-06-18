@@ -1,154 +1,348 @@
 @if (loading()) {
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <span class="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+  <div class="h-[calc(100dvh-3rem)] bg-gray-50 px-4 py-8">
+    <div class="max-w-lg mx-auto">
+      <app-skeleton variant="card" [count]="2" />
+    </div>
   </div>
 } @else {
-  <div class="min-h-screen bg-gray-50 flex flex-col">
+  <div class="h-[calc(100dvh-3rem)] bg-white flex flex-col">
 
-    <!-- Top bar: queue status toggle -->
-    <div class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between gap-3">
-      <a [routerLink]="['../../../../..']" class="text-gray-500 hover:text-gray-700 min-w-11 min-h-11 flex items-center justify-center -ml-2">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-        </svg>
-      </a>
+    <!-- ── Top bar ── -->
+    <div class="shrink-0 bg-white border-b border-gray-100 px-4 pt-2 pb-3 space-y-2">
 
+      <!-- Row 1: Back + status pills -->
       <div class="flex items-center gap-2">
-        @for (s of statusOptions; track s) {
-          <button
-            (click)="setStatus(s)"
-            [disabled]="acting() || queueStatus() === s"
-            [class]="'px-3 py-1.5 rounded-full text-xs font-semibold transition-colors min-h-9 ' +
-              (queueStatus() === s
-                ? (s === 'OPEN' ? 'bg-green-100 text-green-700' : s === 'PAUSED' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700')
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 disabled:opacity-50')">
-            {{ s }}
-          </button>
-        }
+        <a [routerLink]="['../../../../..']"
+          class="min-w-11 min-h-11 flex items-center justify-center text-gray-400 hover:text-primary -ml-2 shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </a>
+        <div class="flex items-center gap-1.5 flex-1 flex-wrap">
+          @for (s of statusOptions; track s) {
+            <button
+              (click)="setStatus(s)"
+              [disabled]="acting() || queueStatus() === s"
+              [class]="'px-3 min-h-9 rounded-full text-xs font-semibold transition-colors disabled:cursor-not-allowed ' +
+                (queueStatus() === s
+                  ? (s === 'OPEN'   ? 'bg-success-light text-success'
+                   : s === 'PAUSED' ? 'bg-warning-light text-warning'
+                                    : 'bg-primary-light text-primary')
+                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200 disabled:opacity-40')">
+              {{ s === 'OPEN' ? 'Open' : s === 'PAUSED' ? 'Paused' : 'Closed' }}
+            </button>
+          }
+        </div>
       </div>
 
+      <!-- Row 2: Call next — full width -->
       <button
         (click)="callNext()"
         [disabled]="acting() || queueStatus() !== 'OPEN' || waitingEntries().length === 0"
-        class="bg-primary text-white text-sm font-semibold px-4 py-2 rounded-xl min-h-11 disabled:opacity-50 whitespace-nowrap">
+        class="w-full min-h-11 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-40 transition-opacity">
         Call next
       </button>
     </div>
 
-    <!-- Two-panel body -->
-    <div class="flex-1 flex overflow-hidden">
+    <!-- ── Two-panel body (fills remaining height) ── -->
+    <div class="flex-1 overflow-hidden">
 
-      <!-- LEFT PANEL — Current Client -->
+      <!-- ══ LEFT PANEL — Current Client ══ -->
       @if (activePanel() === 'current') {
-        <div class="flex-1 flex flex-col px-5 py-6">
+        <div class="h-full flex flex-col px-5 py-5">
 
-          <!-- Header -->
-          <div class="mb-6">
-            <div class="bg-sky-100 text-sky-800 text-sm font-semibold px-4 py-2 rounded-xl text-center w-full">
-              Current Client
+          <!-- "Current Client" header pill -->
+          <div class="shrink-0 mb-4">
+            <div class="w-full rounded-2xl bg-primary-light px-4 py-3 text-center">
+              <span class="text-sm font-bold tracking-wide text-primary uppercase">Current Client</span>
             </div>
           </div>
 
           <!-- Circle -->
-          <div class="flex-1 flex items-center justify-center">
-            <div class="w-56 h-56 rounded-full border-4 border-primary flex flex-col items-center justify-center gap-1 text-center">
+          <div class="shrink-0 flex items-center justify-center py-2">
+            <div class="w-52 h-52 rounded-full border-4 border-warning flex flex-col items-center justify-center gap-1 text-center px-4">
               @if (servingMember(); as member) {
-                <span class="text-4xl font-bold text-primary">{{ member.memberName.split(' ')[0] }}</span>
-                <span class="text-xl font-semibold text-primary" aria-live="polite">{{ timerFromServedAt() }}</span>
-                <span class="text-sm text-sky-600">@if (estimatedFinishTime()) { eft: {{ estimatedFinishTime() }} }</span>
+                <span class="text-4xl font-bold text-warning leading-none">
+                  {{ member.memberName.split(' ')[0] }}
+                </span>
+                <span class="text-xl font-semibold text-warning mt-1" aria-live="polite">
+                  {{ timerFromServedAt() }}
+                </span>
+                @if (estimatedFinishTime()) {
+                  <span class="text-xs text-warning/70 font-medium mt-0.5">
+                    eft: {{ estimatedFinishTime() }}
+                  </span>
+                }
               } @else {
-                <span class="text-lg text-gray-400 font-medium">No client</span>
-                <span class="text-sm text-gray-400">Queue is free</span>
+                <span class="text-sm font-medium text-gray-400">No active client</span>
+                <span class="text-xs text-gray-300 mt-1">Queue is free</span>
               }
             </div>
           </div>
 
-          <!-- Buttons -->
-          <div class="mt-6 flex gap-3">
+          <!-- Party member list (when serving entry has multiple members) -->
+          @if (servingPartyMembers().length > 0) {
+            <div class="flex-1 overflow-y-auto space-y-2 mt-3">
+              @for (member of servingPartyMembers(); track member.memberId) {
+                <div class="flex items-center gap-2 bg-warning-light border border-warning/20 rounded-2xl px-3 py-2.5 min-h-12">
+                  <span class="flex-1 text-sm font-medium text-warning truncate">{{ member.memberName }}</span>
+                  <span [class]="'text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ' +
+                    (member.status === 'SERVING' ? 'bg-success-light text-success' : 'bg-gray-100 text-gray-500')">
+                    {{ member.status === 'SERVING' ? 'Serving' : 'Waiting' }}
+                  </span>
+                  @if (member.status === 'WAITING') {
+                    <button (click)="serveMember(servingEntry()!.entryId, member.memberId)"
+                      [disabled]="acting()"
+                      class="min-w-9 min-h-9 px-2 rounded-xl bg-primary text-white text-xs font-bold disabled:opacity-40 shrink-0">
+                      Serve
+                    </button>
+                  }
+                  @if (member.status === 'SERVING') {
+                    <button (click)="openExtendModal(servingEntry()!.entryId, member.memberId)"
+                      [disabled]="acting()"
+                      class="min-w-9 min-h-9 px-2 rounded-xl border border-warning text-warning text-xs font-bold disabled:opacity-40 shrink-0">
+                      +mins
+                    </button>
+                    <button (click)="completeMember(servingEntry()!.entryId, member.memberId)"
+                      [disabled]="acting()"
+                      class="min-w-9 min-h-9 px-2 rounded-xl bg-success-light text-success text-xs font-bold disabled:opacity-40 shrink-0">
+                      Done
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="flex-1"></div>
+          }
+
+          <!-- Bottom action buttons -->
+          <div class="shrink-0 pt-3 flex gap-3" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom))">
             <button
               (click)="activePanel.set('queue')"
-              class="flex-1 bg-primary text-white font-semibold py-3 rounded-xl min-h-12 text-sm">
+              class="flex-1 min-h-[52px] rounded-2xl bg-warning-light border border-warning/30 text-warning font-bold text-sm transition-colors hover:bg-warning/20">
               View Queue
             </button>
             <button
               (click)="endSession()"
-              [disabled]="!servingMember() || acting()"
-              class="flex-1 bg-white border-2 border-primary text-primary font-semibold py-3 rounded-xl min-h-12 text-sm disabled:opacity-50">
+              [disabled]="!servingEntry() || acting()"
+              class="flex-1 min-h-[52px] rounded-2xl border-2 border-primary text-primary font-bold text-sm disabled:opacity-40 transition-opacity">
               End Session
             </button>
           </div>
+
         </div>
       }
 
-      <!-- RIGHT PANEL — Queue List -->
+      <!-- ══ RIGHT PANEL — Queue List ══ -->
       @if (activePanel() === 'queue') {
-        <div class="flex-1 flex flex-col px-5 py-6">
+        <div class="h-full flex flex-col px-5 py-5">
 
-          <!-- Header: total count -->
-          <div class="mb-4">
-            <div class="bg-yellow-100 text-yellow-800 text-sm font-bold px-4 py-2 rounded-xl inline-block">
-              Total Count: {{ waitingEntries().length }}
+          <!-- "Total Count" pill -->
+          <div class="shrink-0 mb-4">
+            <div class="inline-flex flex-col items-center rounded-2xl bg-warning-light px-6 py-2.5">
+              <span class="text-xs font-semibold text-warning uppercase tracking-wide">Total Count</span>
+              <span class="text-2xl font-bold text-warning leading-tight">{{ waitingEntries().length }}</span>
             </div>
           </div>
 
           <!-- Column headers -->
-          <div class="flex gap-2 mb-2">
-            <div class="flex-1 bg-sky-100 text-sky-800 text-xs font-semibold px-3 py-2 rounded-lg">
+          <div class="shrink-0 flex gap-2 mb-3">
+            <div class="flex-1 rounded-xl bg-primary/10 px-3 py-2 text-xs font-bold text-primary">
               Clients on queue
             </div>
-            <div class="w-28 bg-sky-100 text-sky-800 text-xs font-semibold px-3 py-2 rounded-lg text-center">
+            <div class="w-20 rounded-xl bg-primary/10 px-3 py-2 text-xs font-bold text-primary text-center">
               Wait time
             </div>
           </div>
 
-          <!-- Queue rows -->
-          <div class="flex-1 overflow-y-auto space-y-2">
-            @for (entry of waitingEntries(); track entry.entryId) {
-              @for (member of entry.members; track member.memberId) {
-                <div class="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3 min-h-12">
-                  <span class="text-sm font-medium text-gray-800">{{ member.memberName }}</span>
-                  <div class="flex items-center gap-3">
-                    <span class="text-sm text-gray-500 w-20 text-right" aria-live="polite">{{ liveWait(entry.entryId) }}</span>
-                    <button
-                      (click)="cancelEntry(entry.entryId)"
-                      [disabled]="acting()"
-                      class="text-red-400 hover:text-red-600 min-w-8 min-h-8 flex items-center justify-center disabled:opacity-50"
-                      aria-label="Cancel entry">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                      </svg>
-                    </button>
-                  </div>
+          <!-- Scrollable queue rows — all entries in order, serving shows "Serving" instead of wait time -->
+          <div class="flex-1 overflow-y-auto space-y-2 pr-0.5">
+            @for (entry of queueListEntries(); track entry.entryId) {
+              @let isServing = entry.members.some(m => m.status === 'SERVING');
+              <div class="flex items-center justify-between bg-white border border-primary/20 rounded-2xl px-3 py-3 min-h-[52px]">
+                <div class="flex-1 min-w-0">
+                  <span class="text-sm font-medium text-gray-800 block truncate">
+                    {{ entry.members[0].memberName }}
+                    @if (entry.members.length > 1) {
+                      <span class="text-xs text-gray-400"> +{{ entry.members.length - 1 }}</span>
+                    }
+                  </span>
+                  @if (isServing) {
+                    <span class="text-xs font-bold text-success" aria-live="polite">Serving</span>
+                  } @else {
+                    <span class="text-xs text-warning font-medium" aria-live="polite">{{ liveWait(entry.entryId) }}</span>
+                  }
                 </div>
-              }
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <button (click)="noShow(entry.entryId)" [disabled]="acting()"
+                    class="min-h-8 px-2.5 rounded-xl text-xs font-semibold border border-warning/40 text-warning bg-warning-light hover:bg-warning/20 disabled:opacity-40 transition-colors">
+                    No-show
+                  </button>
+                  <button (click)="cancelEntry(entry.entryId)" [disabled]="acting()"
+                    class="min-h-8 px-2.5 rounded-xl text-xs font-semibold border border-primary/30 text-primary bg-primary-light hover:bg-primary/10 disabled:opacity-40 transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              </div>
             }
-            @if (waitingEntries().length === 0) {
-              <div class="flex flex-col items-center justify-center py-12 text-gray-400">
-                <svg class="w-10 h-10 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.48-.634-2.07M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.768.231-1.48.634-2.07M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+            @if (queueListEntries().length === 0) {
+              <div class="flex flex-col items-center justify-center py-16 text-gray-300">
+                <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.48-.634-2.07M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.768.231-1.48.634-2.07M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                 </svg>
-                <p class="text-sm">Queue is empty</p>
+                <p class="text-sm font-medium">Queue is empty</p>
               </div>
             }
           </div>
 
-          <!-- Buttons -->
-          <div class="mt-4 flex gap-3">
+          <!-- Bottom action buttons -->
+          <div class="shrink-0 pt-5 flex gap-3" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom))">
             <button
-              disabled
-              class="flex-1 bg-yellow-100 text-yellow-700 font-semibold py-3 rounded-xl min-h-12 text-sm opacity-50 cursor-not-allowed">
+              (click)="openAddQueueModal()"
+              class="flex-1 min-h-[52px] rounded-2xl bg-warning-light border border-warning/30 text-warning font-bold text-sm hover:bg-warning/20 transition-colors">
               Add Queue
             </button>
             <button
               (click)="activePanel.set('current')"
-              class="flex-1 bg-white border-2 border-gray-300 text-gray-700 font-semibold py-3 rounded-xl min-h-12 text-sm">
+              class="flex-1 min-h-[52px] rounded-2xl border-2 border-primary text-primary font-bold text-sm transition-colors hover:bg-primary-light">
               Back
             </button>
           </div>
+
         </div>
       }
 
-    </div><!-- end two-panel body -->
+    </div><!-- end panels -->
 
   </div>
+
+  <!-- ── End Party Modal ── -->
+  @if (showEndPartyModal()) {
+    <div class="fixed inset-0 z-40 flex items-center justify-center px-5" role="dialog" aria-modal="true">
+      <div class="absolute inset-0 bg-black/40" (click)="showEndPartyModal.set(false)"></div>
+      <div class="relative w-full max-w-sm bg-white rounded-3xl px-6 py-6 z-10">
+        <h2 class="text-base font-bold text-gray-900 mb-2">End session?</h2>
+        <p class="text-sm text-gray-500 mb-6">
+          This party has {{ servingPartyMembers().length }} members still in progress.
+          End all of them, or go back to finish each one individually.
+        </p>
+        <div class="flex gap-3">
+          <button (click)="showEndPartyModal.set(false)"
+            class="flex-1 min-h-12 rounded-2xl border-2 border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-colors">
+            Go back
+          </button>
+          <button (click)="endAllMembers()" [disabled]="acting()"
+            class="flex-1 min-h-12 rounded-2xl bg-primary text-white font-bold text-sm disabled:opacity-40 hover:bg-primary/90 transition-colors">
+            End all
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Extend Session Modal ── -->
+  @if (showExtendModal()) {
+    <div class="fixed inset-0 z-40 flex items-center justify-center px-4" role="dialog" aria-modal="true">
+      <div class="absolute inset-0 bg-black/40" (click)="showExtendModal.set(false)"></div>
+      <div class="relative w-full max-w-md bg-white rounded-3xl px-5 pt-5 pb-6 z-10">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-base font-bold text-gray-900">Extend session</h2>
+          <button (click)="showExtendModal.set(false)"
+            class="min-w-10 min-h-10 flex items-center justify-center text-gray-400 hover:text-gray-600"
+            aria-label="Close">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Minutes input -->
+        <div class="mb-4">
+          <label class="text-sm font-medium text-gray-700 block mb-1.5">Extra minutes</label>
+          <input
+            type="number"
+            min="1"
+            [value]="extendMinutes()"
+            (input)="extendMinutes.set(+($any($event.target).value))"
+            placeholder="Enter minutes"
+            class="w-full min-h-12 px-4 rounded-2xl border-2 border-gray-200 text-lg font-medium focus:outline-none focus:border-warning text-center">
+        </div>
+
+        <!-- Quick-pick chips -->
+        <div class="flex gap-2 mb-5">
+          @for (chip of [10, 20, 30, 40]; track chip) {
+            <button (click)="extendMinutes.set(chip)"
+              [class]="'flex-1 min-h-10 rounded-xl text-sm font-bold transition-colors ' +
+                (extendMinutes() === chip
+                  ? 'bg-warning text-white'
+                  : 'bg-warning-light text-warning border border-warning/30 hover:bg-warning/20')">
+              {{ chip }}m
+            </button>
+          }
+        </div>
+
+        <button (click)="confirmExtend()"
+          [disabled]="!extendMinutes() || acting()"
+          class="w-full min-h-12 rounded-2xl bg-warning-light border-2 border-warning/30 text-warning font-bold text-sm disabled:opacity-40 hover:bg-warning/20 transition-colors">
+          {{ acting() ? 'Extending...' : 'Confirm' }}
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ── Add Queue Modal ── -->
+  @if (showAddQueueModal()) {
+    <div class="fixed inset-0 z-40 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label="Add client to queue">
+      <div class="absolute inset-0 bg-black/40" (click)="closeAddQueueModal()"></div>
+      <div class="relative w-full max-w-md bg-white rounded-3xl px-5 pt-5 pb-0 z-10 max-h-[80dvh] flex flex-col" [formGroup]="addQueueForm">
+
+        <div class="shrink-0 flex items-center justify-between mb-4">
+          <h2 class="text-base font-bold text-gray-900">Add client to queue</h2>
+          <button (click)="closeAddQueueModal()"
+            class="min-w-10 min-h-10 flex items-center justify-center text-gray-400 hover:text-gray-600"
+            aria-label="Close">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto space-y-3 mb-4" formArrayName="members">
+          @for (ctrl of addQueueMembers.controls; track $index; let i = $index) {
+            <div [formGroupName]="i" class="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex gap-3 items-start">
+              <div class="flex-1 space-y-2">
+                <input formControlName="name" type="text" [placeholder]="'Client ' + (i + 1) + ' name'"
+                  class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 focus:outline-none focus:ring-2 focus:ring-primary/30">
+              </div>
+              @if (addQueueMembers.length > 1) {
+                <button (click)="removeQueueMemberRow(i)"
+                  class="text-gray-300 hover:text-red-500 min-w-10 min-h-10 flex items-center justify-center"
+                  aria-label="Remove">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="shrink-0 flex gap-3 border-t border-gray-100 pt-3 pb-5">
+          <button (click)="addQueueMemberRow()"
+            class="flex-1 min-h-12 rounded-2xl border-2 border-dashed border-primary/30 text-primary text-sm font-medium hover:bg-primary-light/30 transition-colors">
+            + Add another
+          </button>
+          <button (click)="staffAddToQueue()"
+            [disabled]="addingToQueue()"
+            class="flex-1 min-h-12 rounded-2xl bg-warning-light border-2 border-warning/30 text-warning font-bold text-sm disabled:opacity-50 hover:bg-warning/20 transition-colors">
+            {{ addingToQueue() ? 'Adding...' : 'Add to queue' }}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  }
+
 }

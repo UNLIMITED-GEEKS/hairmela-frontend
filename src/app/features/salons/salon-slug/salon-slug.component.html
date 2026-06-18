@@ -1,9 +1,11 @@
 @if (loading()) {
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <span class="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+  <div class="min-h-dvh bg-gray-50 px-4 py-8">
+    <div class="max-w-lg mx-auto">
+      <app-skeleton variant="line" [count]="3" />
+    </div>
   </div>
 } @else {
-  <div class="min-h-screen bg-gray-50 px-4 py-8">
+  <div class="min-h-dvh bg-gray-50 px-4 py-8">
     <div class="max-w-lg mx-auto">
       <h1 class="text-xl font-semibold text-gray-900 mb-2">Salon URL</h1>
       <p class="text-sm text-gray-500 mb-6">
@@ -36,11 +38,7 @@
         <button type="submit" [disabled]="form.invalid || saving()"
           class="w-full min-h-11 bg-primary text-white text-sm font-medium rounded-lg
                  hover:bg-primary-dark disabled:opacity-50 active:scale-95 transition-all">
-          @if (saving()) {
-            <span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-          } @else {
-            Save slug
-          }
+          {{ saving() ? 'Saving…' : 'Save slug' }}
         </button>
 
       </form>
