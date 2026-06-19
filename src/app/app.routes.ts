@@ -3,7 +3,6 @@ import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { salonRoleGuard } from './core/guards/salon-role.guard';
 import { orgOwnerGuard } from './core/guards/org-owner.guard';
-import { membershipResolver } from './core/resolvers/membership.resolver';
 import { SalonRole } from './core/salon-context/membership.types';
 
 const publicRoutes: Routes = [
@@ -77,8 +76,8 @@ const authedRoutes: Routes = [
   },
   {
     path: 'salons/:salonId',
-    canActivate: [authGuard],
-    resolve: { membership: membershipResolver },
+    canActivate: [authGuard, salonRoleGuard],
+    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     loadChildren: () =>
       import('./features/salons/salon.routes').then((m) => m.salonRoutes),
   },
