@@ -27,11 +27,11 @@ export class QueueListComponent {
   protected readonly showAddQueueModal = signal(false);
   protected readonly addingToQueue = signal(false);
 
+  protected readonly staffServices = this.console.staffServices;
+
   protected readonly addQueueForm = this._fb.group({
     members: this._fb.array([this._buildMemberRow()]),
   });
-
-  protected readonly staffServices = this.console.staffServices;
 
   protected get addQueueMembers(): FormArray {
     return this.addQueueForm.get('members') as FormArray;
@@ -55,7 +55,7 @@ export class QueueListComponent {
 
   protected openAddQueueModal(): void {
     this.addQueueMembers.clear();
-    this.addQueueMembers.push(this._buildMemberRow());
+    this.addQueueMembers.push(this._buildMemberRow(this.staffServices()[0]?.serviceId ?? ''));
     this.showAddQueueModal.set(true);
   }
 
@@ -80,15 +80,17 @@ export class QueueListComponent {
   }
 
   protected addQueueMemberRow(): void {
-    this.addQueueMembers.push(this._buildMemberRow());
+    this.addQueueMembers.push(this._buildMemberRow(this.staffServices()[0]?.serviceId ?? ''));
   }
 
   protected removeQueueMemberRow(i: number): void {
     this.addQueueMembers.removeAt(i);
-    if (this.addQueueMembers.length === 0) this.addQueueMembers.push(this._buildMemberRow());
+    if (this.addQueueMembers.length === 0) {
+      this.addQueueMembers.push(this._buildMemberRow(this.staffServices()[0]?.serviceId ?? ''));
+    }
   }
 
-  private _buildMemberRow() {
-    return this._fb.group({ name: ['', Validators.required], serviceId: [this.staffServices()[0]?.serviceId ?? ''] });
+  private _buildMemberRow(serviceId = '') {
+    return this._fb.group({ name: ['', Validators.required], serviceId: [serviceId] });
   }
 }

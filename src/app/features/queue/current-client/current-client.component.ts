@@ -94,7 +94,7 @@ export class CurrentClientComponent {
 
   protected openAddQueueModal(): void {
     this.addQueueMembers.clear();
-    this.addQueueMembers.push(this._buildMemberRow());
+    this.addQueueMembers.push(this._buildMemberRow(this.staffServices()[0]?.serviceId ?? ''));
     this.showAddQueueModal.set(true);
   }
 
@@ -119,15 +119,17 @@ export class CurrentClientComponent {
   }
 
   protected addQueueMemberRow(): void {
-    this.addQueueMembers.push(this._buildMemberRow());
+    this.addQueueMembers.push(this._buildMemberRow(this.staffServices()[0]?.serviceId ?? ''));
   }
 
   protected removeQueueMemberRow(i: number): void {
     this.addQueueMembers.removeAt(i);
-    if (this.addQueueMembers.length === 0) this.addQueueMembers.push(this._buildMemberRow());
+    if (this.addQueueMembers.length === 0) {
+      this.addQueueMembers.push(this._buildMemberRow(this.staffServices()[0]?.serviceId ?? ''));
+    }
   }
 
-  private _buildMemberRow() {
-    return this._fb.group({ name: ['', Validators.required], serviceId: [this.console.staffServices()[0]?.serviceId ?? ''] });
+  private _buildMemberRow(serviceId = '') {
+    return this._fb.group({ name: ['', Validators.required], serviceId: [serviceId] });
   }
 }
