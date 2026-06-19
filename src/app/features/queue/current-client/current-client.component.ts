@@ -23,6 +23,7 @@ export class CurrentClientComponent {
   private readonly _destroyRef = inject(DestroyRef);
   private readonly _fb = inject(FormBuilder);
 
+  protected readonly staffServices = this.console.staffServices;
   protected readonly showEndPartyModal = signal(false);
   protected readonly showExtendModal = signal(false);
   protected readonly showAddQueueModal = signal(false);
@@ -99,14 +100,14 @@ export class CurrentClientComponent {
 
   protected staffAddToQueue(): void {
     if (this.addingToQueue()) return;
-    const rows = this.addQueueMembers.value as { name: string }[];
+    const rows = this.addQueueMembers.value as { name: string; serviceId: string }[];
     const valid = rows.filter((r) => r.name?.trim());
     if (valid.length === 0) { this._toast.error('Enter at least one name.'); return; }
     this.addingToQueue.set(true);
     walkInControllerStaffAddToQueue(this._http, this._apiConfig.rootUrl, {
       salonId: this._salonId,
       queueId: this._queueId,
-      body: { members: valid.map((r) => ({ memberName: r.name.trim() })) },
+      body: { members: valid.map((r) => ({ memberName: r.name.trim(), serviceId: r.serviceId || undefined })) },
     }).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
       next: () => {
         this.addingToQueue.set(false);
@@ -127,6 +128,6 @@ export class CurrentClientComponent {
   }
 
   private _buildMemberRow() {
-    return this._fb.group({ name: ['', Validators.required] });
+    return this._fb.group({ name: ['', Validators.required], serviceId: [this.console.staffServices()[0]?.serviceId ?? ''] });
   }
 }

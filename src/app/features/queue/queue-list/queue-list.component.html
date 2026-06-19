@@ -62,10 +62,69 @@
   <!-- Bottom action buttons -->
   <div class="shrink-0 pt-5 flex gap-3" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom))">
     <button
+      (click)="openAddQueueModal()"
+      class="flex-1 min-h-[52px] rounded-2xl bg-warning-light border border-warning/30 text-warning font-bold text-sm transition-colors hover:bg-warning/20">
+      Add Queue
+    </button>
+    <button
       (click)="_location.back()"
       class="flex-1 min-h-[52px] rounded-2xl border-2 border-primary text-primary font-bold text-sm transition-colors hover:bg-primary-light">
       Back
     </button>
   </div>
+
+<!-- Add Queue Modal -->
+@if (showAddQueueModal()) {
+  <div class="fixed inset-0 z-40 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label="Add client to queue">
+    <div class="absolute inset-0 bg-black/40" (click)="showAddQueueModal.set(false)"></div>
+    <div class="relative w-full max-w-md bg-white rounded-3xl px-5 pt-5 pb-0 z-10 max-h-[80dvh] flex flex-col" [formGroup]="addQueueForm">
+      <div class="shrink-0 flex items-center justify-between mb-4">
+        <h2 class="text-base font-bold text-gray-900">Add client to queue</h2>
+        <button (click)="showAddQueueModal.set(false)"
+          class="min-w-10 min-h-10 flex items-center justify-center text-gray-400 hover:text-gray-600"
+          aria-label="Close">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto space-y-3 mb-4" formArrayName="members">
+        @for (ctrl of addQueueMembers.controls; track $index; let i = $index) {
+          <div [formGroupName]="i" class="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex flex-col gap-2">
+            <div class="flex gap-3 items-center">
+              <input formControlName="name" type="text" [placeholder]="'Client ' + (i + 1) + ' name'"
+                class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 focus:outline-none focus:ring-2 focus:ring-primary/30">
+              @if (addQueueMembers.length > 1) {
+                <button (click)="removeQueueMemberRow(i)"
+                  class="text-gray-300 hover:text-red-500 min-w-10 min-h-10 flex items-center justify-center shrink-0"
+                  aria-label="Remove">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              }
+            </div>
+            <select formControlName="serviceId"
+              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-700">
+              @for (s of staffServices(); track s.serviceId) {
+                <option [value]="s.serviceId">{{ s.service.name }}</option>
+              }
+            </select>
+          </div>
+        }
+      </div>
+      <div class="shrink-0 flex gap-3 border-t border-gray-100 pt-3 pb-5">
+        <button (click)="addQueueMemberRow()"
+          class="flex-1 min-h-12 rounded-2xl border-2 border-dashed border-primary/30 text-primary text-sm font-medium hover:bg-primary-light/30 transition-colors">
+          + Add another
+        </button>
+        <button (click)="staffAddToQueue()" [disabled]="addingToQueue()"
+          class="flex-1 min-h-12 rounded-2xl bg-warning-light border-2 border-warning/30 text-warning font-bold text-sm disabled:opacity-50 hover:bg-warning/20 transition-colors">
+          {{ addingToQueue() ? 'Adding...' : 'Add to queue' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
 
 </div>

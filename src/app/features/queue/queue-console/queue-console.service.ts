@@ -20,6 +20,8 @@ import { queueManagementControllerCompleteMember } from '../../../api/fn/queues/
 import { queueManagementControllerExtendMember } from '../../../api/fn/queues/queue-management-controller-extend-member';
 import { queueManagementControllerMarkNoShow } from '../../../api/fn/queues/queue-management-controller-mark-no-show';
 import { queueManagementControllerCancelEntry } from '../../../api/fn/queues/queue-management-controller-cancel-entry';
+import { staffServicesControllerGetStaffServices } from '../../../api/fn/services/staff-services-controller-get-staff-services';
+import { StaffService } from '../../../api/models/staff-service';
 
 @Injectable()
 export class QueueConsoleService {
@@ -35,6 +37,7 @@ export class QueueConsoleService {
 
   readonly queue = signal<Queue | null>(null);
   readonly timeline = signal<TimelineEntryDto[]>([]);
+  readonly staffServices = signal<StaffService[]>([]);
   readonly loading = signal(true);
   readonly acting = signal(false);
 
@@ -94,12 +97,14 @@ export class QueueConsoleService {
   });
 
   init(salonId: string, queueId: string): void {
-    this._loadInitialTimeline(queueId);
     this._loadQueueStatus(salonId, queueId);
-    this._socket.watchQueueAsStaff(queueId);
     this._socket.queueTimeline$(queueId).pipe(
       takeUntilDestroyed(this._destroyRef),
-    ).subscribe((entries) => this.timeline.set(entries));
+    ).subscribe((entries) => { this.timeline.set(entries); this.loading.set(false); });
+    this._socket.watchQueueAsStaff(queueId);
+    publicQueueControllerGetTimeline(this._http, this._apiConfig.rootUrl, { queueId })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({ next: (res) => { this.timeline.set(res.body); this.loading.set(false); } });
     this._startTick();
   }
 
@@ -205,17 +210,26 @@ export class QueueConsoleService {
 
   cancelEntry(salonId: string, queueId: string, entryId: string): void {
     if (this.acting()) return;
-    this._confirmDialog.open({
-      title: 'Cancel entry?',
-      message: 'Remove this client from the queue entirely.',
-      confirmLabel: 'Cancel',
-      danger: true,
-    }).pipe(
-      filter((ok) => ok),
-      tap(() => this.acting.set(true)),
-      switchMap(() => queueManagementControllerCancelEntry(this._http, this._apiConfig.rootUrl, { salonId, queueId, entryId })),
-      takeUntilDestroyed(this._destroyRef),
-    ).subscribe({ next: () => this.acting.set(false), error: () => this.acting.set(false) });
+    this._confirmDialog
+      .open({
+        title: 'Cancel entry?',
+        message: 'Remove this client from the queue entirely.',
+        confirmLabel: 'Yes',
+        danger: true,
+      })
+      .pipe(
+        filter((ok) => ok),
+        tap(() => this.acting.set(true)),
+        switchMap(() =>
+          queueManagementControllerCancelEntry(this._http, this._apiConfig.rootUrl, {
+            salonId,
+            queueId,
+            entryId,
+          }),
+        ),
+        takeUntilDestroyed(this._destroyRef),
+      )
+      .subscribe({ next: () => this.acting.set(false), error: () => this.acting.set(false) });
   }
 
   serveMember(salonId: string, queueId: string, entryId: string, memberId: string): void {
@@ -245,17 +259,16 @@ export class QueueConsoleService {
     return this.formatWait(this.liveWaitMinutes().get(entryId) ?? 0);
   }
 
-  private _loadInitialTimeline(queueId: string): void {
-    publicQueueControllerGetTimeline(this._http, this._apiConfig.rootUrl, { queueId })
-      .pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
-        next: (res) => { this.timeline.set(res.body); this.loading.set(false); },
-        error: () => this.loading.set(false),
-      });
-  }
-
   private _loadQueueStatus(salonId: string, queueId: string): void {
     publicQueueControllerGetQueue(this._http, this._apiConfig.rootUrl, { queueId })
-      .pipe(takeUntilDestroyed(this._destroyRef)).subscribe({ next: (res) => this.queue.set(res.body) });
+      .pipe(
+        tap((res) => this.queue.set(res.body)),
+        switchMap((res) => staffServicesControllerGetStaffServices(this._http, this._apiConfig.rootUrl, {
+          salonId,
+          staffId: res.body.staffId,
+        })),
+        takeUntilDestroyed(this._destroyRef),
+      ).subscribe({ next: (res) => this.staffServices.set(res.body) });
   }
 
   private _startTick(): void {

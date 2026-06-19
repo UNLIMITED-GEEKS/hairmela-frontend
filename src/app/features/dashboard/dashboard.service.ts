@@ -5,6 +5,7 @@ import { ApiConfiguration } from '../../api/api-configuration';
 import { MySalonDto } from '../../api/models/my-salon-dto';
 import { userSalonsControllerFindMine } from '../../api/fn/salons/user-salons-controller-find-mine';
 import { MembershipStore } from '../../core/salon-context/membership.store';
+import { forkJoin } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
@@ -42,9 +43,15 @@ export class DashboardService {
     userSalonsControllerFindMine(this._http, this._apiConfig.rootUrl).subscribe({
       next: (res) => {
         this._salons.set(res.body);
-        this._loaded = true;
-        this._loading.set(false);
-        res.body.forEach((s) => this._membershipStore.getMembership(s.salon.id).subscribe());
+        if (res.body.length === 0) {
+          this._loaded = true;
+          this._loading.set(false);
+          return;
+        }
+        forkJoin(res.body.map((s) => this._membershipStore.getMembership(s.salon.id))).subscribe(() => {
+          this._loaded = true;
+          this._loading.set(false);
+        });
       },
       error: () => this._loading.set(false),
     });

@@ -24,7 +24,7 @@
         }
       } @else {
         <span class="text-sm font-medium text-gray-400">No active client</span>
-        <span class="text-xs text-gray-300 mt-1">Queue is free</span>
+        <!-- <span class="text-xs text-gray-300 mt-1">Queue is free</span> -->
       }
     </div>
   </div>
@@ -166,18 +166,26 @@
       </div>
       <div class="flex-1 overflow-y-auto space-y-3 mb-4" formArrayName="members">
         @for (ctrl of addQueueMembers.controls; track $index; let i = $index) {
-          <div [formGroupName]="i" class="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex gap-3 items-center">
-            <input formControlName="name" type="text" [placeholder]="'Client ' + (i + 1) + ' name'"
-              class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 focus:outline-none focus:ring-2 focus:ring-primary/30">
-            @if (addQueueMembers.length > 1) {
-              <button (click)="removeQueueMemberRow(i)"
-                class="text-gray-300 hover:text-red-500 min-w-10 min-h-10 flex items-center justify-center shrink-0"
-                aria-label="Remove">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-              </button>
-            }
+          <div [formGroupName]="i" class="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex flex-col gap-2">
+            <div class="flex gap-3 items-center">
+              <input formControlName="name" type="text" [placeholder]="'Client ' + (i + 1) + ' name'"
+                class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 focus:outline-none focus:ring-2 focus:ring-primary/30">
+              @if (addQueueMembers.length > 1) {
+                <button (click)="removeQueueMemberRow(i)"
+                  class="text-gray-300 hover:text-red-500 min-w-10 min-h-10 flex items-center justify-center shrink-0"
+                  aria-label="Remove">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              }
+            </div>
+            <select formControlName="serviceId"
+              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-700">
+              @for (s of staffServices(); track s.serviceId) {
+                <option [value]="s.serviceId">{{ s.service.name }}</option>
+              }
+            </select>
           </div>
         }
       </div>

@@ -64,13 +64,19 @@ export class QueueSocketService implements OnDestroy {
   }
 
   watchQueue(queueId: string): void {
+    this._ensureTimelineSubject(queueId);
     this._watchedQueues.add(queueId);
-    this._socket?.emit('joinQueue', { queueId });
+    if (this._socket?.connected) {
+      this._socket.emit('joinQueue', { queueId });
+    }
   }
 
   watchQueueAsStaff(queueId: string): void {
+    this._ensureTimelineSubject(queueId);
     this._watchedStaffQueues.add(queueId);
-    this._socket?.emit('joinQueueStaff', { queueId });
+    if (this._socket?.connected) {
+      this._socket.emit('joinQueueStaff', { queueId });
+    }
   }
 
   unwatchQueue(queueId: string): void {
@@ -80,9 +86,7 @@ export class QueueSocketService implements OnDestroy {
   }
 
   queueTimeline$(queueId: string): Observable<TimelineEntryDto[]> {
-    if (!this._timelines.has(queueId)) {
-      this._timelines.set(queueId, new ReplaySubject<TimelineEntryDto[]>(1));
-    }
+    this._ensureTimelineSubject(queueId);
     return this._timelines.get(queueId)!.asObservable();
   }
 
@@ -91,6 +95,12 @@ export class QueueSocketService implements OnDestroy {
       this._called.set(queueId, new Subject<CustomerCalledPayload>());
     }
     return this._called.get(queueId)!.asObservable();
+  }
+
+  private _ensureTimelineSubject(queueId: string): void {
+    if (!this._timelines.has(queueId)) {
+      this._timelines.set(queueId, new ReplaySubject<TimelineEntryDto[]>(1));
+    }
   }
 
   private _rejoinAll(): void {
