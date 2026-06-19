@@ -1,15 +1,16 @@
-import { Component, DestroyRef, inject, signal, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, signal, OnInit, effect } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { FormBuilder, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ApiConfiguration } from '../../../api/api-configuration';
-import { salonsControllerFindOne } from '../../../api/fn/salons/salons-controller-find-one';
 import { salonsControllerUpdate } from '../../../api/fn/salons/salons-controller-update';
 import { salonsControllerUpdateSettings } from '../../../api/fn/salons/salons-controller-update-settings';
 import { ToastService } from '../../../core/toast/toast.service';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { SalonOverviewService } from '../salon-overview/salon-overview.service';
+import { CurrentUserStore } from '../../../core/auth/current-user.store';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const TIMEZONES = [
@@ -32,6 +33,8 @@ export class SalonSettingsComponent implements OnInit {
   private readonly _fb = inject(FormBuilder);
   private readonly _destroyRef = inject(DestroyRef);
   private readonly _toast = inject(ToastService);
+  private readonly _overview = inject(SalonOverviewService);
+  private readonly _currentUser = inject(CurrentUserStore);
 
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
@@ -63,35 +66,30 @@ export class SalonSettingsComponent implements OnInit {
     return this._route.snapshot.paramMap.get('salonId') ?? '';
   }
 
-  ngOnInit(): void {
-    salonsControllerFindOne(this._http, this._apiConfig.rootUrl, { salonId: this._salonId }).pipe(
-      takeUntilDestroyed(this._destroyRef),
-    ).subscribe({
-      next: (res) => {
-        const s = res.body;
-        const settings = s.settings as Record<string, unknown>;
-        this.form.patchValue({
-          name: s.name,
-          timezone: s.timezone,
-          defaultSlotDuration: s.defaultSlotDuration,
-          allowWalkIns: (settings['allowWalkIns'] as boolean) ?? true,
-          maxPartySize: (settings['maxPartySize'] as number) ?? 5,
-          noShowWindow: (settings['noShowWindow'] as number) ?? 10,
-        });
-
-        const existingHours = s.operatingHours as Array<{ dayOfWeek: number; startTime: string; endTime: string }>;
-        existingHours.forEach((h) => {
-          const ctrl = this.hoursArray.at(h.dayOfWeek);
-          ctrl.patchValue({ enabled: true, startTime: h.startTime, endTime: h.endTime });
-        });
-
-        this.loading.set(false);
-      },
-      error: () => {
-        this._toast.error('Salon not found');
-        this._router.navigate(['/dashboard']);
-      },
+  constructor() {
+    effect(() => {
+      const s = this._overview.salon();
+      if (!s) return;
+      const settings = s.settings as Record<string, unknown>;
+      this.form.patchValue({
+        name: s.name,
+        timezone: s.timezone,
+        defaultSlotDuration: s.defaultSlotDuration,
+        allowWalkIns: (settings['allowWalkIns'] as boolean) ?? true,
+        maxPartySize: (settings['maxPartySize'] as number) ?? 5,
+        noShowWindow: (settings['noShowWindow'] as number) ?? 10,
+      });
+      const existingHours = s.operatingHours as Array<{ dayOfWeek: number; startTime: string; endTime: string }>;
+      existingHours.forEach((h) => {
+        this.hoursArray.at(h.dayOfWeek).patchValue({ enabled: true, startTime: h.startTime, endTime: h.endTime });
+      });
+      this.loading.set(false);
     });
+  }
+
+  ngOnInit(): void {
+    const userId = this._currentUser.user()?.id ?? '';
+    this._overview.load(this._salonId, userId);
   }
 
   protected save(): void {
@@ -123,6 +121,7 @@ export class SalonSettingsComponent implements OnInit {
         settings$.pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
           next: () => {
             this.saving.set(false);
+            this._overview.invalidate(this._salonId);
             this._toast.success('Settings saved');
             this._location.back();
           },

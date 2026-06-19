@@ -3,12 +3,33 @@ import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { salonRoleGuard } from './core/guards/salon-role.guard';
 import { orgOwnerGuard } from './core/guards/org-owner.guard';
+import { membershipResolver } from './core/resolvers/membership.resolver';
 import { SalonRole } from './core/salon-context/membership.types';
 
-export const routes: Routes = [
-  { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+const publicRoutes: Routes = [
+  {
+    path: '',
+    loadComponent: () =>
+      import('./marketing/landing/landing.component').then((m) => m.LandingComponent),
+  },
+  {
+    path: 'privacy',
+    loadComponent: () =>
+      import('./marketing/privacy/privacy.component').then((m) => m.PrivacyComponent),
+  },
+  {
+    path: 'verify-email',
+    loadComponent: () =>
+      import('./features/auth/verify-email/verify-email.component').then((m) => m.VerifyEmailComponent),
+  },
+  {
+    path: 's/:slug',
+    loadChildren: () =>
+      import('./features/visit/visit.routes').then((m) => m.visitRoutes),
+  },
+];
 
-  // Guest-only
+const guestRoutes: Routes = [
   {
     path: 'login',
     canActivate: [guestGuard],
@@ -21,15 +42,9 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/auth/register/register.component').then((m) => m.RegisterComponent),
   },
+];
 
-  // Public
-  {
-    path: 'verify-email',
-    loadComponent: () =>
-      import('./features/auth/verify-email/verify-email.component').then((m) => m.VerifyEmailComponent),
-  },
-
-  // Authenticated
+const authedRoutes: Routes = [
   {
     path: 'dashboard',
     canActivate: [authGuard],
@@ -48,16 +63,12 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/notifications/notifications.component').then((m) => m.NotificationsComponent),
   },
-
-  // Organization
   {
     path: 'org/:orgId',
     canActivate: [authGuard, orgOwnerGuard],
     loadChildren: () =>
       import('./features/organization/organization.routes').then((m) => m.organizationRoutes),
   },
-
-  // Salons
   {
     path: 'salons/new',
     canActivate: [authGuard],
@@ -66,13 +77,11 @@ export const routes: Routes = [
   },
   {
     path: 'salons/:salonId',
-    canActivate: [authGuard, salonRoleGuard],
-    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
+    canActivate: [authGuard],
+    resolve: { membership: membershipResolver },
     loadChildren: () =>
       import('./features/salons/salon.routes').then((m) => m.salonRoutes),
   },
-
-  // Staff queue console — shell provides QueueConsoleService to both child pages
   {
     path: 'salons/:salonId/queues/:queueId/console',
     canActivate: [authGuard, salonRoleGuard],
@@ -92,14 +101,11 @@ export const routes: Routes = [
       },
     ],
   },
+];
 
-  // Customer-facing visit pages — public; auth is checked at join time
-  {
-    path: 's/:slug',
-    loadChildren: () =>
-      import('./features/visit/visit.routes').then((m) => m.visitRoutes),
-  },
-
-  // Catch-all
-  { path: '**', redirectTo: 'dashboard' },
+export const routes: Routes = [
+  ...publicRoutes,
+  ...guestRoutes,
+  ...authedRoutes,
+  { path: '**', redirectTo: '' },
 ];

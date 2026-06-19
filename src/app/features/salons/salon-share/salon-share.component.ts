@@ -1,13 +1,10 @@
-import { Component, DestroyRef, inject, signal, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ApiConfiguration } from '../../../api/api-configuration';
-import { salonsControllerFindOne } from '../../../api/fn/salons/salons-controller-find-one';
+import { Component, inject, signal, OnInit, effect } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { ToastService } from '../../../core/toast/toast.service';
 import { environment } from '../../../../environments/environment';
-
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { SalonOverviewService } from '../salon-overview/salon-overview.service';
+import { CurrentUserStore } from '../../../core/auth/current-user.store';
 
 @Component({
   selector: 'app-salon-share',
@@ -16,11 +13,9 @@ import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.
 })
 export class SalonShareComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
-  private readonly _router = inject(Router);
-  private readonly _http = inject(HttpClient);
-  private readonly _apiConfig = inject(ApiConfiguration);
-  private readonly _destroyRef = inject(DestroyRef);
   private readonly _toast = inject(ToastService);
+  private readonly _overview = inject(SalonOverviewService);
+  private readonly _currentUser = inject(CurrentUserStore);
 
   protected readonly loading = signal(true);
   protected readonly shareUrl = signal('');
@@ -30,21 +25,20 @@ export class SalonShareComponent implements OnInit {
     return this._route.snapshot.paramMap.get('salonId') ?? '';
   }
 
-  ngOnInit(): void {
-    salonsControllerFindOne(this._http, this._apiConfig.rootUrl, { salonId: this._salonId }).pipe(
-      takeUntilDestroyed(this._destroyRef),
-    ).subscribe({
-      next: (res) => {
-        const url = `${environment.appBaseUrl}/s/${res.body.slug}`;
-        this.shareUrl.set(url);
-        this._generateQr(url);
-        this.loading.set(false);
-      },
-      error: () => {
-        this._toast.error('Salon not found');
-        this._router.navigate(['/dashboard']);
-      },
+  constructor() {
+    effect(() => {
+      const salon = this._overview.salon();
+      if (!salon?.slug) return;
+      const url = `${environment.appBaseUrl}/s/${salon.slug}`;
+      this.shareUrl.set(url);
+      this._generateQr(url);
+      this.loading.set(false);
     });
+  }
+
+  ngOnInit(): void {
+    const userId = this._currentUser.user()?.id ?? '';
+    this._overview.load(this._salonId, userId);
   }
 
   protected copyLink(): void {

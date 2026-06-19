@@ -1,3 +1,4 @@
+import { CacheRegistry } from '../../core/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ApiConfiguration } from '../../api/api-configuration';
@@ -12,7 +13,10 @@ import { schedulesControllerDelete } from '../../api/fn/schedules/schedules-cont
 @Injectable({ providedIn: 'root' })
 export class SchedulesService {
   private readonly _http = inject(HttpClient);
+  private readonly _cacheRegistry = inject(CacheRegistry);
   private readonly _apiConfig = inject(ApiConfiguration);
+
+  constructor() { this._cacheRegistry.register(this); }
 
   private readonly _cache = new Map<string, StaffSchedule[]>();
   private readonly _schedules = signal<StaffSchedule[]>([]);

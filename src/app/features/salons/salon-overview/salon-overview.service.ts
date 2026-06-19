@@ -1,3 +1,4 @@
+import { CacheRegistry } from '../../../core/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
@@ -25,9 +26,12 @@ interface SalonOverviewCache {
 @Injectable({ providedIn: 'root' })
 export class SalonOverviewService {
   private readonly _http = inject(HttpClient);
+  private readonly _cacheRegistry = inject(CacheRegistry);
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _membershipStore = inject(MembershipStore);
   private readonly _toast = inject(ToastService);
+
+  constructor() { this._cacheRegistry.register(this); }
 
   private readonly _cache = new Map<string, SalonOverviewCache>();
   private readonly _salon = signal<Salon | null>(null);

@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { switchMap } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ErrorCodes } from '../../../core/errors/error-codes';
 import { isApiError } from '../../../core/errors/api-error.types';
@@ -31,12 +32,12 @@ export class RegisterComponent {
     this.errorMessage.set(null);
     this.loading.set(true);
 
-    this._auth.register(this.form.getRawValue()).subscribe({
-      next: () => {
-        this._router.navigate(['/login'], {
-          queryParams: { registered: '1' },
-        });
-      },
+    const { email, password, firstName, lastName } = this.form.getRawValue();
+
+    this._auth.register({ email, password, firstName, lastName }).pipe(
+      switchMap(() => this._auth.login({ email, password })),
+    ).subscribe({
+      next: () => this._router.navigate(['/dashboard']),
       error: (err) => {
         this.loading.set(false);
         const body = err?.error;

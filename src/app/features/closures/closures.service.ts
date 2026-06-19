@@ -1,3 +1,4 @@
+import { CacheRegistry } from '../../core/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ApiConfiguration } from '../../api/api-configuration';
@@ -13,7 +14,10 @@ import { staffClosuresControllerDelete } from '../../api/fn/schedules/staff-clos
 @Injectable({ providedIn: 'root' })
 export class ClosuresService {
   private readonly _http = inject(HttpClient);
+  private readonly _cacheRegistry = inject(CacheRegistry);
   private readonly _apiConfig = inject(ApiConfiguration);
+
+  constructor() { this._cacheRegistry.register(this); }
 
   private readonly _salonCache = new Map<string, Closure[]>();
   private readonly _staffCache = new Map<string, Closure[]>();

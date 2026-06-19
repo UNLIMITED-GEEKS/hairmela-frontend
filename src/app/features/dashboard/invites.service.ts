@@ -1,3 +1,4 @@
+import { CacheRegistry } from '../../core/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ApiConfiguration } from '../../api/api-configuration';
@@ -12,10 +13,13 @@ import { DashboardService } from './dashboard.service';
 @Injectable({ providedIn: 'root' })
 export class InvitesService {
   private readonly _http = inject(HttpClient);
+  private readonly _cacheRegistry = inject(CacheRegistry);
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _membershipStore = inject(MembershipStore);
   private readonly _toast = inject(ToastService);
   private readonly _dashboardService = inject(DashboardService);
+
+  constructor() { this._cacheRegistry.register(this); }
 
   private readonly _invites = signal<MyInviteDto[]>([]);
   private readonly _loading = signal(false);

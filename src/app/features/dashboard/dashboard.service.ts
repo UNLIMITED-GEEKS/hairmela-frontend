@@ -1,3 +1,4 @@
+import { CacheRegistry } from '../../core/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ApiConfiguration } from '../../api/api-configuration';
@@ -7,7 +8,10 @@ import { userSalonsControllerFindMine } from '../../api/fn/salons/user-salons-co
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
   private readonly _http = inject(HttpClient);
+  private readonly _cacheRegistry = inject(CacheRegistry);
   private readonly _apiConfig = inject(ApiConfiguration);
+
+  constructor() { this._cacheRegistry.register(this); }
 
   private readonly _salons = signal<MySalonDto[]>([]);
   private readonly _loading = signal(false);

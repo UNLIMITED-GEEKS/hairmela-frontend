@@ -7,6 +7,7 @@ import { TokenStore } from './token.store';
 import { CurrentUserStore } from './current-user.store';
 import { MembershipStore } from '../salon-context/membership.store';
 import { QueueSocketService } from '../socket/queue-socket.service';
+import { CacheRegistry } from '../cache-registry.service';
 import { LoginDto } from '../../api/models/login-dto';
 import { RegisterDto } from '../../api/models/register-dto';
 import { UserResponseDto } from '../../api/models/user-response-dto';
@@ -25,6 +26,7 @@ export class AuthService {
   private readonly _currentUserStore = inject(CurrentUserStore);
   private readonly _membershipStore = inject(MembershipStore);
   private readonly _socketService = inject(QueueSocketService);
+  private readonly _cacheRegistry = inject(CacheRegistry);
 
   login(dto: LoginDto): Observable<UserResponseDto> {
     return authControllerLogin(this._http, this._apiConfig.rootUrl, { body: dto }).pipe(
@@ -45,6 +47,8 @@ export class AuthService {
     this._tokenStore.clearTokens();
     this._currentUserStore.clear();
     this._membershipStore.invalidateAll();
+    this._cacheRegistry.clearAll();
+    localStorage.removeItem('hairmela_active_entries');
     this._router.navigate(['/login']);
   }
 
