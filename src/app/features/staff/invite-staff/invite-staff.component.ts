@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Location } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { StaffService } from '../staff.service';
 import { isApiError } from '../../../core/errors/api-error.types';
@@ -8,9 +9,10 @@ import { ErrorCodes } from '../../../core/errors/error-codes';
 @Component({
   selector: 'app-invite-staff',
   templateUrl: './invite-staff.component.html',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule],
 })
 export class InviteStaffComponent {
+  protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
   private readonly _fb = inject(FormBuilder);
@@ -32,7 +34,7 @@ export class InviteStaffComponent {
     this._staffService.invite(
       this._salonId,
       { email: this.form.value.email!, role: this.form.value.role! },
-      () => this._router.navigate(['..'], { relativeTo: this._route }),
+      () => this._location.back(),
     );
   }
 }

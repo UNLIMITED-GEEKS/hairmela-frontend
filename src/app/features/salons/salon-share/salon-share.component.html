@@ -33,13 +33,13 @@
       <!-- Share URL -->
       <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
         <p class="text-sm font-medium text-gray-700">Share link</p>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-col gap-2">
           <input type="text" [value]="shareUrl()" readonly
-            class="flex-1 min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg bg-gray-50 text-gray-600 truncate" />
+            class="w-full min-w-0 min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg bg-gray-50 text-gray-600 overflow-hidden text-ellipsis" />
           <button type="button" (click)="copyLink()"
-            class="min-h-11 px-4 py-2.5 bg-primary text-white text-sm font-medium rounded-lg
-                   hover:bg-primary-dark active:scale-95 transition-all shrink-0">
-            Copy
+            class="w-full min-h-11 px-4 py-2.5 bg-primary text-white text-sm font-medium rounded-lg
+                   hover:bg-primary-dark active:scale-95 transition-all">
+            Copy link
           </button>
         </div>
       </div>

@@ -1,0 +1,71 @@
+<div class="h-full flex flex-col px-5 py-5">
+
+  <!-- "Total Count" pill -->
+  <div class="shrink-0 mb-4">
+    <div class="inline-flex flex-col items-center rounded-2xl bg-warning-light px-6 py-2.5">
+      <span class="text-xs font-semibold text-warning uppercase tracking-wide">Total Count</span>
+      <span class="text-2xl font-bold text-warning leading-tight">{{ console.waitingEntries().length }}</span>
+    </div>
+  </div>
+
+  <!-- Column headers -->
+  <div class="shrink-0 flex gap-2 mb-3">
+    <div class="flex-1 rounded-xl bg-primary/10 px-3 py-2 text-xs font-bold text-primary">
+      Clients on queue
+    </div>
+    <div class="w-20 rounded-xl bg-primary/10 px-3 py-2 text-xs font-bold text-primary text-center">
+      Wait time
+    </div>
+  </div>
+
+  <!-- Scrollable queue rows -->
+  <div class="flex-1 overflow-y-auto space-y-2 pr-0.5">
+    @for (entry of console.queueListEntries(); track entry.entryId) {
+      @let isServing = entry.members.some(m => m.status === 'SERVING');
+      <div class="flex items-center justify-between bg-white border border-primary/20 rounded-2xl px-3 py-3 min-h-[52px]">
+        <div class="flex-1 min-w-0">
+          <span class="text-sm font-medium text-gray-800 block truncate">
+            {{ entry.members[0].memberName }}
+            @if (entry.members.length > 1) {
+              <span class="text-xs text-gray-400"> +{{ entry.members.length - 1 }}</span>
+            }
+          </span>
+          @if (isServing) {
+            <span class="text-xs font-bold text-success" aria-live="polite">Serving</span>
+          } @else {
+            <span class="text-xs text-warning font-medium" aria-live="polite">{{ console.liveWait(entry.entryId) }}</span>
+          }
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button (click)="noShow(entry.entryId)" [disabled]="console.acting()"
+            class="min-h-8 px-2.5 rounded-xl text-xs font-semibold border border-warning/40 text-warning bg-warning-light hover:bg-warning/20 disabled:opacity-40 transition-colors">
+            No-show
+          </button>
+          <button (click)="cancelEntry(entry.entryId)" [disabled]="console.acting()"
+            class="min-h-8 px-2.5 rounded-xl text-xs font-semibold border border-primary/30 text-primary bg-primary-light hover:bg-primary/10 disabled:opacity-40 transition-colors">
+            Cancel
+          </button>
+        </div>
+      </div>
+    }
+    @if (console.queueListEntries().length === 0) {
+      <div class="flex flex-col items-center justify-center py-16 text-gray-300">
+        <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.48-.634-2.07M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.768.231-1.48.634-2.07M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        <p class="text-sm font-medium">Queue is empty</p>
+      </div>
+    }
+  </div>
+
+  <!-- Bottom action buttons -->
+  <div class="shrink-0 pt-5 flex gap-3" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom))">
+    <button
+      (click)="_location.back()"
+      class="flex-1 min-h-[52px] rounded-2xl border-2 border-primary text-primary font-bold text-sm transition-colors hover:bg-primary-light">
+      Back
+    </button>
+  </div>
+
+</div>

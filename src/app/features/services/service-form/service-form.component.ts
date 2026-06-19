@@ -1,5 +1,6 @@
 import { Component, DestroyRef, inject, OnInit, signal, computed } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Location } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -16,9 +17,10 @@ import { ServicesService } from '../services.service';
 @Component({
   selector: 'app-service-form',
   templateUrl: './service-form.component.html',
-  imports: [ReactiveFormsModule, RouterLink, SkeletonComponent],
+  imports: [ReactiveFormsModule, SkeletonComponent],
 })
 export class ServiceFormComponent implements OnInit {
+  protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
   private readonly _http = inject(HttpClient);
@@ -96,7 +98,7 @@ export class ServiceFormComponent implements OnInit {
         this._toast.success(sid ? 'Service updated' : 'Service created');
         this._servicesService.clear();
         this._servicesService.load(this._salonId);
-        this._router.navigate(sid ? ['../../..'] : ['..'], { relativeTo: this._route });
+        this._location.back();
       },
       error: (err: unknown) => {
         this.saving.set(false);

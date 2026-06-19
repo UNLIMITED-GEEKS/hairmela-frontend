@@ -1,6 +1,5 @@
-import { Component, input } from '@angular/core';
+import { Component, input, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { inject } from '@angular/core';
 import { MySalonDto } from '../../../../api/models/my-salon-dto';
 
 @Component({

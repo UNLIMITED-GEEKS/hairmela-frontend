@@ -1,4 +1,5 @@
 import { Component, OnInit, inject, computed } from '@angular/core';
+import { Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Service } from '../../../api/models/service';
 import { ServicesService } from '../services.service';
@@ -13,6 +14,7 @@ import { filter } from 'rxjs';
   imports: [RouterLink, SkeletonComponent],
 })
 export class ServiceListComponent implements OnInit {
+  protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _servicesService = inject(ServicesService);
   private readonly _confirmDialog = inject(ConfirmDialogService);

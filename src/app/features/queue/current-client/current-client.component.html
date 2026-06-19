@@ -1,0 +1,196 @@
+<div class="h-full flex flex-col px-5 py-5">
+
+  <!-- "Current Client" header pill -->
+  <div class="shrink-0 mb-4">
+    <div class="w-full rounded-2xl bg-primary-light px-4 py-3 text-center">
+      <span class="text-sm font-bold tracking-wide text-primary uppercase">Current Client</span>
+    </div>
+  </div>
+
+  <!-- Circle -->
+  <div class="shrink-0 flex items-center justify-center py-2">
+    <div class="w-52 h-52 rounded-full border-4 border-warning flex flex-col items-center justify-center gap-1 text-center px-4">
+      @if (console.servingMember(); as member) {
+        <span class="text-4xl font-bold text-warning leading-none">
+          {{ member.memberName.split(' ')[0] }}
+        </span>
+        <span class="text-xl font-semibold text-warning mt-1" aria-live="polite">
+          {{ console.timerFromServedAt() }}
+        </span>
+        @if (console.estimatedFinishTime()) {
+          <span class="text-xs text-warning/70 font-medium mt-0.5">
+            eft: {{ console.estimatedFinishTime() }}
+          </span>
+        }
+      } @else {
+        <span class="text-sm font-medium text-gray-400">No active client</span>
+        <span class="text-xs text-gray-300 mt-1">Queue is free</span>
+      }
+    </div>
+  </div>
+
+  <!-- Party member list -->
+  @if (console.servingPartyMembers().length > 0) {
+    <div class="flex-1 overflow-y-auto space-y-2 mt-3">
+      @for (member of console.servingPartyMembers(); track member.memberId) {
+        <div class="flex items-center gap-2 bg-warning-light border border-warning/20 rounded-2xl px-3 py-2.5 min-h-12">
+          <span class="flex-1 text-sm font-medium text-warning truncate">{{ member.memberName }}</span>
+          <span [class]="'text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ' +
+            (member.status === 'SERVING' ? 'bg-success-light text-success' : 'bg-gray-100 text-gray-500')">
+            {{ member.status === 'SERVING' ? 'Serving' : 'Waiting' }}
+          </span>
+          @if (member.status === 'WAITING') {
+            <button (click)="serveMember(console.servingEntry()!.entryId, member.memberId)"
+              [disabled]="console.acting()"
+              class="min-w-9 min-h-9 px-2 rounded-xl bg-primary text-white text-xs font-bold disabled:opacity-40 shrink-0">
+              Serve
+            </button>
+          }
+          @if (member.status === 'SERVING') {
+            <button (click)="openExtendModal(console.servingEntry()!.entryId, member.memberId)"
+              [disabled]="console.acting()"
+              class="min-w-9 min-h-9 px-2 rounded-xl border border-warning text-warning text-xs font-bold disabled:opacity-40 shrink-0">
+              +mins
+            </button>
+            <button (click)="completeMember(console.servingEntry()!.entryId, member.memberId)"
+              [disabled]="console.acting()"
+              class="min-w-9 min-h-9 px-2 rounded-xl bg-success-light text-success text-xs font-bold disabled:opacity-40 shrink-0">
+              Done
+            </button>
+          }
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="flex-1"></div>
+  }
+
+  <!-- Bottom action buttons -->
+  <div class="shrink-0 pt-3 flex gap-3" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom))">
+    <a [routerLink]="queueUrl"
+      class="flex-1 min-h-[52px] rounded-2xl bg-warning-light border border-warning/30 text-warning font-bold text-sm flex items-center justify-center transition-colors hover:bg-warning/20">
+      View Queue
+    </a>
+    <button
+      (click)="endSession()"
+      [disabled]="!console.servingEntry() || console.acting()"
+      class="flex-1 min-h-[52px] rounded-2xl border-2 border-primary text-primary font-bold text-sm disabled:opacity-40 transition-opacity">
+      End Session
+    </button>
+  </div>
+
+</div>
+
+<!-- End Party Modal -->
+@if (showEndPartyModal()) {
+  <div class="fixed inset-0 z-40 flex items-center justify-center px-5" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-black/40" (click)="showEndPartyModal.set(false)"></div>
+    <div class="relative w-full max-w-sm bg-white rounded-3xl px-6 py-6 z-10">
+      <h2 class="text-base font-bold text-gray-900 mb-2">End session?</h2>
+      <p class="text-sm text-gray-500 mb-6">
+        This party has {{ console.servingPartyMembers().length }} members still in progress.
+        End all of them, or go back to finish each one individually.
+      </p>
+      <div class="flex gap-3">
+        <button (click)="showEndPartyModal.set(false)"
+          class="flex-1 min-h-12 rounded-2xl border-2 border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-colors">
+          Go back
+        </button>
+        <button (click)="endAllMembers()" [disabled]="console.acting()"
+          class="flex-1 min-h-12 rounded-2xl bg-primary text-white font-bold text-sm disabled:opacity-40 hover:bg-primary/90 transition-colors">
+          End all
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Extend Session Modal -->
+@if (showExtendModal()) {
+  <div class="fixed inset-0 z-40 flex items-center justify-center px-4" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-black/40" (click)="showExtendModal.set(false)"></div>
+    <div class="relative w-full max-w-md bg-white rounded-3xl px-5 pt-5 pb-6 z-10">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-base font-bold text-gray-900">Extend session</h2>
+        <button (click)="showExtendModal.set(false)"
+          class="min-w-10 min-h-10 flex items-center justify-center text-gray-400 hover:text-gray-600"
+          aria-label="Close">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="mb-4">
+        <label class="text-sm font-medium text-gray-700 block mb-1.5">Extra minutes</label>
+        <input
+          type="number" min="1"
+          [value]="extendMinutes()"
+          (input)="extendMinutes.set(+($any($event.target).value))"
+          placeholder="Enter minutes"
+          class="w-full min-h-12 px-4 rounded-2xl border-2 border-gray-200 text-lg font-medium focus:outline-none focus:border-warning text-center">
+      </div>
+      <div class="flex gap-2 mb-5">
+        @for (chip of [10, 20, 30, 40]; track chip) {
+          <button (click)="extendMinutes.set(chip)"
+            [class]="'flex-1 min-h-10 rounded-xl text-sm font-bold transition-colors ' +
+              (extendMinutes() === chip
+                ? 'bg-warning text-white'
+                : 'bg-warning-light text-warning border border-warning/30 hover:bg-warning/20')">
+            {{ chip }}m
+          </button>
+        }
+      </div>
+      <button (click)="confirmExtend()"
+        [disabled]="!extendMinutes() || console.acting()"
+        class="w-full min-h-12 rounded-2xl bg-warning-light border-2 border-warning/30 text-warning font-bold text-sm disabled:opacity-40 hover:bg-warning/20 transition-colors">
+        {{ console.acting() ? 'Extending...' : 'Confirm' }}
+      </button>
+    </div>
+  </div>
+}
+
+<!-- Add Queue Modal -->
+@if (showAddQueueModal()) {
+  <div class="fixed inset-0 z-40 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label="Add client to queue">
+    <div class="absolute inset-0 bg-black/40" (click)="showAddQueueModal.set(false)"></div>
+    <div class="relative w-full max-w-md bg-white rounded-3xl px-5 pt-5 pb-0 z-10 max-h-[80dvh] flex flex-col" [formGroup]="addQueueForm">
+      <div class="shrink-0 flex items-center justify-between mb-4">
+        <h2 class="text-base font-bold text-gray-900">Add client to queue</h2>
+        <button (click)="showAddQueueModal.set(false)"
+          class="min-w-10 min-h-10 flex items-center justify-center text-gray-400 hover:text-gray-600"
+          aria-label="Close">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto space-y-3 mb-4" formArrayName="members">
+        @for (ctrl of addQueueMembers.controls; track $index; let i = $index) {
+          <div [formGroupName]="i" class="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex gap-3 items-center">
+            <input formControlName="name" type="text" [placeholder]="'Client ' + (i + 1) + ' name'"
+              class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 focus:outline-none focus:ring-2 focus:ring-primary/30">
+            @if (addQueueMembers.length > 1) {
+              <button (click)="removeQueueMemberRow(i)"
+                class="text-gray-300 hover:text-red-500 min-w-10 min-h-10 flex items-center justify-center shrink-0"
+                aria-label="Remove">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            }
+          </div>
+        }
+      </div>
+      <div class="shrink-0 flex gap-3 border-t border-gray-100 pt-3 pb-5">
+        <button (click)="addQueueMemberRow()"
+          class="flex-1 min-h-12 rounded-2xl border-2 border-dashed border-primary/30 text-primary text-sm font-medium hover:bg-primary-light/30 transition-colors">
+          + Add another
+        </button>
+        <button (click)="staffAddToQueue()" [disabled]="addingToQueue()"
+          class="flex-1 min-h-12 rounded-2xl bg-warning-light border-2 border-warning/30 text-warning font-bold text-sm disabled:opacity-50 hover:bg-warning/20 transition-colors">
+          {{ addingToQueue() ? 'Adding...' : 'Add to queue' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

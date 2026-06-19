@@ -1,0 +1,27 @@
+<!-- Called banner -->
+@if (visit.calledVisible()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" role="alert" aria-live="assertive">
+    <div class="bg-white rounded-2xl px-8 py-10 text-center shadow-2xl max-w-xs w-full mx-4">
+      <div class="w-16 h-16 rounded-full bg-success-light flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <h2 class="text-2xl font-bold text-gray-900 mb-1">You're up!</h2>
+      <p class="text-gray-500 text-sm">Head to the barber now</p>
+    </div>
+  </div>
+}
+
+@if (visit.loading()) {
+  <div class="h-[calc(100dvh-3rem)] bg-white px-4 py-8">
+    <div class="max-w-md mx-auto">
+      <app-skeleton variant="avatar-row" [count]="1" />
+      <div class="mt-6">
+        <app-skeleton variant="list-item" [count]="3" />
+      </div>
+    </div>
+  </div>
+} @else {
+  <router-outlet />
+}

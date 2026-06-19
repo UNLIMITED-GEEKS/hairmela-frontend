@@ -1,0 +1,68 @@
+<div class="h-[calc(100dvh-3rem)] bg-white flex flex-col">
+  <div class="max-w-md mx-auto w-full flex flex-col h-full">
+
+    <!-- Header -->
+    <div class="shrink-0 px-5 pt-8 pb-4">
+      <h1 class="text-2xl font-bold text-warning">Choose Service</h1>
+    </div>
+
+    <!-- Scrollable service list -->
+    <div class="flex-1 overflow-y-auto px-5 space-y-3">
+      @if (selectedStaff(); as staff) {
+        @for (service of visit.staffServices(staff); track service.id) {
+          <button
+            (click)="selectService(service.id)"
+            [class]="'w-full rounded-2xl px-4 py-3.5 flex items-center justify-between min-h-14 text-left transition-colors border-2 ' +
+              (selectedServiceId() === service.id
+                ? 'bg-primary border-primary text-white'
+                : 'bg-primary-light/40 border-primary/30 text-gray-800 hover:border-primary')">
+            <span class="text-sm font-medium">{{ service.name }}</span>
+            <span [class]="'text-sm font-medium ' + (selectedServiceId() === service.id ? 'text-white/80' : 'text-gray-400')">
+              {{ service.duration }}mins
+            </span>
+          </button>
+        }
+        @if (visit.staffServices(staff).length === 0) {
+          <p class="text-sm text-gray-400 text-center py-8">No services listed — barber will decide.</p>
+        }
+      }
+
+      @if (visit.queueStatus() === 'CLOSED') {
+        <div class="rounded-2xl bg-primary-light border border-primary/20 px-4 py-3 text-sm text-primary text-center font-medium">
+          Queue is currently closed
+        </div>
+      }
+      @if (visit.queueStatus() === 'PAUSED') {
+        <div class="rounded-2xl bg-warning-light border border-warning/20 px-4 py-3 text-sm text-warning text-center font-medium">
+          On break — line still forming
+        </div>
+      }
+    </div>
+
+    <!-- Fixed bottom bar -->
+    <div class="shrink-0 bg-white border-t border-gray-100 px-5 pt-3 safe-area-bottom">
+      <div class="flex gap-3">
+        @if (visit.activeEntry()?.queueId === queueId) {
+          <a [routerLink]="positionUrl"
+            class="flex-1 min-h-[52px] rounded-2xl bg-warning-light border-2 border-warning/30 text-warning font-bold text-sm flex items-center justify-center hover:bg-warning/20 transition-colors">
+            My position
+          </a>
+        } @else {
+          <button
+            (click)="joinQueue()"
+            [disabled]="visit.joining() || visit.queueStatus() === 'CLOSED'"
+            class="flex-1 min-h-[52px] rounded-2xl bg-warning-light border-2 border-warning/30 text-warning font-bold text-sm disabled:opacity-50 hover:bg-warning/20 transition-colors">
+            {{ visit.joining() ? 'Joining...' : 'Join queue' }}
+          </button>
+        }
+        <button
+          type="button"
+          (click)="_location.back()"
+          class="flex-1 min-h-[52px] rounded-2xl border-2 border-primary text-primary font-bold text-sm hover:bg-primary-light transition-colors">
+          Back
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>

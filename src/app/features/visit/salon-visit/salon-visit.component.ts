@@ -264,6 +264,7 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
             if (staff) {
               this.selectedStaff.set(staff);
               this._watchQueue(queueIdFromRoute, storedEntries);
+              this.screen.set('live-queue');
             }
           }
         },
@@ -538,7 +539,7 @@ export class SalonVisitComponent implements OnInit, OnDestroy {
         this.screen.set('landing');
         break;
       case 'live-queue':
-        this.screen.set('my-position');
+        this.screen.set(this.activeEntry() ? 'my-position' : 'landing');
         break;
     }
   }

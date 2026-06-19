@@ -1,7 +1,7 @@
 import { Component, DestroyRef, inject, signal, OnInit } from '@angular/core';
+import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { RouterLink } from '@angular/router';
 import { FormBuilder, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ApiConfiguration } from '../../../api/api-configuration';
@@ -21,9 +21,10 @@ const TIMEZONES = [
 @Component({
   selector: 'app-salon-settings',
   templateUrl: './salon-settings.component.html',
-  imports: [ReactiveFormsModule, RouterLink, SkeletonComponent],
+  imports: [ReactiveFormsModule, SkeletonComponent],
 })
 export class SalonSettingsComponent implements OnInit {
+  protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
   private readonly _http = inject(HttpClient);
@@ -123,7 +124,7 @@ export class SalonSettingsComponent implements OnInit {
           next: () => {
             this.saving.set(false);
             this._toast.success('Settings saved');
-            this._router.navigate(['..'], { relativeTo: this._route });
+            this._location.back();
           },
           error: () => this.saving.set(false),
         });

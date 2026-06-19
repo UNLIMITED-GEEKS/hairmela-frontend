@@ -1,5 +1,5 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideAppInitializer, isDevMode } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withRouterConfig } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideCloudinaryLoader } from '@angular/common';
 import { provideServiceWorker } from '@angular/service-worker';
@@ -15,7 +15,7 @@ import { sessionInit } from './core/auth/session-init';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes),
+    provideRouter(routes, withRouterConfig({ paramsInheritanceStrategy: 'always' })),
     provideHttpClient(withInterceptors([jwtInterceptor, refreshInterceptor, errorInterceptor])),
     provideApiConfiguration(environment.apiBaseUrl),
     provideAppInitializer(sessionInit()),

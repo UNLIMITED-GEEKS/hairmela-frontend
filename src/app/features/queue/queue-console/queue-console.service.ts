@@ -52,6 +52,18 @@ export class QueueConsoleService {
     this.timeline().filter((e) => e.members.every((m) => m.status === 'WAITING')),
   );
 
+  readonly servingPartyMembers = computed(() => {
+    const entry = this.servingEntry();
+    if (!entry) return [];
+    return entry.members.filter((m) => m.status === 'WAITING' || m.status === 'SERVING');
+  });
+
+  readonly queueListEntries = computed(() => {
+    const serving = this.servingEntry();
+    const waiting = this.waitingEntries();
+    return serving ? [serving, ...waiting] : waiting;
+  });
+
   private readonly _elapsedSeconds = computed(() => {
     this._tick();
     const servedAt = this.servingMember()?.servedAt;
@@ -143,6 +155,37 @@ export class QueueConsoleService {
       })),
       takeUntilDestroyed(this._destroyRef),
     ).subscribe({ next: () => this.acting.set(false), error: () => this.acting.set(false) });
+  }
+
+  endAllMembers(salonId: string, queueId: string): void {
+    const entry = this.servingEntry();
+    if (!entry || this.acting()) return;
+    const unfinished = entry.members.filter((m) => m.status === 'WAITING' || m.status === 'SERVING');
+    if (unfinished.length === 0) return;
+    this.acting.set(true);
+    let chain$ = queueManagementControllerCompleteMember(this._http, this._apiConfig.rootUrl, {
+      salonId, queueId, entryId: entry.entryId, memberId: unfinished[0].memberId,
+    });
+    for (let i = 1; i < unfinished.length; i++) {
+      const memberId = unfinished[i].memberId;
+      chain$ = chain$.pipe(
+        switchMap(() => queueManagementControllerCompleteMember(this._http, this._apiConfig.rootUrl, {
+          salonId, queueId, entryId: entry.entryId, memberId,
+        })),
+      ) as typeof chain$;
+    }
+    chain$.pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
+      next: () => this.acting.set(false),
+      error: () => this.acting.set(false),
+    });
+  }
+
+  completeMember(salonId: string, queueId: string, entryId: string, memberId: string): void {
+    if (this.acting()) return;
+    this.acting.set(true);
+    queueManagementControllerCompleteMember(this._http, this._apiConfig.rootUrl, { salonId, queueId, entryId, memberId })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({ next: () => this.acting.set(false), error: () => this.acting.set(false) });
   }
 
   noShow(salonId: string, queueId: string, entryId: string): void {

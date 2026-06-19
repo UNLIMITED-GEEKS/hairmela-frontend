@@ -1,4 +1,5 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SalonStaff } from '../../../api/models/salon-staff';
 import { StaffService } from '../staff.service';
@@ -16,6 +17,7 @@ import { filter, switchMap } from 'rxjs';
   imports: [RouterLink, SkeletonComponent],
 })
 export class StaffDetailComponent implements OnInit {
+  protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
   private readonly _staffService = inject(StaffService);
@@ -88,7 +90,7 @@ export class StaffDetailComponent implements OnInit {
       this._staffService.transferOwnership(
         this._salonId,
         { newOwnerId: this._staffId },
-        () => this._router.navigate(['..'], { relativeTo: this._route }),
+        () => this._location.back(),
       );
     });
   }
@@ -105,7 +107,7 @@ export class StaffDetailComponent implements OnInit {
       this._staffService.remove(
         this._salonId,
         this._staffId,
-        () => this._router.navigate(['..'], { relativeTo: this._route }),
+        () => this._location.back(),
       );
     });
   }

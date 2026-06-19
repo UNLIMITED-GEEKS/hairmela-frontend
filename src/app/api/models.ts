@@ -15,6 +15,7 @@ export type { CreateScheduleDto } from './models/create-schedule-dto';
 export type { CreateServiceDto } from './models/create-service-dto';
 export type { ExtendMemberDto } from './models/extend-member-dto';
 export type { ForgotPasswordDto } from './models/forgot-password-dto';
+export type { InitialServiceDto } from './models/initial-service-dto';
 export type { InviteStaffDto } from './models/invite-staff-dto';
 export type { JoinMemberDto } from './models/join-member-dto';
 export type { JoinQueueDto } from './models/join-queue-dto';

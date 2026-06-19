@@ -72,13 +72,25 @@ export const routes: Routes = [
       import('./features/salons/salon.routes').then((m) => m.salonRoutes),
   },
 
-  // Staff queue console
+  // Staff queue console — shell provides QueueConsoleService to both child pages
   {
     path: 'salons/:salonId/queues/:queueId/console',
     canActivate: [authGuard, salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     loadComponent: () =>
-      import('./features/queue/queue-console/queue-console.component').then((m) => m.QueueConsoleComponent),
+      import('./features/queue/queue-shell/queue-shell.component').then((m) => m.QueueShellComponent),
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./features/queue/current-client/current-client.component').then((m) => m.CurrentClientComponent),
+      },
+      {
+        path: 'queue',
+        loadComponent: () =>
+          import('./features/queue/queue-list/queue-list.component').then((m) => m.QueueListComponent),
+      },
+    ],
   },
 
   // Customer-facing visit pages — public; auth is checked at join time

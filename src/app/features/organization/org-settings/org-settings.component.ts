@@ -1,4 +1,5 @@
 import { Component, OnInit, inject, effect } from '@angular/core';
+import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { OrgService } from '../org.service';
@@ -10,6 +11,7 @@ import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.
   imports: [ReactiveFormsModule, SkeletonComponent],
 })
 export class OrgSettingsComponent implements OnInit {
+  private readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
   private readonly _fb = inject(FormBuilder);
@@ -42,7 +44,7 @@ export class OrgSettingsComponent implements OnInit {
     this._orgService.update(
       this._orgId,
       { name: this.form.value.name! },
-      () => this._router.navigate(['..'], { relativeTo: this._route }),
+      () => this._location.back(),
     );
   }
 }

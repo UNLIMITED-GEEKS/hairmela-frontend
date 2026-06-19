@@ -1,4 +1,5 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Location } from '@angular/common';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { FormBuilder, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -33,6 +34,7 @@ const TIMEZONES = [
   imports: [ReactiveFormsModule],
 })
 export class CreateSalonComponent {
+  private readonly _location = inject(Location);
   private readonly _router = inject(Router);
   private readonly _http = inject(HttpClient);
   private readonly _apiConfig = inject(ApiConfiguration);
@@ -63,6 +65,12 @@ export class CreateSalonComponent {
         endTime: ['18:00'],
       }))
     ),
+    service: this._fb.group({
+      name: ['', [Validators.required, Validators.minLength(2)]],
+      duration: [30, [Validators.required, Validators.min(5), Validators.max(480)]],
+      price: ['0', Validators.required],
+      description: [''],
+    }),
   });
 
   protected get hoursArray(): FormArray {
@@ -95,6 +103,12 @@ export class CreateSalonComponent {
         timezone: v.timezone!,
         defaultSlotDuration: v.defaultSlotDuration!,
         operatingHours: enabledHours,
+        service: {
+          name: v.service!.name!,
+          duration: v.service!.duration!,
+          price: String(v.service!.price ?? '0'),
+          description: v.service!.description ?? undefined,
+        },
       },
     }).pipe(
       takeUntilDestroyed(this._destroyRef),
@@ -116,6 +130,6 @@ export class CreateSalonComponent {
   }
 
   protected cancel(): void {
-    this._router.navigate(['/dashboard']);
+    this._location.back();
   }
 }

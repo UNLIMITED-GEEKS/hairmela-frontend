@@ -137,6 +137,52 @@
         }
       </div>
 
+      <!-- First service -->
+      <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-4" formGroupName="service">
+        <div>
+          <h2 class="text-sm font-semibold text-gray-700">First service</h2>
+          <p class="text-xs text-gray-400 mt-0.5">You can add more after your salon is created.</p>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium text-gray-700">Service name</label>
+          <input formControlName="name" type="text" placeholder="e.g. Classic Haircut"
+            class="w-full min-h-11 px-3 rounded-lg border border-gray-300 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            [class.border-red-400]="form.get('service.name')?.invalid && form.get('service.name')?.touched" />
+          @if (form.get('service.name')?.errors?.['required'] && form.get('service.name')?.touched) {
+            <p class="text-xs text-red-500">Name is required</p>
+          }
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium text-gray-700">Duration (mins)</label>
+            <input formControlName="duration" type="number" min="1" placeholder="30"
+              class="w-full min-h-11 px-3 rounded-lg border border-gray-300 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              [class.border-red-400]="form.get('service.duration')?.invalid && form.get('service.duration')?.touched" />
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium text-gray-700">Price (₦)</label>
+            <input formControlName="price" type="text" placeholder="0.00"
+              class="w-full min-h-11 px-3 rounded-lg border border-gray-300 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              [class.border-red-400]="form.get('service.price')?.invalid && form.get('service.price')?.touched" />
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium text-gray-700">
+            Description <span class="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <textarea formControlName="description" rows="2" placeholder="Short description…"
+            class="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm resize-none
+                   focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+          </textarea>
+        </div>
+      </div>
+
       <!-- Actions -->
       <div class="flex gap-3 pb-8">
         <button

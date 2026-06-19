@@ -1,5 +1,6 @@
 import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Location } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -21,9 +22,10 @@ type ClosureScope = 'salon' | 'staff';
 @Component({
   selector: 'app-closures',
   templateUrl: './closures.component.html',
-  imports: [RouterLink, ReactiveFormsModule, SkeletonComponent],
+  imports: [ReactiveFormsModule, SkeletonComponent],
 })
 export class ClosuresComponent implements OnInit {
+  protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _http = inject(HttpClient);
   private readonly _apiConfig = inject(ApiConfiguration);
@@ -60,22 +62,26 @@ export class ClosuresComponent implements OnInit {
   private _loadSalon(): void {
     salonClosuresControllerFindAll(this._http, this._apiConfig.rootUrl, {
       salonId: this._salonId,
-    }).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
-      next: (res) => {
-        this.salonClosures.set(res.body);
-        this.loading.set(false);
-      },
-      error: () => this.loading.set(false),
-    });
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.salonClosures.set(res.body);
+          this.loading.set(false);
+        },
+        error: () => this.loading.set(false),
+      });
   }
 
   private _loadStaff(): void {
     staffClosuresControllerFindAll(this._http, this._apiConfig.rootUrl, {
       salonId: this._salonId,
       staffId: this._staffId,
-    }).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
-      next: (res) => this.staffClosures.set(res.body),
-    });
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: (res) => this.staffClosures.set(res.body),
+      });
   }
 
   protected setTab(tab: ClosureScope): void {
@@ -88,23 +94,28 @@ export class ClosuresComponent implements OnInit {
     this.saving.set(true);
     const { date, reason } = this.addForm.getRawValue();
 
-    const call$ = this.activeTab() === 'staff'
-      ? staffClosuresControllerCreate(this._http, this._apiConfig.rootUrl, {
-          salonId: this._salonId,
-          staffId: this._staffId,
-          body: { date: date!, reason: reason || undefined },
-        })
-      : salonClosuresControllerCreate(this._http, this._apiConfig.rootUrl, {
-          salonId: this._salonId,
-          body: { date: date!, reason: reason || undefined },
-        });
+    const call$ =
+      this.activeTab() === 'staff'
+        ? staffClosuresControllerCreate(this._http, this._apiConfig.rootUrl, {
+            salonId: this._salonId,
+            staffId: this._staffId,
+            body: { date: date!, reason: reason || undefined },
+          })
+        : salonClosuresControllerCreate(this._http, this._apiConfig.rootUrl, {
+            salonId: this._salonId,
+            body: { date: date!, reason: reason || undefined },
+          });
 
     call$.pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
       next: (res) => {
         if (this.activeTab() === 'staff') {
-          this.staffClosures.update((list) => [...list, res.body].sort((a, b) => a.date.localeCompare(b.date)));
+          this.staffClosures.update((list) =>
+            [...list, res.body].sort((a, b) => a.date.localeCompare(b.date)),
+          );
         } else {
-          this.salonClosures.update((list) => [...list, res.body].sort((a, b) => a.date.localeCompare(b.date)));
+          this.salonClosures.update((list) =>
+            [...list, res.body].sort((a, b) => a.date.localeCompare(b.date)),
+          );
         }
         this.saving.set(false);
         this.showAddForm.set(false);
@@ -116,38 +127,41 @@ export class ClosuresComponent implements OnInit {
   }
 
   protected delete(closure: Closure): void {
-    this._confirmDialog.open({
-      title: `Remove closure on ${closure.date}?`,
-      message: closure.reason ? `Reason: ${closure.reason}` : 'This closure will be removed.',
-      confirmLabel: 'Remove',
-      danger: true,
-    }).pipe(
-      filter((ok) => ok),
-      switchMap(() => {
-        this.saving.set(true);
-        return this.activeTab() === 'staff'
-          ? staffClosuresControllerDelete(this._http, this._apiConfig.rootUrl, {
-              salonId: this._salonId,
-              staffId: this._staffId,
-              closureId: closure.id,
-            })
-          : salonClosuresControllerDelete(this._http, this._apiConfig.rootUrl, {
-              salonId: this._salonId,
-              closureId: closure.id,
-            });
-      }),
-      takeUntilDestroyed(this._destroyRef),
-    ).subscribe({
-      next: () => {
-        if (this.activeTab() === 'staff') {
-          this.staffClosures.update((list) => list.filter((c) => c.id !== closure.id));
-        } else {
-          this.salonClosures.update((list) => list.filter((c) => c.id !== closure.id));
-        }
-        this.saving.set(false);
-      },
-      error: () => this.saving.set(false),
-    });
+    this._confirmDialog
+      .open({
+        title: `Remove closure on ${closure.date}?`,
+        message: closure.reason ? `Reason: ${closure.reason}` : 'This closure will be removed.',
+        confirmLabel: 'Remove',
+        danger: true,
+      })
+      .pipe(
+        filter((ok) => ok),
+        switchMap(() => {
+          this.saving.set(true);
+          return this.activeTab() === 'staff'
+            ? staffClosuresControllerDelete(this._http, this._apiConfig.rootUrl, {
+                salonId: this._salonId,
+                staffId: this._staffId,
+                closureId: closure.id,
+              })
+            : salonClosuresControllerDelete(this._http, this._apiConfig.rootUrl, {
+                salonId: this._salonId,
+                closureId: closure.id,
+              });
+        }),
+        takeUntilDestroyed(this._destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          if (this.activeTab() === 'staff') {
+            this.staffClosures.update((list) => list.filter((c) => c.id !== closure.id));
+          } else {
+            this.salonClosures.update((list) => list.filter((c) => c.id !== closure.id));
+          }
+          this.saving.set(false);
+        },
+        error: () => this.saving.set(false),
+      });
   }
 
   protected get activeClosures(): Closure[] {

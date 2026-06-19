@@ -1,4 +1,5 @@
 import { Component, DestroyRef, inject, signal, OnInit } from '@angular/core';
+import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -17,6 +18,7 @@ import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.
   imports: [ReactiveFormsModule, SkeletonComponent],
 })
 export class SalonSlugComponent implements OnInit {
+  private readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
   private readonly _http = inject(HttpClient);
@@ -62,7 +64,7 @@ export class SalonSlugComponent implements OnInit {
       next: () => {
         this.saving.set(false);
         this._toast.success('Slug updated');
-        this._router.navigate(['..'], { relativeTo: this._route });
+        this._location.back();
       },
       error: (err: unknown) => {
         this.saving.set(false);

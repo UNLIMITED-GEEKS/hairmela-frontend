@@ -1,0 +1,51 @@
+@if (console.loading()) {
+  <div class="h-[calc(100dvh-3rem)] bg-gray-50 px-4 py-8">
+    <div class="max-w-lg mx-auto">
+      <app-skeleton variant="card" [count]="2" />
+    </div>
+  </div>
+} @else {
+  <div class="h-[calc(100dvh-3rem)] bg-white flex flex-col">
+
+    <!-- Top bar: back + status pills + call next -->
+    <div class="shrink-0 bg-white border-b border-gray-100 px-4 pt-2 pb-3 space-y-2">
+
+      <div class="flex items-center gap-2">
+        <button type="button" (click)="_location.back()"
+          class="min-w-11 min-h-11 flex items-center justify-center text-gray-400 hover:text-primary -ml-2 shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <div class="flex items-center gap-1.5 flex-1 flex-wrap">
+          @for (s of statusOptions; track s) {
+            <button
+              (click)="setStatus(s)"
+              [disabled]="console.acting() || console.queueStatus() === s"
+              [class]="'px-3 min-h-9 rounded-full text-xs font-semibold transition-colors disabled:cursor-not-allowed ' +
+                (console.queueStatus() === s
+                  ? (s === 'OPEN'   ? 'bg-success-light text-success'
+                   : s === 'PAUSED' ? 'bg-warning-light text-warning'
+                                    : 'bg-primary-light text-primary')
+                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200 disabled:opacity-40')">
+              {{ s === 'OPEN' ? 'Open' : s === 'PAUSED' ? 'Paused' : 'Closed' }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <button
+        (click)="callNext()"
+        [disabled]="console.acting() || console.queueStatus() !== 'OPEN' || console.waitingEntries().length === 0"
+        class="w-full min-h-11 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-40 transition-opacity">
+        Call next
+      </button>
+    </div>
+
+    <!-- Page content -->
+    <div class="flex-1 overflow-hidden">
+      <router-outlet />
+    </div>
+
+  </div>
+}

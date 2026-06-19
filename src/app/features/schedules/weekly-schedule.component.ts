@@ -1,5 +1,6 @@
 import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Location } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -19,9 +20,10 @@ const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 
 @Component({
   selector: 'app-weekly-schedule',
   templateUrl: './weekly-schedule.component.html',
-  imports: [RouterLink, ReactiveFormsModule, SkeletonComponent],
+  imports: [ReactiveFormsModule, SkeletonComponent],
 })
 export class WeeklyScheduleComponent implements OnInit {
+  protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _http = inject(HttpClient);
   private readonly _apiConfig = inject(ApiConfiguration);
@@ -60,13 +62,15 @@ export class WeeklyScheduleComponent implements OnInit {
     schedulesControllerFindAll(this._http, this._apiConfig.rootUrl, {
       salonId: this._salonId,
       staffId: this._staffId,
-    }).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
-      next: (res) => {
-        this.schedules.set(res.body);
-        this.loading.set(false);
-      },
-      error: () => this.loading.set(false),
-    });
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.schedules.set(res.body);
+          this.loading.set(false);
+        },
+        error: () => this.loading.set(false),
+      });
   }
 
   protected scheduleForDay(day: number): StaffSchedule | undefined {
@@ -92,16 +96,16 @@ export class WeeklyScheduleComponent implements OnInit {
       staffId: this._staffId,
       scheduleId: schedule.id,
       body: { startTime: startTime!, endTime: endTime! },
-    }).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
-      next: (res) => {
-        this.schedules.update((list) =>
-          list.map((s) => s.id === schedule.id ? res.body : s),
-        );
-        this.editingId.set(null);
-        this.saving.set(false);
-      },
-      error: () => this.saving.set(false),
-    });
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.schedules.update((list) => list.map((s) => (s.id === schedule.id ? res.body : s)));
+          this.editingId.set(null);
+          this.saving.set(false);
+        },
+        error: () => this.saving.set(false),
+      });
   }
 
   protected startAdd(day: number): void {
@@ -122,39 +126,44 @@ export class WeeklyScheduleComponent implements OnInit {
       salonId: this._salonId,
       staffId: this._staffId,
       body: { dayOfWeek: day, startTime: startTime!, endTime: endTime! },
-    }).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
-      next: (res) => {
-        this.schedules.update((list) => [...list, res.body]);
-        this.addingDay.set(null);
-        this.saving.set(false);
-      },
-      error: () => this.saving.set(false),
-    });
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.schedules.update((list) => [...list, res.body]);
+          this.addingDay.set(null);
+          this.saving.set(false);
+        },
+        error: () => this.saving.set(false),
+      });
   }
 
   protected deleteSchedule(schedule: StaffSchedule): void {
-    this._confirmDialog.open({
-      title: `Remove ${DAYS[schedule.dayOfWeek]}?`,
-      message: 'This working day will be removed from the schedule.',
-      confirmLabel: 'Remove',
-      danger: true,
-    }).pipe(
-      filter((ok) => ok),
-      switchMap(() => {
-        this.saving.set(true);
-        return schedulesControllerDelete(this._http, this._apiConfig.rootUrl, {
-          salonId: this._salonId,
-          staffId: this._staffId,
-          scheduleId: schedule.id,
-        });
-      }),
-      takeUntilDestroyed(this._destroyRef),
-    ).subscribe({
-      next: () => {
-        this.schedules.update((list) => list.filter((s) => s.id !== schedule.id));
-        this.saving.set(false);
-      },
-      error: () => this.saving.set(false),
-    });
+    this._confirmDialog
+      .open({
+        title: `Remove ${DAYS[schedule.dayOfWeek]}?`,
+        message: 'This working day will be removed from the schedule.',
+        confirmLabel: 'Remove',
+        danger: true,
+      })
+      .pipe(
+        filter((ok) => ok),
+        switchMap(() => {
+          this.saving.set(true);
+          return schedulesControllerDelete(this._http, this._apiConfig.rootUrl, {
+            salonId: this._salonId,
+            staffId: this._staffId,
+            scheduleId: schedule.id,
+          });
+        }),
+        takeUntilDestroyed(this._destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.schedules.update((list) => list.filter((s) => s.id !== schedule.id));
+          this.saving.set(false);
+        },
+        error: () => this.saving.set(false),
+      });
   }
 }

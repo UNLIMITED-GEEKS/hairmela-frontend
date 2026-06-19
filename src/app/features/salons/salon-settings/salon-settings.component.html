@@ -96,11 +96,11 @@
 
         <!-- Actions -->
         <div class="flex gap-3 pb-8">
-          <a [routerLink]="['..']"
+          <button type="button" (click)="_location.back()"
             class="flex-1 min-h-11 flex items-center justify-center border border-gray-300 text-gray-700
                    text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
             Cancel
-          </a>
+          </button>
           <button type="submit" [disabled]="form.invalid || saving()"
             class="flex-1 min-h-11 bg-primary text-white text-sm font-medium rounded-lg
                    hover:bg-primary-dark disabled:opacity-50 active:scale-95 transition-all">

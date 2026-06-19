@@ -10,11 +10,11 @@
 
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <a routerLink=".." class="text-gray-400 hover:text-gray-600">
+          <button type="button" (click)="_location.back()" class="text-gray-400 hover:text-gray-600">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
-          </a>
+          </button>
           <h1 class="text-lg font-semibold text-gray-900">Services</h1>
         </div>
         @if (canManage()) {

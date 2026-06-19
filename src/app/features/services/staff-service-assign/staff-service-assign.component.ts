@@ -1,4 +1,5 @@
 import { Component, DestroyRef, inject, OnInit, signal, computed } from '@angular/core';
+import { Location } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -20,6 +21,7 @@ import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.
   imports: [RouterLink, SkeletonComponent],
 })
 export class StaffServiceAssignComponent implements OnInit {
+  protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _http = inject(HttpClient);
   private readonly _apiConfig = inject(ApiConfiguration);

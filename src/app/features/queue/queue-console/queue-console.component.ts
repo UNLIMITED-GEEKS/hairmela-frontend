@@ -8,7 +8,8 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Location } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { filter, switchMap, tap } from 'rxjs';
@@ -36,9 +37,10 @@ import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.
 @Component({
   selector: 'app-queue-console',
   templateUrl: './queue-console.component.html',
-  imports: [RouterLink, SkeletonComponent, ReactiveFormsModule],
+  imports: [SkeletonComponent, ReactiveFormsModule],
 })
 export class QueueConsoleComponent implements OnInit, OnDestroy {
+  protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _http = inject(HttpClient);
   private readonly _apiConfig = inject(ApiConfiguration);

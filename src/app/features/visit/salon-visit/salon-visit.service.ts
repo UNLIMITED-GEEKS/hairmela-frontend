@@ -2,8 +2,10 @@ import { Injectable, DestroyRef, inject, signal, computed } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { filter, switchMap, tap } from 'rxjs';
+import { Router } from '@angular/router';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { QueueSocketService } from '../../../core/socket/queue-socket.service';
+import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/confirm-dialog.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { ErrorCodes } from '../../../core/errors/error-codes';
@@ -20,11 +22,17 @@ import { publicQueueControllerGetTimeline } from '../../../api/fn/queues/public-
 import { publicQueueControllerGetQueue } from '../../../api/fn/queues/public-queue-controller-get-queue';
 import { walkInControllerJoinQueue } from '../../../api/fn/queues/walk-in-controller-join-queue';
 import { walkInControllerLeaveQueue } from '../../../api/fn/queues/walk-in-controller-leave-queue';
+import { walkInControllerAddMembersToEntry } from '../../../api/fn/queues/walk-in-controller-add-members-to-entry';
 
 export interface ActiveEntry {
   queueId: string;
   entryId: string;
   salonId: string;
+}
+
+export interface AddMemberRow {
+  name: string;
+  serviceId: string;
 }
 
 const ENTRY_STORAGE_KEY = 'hairmela_active_entries';
@@ -34,12 +42,18 @@ export class SalonVisitService {
   private readonly _http = inject(HttpClient);
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _socket = inject(QueueSocketService);
+  private readonly _router = inject(Router);
+  private readonly _currentUser = inject(CurrentUserStore);
   private readonly _confirmDialog = inject(ConfirmDialogService);
   private readonly _toast = inject(ToastService);
   private readonly _destroyRef = inject(DestroyRef);
 
   private readonly _tick = signal(0);
   private _tickInterval: ReturnType<typeof setInterval> | null = null;
+  private _watchedQueueIds = new Set<string>();
+
+  // Exposed to shell for install banner
+  readonly canInstall = signal(false);
 
   readonly salonData = signal<SalonPublicDto | null>(null);
   readonly services = signal<Service[]>([]);
@@ -49,6 +63,7 @@ export class SalonVisitService {
   readonly loading = signal(true);
   readonly joining = signal(false);
   readonly leaving = signal(false);
+  readonly addingKids = signal(false);
   readonly calledVisible = signal(false);
 
   readonly salon = computed(() => this.salonData()?.salon ?? null);
@@ -65,6 +80,23 @@ export class SalonVisitService {
       e.members.some((m) => m.status === 'WAITING' || m.status === 'SERVING'),
     ),
   );
+
+  readonly maxPartySize = computed(() => {
+    const settings = this.salon()?.settings as { maxPartySize?: number } | undefined;
+    return settings?.maxPartySize ?? 5;
+  });
+
+  readonly isCalled = computed(() => {
+    const entry = this.myEntry();
+    if (!entry) return false;
+    return entry.members.some((m) => m.status === 'SERVING');
+  });
+
+  readonly partyMembers = computed(() => {
+    const entry = this.myEntry();
+    if (!entry) return [];
+    return entry.members.filter((m) => !m.isLeader);
+  });
 
   private readonly _servingMember = computed(() => {
     for (const entry of this.timeline()) {
@@ -91,28 +123,29 @@ export class SalonVisitService {
     return map;
   });
 
-  readonly isCalled = computed(() => {
-    const entry = this.myEntry();
-    if (!entry) return false;
-    return entry.members.some((m) => m.status === 'SERVING');
-  });
-
-  init(slug: string, queueIdFromRoute: string | null): void {
+  init(slug: string): void {
     const storedEntries = this._loadStoredEntries();
-    this._loadSalon(slug, storedEntries, queueIdFromRoute);
+    this._loadSalon(slug, storedEntries);
     this._startTick();
   }
 
-  destroy(selectedStaff: SalonPublicStaffDto | null): void {
-    if (selectedStaff?.queueId) this._socket.unwatchQueue(selectedStaff.queueId);
+  destroy(): void {
+    for (const queueId of this._watchedQueueIds) {
+      this._socket.unwatchQueue(queueId);
+    }
+    this._watchedQueueIds.clear();
     this._stopTick();
   }
 
   watchQueue(queueId: string): void {
+    if (this._watchedQueueIds.has(queueId)) return;
+    this._watchedQueueIds.add(queueId);
+
     const storedEntries = this._loadStoredEntries();
     this._socket.watchQueue(queueId);
     this._loadQueueStatus(queueId);
     this._loadInitialTimeline(queueId);
+
     this._socket.queueTimeline$(queueId).pipe(
       takeUntilDestroyed(this._destroyRef),
     ).subscribe((entries) => {
@@ -132,6 +165,22 @@ export class SalonVisitService {
         }
       }
     });
+  }
+
+  selectBarber(staff: SalonPublicStaffDto, slug: string): void {
+    if (!staff.queueId) return;
+    if (!this._currentUser.user()) {
+      this._toast.info('You must be logged in to join the queue.');
+      this._router.navigate(['/login'], { queryParams: { returnUrl: `/s/${slug}/q/${staff.queueId}/join` } });
+      return;
+    }
+    const stored = this._loadStoredEntries();
+    const alreadyInQueue = stored.some((e) => e.queueId === staff.queueId);
+    if (alreadyInQueue) {
+      this._router.navigate(['/s', slug, 'q', staff.queueId, 'position']);
+    } else {
+      this._router.navigate(['/s', slug, 'q', staff.queueId, 'join']);
+    }
   }
 
   joinQueue(salonId: string, queueId: string, body: JoinQueueDto, onSuccess: (entryId: string) => void): void {
@@ -185,6 +234,34 @@ export class SalonVisitService {
     });
   }
 
+  addMembers(members: AddMemberRow[], onSuccess: () => void): void {
+    const entry = this.activeEntry();
+    const salon = this.salon();
+    if (!entry || !salon || this.addingKids()) return;
+    const valid = members.filter((k) => k.name?.trim());
+    if (valid.length === 0) { onSuccess(); return; }
+    this.addingKids.set(true);
+    walkInControllerAddMembersToEntry(this._http, this._apiConfig.rootUrl, {
+      salonId: salon.id,
+      queueId: entry.queueId,
+      entryId: entry.entryId,
+      body: { members: valid.map((k) => ({ memberName: k.name.trim(), serviceId: k.serviceId || undefined })) },
+    }).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
+      next: () => {
+        this.addingKids.set(false);
+        this._toast.success('Kids added to your queue entry.');
+        onSuccess();
+      },
+      error: (err) => {
+        this.addingKids.set(false);
+        const apiBody = (err as { error?: unknown })?.error;
+        if (isApiError(apiBody) && apiBody.code === ErrorCodes.PARTY_TOO_LARGE) {
+          this._toast.error('Party size exceeds the maximum allowed.');
+        }
+      },
+    });
+  }
+
   staffServices(staff: SalonPublicStaffDto): Service[] {
     return this.services().filter((s) => staff.serviceIds.includes(s.id));
   }
@@ -200,9 +277,13 @@ export class SalonVisitService {
     return this.formatWait(this.liveWaitMinutes().get(entryId) ?? 0);
   }
 
+  staffForQueue(queueId: string): SalonPublicStaffDto | null {
+    return this.salonData()?.staff.find((s) => s.queueId === queueId) ?? null;
+  }
+
   loadStoredEntries(): ActiveEntry[] { return this._loadStoredEntries(); }
 
-  private _loadSalon(slug: string, storedEntries: ActiveEntry[], queueIdFromRoute: string | null): void {
+  private _loadSalon(slug: string, storedEntries: ActiveEntry[]): void {
     publicSalonsControllerFindBySlug(this._http, this._apiConfig.rootUrl, { slug })
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe({
@@ -212,9 +293,13 @@ export class SalonVisitService {
           publicServicesControllerFindBySalon(this._http, this._apiConfig.rootUrl, { salonId: res.body.salon.id })
             .pipe(takeUntilDestroyed(this._destroyRef))
             .subscribe({ next: (svc) => this.services.set(svc.body) });
-          if (queueIdFromRoute) {
-            const staff = res.body.staff.find((s) => s.queueId === queueIdFromRoute);
-            if (staff) this.watchQueue(queueIdFromRoute);
+          // Restore active entry if any stored entry matches a staff queue
+          for (const stored of storedEntries) {
+            const matchesStaff = res.body.staff.some((s) => s.queueId === stored.queueId);
+            if (matchesStaff) {
+              this.watchQueue(stored.queueId);
+              break;
+            }
           }
         },
         error: () => { this.loading.set(false); this._toast.error('Salon not found'); },

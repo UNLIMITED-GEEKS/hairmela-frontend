@@ -7,6 +7,7 @@ import { staffInviteControllerAccept } from '../../api/fn/staff/staff-invite-con
 import { staffInviteControllerDecline } from '../../api/fn/staff/staff-invite-controller-decline';
 import { MembershipStore } from '../../core/salon-context/membership.store';
 import { ToastService } from '../../core/toast/toast.service';
+import { DashboardService } from './dashboard.service';
 
 @Injectable({ providedIn: 'root' })
 export class InvitesService {
@@ -14,6 +15,7 @@ export class InvitesService {
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _membershipStore = inject(MembershipStore);
   private readonly _toast = inject(ToastService);
+  private readonly _dashboardService = inject(DashboardService);
 
   private readonly _invites = signal<MyInviteDto[]>([]);
   private readonly _loading = signal(false);
@@ -48,6 +50,7 @@ export class InvitesService {
           this._invites.update((list) => list.filter((i) => i.staffId !== invite.staffId));
           this._responding.set(null);
           this._membershipStore.invalidate(invite.salonId);
+          this._dashboardService.refresh();
           this._toast.success(`Joined ${invite.salonName}`);
         },
         error: () => {
