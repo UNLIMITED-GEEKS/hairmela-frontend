@@ -1,7 +1,7 @@
 import { Component, DestroyRef, OnDestroy, OnInit, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { RouterOutlet, ActivatedRoute } from '@angular/router';
-import { SalonVisitService } from '../salon-visit/salon-visit.service';
+import { SalonVisitService } from '../salon-visit.service';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 interface BeforeInstallPromptEvent extends Event {

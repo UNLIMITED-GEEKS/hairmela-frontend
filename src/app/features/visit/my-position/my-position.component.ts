@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { SalonVisitService } from '../salon-visit/salon-visit.service';
+import { SalonVisitService } from '../salon-visit.service';
 
 @Component({
   selector: 'app-my-position',
@@ -45,7 +45,7 @@ export class MyPositionComponent implements OnInit {
   protected openAddKids(): void {
     this.showAddKidsModal.set(true);
     if (this.membersArray.length === 0) {
-      this.membersArray.push(this._buildMemberGroup());
+      this.membersArray.push(this._buildMemberGroup(this._firstServiceId()));
     }
   }
 
@@ -55,7 +55,7 @@ export class MyPositionComponent implements OnInit {
 
   protected addMember(): void {
     if (this.membersArray.length >= this.visit.maxPartySize() - 1) return;
-    this.membersArray.push(this._buildMemberGroup());
+    this.membersArray.push(this._buildMemberGroup(this._firstServiceId()));
   }
 
   protected removeMember(i: number): void {
@@ -75,7 +75,12 @@ export class MyPositionComponent implements OnInit {
     this.visit.leaveQueue(() => this._router.navigate(['/s', this._slug]));
   }
 
-  private _buildMemberGroup() {
-    return this._fb.group({ name: ['', Validators.required], serviceId: [''] });
+  private _firstServiceId(): string {
+    const staff = this.visit.staffForQueue(this._queueId);
+    return staff ? (this.visit.staffServices(staff)[0]?.id ?? '') : '';
+  }
+
+  private _buildMemberGroup(serviceId = '') {
+    return this._fb.group({ name: ['', Validators.required], serviceId: [serviceId] });
   }
 }

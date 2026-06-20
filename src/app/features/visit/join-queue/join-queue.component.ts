@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { SalonVisitService } from '../salon-visit/salon-visit.service';
+import { SalonVisitService } from '../salon-visit.service';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
 
 @Component({

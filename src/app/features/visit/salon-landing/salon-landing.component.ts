@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { SalonVisitService } from '../salon-visit/salon-visit.service';
+import { SalonVisitService } from '../salon-visit.service';
 import { SalonPublicStaffDto } from '../../../api/models/salon-public-staff-dto';
 
 @Component({
