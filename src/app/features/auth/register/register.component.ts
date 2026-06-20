@@ -37,7 +37,10 @@ export class RegisterComponent {
     this._auth.register({ email, password, firstName, lastName }).pipe(
       switchMap(() => this._auth.login({ email, password })),
     ).subscribe({
-      next: () => this._router.navigate(['/dashboard']),
+      next: () => {
+        const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
+        this._router.navigateByUrl(returnUrl ?? '/dashboard');
+      },
       error: (err) => {
         this.loading.set(false);
         const body = err?.error;

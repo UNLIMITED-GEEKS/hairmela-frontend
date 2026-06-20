@@ -171,7 +171,7 @@ export class SalonVisitService {
     if (!staff.queueId) return;
     if (!this._currentUser.user()) {
       this._toast.info('You must be logged in to join the queue.');
-      this._router.navigate(['/login'], { queryParams: { returnUrl: `/s/${slug}/q/${staff.queueId}/join` } });
+      this._router.navigate(['/login'], { queryParams: { returnUrl: `/s/${slug}` } });
       return;
     }
     const stored = this._loadStoredEntries();
