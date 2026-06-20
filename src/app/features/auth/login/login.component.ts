@@ -20,6 +20,8 @@ export class LoginComponent {
     this._route.snapshot.queryParamMap.get('registered') === '1',
   );
 
+  protected readonly returnUrl = this._route.snapshot.queryParamMap.get('returnUrl');
+
   protected readonly form = this._fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', Validators.required],

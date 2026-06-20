@@ -63,7 +63,7 @@
 
     <p class="mt-6 text-center text-sm text-gray-500">
       Don't have an account?
-      <a routerLink="/register" class="font-medium text-primary hover:underline">Sign up</a>
+      <a routerLink="/register" [queryParams]="returnUrl ? { returnUrl: returnUrl } : {}" class="font-medium text-primary hover:underline">Sign up</a>
     </p>
   </div>
 </div>
