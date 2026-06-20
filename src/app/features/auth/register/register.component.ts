@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { switchMap } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ErrorCodes } from '../../../core/errors/error-codes';
@@ -14,7 +14,10 @@ import { isApiError } from '../../../core/errors/api-error.types';
 export class RegisterComponent {
   private readonly _auth = inject(AuthService);
   private readonly _router = inject(Router);
+  private readonly _route = inject(ActivatedRoute);
   private readonly _fb = inject(FormBuilder);
+
+  protected readonly returnUrl = this._route.snapshot.queryParamMap.get('returnUrl');
 
   protected readonly form = this._fb.nonNullable.group({
     firstName: ['', Validators.required],

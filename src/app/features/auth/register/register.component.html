@@ -11,7 +11,7 @@
         <div class="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700" role="alert">
           {{ errorMessage() }}
           @if (errorMessage()?.includes('already exists')) {
-            <a routerLink="/login" class="ml-1 font-medium underline">Sign in instead</a>
+            <a routerLink="/login" [queryParams]="returnUrl ? { returnUrl: returnUrl } : {}" class="ml-1 font-medium underline">Sign in instead</a>
           }
         </div>
       }
@@ -93,7 +93,7 @@
 
     <p class="mt-6 text-center text-sm text-gray-500">
       Already have an account?
-      <a routerLink="/login" class="font-medium text-primary hover:underline">Sign in</a>
+      <a routerLink="/login" [queryParams]="returnUrl ? { returnUrl: returnUrl } : {}" class="font-medium text-primary hover:underline">Sign in</a>
     </p>
   </div>
 </div>
