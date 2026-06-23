@@ -3,6 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { RouterOutlet, ActivatedRoute } from '@angular/router';
 import { SalonVisitService } from '../salon-visit.service';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { ConnectionBannerComponent } from '../../../shared/components/connection-banner/connection-banner.component';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -13,7 +14,7 @@ interface BeforeInstallPromptEvent extends Event {
   selector: 'app-salon-shell',
   templateUrl: './salon-shell.component.html',
   providers: [SalonVisitService],
-  imports: [RouterOutlet, SkeletonComponent],
+  imports: [RouterOutlet, SkeletonComponent, ConnectionBannerComponent],
 })
 export class SalonShellComponent implements OnInit, OnDestroy {
   protected readonly visit = inject(SalonVisitService);

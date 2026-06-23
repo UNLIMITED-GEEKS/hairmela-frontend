@@ -40,11 +40,7 @@
             {{ member.status === 'SERVING' ? 'Serving' : 'Waiting' }}
           </span>
           @if (member.status === 'WAITING') {
-            <button (click)="serveMember(console.servingEntry()!.entryId, member.memberId)"
-              [disabled]="console.acting()"
-              class="min-w-9 min-h-9 px-2 rounded-xl bg-primary text-white text-xs font-bold disabled:opacity-40 shrink-0">
-              Serve
-            </button>
+            <span class="text-xs text-gray-400 shrink-0" aria-live="polite">{{ console.memberWait(member.memberId) }}</span>
           }
           @if (member.status === 'SERVING') {
             <button (click)="openExtendModal(console.servingEntry()!.entryId, member.memberId)"
@@ -80,6 +76,7 @@
   </div>
 
 </div>
+
 
 <!-- End Party Modal -->
 @if (showEndPartyModal()) {

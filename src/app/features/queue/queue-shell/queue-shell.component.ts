@@ -3,12 +3,13 @@ import { Location } from '@angular/common';
 import { ActivatedRoute, RouterOutlet } from '@angular/router';
 import { QueueConsoleService } from '../queue-console/queue-console.service';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { ConnectionBannerComponent } from '../../../shared/components/connection-banner/connection-banner.component';
 
 @Component({
   selector: 'app-queue-shell',
   templateUrl: './queue-shell.component.html',
   providers: [QueueConsoleService],
-  imports: [RouterOutlet, SkeletonComponent],
+  imports: [RouterOutlet, SkeletonComponent, ConnectionBannerComponent],
 })
 export class QueueShellComponent implements OnInit, OnDestroy {
   protected readonly console = inject(QueueConsoleService);

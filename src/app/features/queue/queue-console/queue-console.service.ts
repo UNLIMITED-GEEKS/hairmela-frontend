@@ -16,6 +16,7 @@ import { publicQueueControllerGetQueue } from '../../../api/fn/queues/public-que
 import { queueManagementControllerSetStatus } from '../../../api/fn/queues/queue-management-controller-set-status';
 import { queueManagementControllerCallNext } from '../../../api/fn/queues/queue-management-controller-call-next';
 import { queueManagementControllerServeMember } from '../../../api/fn/queues/queue-management-controller-serve-member';
+import { queueManagementControllerCompleteAllMembers } from '../../../api/fn/queues/queue-management-controller-complete-all-members';
 import { queueManagementControllerCompleteMember } from '../../../api/fn/queues/queue-management-controller-complete-member';
 import { queueManagementControllerExtendMember } from '../../../api/fn/queues/queue-management-controller-extend-member';
 import { queueManagementControllerMarkNoShow } from '../../../api/fn/queues/queue-management-controller-mark-no-show';
@@ -96,6 +97,31 @@ export class QueueConsoleService {
     return map;
   });
 
+  readonly memberWaitMinutes = computed((): Map<string, number> => {
+    this._tick();
+    const elapsedMinutes = Math.floor(this._elapsedSeconds() / 60);
+    const map = new Map<string, number>();
+    for (const entry of this.timeline()) {
+      const isServing = entry.members.some((m) => m.status === 'SERVING');
+      let pendingDuration = 0;
+      for (const member of entry.members) {
+        if (member.status === 'SERVED') { map.set(member.memberId, 0); continue; }
+        if (member.status === 'SERVING') {
+          map.set(member.memberId, 0);
+          pendingDuration = member.serviceDuration - elapsedMinutes;
+          continue;
+        }
+        // WAITING
+        const wait = isServing
+          ? Math.max(0, pendingDuration)
+          : Math.max(0, entry.estimatedWaitMinutes + pendingDuration);
+        map.set(member.memberId, wait);
+        pendingDuration += member.serviceDuration;
+      }
+    }
+    return map;
+  });
+
   init(salonId: string, queueId: string): void {
     this._loadQueueStatus(salonId, queueId);
     this._socket.queueTimeline$(queueId).pipe(
@@ -162,24 +188,14 @@ export class QueueConsoleService {
     ).subscribe({ next: () => this.acting.set(false), error: () => this.acting.set(false) });
   }
 
+
   endAllMembers(salonId: string, queueId: string): void {
     const entry = this.servingEntry();
     if (!entry || this.acting()) return;
-    const unfinished = entry.members.filter((m) => m.status === 'WAITING' || m.status === 'SERVING');
-    if (unfinished.length === 0) return;
     this.acting.set(true);
-    let chain$ = queueManagementControllerCompleteMember(this._http, this._apiConfig.rootUrl, {
-      salonId, queueId, entryId: entry.entryId, memberId: unfinished[0].memberId,
-    });
-    for (let i = 1; i < unfinished.length; i++) {
-      const memberId = unfinished[i].memberId;
-      chain$ = chain$.pipe(
-        switchMap(() => queueManagementControllerCompleteMember(this._http, this._apiConfig.rootUrl, {
-          salonId, queueId, entryId: entry.entryId, memberId,
-        })),
-      ) as typeof chain$;
-    }
-    chain$.pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
+    queueManagementControllerCompleteAllMembers(this._http, this._apiConfig.rootUrl, {
+      salonId, queueId, entryId: entry.entryId,
+    }).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
       next: () => this.acting.set(false),
       error: () => this.acting.set(false),
     });
@@ -257,6 +273,10 @@ export class QueueConsoleService {
 
   liveWait(entryId: string): string {
     return this.formatWait(this.liveWaitMinutes().get(entryId) ?? 0);
+  }
+
+  memberWait(memberId: string): string {
+    return this.formatWait(this.memberWaitMinutes().get(memberId) ?? 0);
   }
 
   private _loadQueueStatus(salonId: string, queueId: string): void {

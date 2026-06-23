@@ -15,7 +15,10 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => err);
       }
 
-      const body = err.error;
+      let body: unknown = err.error;
+      if (typeof body === 'string') {
+        try { body = JSON.parse(body); } catch { /* not JSON */ }
+      }
 
       if (!isApiError(body)) {
         toast.error('You appear to be offline. Please check your connection.');

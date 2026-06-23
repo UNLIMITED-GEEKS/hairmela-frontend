@@ -1,0 +1,9 @@
+@if (connectionState() === 'reconnecting') {
+  <div class="w-full bg-warning-light border-b border-warning/30 px-4 py-2.5 flex items-center justify-center gap-2" role="alert" aria-live="polite">
+    <svg class="w-4 h-4 text-warning shrink-0 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+    </svg>
+    <span class="text-sm font-medium text-warning">No internet connection — queue may not be up to date</span>
+  </div>
+}

@@ -131,6 +131,8 @@ export type { QueueManagementControllerCompleteMember$Params as QueueManagementC
 export { queueManagementControllerCompleteMember as queueManagementControllerCompleteMember } from './fn/queues/queue-management-controller-complete-member';
 export type { QueueManagementControllerExtendMember$Params as QueueManagementControllerExtendMember$Params } from './fn/queues/queue-management-controller-extend-member';
 export { queueManagementControllerExtendMember as queueManagementControllerExtendMember } from './fn/queues/queue-management-controller-extend-member';
+export type { QueueManagementControllerCompleteAllMembers$Params as QueueManagementControllerCompleteAllMembers$Params } from './fn/queues/queue-management-controller-complete-all-members';
+export { queueManagementControllerCompleteAllMembers as queueManagementControllerCompleteAllMembers } from './fn/queues/queue-management-controller-complete-all-members';
 export type { QueueManagementControllerMarkNoShow$Params as QueueManagementControllerMarkNoShow$Params } from './fn/queues/queue-management-controller-mark-no-show';
 export { queueManagementControllerMarkNoShow as queueManagementControllerMarkNoShow } from './fn/queues/queue-management-controller-mark-no-show';
 export type { QueueManagementControllerCancelEntry$Params as QueueManagementControllerCancelEntry$Params } from './fn/queues/queue-management-controller-cancel-entry';

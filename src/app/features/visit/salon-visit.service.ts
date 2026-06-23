@@ -95,7 +95,7 @@ export class SalonVisitService {
   readonly partyMembers = computed(() => {
     const entry = this.myEntry();
     if (!entry) return [];
-    return entry.members.filter((m) => !m.isLeader);
+    return entry.members;
   });
 
   private readonly _servingMember = computed(() => {
@@ -123,6 +123,31 @@ export class SalonVisitService {
     return map;
   });
 
+  readonly memberWaitMinutes = computed((): Map<string, number> => {
+    this._tick();
+    const elapsedMinutes = Math.floor(this._elapsedSeconds() / 60);
+    const map = new Map<string, number>();
+    for (const entry of this.timeline()) {
+      const isServing = entry.members.some((m) => m.status === 'SERVING');
+      let pendingDuration = 0;
+      for (const member of entry.members) {
+        if (member.status === 'SERVED') { map.set(member.memberId, 0); continue; }
+        if (member.status === 'SERVING') {
+          map.set(member.memberId, 0);
+          pendingDuration = member.serviceDuration - elapsedMinutes;
+          continue;
+        }
+        // WAITING
+        const wait = isServing
+          ? Math.max(0, pendingDuration)
+          : Math.max(0, entry.estimatedWaitMinutes + pendingDuration);
+        map.set(member.memberId, wait);
+        pendingDuration += member.serviceDuration;
+      }
+    }
+    return map;
+  });
+
   init(slug: string): void {
     const storedEntries = this._loadStoredEntries();
     this._loadSalon(slug, storedEntries);
@@ -141,7 +166,6 @@ export class SalonVisitService {
     if (this._watchedQueueIds.has(queueId)) return;
     this._watchedQueueIds.add(queueId);
 
-    const storedEntries = this._loadStoredEntries();
     this._socket.watchQueue(queueId);
     this._loadQueueStatus(queueId);
     this._loadInitialTimeline(queueId);
@@ -150,7 +174,7 @@ export class SalonVisitService {
       takeUntilDestroyed(this._destroyRef),
     ).subscribe((entries) => {
       this.timeline.set(entries);
-      const existing = storedEntries.find((e) => e.queueId === queueId);
+      const existing = this.activeEntry() ?? this._loadStoredEntries().find((e) => e.queueId === queueId) ?? null;
       if (existing) {
         const myTimelineEntry = entries.find((e) => e.entryId === existing.entryId);
         if (myTimelineEntry) {
@@ -193,6 +217,7 @@ export class SalonVisitService {
           const entry: ActiveEntry = { queueId, entryId: res.body.id, salonId };
           this.activeEntry.set(entry);
           this._saveEntry(entry);
+          this._loadInitialTimeline(queueId);
           this.joining.set(false);
           onSuccess(res.body.id);
         },
@@ -275,6 +300,10 @@ export class SalonVisitService {
 
   liveWait(entryId: string): string {
     return this.formatWait(this.liveWaitMinutes().get(entryId) ?? 0);
+  }
+
+  memberWait(memberId: string): string {
+    return this.formatWait(this.memberWaitMinutes().get(memberId) ?? 0);
   }
 
   staffForQueue(queueId: string): SalonPublicStaffDto | null {

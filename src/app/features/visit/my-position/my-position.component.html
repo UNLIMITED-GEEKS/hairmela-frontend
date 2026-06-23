@@ -23,27 +23,40 @@
 
       <!-- Position circle -->
       <div class="flex items-center justify-center pt-6 pb-4">
-        <div class="w-56 h-56 rounded-full border-4 border-warning flex flex-col items-center justify-center gap-1 text-center px-4">
-          <span class="text-xs font-semibold text-warning uppercase tracking-wide">Position in line</span>
-          @if (visit.myEntry(); as timelineEntry) {
-            <span class="text-7xl font-bold text-warning leading-none" aria-live="polite">{{ timelineEntry.position }}</span>
-            <span class="text-sm font-semibold text-warning/70" aria-live="polite">est: {{ visit.liveWait(timelineEntry.entryId) }}</span>
-          } @else {
-            <div class="w-16 h-16 rounded-full bg-gray-100 animate-pulse mt-2"></div>
-          }
-        </div>
+        @if (serviceComplete()) {
+          <div class="w-56 h-56 rounded-full border-4 border-success flex flex-col items-center justify-center gap-2 text-center px-4">
+            <svg class="w-10 h-10 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            <span class="text-sm font-bold text-success">Service complete</span>
+          </div>
+        } @else {
+          <div class="w-56 h-56 rounded-full border-4 border-warning flex flex-col items-center justify-center gap-1 text-center px-4">
+            <span class="text-xs font-semibold text-warning uppercase tracking-wide">Position in line</span>
+            @if (visit.myEntry(); as timelineEntry) {
+              <span class="text-7xl font-bold text-warning leading-none" aria-live="polite">{{ timelineEntry.position }}</span>
+              @if (timelineEntry.position > 0) {
+                <span class="text-sm font-semibold text-warning/70" aria-live="polite">est: {{ visit.liveWait(timelineEntry.entryId) }}</span>
+              }
+            } @else {
+              <div class="w-16 h-16 rounded-full bg-gray-100 animate-pulse mt-2"></div>
+            }
+          </div>
+        }
       </div>
 
       <!-- Party members -->
       @if (visit.partyMembers().length > 0) {
         <div class="w-full space-y-2 mb-4">
-          @for (kid of visit.partyMembers(); track kid.memberId) {
+          @for (member of visit.partyMembers(); track member.memberId) {
             <div class="flex items-center justify-between bg-warning-light border border-warning/20 rounded-2xl px-4 py-3 min-h-12">
-              <span class="text-sm font-medium text-warning">{{ kid.memberName }}</span>
-              @if (visit.myEntry(); as e) {
-                <span class="text-sm text-warning/70 font-medium" aria-live="polite">
-                  est: {{ visit.formatWait(visit.liveWaitMinutes().get(e.entryId) ?? 0) }}
-                </span>
+              <span class="text-sm font-medium text-warning">{{ member.isLeader ? 'You' : member.memberName }}</span>
+              @if (member.status === 'SERVING') {
+                <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-success-light text-success">Serving</span>
+              } @else if (member.status === 'SERVED') {
+                <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">Served</span>
+              } @else {
+                <span class="text-sm text-warning/70 font-medium" aria-live="polite">est: {{ visit.memberWait(member.memberId) }}</span>
               }
             </div>
           }
@@ -51,26 +64,35 @@
       }
 
       <!-- Add Kids button -->
-      <button (click)="openAddKids()"
-        class="w-full min-h-12 rounded-2xl bg-warning-light border-2 border-warning/30 text-warning font-semibold text-sm hover:bg-warning/20 transition-colors mb-4">
-        + Add Kids
-      </button>
+      @if (!serviceComplete()) {
+        <button (click)="openAddKids()"
+          class="w-full min-h-12 rounded-2xl bg-warning-light border-2 border-warning/30 text-warning font-semibold text-sm hover:bg-warning/20 transition-colors mb-4">
+          + Add Kids
+        </button>
+      }
 
     </div>
 
     <!-- Fixed bottom bar -->
     <div class="shrink-0 bg-white border-t border-gray-100 px-5 pt-3 safe-area-bottom">
-      <div class="flex gap-3">
-        <a [routerLink]="liveQueueUrl"
-          class="flex-1 min-h-[52px] rounded-2xl bg-warning-light border-2 border-warning/30 text-warning font-bold text-sm flex items-center justify-center hover:bg-warning/20 transition-colors">
-          View queue
+      @if (serviceComplete()) {
+        <a [routerLink]="['/s', _slug]"
+          class="flex w-full min-h-[52px] rounded-2xl bg-primary text-white font-bold text-sm items-center justify-center hover:bg-primary/90 transition-colors">
+          Back to salon
         </a>
-        <button (click)="leaveQueue()"
-          [disabled]="visit.leaving()"
-          class="flex-1 min-h-[52px] rounded-2xl border-2 border-primary text-primary font-bold text-sm disabled:opacity-50 hover:bg-primary-light transition-colors">
-          {{ visit.leaving() ? 'Leaving…' : 'Leave queue' }}
-        </button>
-      </div>
+      } @else {
+        <div class="flex gap-3">
+          <a [routerLink]="liveQueueUrl"
+            class="flex-1 min-h-[52px] rounded-2xl bg-warning-light border-2 border-warning/30 text-warning font-bold text-sm flex items-center justify-center hover:bg-warning/20 transition-colors">
+            View queue
+          </a>
+          <button (click)="leaveQueue()"
+            [disabled]="visit.leaving()"
+            class="flex-1 min-h-[52px] rounded-2xl border-2 border-primary text-primary font-bold text-sm disabled:opacity-50 hover:bg-primary-light transition-colors">
+            {{ visit.leaving() ? 'Leaving…' : 'Leave queue' }}
+          </button>
+        </div>
+      }
     </div>
 
   </div>

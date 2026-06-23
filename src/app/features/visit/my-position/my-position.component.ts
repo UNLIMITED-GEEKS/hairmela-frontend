@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, effect } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -17,6 +17,14 @@ export class MyPositionComponent implements OnInit {
   private readonly _fb = inject(FormBuilder);
 
   protected readonly showAddKidsModal = signal(false);
+  protected readonly serviceComplete = signal(false);
+
+  constructor() {
+    effect(() => {
+      if (this.visit.myEntry()) this.serviceComplete.set(false);
+      else if (this.visit.activeEntry() === null && !this.visit.loading()) this.serviceComplete.set(true);
+    });
+  }
 
   protected readonly addKidsForm = this._fb.group({
     members: this._fb.array<ReturnType<typeof this._buildMemberGroup>>([]),
@@ -26,7 +34,7 @@ export class MyPositionComponent implements OnInit {
     return this.addKidsForm.get('members') as FormArray;
   }
 
-  private get _slug(): string {
+  protected get _slug(): string {
     return this._route.snapshot.paramMap.get('slug') ?? '';
   }
 

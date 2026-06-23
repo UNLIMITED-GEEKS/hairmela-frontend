@@ -27,7 +27,7 @@
           <span class="text-sm font-medium text-gray-800 block truncate">
             {{ entry.members[0].memberName }}
             @if (entry.members.length > 1) {
-              <span class="text-xs text-gray-400"> +{{ entry.members.length - 1 }}</span>
+              <span class="text-xs text-gray-500"> +{{ entry.members.length - 1 }} {{ entry.members.length - 1 === 1 ? 'kid' : 'kids' }}</span>
             }
           </span>
           @if (isServing) {
@@ -116,7 +116,7 @@
       <div class="shrink-0 flex gap-3 border-t border-gray-100 pt-3 pb-5">
         <button (click)="addQueueMemberRow()"
           class="flex-1 min-h-12 rounded-2xl border-2 border-dashed border-primary/30 text-primary text-sm font-medium hover:bg-primary-light/30 transition-colors">
-          + Add another
+          + Add a kid
         </button>
         <button (click)="staffAddToQueue()" [disabled]="addingToQueue()"
           class="flex-1 min-h-12 rounded-2xl bg-warning-light border-2 border-warning/30 text-warning font-bold text-sm disabled:opacity-50 hover:bg-warning/20 transition-colors">
