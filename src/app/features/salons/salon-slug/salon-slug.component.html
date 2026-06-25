@@ -1,12 +1,14 @@
 @if (loading()) {
-  <div class="min-h-dvh bg-gray-50 px-4 py-8">
-    <div class="max-w-lg mx-auto">
+  <div class="py-6 px-4">
+
+    <div class="">
       <app-skeleton variant="line" [count]="3" />
     </div>
   </div>
 } @else {
-  <div class="min-h-dvh bg-gray-50 px-4 py-8">
-    <div class="max-w-lg mx-auto">
+  <div class="py-6 px-4">
+
+    <div class="">
       <h1 class="text-xl font-semibold text-gray-900 mb-2">Salon URL</h1>
       <p class="text-sm text-gray-500 mb-6">
         This is the public link customers use to join your queue. Changing it will break any printed QR codes.

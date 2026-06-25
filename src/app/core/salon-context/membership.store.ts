@@ -30,6 +30,10 @@ export class MembershipStore {
     );
   }
 
+  getCached(salonId: string): Membership | null {
+    return this._cache.get(salonId) ?? null;
+  }
+
   invalidate(salonId: string): void {
     this._cache.delete(salonId);
   }

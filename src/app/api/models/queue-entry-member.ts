@@ -10,6 +10,7 @@ export interface QueueEntryMember {
   id: string;
   isLeader: boolean;
   memberName: string;
+  phone: string | null;
   queueEntryId: string;
   servedAt: string | null;
   service: (Service & {

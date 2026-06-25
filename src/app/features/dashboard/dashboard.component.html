@@ -1,11 +1,17 @@
 @if (loading()) {
-  <div class="min-h-dvh bg-gray-50 px-4 py-8">
-    <div class="max-w-lg mx-auto">
-      <app-skeleton variant="card" [count]="3" />
-    </div>
+  <div class="py-6 px-4">
+    <app-skeleton variant="card" [count]="3" />
   </div>
-} @else if (hasSalons()) {
-  <app-salon-dashboard />
 } @else {
-  <app-customer-dashboard />
+  <div class="py-6 px-4">
+    @if (isCustomer()) {
+      <app-customer-dashboard [firstName]="user()?.firstName ?? ''" />
+    } @else if (activeSalon(); as salon) {
+      @if (isOwnerOrAdmin()) {
+        <app-owner-admin-dashboard [salon]="salon" [firstName]="user()?.firstName ?? ''" />
+      } @else if (isStaff()) {
+        <app-staff-dashboard [salon]="salon" [firstName]="user()?.firstName ?? ''" />
+      }
+    }
+  </div>
 }

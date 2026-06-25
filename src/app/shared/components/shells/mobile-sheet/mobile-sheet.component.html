@@ -1,0 +1,86 @@
+<div class="sheet-links" [class.open]="open()">
+  <nav class="border-t border-border px-3 pb-3 pt-1 flex flex-col gap-1" aria-label="Mobile navigation">
+
+    <!-- Main nav items -->
+    @for (item of sheetItems(); track item.label) {
+      @if (item.cta && item.url) {
+        <a
+          [routerLink]="item.url"
+          (click)="closed.emit()"
+          class="flex items-center justify-center gap-2 w-full min-h-11 rounded-xl bg-primary text-white font-bold text-sm mt-1 transition-colors hover:bg-primary/90">
+          <app-nav-icon [icon]="item.icon" size="w-5 h-5" />
+          <span>{{ item.label }}</span>
+        </a>
+      } @else if (item.url) {
+        <a
+          [routerLink]="item.url"
+          routerLinkActive="bg-primary/10 text-primary"
+          [routerLinkActiveOptions]="{ exact: item.url === '/dashboard' }"
+          (click)="closed.emit()"
+          class="flex items-center gap-3 px-3 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors">
+          <app-nav-icon [icon]="item.icon" size="w-5 h-5" />
+          <span class="text-sm font-medium">{{ item.label }}</span>
+          @if (item.badge && item.badge() > 0) {
+            <span class="ml-auto min-w-5 h-5 flex items-center justify-center rounded-full bg-primary text-white text-xs font-bold px-1">
+              {{ item.badge() > 99 ? '99+' : item.badge() }}
+            </span>
+          }
+        </a>
+      } @else if (item.action) {
+        <button
+          (click)="item.action!(); closed.emit()"
+          class="flex items-center gap-3 px-3 min-h-11 rounded-xl w-full text-left text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors">
+          <app-nav-icon [icon]="item.icon" size="w-5 h-5" />
+          <span class="text-sm font-medium">{{ item.label }}</span>
+        </button>
+      }
+    }
+
+    <!-- Controls section -->
+    @if (visibleControls().length > 0) {
+      <div class="pt-3">
+        <p class="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-text-secondary/60">
+          Controls
+        </p>
+
+        <!-- Salon overview -->
+        <a
+          [routerLink]="['/salons', activeSalonId()]"
+          routerLinkActive="bg-primary/10 text-primary"
+          [routerLinkActiveOptions]="{ exact: true }"
+          (click)="closed.emit()"
+          class="flex items-center gap-3 px-3 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors">
+          <app-nav-icon icon="scissors" size="w-5 h-5" />
+          <span class="text-sm font-medium">Salon</span>
+        </a>
+
+        @for (item of visibleControls(); track item.label) {
+          <a
+            [routerLink]="['/salons', activeSalonId(), item.url]"
+            routerLinkActive="bg-primary/10 text-primary"
+            (click)="closed.emit()"
+            class="flex items-center gap-3 px-3 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors">
+            <span class="w-5 h-5 flex items-center justify-center shrink-0">
+              <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
+            </span>
+            <span class="text-sm font-medium">{{ item.label }}</span>
+          </a>
+        }
+
+        @if (isOwner() && activeSalonId()) {
+          <a
+            [routerLink]="['/salons', activeSalonId(), 'delete']"
+            routerLinkActive="bg-red-50 text-red-600"
+            (click)="closed.emit()"
+            class="flex items-center gap-3 px-3 min-h-11 rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors">
+            <span class="w-5 h-5 flex items-center justify-center shrink-0">
+              <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
+            </span>
+            <span class="text-sm font-medium">Delete salon</span>
+          </a>
+        }
+      </div>
+    }
+
+  </nav>
+</div>

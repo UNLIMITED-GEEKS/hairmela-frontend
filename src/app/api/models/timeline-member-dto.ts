@@ -5,6 +5,7 @@ export interface TimelineMemberDto {
   isLeader: boolean;
   memberId: string;
   memberName: string;
+  phone: string | null;
   servedAt: string | null;
   serviceDuration: number;
   serviceId: string | null;

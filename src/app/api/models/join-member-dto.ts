@@ -3,5 +3,6 @@
 
 export interface JoinMemberDto {
   memberName: string;
+  phone?: string;
   serviceId?: string;
 }

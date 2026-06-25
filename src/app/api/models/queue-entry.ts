@@ -7,6 +7,7 @@ import { SalonStaff } from '../models/salon-staff';
 import { User } from '../models/user';
 export interface QueueEntry {
   createdAt: string;
+  guestId: string | null;
   id: string;
   members: Array<QueueEntryMember>;
   notes: string | null;

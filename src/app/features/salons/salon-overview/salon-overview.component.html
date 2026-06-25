@@ -1,148 +1,83 @@
 @if (loading()) {
-  <div class="min-h-dvh bg-gray-50 px-4 py-8">
-    <div class="max-w-lg mx-auto">
-      <app-skeleton variant="list-item" [count]="6" />
-    </div>
+  <div class="p-6">
+    <app-skeleton variant="list-item" [count]="3" />
   </div>
 } @else if (salon(); as salon) {
-  <div class="min-h-dvh bg-gray-50 px-4 py-8">
-    <div class="max-w-lg mx-auto space-y-6">
+  <div class="p-6 space-y-4">
 
-      <!-- Header -->
-      <div>
-        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Salon</p>
-        <h1 class="text-2xl font-bold text-gray-900">{{ salon.name }}</h1>
-        <p class="text-sm text-gray-500 mt-0.5">{{ salon.address.city }}, {{ salon.address.country }}</p>
-      </div>
+    <!-- Header -->
+    <div>
+      <p class="text-xs text-text-secondary uppercase tracking-wide mb-1">Salon</p>
+      <h1 class="text-2xl font-bold text-text-primary">{{ salon.name }}</h1>
+      <p class="text-sm text-text-secondary mt-0.5">{{ salon.address.city }}, {{ salon.address.country }}</p>
+    </div>
 
-      <!-- My Queue shortcut -->
-      @if (myStaff()?.queueId; as queueId) {
-        <a [routerLink]="['/salons', salon.id, 'queues', queueId, 'console']"
-          class="flex items-center justify-between bg-primary text-white px-5 py-4 rounded-xl min-h-14 hover:bg-primary/90 transition-colors">
-          <span class="text-sm font-semibold">My Queue</span>
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </a>
-      }
+    <!-- My Queue shortcut -->
+    @if (myStaff()?.queueId; as queueId) {
+      <a [routerLink]="['/salons', salon.id, 'queues', queueId, 'console']"
+        class="flex items-center justify-between bg-primary text-white px-5 py-4 rounded-xl min-h-14 hover:bg-primary/90 transition-colors">
+        <span class="text-sm font-semibold">My Queue</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+    }
 
-      <!-- Accepting clients toggle — staff only (own toggle) -->
-      @if (myStaff(); as staff) {
-        <div class="bg-white rounded-xl border border-gray-200 px-5 py-4 flex items-center justify-between min-h-14">
-          <div>
-            <p class="text-sm font-medium text-gray-900">Accepting clients</p>
-            <p class="text-xs text-gray-400 mt-0.5">
-              @if (staff.isAcceptingClients) { You appear on the public salon page } @else { You are hidden from the public salon page }
-            </p>
-          </div>
-          <button
-            (click)="toggleAcceptingClients()"
-            [disabled]="toggling()"
-            [class]="'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50 ' + (staff.isAcceptingClients ? 'bg-primary' : 'bg-gray-300')"
-            role="switch"
-            [attr.aria-checked]="staff.isAcceptingClients"
-            aria-label="Toggle accepting clients">
-            <span
-              [class]="'inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ' + (staff.isAcceptingClients ? 'translate-x-6' : 'translate-x-1')">
-            </span>
-          </button>
-        </div>
-      }
-
-      <!-- Pending invites -->
-      @if (invites().length > 0) {
+    <!-- Accepting clients toggle -->
+    @if (myStaff(); as staff) {
+      <div class="bg-white rounded-xl border border-border px-5 py-4 flex items-center justify-between min-h-14">
         <div>
-          <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">My Invites</p>
-          <div class="space-y-3">
-            @for (invite of invites(); track invite.staffId) {
-              <div class="bg-white border border-gray-200 rounded-xl px-4 py-4">
-                <div class="flex items-start justify-between gap-3">
-                  <div>
-                    <p class="text-sm font-semibold text-gray-900">{{ invite.salonName }}</p>
-                    <p class="text-xs text-gray-500 mt-0.5">Role: {{ invite.role }}</p>
-                  </div>
-                  <div class="flex gap-2 shrink-0">
-                    <button
-                      (click)="acceptInvite(invite)"
-                      [disabled]="respondingInvite() === invite.staffId"
-                      class="px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-lg min-h-8 disabled:opacity-50">
-                      Accept
-                    </button>
-                    <button
-                      (click)="declineInvite(invite)"
-                      [disabled]="respondingInvite() === invite.staffId"
-                      class="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 text-xs font-semibold rounded-lg min-h-8 disabled:opacity-50">
-                      Decline
-                    </button>
-                  </div>
+          <p class="text-sm font-medium text-text-primary">Accepting clients</p>
+          <p class="text-xs text-text-secondary mt-0.5">
+            @if (staff.isAcceptingClients) { You appear on the public salon page } @else { You are hidden from the public salon page }
+          </p>
+        </div>
+        <button
+          (click)="toggleAcceptingClients()"
+          [disabled]="toggling()"
+          [class]="'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50 ' + (staff.isAcceptingClients ? 'bg-primary' : 'bg-gray-300')"
+          role="switch"
+          [attr.aria-checked]="staff.isAcceptingClients"
+          aria-label="Toggle accepting clients">
+          <span
+            [class]="'inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ' + (staff.isAcceptingClients ? 'translate-x-6' : 'translate-x-1')">
+          </span>
+        </button>
+      </div>
+    }
+
+    <!-- Pending invites -->
+    @if (invites().length > 0) {
+      <div>
+        <p class="text-xs text-text-secondary uppercase tracking-wide mb-2">My Invites</p>
+        <div class="space-y-3">
+          @for (invite of invites(); track invite.staffId) {
+            <div class="bg-white border border-border rounded-xl px-4 py-4">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p class="text-sm font-semibold text-text-primary">{{ invite.salonName }}</p>
+                  <p class="text-xs text-text-secondary mt-0.5">Role: {{ invite.role }}</p>
+                </div>
+                <div class="flex gap-2 shrink-0">
+                  <button
+                    (click)="acceptInvite(invite)"
+                    [disabled]="respondingInvite() === invite.staffId"
+                    class="px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-lg min-h-8 disabled:opacity-50">
+                    Accept
+                  </button>
+                  <button
+                    (click)="declineInvite(invite)"
+                    [disabled]="respondingInvite() === invite.staffId"
+                    class="px-3 py-1.5 bg-white border border-border text-text-primary text-xs font-semibold rounded-lg min-h-8 disabled:opacity-50">
+                    Decline
+                  </button>
                 </div>
               </div>
-            }
-          </div>
+            </div>
+          }
         </div>
-      }
-
-      <!-- Quick actions -->
-      <div class="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-
-        <a [routerLink]="['staff']"
-          class="flex items-center justify-between px-5 py-4 min-h-14 hover:bg-gray-50 transition-colors">
-          <span class="text-sm font-medium text-gray-900">Staff</span>
-          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </a>
-
-        <a [routerLink]="['services']"
-          class="flex items-center justify-between px-5 py-4 min-h-14 hover:bg-gray-50 transition-colors">
-          <span class="text-sm font-medium text-gray-900">Services</span>
-          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </a>
-
-        <a *hasRole="['OWNER', 'ADMIN']" [routerLink]="['closures']"
-          class="flex items-center justify-between px-5 py-4 min-h-14 hover:bg-gray-50 transition-colors">
-          <span class="text-sm font-medium text-gray-900">Closures</span>
-          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </a>
-
-        <a *hasRole="['OWNER', 'ADMIN']" [routerLink]="['media']"
-          class="flex items-center justify-between px-5 py-4 min-h-14 hover:bg-gray-50 transition-colors">
-          <span class="text-sm font-medium text-gray-900">Photos</span>
-          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </a>
-
-        <a *hasRole="['OWNER', 'ADMIN']" [routerLink]="['settings']"
-          class="flex items-center justify-between px-5 py-4 min-h-14 hover:bg-gray-50 transition-colors">
-          <span class="text-sm font-medium text-gray-900">Settings</span>
-          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </a>
-
-        <a *hasRole="['OWNER', 'ADMIN']" [routerLink]="['share']"
-          class="flex items-center justify-between px-5 py-4 min-h-14 hover:bg-gray-50 transition-colors">
-          <span class="text-sm font-medium text-gray-900">Share / QR code</span>
-          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </a>
-
-        <a *hasRole="['OWNER']" [routerLink]="['delete']"
-          class="flex items-center justify-between px-5 py-4 min-h-14 hover:bg-red-50 transition-colors">
-          <span class="text-sm font-medium text-red-600">Delete salon</span>
-          <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </a>
-
       </div>
+    }
 
-    </div>
   </div>
 }

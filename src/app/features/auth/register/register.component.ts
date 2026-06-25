@@ -3,6 +3,7 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { switchMap } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
+import { GuestStore } from '../../../core/guest/guest-store';
 import { ErrorCodes } from '../../../core/errors/error-codes';
 import { isApiError } from '../../../core/errors/api-error.types';
 
@@ -13,6 +14,7 @@ import { isApiError } from '../../../core/errors/api-error.types';
 })
 export class RegisterComponent {
   private readonly _auth = inject(AuthService);
+  private readonly _guestStore = inject(GuestStore);
   private readonly _router = inject(Router);
   private readonly _route = inject(ActivatedRoute);
   private readonly _fb = inject(FormBuilder);
@@ -24,6 +26,7 @@ export class RegisterComponent {
     lastName: ['', Validators.required],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
+    phone: ['', Validators.required],
   });
 
   protected readonly loading = signal(false);
@@ -35,12 +38,19 @@ export class RegisterComponent {
     this.errorMessage.set(null);
     this.loading.set(true);
 
-    const { email, password, firstName, lastName } = this.form.getRawValue();
+    const { email, password, firstName, lastName, phone } = this.form.getRawValue();
+    const guestToken = this._guestStore.getToken() ?? undefined;
+    const dto = {
+      email, password, firstName, lastName,
+      phone: phone.trim(),
+      ...(guestToken ? { guestToken } : {}),
+    };
 
-    this._auth.register({ email, password, firstName, lastName }).pipe(
+    this._auth.register(dto).pipe(
       switchMap(() => this._auth.login({ email, password })),
     ).subscribe({
       next: () => {
+        this._guestStore.clear();
         const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
         this._router.navigateByUrl(returnUrl ?? '/dashboard');
       },

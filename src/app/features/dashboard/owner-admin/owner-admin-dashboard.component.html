@@ -1,0 +1,65 @@
+<div class="space-y-6">
+
+  <!-- Greeting -->
+  <div>
+    <h1 class="text-2xl font-bold text-text-primary">Hi, {{ firstName() }} 👋</h1>
+    <p class="text-sm text-text-secondary mt-0.5">Welcome back to HairMela</p>
+  </div>
+
+  <!-- Salon header -->
+  <div class="flex items-start gap-4">
+    <div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+      <span class="text-2xl font-extrabold text-primary">
+        {{ salon().salon.name.charAt(0).toUpperCase() }}
+      </span>
+    </div>
+    <div class="min-w-0">
+      <h2 class="text-xl font-bold text-text-primary leading-tight truncate">{{ salon().salon.name }}</h2>
+      @if (salon().salon.address; as addr) {
+        <p class="text-sm text-text-secondary mt-0.5">
+          {{ addr.street }}@if (addr.city) {, {{ addr.city }}}@if (addr.state) {, {{ addr.state }}}
+        </p>
+      }
+      <span class="inline-block mt-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary">
+        {{ salon().role }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Quick links -->
+  <div class="grid grid-cols-2 gap-3">
+    <a [routerLink]="['/salons', salon().salon.id, 'staff']"
+      class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+      <span class="text-sm font-semibold text-text-primary">Staff</span>
+      <span class="text-xs text-text-secondary">Manage your team</span>
+    </a>
+    <a [routerLink]="['/salons', salon().salon.id, 'services']"
+      class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+      <span class="text-sm font-semibold text-text-primary">Services</span>
+      <span class="text-xs text-text-secondary">Manage services</span>
+    </a>
+    <a [routerLink]="['/salons', salon().salon.id, 'settings']"
+      class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+      <span class="text-sm font-semibold text-text-primary">Settings</span>
+      <span class="text-xs text-text-secondary">Hours & preferences</span>
+    </a>
+    <a [routerLink]="['/salons', salon().salon.id, 'share']"
+      class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+      <span class="text-sm font-semibold text-text-primary">Share</span>
+      <span class="text-xs text-text-secondary">QR code & link</span>
+    </a>
+  </div>
+
+  <!-- Create salon -->
+  <a routerLink="/salons/new"
+    class="flex items-center justify-between w-full bg-white border border-border rounded-2xl px-5 py-4 hover:bg-surface-overlay transition-colors">
+    <div>
+      <p class="text-sm font-semibold text-text-primary">Create a salon</p>
+      <p class="text-xs text-text-secondary mt-0.5">Set up another salon</p>
+    </div>
+    <svg class="w-4 h-4 text-text-secondary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    </svg>
+  </a>
+
+</div>

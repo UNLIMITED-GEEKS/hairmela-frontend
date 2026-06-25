@@ -1,0 +1,134 @@
+<aside
+  class="hidden md:flex flex-col h-full bg-white border-r border-border transition-[width] duration-250 ease-in-out shrink-0 overflow-hidden"
+  [style.width]="collapsed() ? '64px' : '220px'">
+
+  <!-- Logo -->
+  <div class="flex items-center h-16 px-4 shrink-0 border-b border-border overflow-hidden">
+    <a routerLink="/" class="flex items-center gap-2.5">
+      <img src="/fav.jpeg" alt="HairMela" class="w-7 h-7 rounded-lg object-cover shrink-0" />
+      @if (!collapsed()) {
+        <span class="text-lg font-bold text-primary whitespace-nowrap">HairMela</span>
+      }
+    </a>
+  </div>
+
+  <!-- Nav items -->
+  <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-0.5" aria-label="Main navigation">
+
+    <!-- Main section -->
+    @for (item of sidebarItems(); track item.label) {
+      <a
+        [routerLink]="item.url"
+        routerLinkActive="bg-primary/10 text-primary"
+        [routerLinkActiveOptions]="{ exact: item.url === '/dashboard' }"
+        class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors min-h-11 relative"
+        [title]="collapsed() ? item.label : ''">
+        <span class="shrink-0">
+          <app-nav-icon [icon]="item.icon" />
+        </span>
+        @if (!collapsed()) {
+          <span class="truncate">{{ item.label }}</span>
+          @if (item.badge && item.badge() > 0) {
+            <span class="ml-auto shrink-0 min-w-5 h-5 flex items-center justify-center rounded-full bg-primary text-white text-xs font-bold px-1"
+              aria-label="{{ item.badge() }} notifications">
+              {{ item.badge() }}
+            </span>
+          }
+        } @else if (item.badge && item.badge() > 0) {
+          <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" aria-hidden="true"></span>
+        }
+      </a>
+    }
+
+    <!-- Controls subsection -->
+    @if (visibleControls().length > 0) {
+      <div class="pt-4">
+        @if (!collapsed()) {
+          <p class="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-text-secondary/60 truncate">
+            Controls
+          </p>
+        } @else {
+          <div class="h-px bg-border mx-2 mb-2"></div>
+        }
+
+        <!-- Salon overview -->
+        <a
+          [routerLink]="['/salons', activeSalonId()]"
+          routerLinkActive="bg-primary/10 text-primary"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors min-h-11"
+          [title]="collapsed() ? 'Salon' : ''">
+          <app-nav-icon icon="scissors" />
+          @if (!collapsed()) {
+            <span class="truncate">Salon</span>
+          }
+        </a>
+
+        @for (item of visibleControls(); track item.label) {
+          <a
+            [routerLink]="['/salons', activeSalonId(), item.url]"
+            routerLinkActive="bg-primary/10 text-primary"
+            class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors min-h-11"
+            [title]="collapsed() ? item.label : ''">
+            <span class="w-5 h-5 shrink-0 flex items-center justify-center">
+              <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
+            </span>
+            @if (!collapsed()) {
+              <span class="truncate">{{ item.label }}</span>
+            }
+          </a>
+        }
+
+        <!-- Delete salon — owner only, destructive -->
+        @if (isOwner() && activeSalonId()) {
+          <a
+            [routerLink]="['/salons', activeSalonId(), 'delete']"
+            routerLinkActive="bg-red-50 text-red-600"
+            class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors min-h-11"
+            [title]="collapsed() ? 'Delete salon' : ''">
+            <span class="w-5 h-5 shrink-0 flex items-center justify-center">
+              <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
+            </span>
+            @if (!collapsed()) {
+              <span class="truncate">Delete salon</span>
+            }
+          </a>
+        }
+      </div>
+    }
+
+  </nav>
+
+  <!-- Logout -->
+  @if (showLogout()) {
+    <div class="shrink-0 border-t border-border px-2 py-2">
+      <button
+        (click)="onLogout()"
+        class="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors min-h-11"
+        [title]="collapsed() ? 'Logout' : ''">
+        <app-nav-icon icon="login" />
+        @if (!collapsed()) {
+          <span class="truncate">Logout</span>
+        }
+      </button>
+    </div>
+  }
+
+  <!-- Collapse toggle -->
+  <div class="shrink-0 border-t border-border px-2 py-3">
+    <button
+      (click)="toggle()"
+      class="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-overlay transition-colors min-h-11"
+      [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
+      <svg
+        class="w-5 h-5 shrink-0 transition-transform duration-250"
+        [class.rotate-180]="collapsed()"
+        fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+      </svg>
+      @if (!collapsed()) {
+        <span class="truncate">Collapse</span>
+      }
+    </button>
+  </div>
+</aside>

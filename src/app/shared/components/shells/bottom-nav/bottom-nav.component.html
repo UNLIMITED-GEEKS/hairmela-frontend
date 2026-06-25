@@ -1,0 +1,38 @@
+<nav
+  class="flex md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-border safe-area-bottom"
+  aria-label="Bottom navigation">
+  <div class="flex w-full">
+    @for (item of bottomItems(); track item.label) {
+      @if (item.url) {
+        <a
+          #rla="routerLinkActive"
+          [routerLink]="item.url"
+          routerLinkActive
+          [routerLinkActiveOptions]="{ exact: item.url === '/dashboard' || item.url === '/g/queues' }"
+          class="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] transition-colors relative"
+          [class]="rla.isActive ? 'text-primary' : 'text-text-secondary'"
+          [class.cta-tab]="item.cta">
+          @if (item.cta) {
+            <span class="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white mb-0.5">
+              <app-nav-icon [icon]="item.icon" size="w-5 h-5" />
+            </span>
+          } @else {
+            <span class="relative">
+              <app-nav-icon [icon]="item.icon" size="w-6 h-6" />
+              @if (item.badge && item.badge() > 0) {
+                <span class="absolute -top-1 -right-1 min-w-4 h-4 flex items-center justify-center rounded-full bg-primary text-white text-[10px] font-bold px-0.5"
+                  [attr.aria-label]="item.badge() + ' notifications'">
+                  {{ item.badge() > 99 ? '99+' : item.badge() }}
+                </span>
+              }
+            </span>
+            <span class="text-[10px] font-bold leading-none">{{ item.label }}</span>
+            @if (rla.isActive) {
+              <span class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary"></span>
+            }
+          }
+        </a>
+      }
+    }
+  </div>
+</nav>

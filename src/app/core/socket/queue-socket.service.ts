@@ -1,14 +1,15 @@
-import { Injectable, OnDestroy } from '@angular/core';
+import { Injectable, OnDestroy, inject } from '@angular/core';
 import { Observable, Subject, BehaviorSubject, ReplaySubject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { environment } from '../../../environments/environment';
 import { TokenStore } from '../auth/token.store';
-import { inject } from '@angular/core';
+import { GuestStore } from '../guest/guest-store';
 import { TimelineEntryDto, CustomerCalledPayload, ConnectionState } from './socket.types';
 
 @Injectable({ providedIn: 'root' })
 export class QueueSocketService implements OnDestroy {
   private readonly _tokenStore = inject(TokenStore);
+  private readonly _guestStore = inject(GuestStore);
 
   private _socket: Socket | null = null;
   private readonly _watchedQueues = new Set<string>();
@@ -23,7 +24,7 @@ export class QueueSocketService implements OnDestroy {
   connect(): void {
     if (this._socket?.connected) return;
 
-    const token = this._tokenStore.getAccessToken();
+    const token = this._tokenStore.getAccessToken() ?? this._guestStore.getToken();
     this._socket = io(`${environment.socketUrl}/queues`, {
       auth: { token },
       transports: ['websocket'],

@@ -1,0 +1,9 @@
+<app-public-nav
+  [navItems]="navItems"
+  [sheetOpen]="sheetOpen()"
+  (sheetToggle)="sheetOpen.update(v => !v)" />
+
+<main class="min-h-screen">
+  <router-outlet />
+</main>
+

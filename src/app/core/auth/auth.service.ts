@@ -8,6 +8,8 @@ import { CurrentUserStore } from './current-user.store';
 import { MembershipStore } from '../salon-context/membership.store';
 import { QueueSocketService } from '../socket/queue-socket.service';
 import { CacheRegistry } from '../cache-registry.service';
+import { GuestStore } from '../guest/guest-store';
+import { ActiveEntryStore } from '../queue/active-entry.store';
 import { LoginDto } from '../../api/models/login-dto';
 import { RegisterDto } from '../../api/models/register-dto';
 import { UserResponseDto } from '../../api/models/user-response-dto';
@@ -27,10 +29,15 @@ export class AuthService {
   private readonly _membershipStore = inject(MembershipStore);
   private readonly _socketService = inject(QueueSocketService);
   private readonly _cacheRegistry = inject(CacheRegistry);
+  private readonly _guestStore = inject(GuestStore);
+  private readonly _activeEntryStore = inject(ActiveEntryStore);
 
   login(dto: LoginDto): Observable<UserResponseDto> {
     return authControllerLogin(this._http, this._apiConfig.rootUrl, { body: dto }).pipe(
-      tap((res) => this._tokenStore.setTokens(res.body.accessToken, res.body.refreshToken)),
+      tap((res) => {
+        this._guestStore.clear();
+        this._tokenStore.setTokens(res.body.accessToken, res.body.refreshToken);
+      }),
       switchMap(() => this._fetchAndStoreUser()),
       tap(() => this._socketService.connect()),
     );
@@ -38,7 +45,7 @@ export class AuthService {
 
   register(dto: RegisterDto): Observable<void> {
     return authControllerRegister(this._http, this._apiConfig.rootUrl, { body: dto }).pipe(
-      map(() => undefined),
+      map(() => { this._guestStore.clear(); }),
     );
   }
 
@@ -48,7 +55,7 @@ export class AuthService {
     this._currentUserStore.clear();
     this._membershipStore.invalidateAll();
     this._cacheRegistry.clearAll();
-    localStorage.removeItem('hairmela_active_entries');
+    this._activeEntryStore.clear();
     this._router.navigate(['/login']);
   }
 

@@ -1,0 +1,43 @@
+<div class="space-y-6">
+
+  <!-- Greeting -->
+  <div>
+    <h1 class="text-2xl font-bold text-text-primary">Hi, {{ firstName() }} 👋</h1>
+    <p class="text-sm text-text-secondary mt-0.5">Ready for today?</p>
+  </div>
+
+  <!-- Salon header -->
+  <div class="flex items-start gap-4">
+    <div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+      <span class="text-2xl font-extrabold text-primary">
+        {{ salon().salon.name.charAt(0).toUpperCase() }}
+      </span>
+    </div>
+    <div class="min-w-0">
+      <h2 class="text-xl font-bold text-text-primary leading-tight truncate">{{ salon().salon.name }}</h2>
+      @if (salon().salon.address; as addr) {
+        <p class="text-sm text-text-secondary mt-0.5">
+          {{ addr.street }}@if (addr.city) {, {{ addr.city }}}@if (addr.state) {, {{ addr.state }}}
+        </p>
+      }
+      <span class="inline-block mt-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600">
+        Staff
+      </span>
+    </div>
+  </div>
+
+  <!-- Quick links -->
+  <div class="grid grid-cols-2 gap-3">
+    <a [routerLink]="['/salons', salon().salon.id, 'services']"
+      class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+      <span class="text-sm font-semibold text-text-primary">My Services</span>
+      <span class="text-xs text-text-secondary">View assigned services</span>
+    </a>
+    <a [routerLink]="['/salons', salon().salon.id, 'closures']"
+      class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+      <span class="text-sm font-semibold text-text-primary">Closures</span>
+      <span class="text-xs text-text-secondary">Manage your days off</span>
+    </a>
+  </div>
+
+</div>

@@ -21,8 +21,12 @@ export class MyPositionComponent implements OnInit {
 
   constructor() {
     effect(() => {
-      if (this.visit.myEntry()) this.serviceComplete.set(false);
-      else if (this.visit.activeEntry() === null && !this.visit.loading()) this.serviceComplete.set(true);
+      if (!this.visit.timelineLoaded()) return;
+      if (this.visit.myEntry()) {
+        this.serviceComplete.set(false);
+      } else if (this.visit.activeEntry() === null) {
+        this.serviceComplete.set(true);
+      }
     });
   }
 
@@ -42,12 +46,16 @@ export class MyPositionComponent implements OnInit {
     return this._route.snapshot.paramMap.get('queueId') ?? '';
   }
 
+  private get _shellPrefix(): string {
+    return this._route.snapshot.data['shellPrefix'] ?? '';
+  }
+
   ngOnInit(): void {
     this.visit.watchQueue(this._queueId);
   }
 
   protected get liveQueueUrl(): string {
-    return `/s/${this._slug}/q/${this._queueId}`;
+    return `${this._shellPrefix}/s/${this._slug}/q/${this._queueId}`;
   }
 
   protected openAddKids(): void {
@@ -80,7 +88,9 @@ export class MyPositionComponent implements OnInit {
   }
 
   protected leaveQueue(): void {
-    this.visit.leaveQueue(() => this._router.navigate(['/s', this._slug]));
+    const prefix = this._shellPrefix;
+    const segments = prefix ? [prefix, 's', this._slug] : ['s', this._slug];
+    this.visit.leaveQueue(() => this._router.navigate(segments));
   }
 
   private _firstServiceId(): string {

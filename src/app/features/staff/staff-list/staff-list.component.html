@@ -1,5 +1,5 @@
-<div class="min-h-dvh bg-gray-50 px-4 py-8">
-  <div class="max-w-lg mx-auto">
+<div class="py-6 px-4">
+  <div class="">
 
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
@@ -19,7 +19,7 @@
         <p class="text-sm text-gray-500">No staff yet. Invite someone to get started.</p>
       </div>
     } @else {
-      <div class="space-y-2">
+      <div class="space-y-2 ">
         @for (item of staffList(); track item.staff.id) {
           <a [routerLink]="[item.staff.id]"
             class="flex items-center gap-3 bg-white rounded-xl border border-gray-200 px-4 py-3 min-h-[68px]

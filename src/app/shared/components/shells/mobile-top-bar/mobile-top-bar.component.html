@@ -1,0 +1,82 @@
+<div class="flex md:hidden fixed top-0 inset-x-0 z-50 justify-center pt-3 px-4 pointer-events-none">
+  <div class="flex flex-col w-full rounded-2xl bg-white/90 backdrop-blur-md border border-border shadow-sm overflow-visible pointer-events-auto">
+
+    <!-- Bar row -->
+    <div class="flex items-center h-12 px-3 gap-2">
+
+      <!-- Salon switcher or logo -->
+      @if (activeSalon(); as salon) {
+        <div class="relative flex-1">
+          <button
+            (click)="toggleDropdown()"
+            [attr.aria-expanded]="dropdownOpen()"
+            class="w-full flex items-center gap-1.5 min-h-10 rounded-xl px-2 hover:bg-surface-overlay transition-colors text-left overflow-hidden">
+            <div class="flex flex-col min-w-0">
+              <span class="text-[10px] text-text-secondary leading-none">Salon</span>
+              <span class="text-sm font-bold text-text-primary truncate leading-tight">{{ salon.salon.name }}</span>
+            </div>
+            <svg class="w-4 h-4 text-text-secondary shrink-0 ml-auto transition-transform duration-200"
+              [class.rotate-180]="dropdownOpen()"
+              fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+
+          <!-- Dropdown -->
+          @if (dropdownOpen()) {
+            <div class="fixed inset-0 z-10" (click)="closeDropdown()" aria-hidden="true"></div>
+            <ul class="absolute left-0 top-full mt-1 z-20 min-w-45 bg-white border border-border rounded-2xl shadow-lg py-1 overflow-hidden">
+              @for (item of salons(); track item.salon.id) {
+                <li>
+                  <button
+                    (click)="switchSalon(item.salon.id)"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-surface-overlay transition-colors min-h-11"
+                    [class.text-primary]="item.salon.id === activeSalonId()"
+                    [class.font-semibold]="item.salon.id === activeSalonId()"
+                    [class.text-text-primary]="item.salon.id !== activeSalonId()">
+                    <span class="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                      {{ item.salon.name.charAt(0).toUpperCase() }}
+                    </span>
+                    <span class="truncate">{{ item.salon.name }}</span>
+                    @if (item.salon.id === activeSalonId()) {
+                      <svg class="w-4 h-4 ml-auto shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                      </svg>
+                    }
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      } @else {
+        <a routerLink="/" class="flex items-center gap-2 flex-1 px-1">
+          <img src="/fav.jpeg" alt="HairMela" class="w-6 h-6 rounded-md object-cover shrink-0" />
+          <span class="text-base font-bold text-primary">HairMela</span>
+        </a>
+      }
+
+      <!-- Hamburger -->
+      <button
+        (click)="sheetToggle.emit()"
+        [attr.aria-expanded]="sheetOpen()"
+        aria-label="Open navigation menu"
+        class="min-w-10 min-h-10 flex items-center justify-center text-text-secondary hover:text-primary transition-colors shrink-0">
+        @if (sheetOpen()) {
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        } @else {
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        }
+      </button>
+
+    </div>
+
+    <!-- Sheet content injected via ng-content -->
+    <ng-content />
+
+  </div>
+</div>

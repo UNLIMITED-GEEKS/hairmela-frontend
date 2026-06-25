@@ -8,7 +8,7 @@ import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
 import { JoinQueueDto } from '../../models/join-queue-dto';
-import { QueueEntry } from '../../models/queue-entry';
+import { JoinQueueResponseDto } from '../../models/join-queue-response-dto';
 
 export interface WalkInControllerJoinQueue$Params {
 
@@ -24,7 +24,7 @@ export interface WalkInControllerJoinQueue$Params {
       body: JoinQueueDto
 }
 
-export function walkInControllerJoinQueue(http: HttpClient, rootUrl: string, params: WalkInControllerJoinQueue$Params, context?: HttpContext): Observable<StrictHttpResponse<QueueEntry>> {
+export function walkInControllerJoinQueue(http: HttpClient, rootUrl: string, params: WalkInControllerJoinQueue$Params, context?: HttpContext): Observable<StrictHttpResponse<JoinQueueResponseDto>> {
   const rb = new RequestBuilder(rootUrl, walkInControllerJoinQueue.PATH, 'post');
   if (params) {
     rb.path('salonId', params.salonId, {});
@@ -37,7 +37,7 @@ export function walkInControllerJoinQueue(http: HttpClient, rootUrl: string, par
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<QueueEntry>;
+      return r as StrictHttpResponse<JoinQueueResponseDto>;
     })
   );
 }

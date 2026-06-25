@@ -30,6 +30,20 @@
               <span class="text-xs text-gray-500"> +{{ entry.members.length - 1 }} {{ entry.members.length - 1 === 1 ? 'kid' : 'kids' }}</span>
             }
           </span>
+          @if (entry.members[0].phone) {
+            <span class="flex items-center gap-1 mt-0.5">
+              <a [href]="'tel:' + entry.members[0].phone" class="text-xs text-primary hover:underline truncate">
+                {{ entry.members[0].phone }}
+              </a>
+              <button (click)="copyPhone(entry.members[0].phone!)" aria-label="Copy phone number"
+                class="shrink-0 text-gray-400 hover:text-primary transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+              </button>
+            </span>
+          }
           @if (isServing) {
             <span class="text-xs font-bold text-success" aria-live="polite">Serving</span>
           } @else {
@@ -110,6 +124,8 @@
                 <option [value]="s.serviceId">{{ s.service.name }}</option>
               }
             </select>
+            <input formControlName="phone" type="tel" placeholder="Phone (optional)"
+              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 focus:outline-none focus:ring-2 focus:ring-primary/30">
           </div>
         }
       </div>

@@ -5,6 +5,8 @@ export interface RegisterDto {
   createOrganization?: boolean;
   email: string;
   firstName: string;
+  guestToken?: string;
   lastName: string;
   password: string;
+  phone?: string;
 }

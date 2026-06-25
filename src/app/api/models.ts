@@ -19,6 +19,7 @@ export type { InitialServiceDto } from './models/initial-service-dto';
 export type { InviteStaffDto } from './models/invite-staff-dto';
 export type { JoinMemberDto } from './models/join-member-dto';
 export type { JoinQueueDto } from './models/join-queue-dto';
+export type { JoinQueueResponseDto } from './models/join-queue-response-dto';
 export type { LoginDto } from './models/login-dto';
 export type { Media } from './models/media';
 export type { MyInviteDto } from './models/my-invite-dto';

@@ -22,20 +22,21 @@ Two-panel layout side by side:
 
 **Left panel — Current Client card**
 - Header label: "Current Client"
-- Large circle in the center displaying the serving client's first name prominently (e.g. "John")
-- Below the name: a running timer (e.g. `45:35`) counting up from when the session started
-- Below the timer: estimated finish time (e.g. `eft: 2pm`) derived from the service duration
-- Two action buttons at the bottom:
-  - "View Queue" — toggles to the right panel / queue list view
-  - "End Session" — completes the current client (maps to Complete action on the member)
+- Large circle displaying the SERVING member's first name, running timer, and `eft:` finish time
+- Party member list below the circle — shows all non-terminal members (SERVING + WAITING):
+  - SERVING member: "Serving" badge + "+mins" + "Done" button
+  - WAITING member: live per-member wait time (no action button — backend auto-advances after each Done)
+- "End Session" button: if only one unfinished member → complete directly; if multiple unfinished → opens "End all" modal (calls `POST .../complete-all`)
+- "View Queue" button — navigates to queue list panel
+- Barber can also manually add clients to the queue via "Add Queue" modal
 
 **Right panel — Queue list**
-- Header: "Total Count: 7" (total waiting)
+- Header: "Total Count: N" (total waiting)
 - Two column headers: "Clients on queue" | "Wait time"
-- Scrollable list of waiting clients, each row: client first name + estimated wait (e.g. `4m 5s`)
+- Scrollable list; entries with a party show `+N kids` label
 - Two action buttons at the bottom:
-  - "Add Queue" — reserved for future barber-side manual add; not in MVP scope
-  - "Back" — returns focus to the left panel
+  - "Add Queue" — barber manually adds one or more clients to the queue
+  - "Back" — returns to the left panel
 
 ---
 
@@ -59,14 +60,20 @@ Four screens in sequence:
 - Large circle center-screen showing:
   - "Position in line" label
   - Position number large (e.g. `7`)
-  - Estimated wait below (e.g. `est: 5m`) — live countdown ticking every second
-- "Add Kids" button — opens party member rows (name + service picker per extra person)
-- Two buttons at the bottom: "View queue" (goes to Screen 4) | "Back"
+  - `est:` wait — hidden when position = 0 (entry is being served)
+- Party member list — shows ALL members including leader ("You") + kids, each with:
+  - "Serving" badge when being served
+  - "Served" badge when done
+  - Live per-member estimated wait when WAITING
+- "Add Kids" button — hidden once service is complete
+- Two buttons at the bottom: "View queue" (goes to Screen 4) | "Leave queue"
+- **Service complete state:** when all members are done and the entry leaves the timeline, circle turns green with a checkmark and "Service complete" text; bottom bar shows a single "Back to salon" button
 
 **Screen 4 — Live queue view for this barber (`/s/:slug/q/:queueId`)**
-- Barber photo/avatar + name ("Dany the barber") + availability badge
+- Barber photo/avatar + name + availability badge
 - Two column headers: "Waiting" | "Estimated time"
-- Scrollable queue list, each row: client label (anonymized: "Client 1", "Client 2"…) + wait time — live countdown ticking every second
+- Scrollable queue list, each row: client label (anonymized) + wait time — live countdown ticking every second
+- Entries with a party show `+N kids` label
 - The user's own row highlighted green with label "Me"
 - Two buttons at the bottom:
   - "Leave queue" (red/destructive — confirm dialog before calling DELETE)
@@ -184,9 +191,10 @@ src/app/
 │   ├── socket/
 │   │   ├── queue-socket.service.ts
 │   │   └── socket.types.ts          ← re-exports TimelineEntryDto; CustomerCalledPayload; ConnectionState
-│   └── toast/
-│       ├── toast.service.ts
-│       └── toast.component.ts
+│   ├── toast/
+│   │   ├── toast.service.ts
+│   │   └── toast.component.ts
+│   └── cache-registry.service.ts    ← shared cache invalidation registry
 │
 ├── shared/                          ← reusable, imported per-feature
 │   ├── directives/
@@ -195,9 +203,12 @@ src/app/
 │   │   └── tier-freeze.directive.ts     ← [tierFreeze]="membership().isFrozen"
 │   └── components/
 │       ├── confirm-dialog/              ← ConfirmDialogService + ConfirmDialogComponent
+│       ├── connection-banner/           ← yellow reconnecting banner; reads QueueSocketService.connectionState$
 │       ├── image-uploader/              ← file pick, client-side validate (jpeg/png/webp, ≤5 MB), multipart
 │       ├── gallery/                     ← display + drag-reorder
-│       └── avatar/                      ← initials fallback
+│       ├── avatar/                      ← initials fallback
+│       ├── screen-layout/               ← shared page layout wrapper
+│       └── skeleton/                    ← loading skeleton placeholder
 │
 └── features/                        ← lazy-loaded
     ├── auth/            (login, register, verify-email)
@@ -238,7 +249,7 @@ Each feature folder follows: `*.component.ts` + `*.component.html` (orchestratio
 On boot: refresh token present → `POST /auth/refresh` → store new pair → `GET /auth/me` → hydrate `CurrentUserStore`. Any failure → clear tokens, land logged-out. The app never renders an authed shell on a dead session.
 
 ### auth.service.ts
-- `login(dto)` / `register(dto)` via the generated client; on success store tokens + hydrate user. After registration: route to dashboard directly — no "verify your email" banner in MVP (email verification deferred).
+- `login(dto)` / `register(dto)` via the generated client; on success store tokens + hydrate user. Both login and register honor `?returnUrl=` query param — navigate to it on success, fallback to `/dashboard`. The login↔register cross-links forward `returnUrl` in both directions so it is never dropped mid-flow.
 - `logout()` — disconnect the socket, clear tokens + stores, navigate `/login`. There is no backend logout endpoint (stateless JWT; revocation deferred) — logout is client-side.
 - `verifyEmail(token)` → `POST /auth/verify-email` (token in the **body**, taken from the landing page's query param); `resendVerification()` → `POST /auth/resend-verification`.
 
@@ -346,8 +357,11 @@ Wraps `socket.io-client` against the backend's `/queues` namespace.
 - `TimelineMemberDto.servedAt: string | null` — ISO timestamp stamped by the backend when a member transitions to SERVING
 - Every live view (console + customer visit) runs a single `setInterval` ticking a `_tick` signal every second
 - `_elapsedSeconds` is a `computed()` that reads `_tick` and calculates `(Date.now() - new Date(servedAt).getTime()) / 1000`
-- `liveWaitMinutes` is a `computed()` `Map<entryId, number>` that subtracts elapsed minutes from each entry's `estimatedWaitMinutes`
-- All displayed wait times call `liveWait(entryId)` which formats from this map
+- `liveWaitMinutes` is a `computed()` `Map<entryId, number>` that subtracts elapsed minutes from each entry's `estimatedWaitMinutes` — used for per-entry display in the queue list
+- `memberWaitMinutes` is a `computed()` `Map<memberId, number>` used for per-member display in party views:
+  - SERVED members → 0
+  - SERVING member → 0 (shown as "Serving" badge, not a time)
+  - WAITING members → accumulated remaining duration of all preceding active members minus elapsed time
 - The barber's stopwatch (`timerFromServedAt`) derives from the same `servedAt` — accurate on console reload
 
 **Why this works for all clients simultaneously:** every browser connected to the queue room receives the same `queueTimeline` snapshot (including `servedAt`) when the barber calls next. Each browser independently runs the countdown arithmetic from that shared timestamp — they all tick in sync without any additional socket events.
@@ -425,7 +439,14 @@ Shell (`DashboardComponent`) calls `GET /salons/mine` once. Empty result → `Cu
 
 ### Staff — `features/staff/`
 
-**Routes:** `/salons/:salonId/staff`, `/salons/:salonId/staff/:staffId`, `/salons/:salonId/staff/:staffId/media`, `/salons/:salonId/staff/:staffId/schedules`
+**Routes** (all under `/salons/:salonId/staff`):
+- `''` → `StaffListComponent`
+- `invite` → `InviteStaffComponent` — `(OWNER, ADMIN)`
+- `:staffId` → `StaffDetailComponent` — `(OWNER, ADMIN, STAFF)`
+- `:staffId/media` → `StaffMediaComponent` — `(OWNER, ADMIN)`
+- `:staffId/services` → `StaffServiceAssignComponent` — `(OWNER, ADMIN, STAFF)`
+- `:staffId/schedules` → `WeeklyScheduleComponent` — `(OWNER, ADMIN)`
+- `:staffId/closures` → `ClosuresComponent` (per-staff scope) — `(OWNER, ADMIN)`
 
 | Component | Endpoint |
 |---|---|
@@ -433,9 +454,9 @@ Shell (`DashboardComponent`) calls `GET /salons/mine` once. Empty result → `Cu
 | `InviteStaffComponent` | POST .../staff/invite |
 | `StaffDetailComponent` | PATCH .../staff/:staffId/role, DELETE .../staff/:staffId, PATCH .../staff/transfer-ownership |
 | `StaffMediaComponent` | GET/POST/DELETE/PATCH .../staff/:staffId/media |
-| `PendingInvitesComponent` | POST .../staff/accept, POST .../staff/decline |
+| `PendingInvitesComponent` | POST .../staff/accept, POST .../staff/decline (used by dashboard + /notifications) |
 
-**Guards:** management = `salonRoleGuard(OWNER, ADMIN)`; accept/decline = `authGuard` only.
+**Guards:** list = `(OWNER, ADMIN, STAFF)`; invite/role/transfer/remove = `(OWNER, ADMIN)`; accept/decline = `authGuard` only.
 
 ### Services — `features/services/`
 
@@ -453,7 +474,7 @@ Shell (`DashboardComponent`) calls `GET /salons/mine` once. Empty result → `Cu
 
 ### Schedules — `features/schedules/`
 
-**Route:** `/salons/:salonId/staff/:staffId/schedules` (linked from `StaffDetailComponent`)
+**Route:** `/salons/:salonId/staff/:staffId/schedules` — reached via `StaffDetailComponent` link; the `WeeklyScheduleComponent` is lazy-loaded directly into the staff routes (no separate schedules route entry at the top level).
 
 | Component | Endpoint |
 |---|---|
@@ -463,11 +484,15 @@ Shell (`DashboardComponent`) calls `GET /salons/mine` once. Empty result → `Cu
 
 ### Closures — `features/closures/`
 
-**Route:** `/salons/:salonId/closures` (child of salon routes)
+**Routes:**
+- `/salons/:salonId/closures` — salon-wide closures (child of salon routes)
+- `/salons/:salonId/staff/:staffId/closures` — per-staff closures (child of staff routes)
+
+`ClosuresComponent` is reused for both scopes — it detects whether a `staffId` param is present and switches between salon and staff API calls accordingly.
 
 | Component | Endpoint |
 |---|---|
-| `ClosuresComponent` | GET/POST/DELETE .../closures + .../staff/:staffId/closures |
+| `ClosuresComponent` | GET/POST/DELETE .../closures (salon) + .../staff/:staffId/closures (per-staff) |
 
 **Guards:** `salonRoleGuard(OWNER, ADMIN)`.
 
@@ -475,7 +500,11 @@ Shell (`DashboardComponent`) calls `GET /salons/mine` once. Empty result → `Cu
 
 **Route:** `/salons/:salonId/queues/:queueId/console`
 
-`QueueConsoleComponent` — single component, two-panel layout (current client / queue list).
+`QueueShellComponent` — shell providing `QueueConsoleService`. Two child routes:
+- `''` → `CurrentClientComponent` (current client panel)
+- `'queue'` → `QueueListComponent` (queue list panel)
+
+Navigation between panels is via `[routerLink]` — no signal-based screen switching.
 
 | Responsibility | Endpoint / Socket |
 |---|---|
@@ -484,9 +513,11 @@ Shell (`DashboardComponent`) calls `GET /salons/mine` once. Empty result → `Cu
 | Live timeline | `watchQueueAsStaff` + `queueTimeline$` |
 | Live stopwatch | `timerFromServedAt` computed from `servedAt` on the serving member — ticks every second via `_tick` signal |
 | Live wait times (queue panel) | `liveWait(entryId)` from `liveWaitMinutes` computed map — same `_tick` signal |
+| Live wait times (party members) | `memberWait(memberId)` from `memberWaitMinutes` computed map — skips SERVED members, 0 for SERVING, accumulates remaining duration for WAITING members |
 | Set status | PATCH .../status |
 | Call next | POST .../call-next (409 → resolve-flow toast) |
-| Complete member | PATCH .../members/:memberId/complete |
+| Complete member | PATCH .../members/:memberId/complete — backend auto-advances to next WAITING member after each complete; barber only ever calls complete, never serve |
+| Complete all members | POST .../entries/:entryId/complete-all — shortcut to mark all remaining members served at once |
 | No-show | PATCH .../entries/:entryId/no-show |
 | Cancel entry | DELETE .../entries/:entryId |
 | Extend member | PATCH .../members/:memberId/extend |
@@ -495,23 +526,30 @@ Shell (`DashboardComponent`) calls `GET /salons/mine` once. Empty result → `Cu
 
 ### Visit (customer-facing) — `features/visit/`
 
-**Routes:** `/s/:slug`, `/s/:slug/q/:queueId`
+**Routes:** `/s/:slug` and children under `SalonShellComponent` (provides `SalonVisitService`):
+- `/s/:slug` → `SalonLandingComponent` (barber cards, choose a barber)
+- `/s/:slug/q/:queueId` → `LiveQueueComponent` (live queue for a barber)
+- `/s/:slug/q/:queueId/join` → `JoinQueueComponent` (choose service + join)
+- `/s/:slug/q/:queueId/position` → `MyPositionComponent` (position in line + party member list)
 
-Both routes load the same `SalonVisitComponent`. The component manages all screens via a `screen` signal (`landing` → `choose-service` → `live-queue`). No separate child components for join/position/leave — all inline.
+`SalonVisitService` is provided on the shell and shared across all child routes — no signal-based screen switching.
 
 | Responsibility | Endpoint / Socket |
 |---|---|
 | Salon + staff data | GET /salons/slug/:slug (`publicSalonsControllerFindBySlug`) |
 | Services | GET /salons/:salonId/services (`publicServicesControllerFindBySalon`) |
 | Queue status | GET /queues/:queueId (`publicQueueControllerGetQueue`) |
-| Initial timeline | GET /queues/:queueId/timeline (`publicQueueControllerGetTimeline`) |
+| Initial timeline | GET /queues/:queueId/timeline (`publicQueueControllerGetTimeline`) — also re-fetched immediately after joining to avoid race condition |
 | Live timeline | `watchQueue` + `queueTimeline$` |
-| Live wait times | `liveWait(entryId)` from `liveWaitMinutes` computed map — same `_tick` pattern as console |
-| Join queue | POST /salons/:salonId/queues/:queueId/walk-in (`walkInControllerJoinQueue`) |
+| Live wait times (entry) | `liveWait(entryId)` from `liveWaitMinutes` computed map |
+| Live wait times (party members) | `memberWait(memberId)` from `memberWaitMinutes` — skips SERVED members, 0 for SERVING, accumulates remaining duration for WAITING |
+| Join queue | POST /salons/:salonId/queues/:queueId/walk-in (`walkInControllerJoinQueue`) — on success, immediately re-fetches timeline before navigating |
 | Leave queue | DELETE .../walk-in/:entryId (`walkInControllerLeaveQueue`) |
 | My active entry | `{queueId, entryId, salonId}[]` in `localStorage` key `hairmela_active_entries` |
-| Stale entry guard | On each timeline update, validate stored `entryId` is present; if absent, purge localStorage and reset to `choose-service` |
+| Stale entry guard | On each timeline update, validate stored `entryId` is present; if absent, purge localStorage and clear activeEntry |
 | Called banner | Auto-shown 5s when entry members flip to SERVING in the timeline |
+| Party member list | Shows all members (leader as "You" + kids) with status badges: "Serving" / "Served" / est. wait |
+| Service complete screen | When `myEntry()` becomes null after having an active entry, shows a green "Service complete" circle and "Back to salon" button |
 
 **Guards:** `authGuard` (MVP — removed when public access ships).
 
@@ -528,30 +566,47 @@ Both routes load the same `SalonVisitComponent`. The component manages all scree
 ## Routing Map (actual implementation)
 
 ```
-/login                                         guestGuard
-/register                                      guestGuard
-/verify-email                                  public
+/                                                         public
+/privacy                                                  public
+/login                                                    guestGuard
+/register                                                 guestGuard
+/verify-email                                             public
 
-/dashboard                                     authGuard
-/account                                       authGuard
-/notifications                                 authGuard
+/dashboard                                                authGuard
+/account                                                  authGuard
+/notifications                                            authGuard
 
-/org/:orgId/**                                 authGuard + orgOwnerGuard
+/org/:orgId                                               authGuard + orgOwnerGuard
+/org/:orgId/settings                                      authGuard + orgOwnerGuard
+/org/:orgId/plan                                          authGuard + orgOwnerGuard
 
-/salons/new                                    authGuard
-/salons/:salonId                               authGuard + salonRoleGuard(OWNER, ADMIN, STAFF)
-/salons/:salonId/settings                      authGuard + salonRoleGuard(OWNER, ADMIN)
-/salons/:salonId/slug                          authGuard + salonRoleGuard(OWNER)
-/salons/:salonId/share                         authGuard + salonRoleGuard(OWNER, ADMIN)
-/salons/:salonId/delete                        authGuard + salonRoleGuard(OWNER)
-/salons/:salonId/media                         authGuard + salonRoleGuard(OWNER, ADMIN, STAFF)
-/salons/:salonId/closures/**                   authGuard + salonRoleGuard(OWNER, ADMIN)
-/salons/:salonId/services/**                   authGuard + salonRoleGuard(OWNER, ADMIN, STAFF)
-/salons/:salonId/staff/**                      authGuard + salonRoleGuard(OWNER, ADMIN, STAFF)
-/salons/:salonId/queues/:queueId/console       authGuard + salonRoleGuard(OWNER, ADMIN, STAFF)
+/salons/new                                               authGuard
+/salons/:salonId                                          authGuard + salonRoleGuard(OWNER,ADMIN,STAFF)
+/salons/:salonId/settings                                 authGuard + salonRoleGuard(OWNER,ADMIN)
+/salons/:salonId/slug                                     authGuard + salonRoleGuard(OWNER)
+/salons/:salonId/share                                    authGuard + salonRoleGuard(OWNER,ADMIN)
+/salons/:salonId/delete                                   authGuard + salonRoleGuard(OWNER)
+/salons/:salonId/media                                    authGuard + salonRoleGuard(OWNER,ADMIN,STAFF)
+/salons/:salonId/closures                                 authGuard + salonRoleGuard(OWNER,ADMIN)
+/salons/:salonId/services                                 authGuard + salonRoleGuard(OWNER,ADMIN,STAFF)
+/salons/:salonId/services/new                             authGuard + salonRoleGuard(OWNER,ADMIN)
+/salons/:salonId/services/:serviceId/edit                 authGuard + salonRoleGuard(OWNER,ADMIN)
+/salons/:salonId/staff                                    authGuard + salonRoleGuard(OWNER,ADMIN,STAFF)
+/salons/:salonId/staff/invite                             authGuard + salonRoleGuard(OWNER,ADMIN)
+/salons/:salonId/staff/:staffId                           authGuard + salonRoleGuard(OWNER,ADMIN,STAFF)
+/salons/:salonId/staff/:staffId/media                     authGuard + salonRoleGuard(OWNER,ADMIN)
+/salons/:salonId/staff/:staffId/services                  authGuard + salonRoleGuard(OWNER,ADMIN,STAFF)
+/salons/:salonId/staff/:staffId/schedules                 authGuard + salonRoleGuard(OWNER,ADMIN)
+/salons/:salonId/staff/:staffId/closures                  authGuard + salonRoleGuard(OWNER,ADMIN)
+/salons/:salonId/queues/:queueId/console                  authGuard + salonRoleGuard(OWNER,ADMIN,STAFF)
+  └── ''      → CurrentClientComponent
+  └── queue   → QueueListComponent
 
-/s/:slug                                       authGuard (MVP — guard removed when public access ships)
-/s/:slug/q/:queueId                            authGuard (MVP — same)
+/s/:slug                                                  authGuard (MVP)
+  └── ''                  → SalonLandingComponent
+  └── q/:queueId          → LiveQueueComponent
+  └── q/:queueId/join     → JoinQueueComponent
+  └── q/:queueId/position → MyPositionComponent
 ```
 
 ---
@@ -577,6 +632,7 @@ Both routes load the same `SalonVisitComponent`. The component manages all scree
 - **Never duplicate UI logic.** Specifically:
   - **`ConfirmDialogService`** — the single way to confirm a destructive action. Returns `Observable<boolean>`.
   - **`ToastService`** — `toast.success()` / `toast.error()` / `toast.info()`. No component owns its own toast markup.
+  - **`ConnectionBannerComponent`** (`shared/components/connection-banner/`) — shown at the top of both the barber console shell and the customer visit shell. Reads `QueueSocketService.connectionState$`; shows a yellow "reconnecting" banner when the socket drops. No manual browser-online check needed — socket.io reconnect events are the source of truth.
 
 ### Angular
 - Standalone components (default — never set the flag); `input()` / `output()` functions; `inject()`, not constructor injection.

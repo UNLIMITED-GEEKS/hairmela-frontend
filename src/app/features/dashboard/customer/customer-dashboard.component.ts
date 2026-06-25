@@ -1,17 +1,11 @@
-import { Component, inject } from '@angular/core';
-import { Router } from '@angular/router';
-import { NoSalonsEmptyStateComponent } from '../shared/no-salons-empty-state/no-salons-empty-state.component';
-import { PendingInvitesComponent } from '../salon/pending-invites/pending-invites.component';
+import { Component, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-customer-dashboard',
   templateUrl: './customer-dashboard.component.html',
-  imports: [NoSalonsEmptyStateComponent, PendingInvitesComponent],
+  imports: [RouterLink],
 })
 export class CustomerDashboardComponent {
-  private readonly _router = inject(Router);
-
-  protected navigateToCreateSalon(): void {
-    this._router.navigate(['/salons/new']);
-  }
+  readonly firstName = input<string>('');
 }

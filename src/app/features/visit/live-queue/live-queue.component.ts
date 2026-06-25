@@ -22,8 +22,12 @@ export class LiveQueueComponent implements OnInit {
     return this._route.snapshot.paramMap.get('queueId') ?? '';
   }
 
+  private get _shellPrefix(): string {
+    return this._route.snapshot.data['shellPrefix'] ?? '';
+  }
+
   protected get positionUrl(): string {
-    return `/s/${this._slug}/q/${this._queueId}/position`;
+    return `${this._shellPrefix}/s/${this._slug}/q/${this._queueId}/position`;
   }
 
   ngOnInit(): void {
@@ -31,6 +35,8 @@ export class LiveQueueComponent implements OnInit {
   }
 
   protected leaveQueue(): void {
-    this.visit.leaveQueue(() => this._router.navigate(['/s', this._slug]));
+    const prefix = this._shellPrefix;
+    const segments = prefix ? [prefix, 's', this._slug] : ['s', this._slug];
+    this.visit.leaveQueue(() => this._router.navigate(segments));
   }
 }

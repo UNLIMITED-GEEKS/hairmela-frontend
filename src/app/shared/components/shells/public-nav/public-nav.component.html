@@ -1,0 +1,106 @@
+<header class="fixed top-0 inset-x-0 z-50 flex justify-center pt-4 px-5">
+
+  <!-- Desktop: pill nav -->
+  <div class="hidden md:grid grid-cols-3 items-center w-full max-w-5xl h-14 px-6 rounded-2xl bg-white/70 backdrop-blur-md border border-border shadow-sm">
+    <!-- Left: Logo -->
+    <a routerLink="/" class="flex items-center gap-2">
+      <img src="/fav.jpeg" alt="HairMela" class="w-7 h-7 rounded-lg object-cover shrink-0" />
+      <span class="text-base font-bold text-primary">HairMela</span>
+    </a>
+
+    <!-- Center: Links -->
+    <div class="flex items-center justify-center gap-8">
+      @for (item of centerItems(); track item.label) {
+        @if (item.url) {
+          <a
+            [routerLink]="item.url"
+            routerLinkActive="text-primary"
+            class="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors whitespace-nowrap">
+            {{ item.label }}
+          </a>
+        }
+      }
+    </div>
+
+    <!-- Right: Sign In + Sign Up -->
+    <div class="flex items-center justify-end gap-2">
+      @if (authItem(); as auth) {
+        <a
+          [routerLink]="auth.url"
+          class="min-h-9 px-5 flex items-center rounded-full border border-border text-text-primary text-sm font-semibold hover:bg-surface-overlay transition-colors whitespace-nowrap">
+          {{ auth.label }}
+        </a>
+      }
+      @if (ctaItem(); as cta) {
+        <a
+          [routerLink]="cta.url"
+          class="min-h-9 px-5 flex items-center rounded-full bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors whitespace-nowrap">
+          {{ cta.label }}
+        </a>
+      }
+    </div>
+  </div>
+
+  <!-- Mobile: expandable pill -->
+  <div class="flex md:hidden flex-col w-full rounded-2xl bg-white/80 backdrop-blur-md border border-border shadow-sm overflow-hidden">
+    <!-- Top bar row -->
+    <div class="flex items-center justify-between h-12 px-4">
+      <a routerLink="/" class="flex items-center gap-2">
+      <img src="/fav.jpeg" alt="HairMela" class="w-7 h-7 rounded-lg object-cover shrink-0" />
+      <span class="text-base font-bold text-primary">HairMela</span>
+    </a>
+
+      <button
+        (click)="sheetToggle.emit()"
+        [attr.aria-expanded]="sheetOpen()"
+        aria-label="Open navigation menu"
+        class="min-w-11 min-h-11 flex items-center justify-center text-text-secondary hover:text-primary transition-colors">
+        @if (sheetOpen()) {
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        } @else {
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        }
+      </button>
+    </div>
+
+    <!-- Expandable links — always in DOM, animated via max-height -->
+    <div class="mobile-nav-links" [class.open]="sheetOpen()">
+      <nav class="border-t border-border px-3 pb-3 pt-1 flex flex-col gap-1" aria-label="Mobile navigation">
+        @for (item of centerItems(); track item.label) {
+          @if (item.url) {
+            <a
+              [routerLink]="item.url"
+              (click)="sheetToggle.emit()"
+              class="flex items-center px-3 min-h-11 rounded-xl text-sm font-medium text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors">
+              {{ item.label }}
+            </a>
+          }
+        }
+
+        <div class="flex flex-col gap-2 pt-2">
+          @if (authItem(); as auth) {
+            <a
+              [routerLink]="auth.url"
+              (click)="sheetToggle.emit()"
+              class="w-full min-h-11 flex items-center justify-center rounded-xl border border-border text-sm font-semibold text-text-primary hover:bg-surface-overlay transition-colors">
+              {{ auth.label }}
+            </a>
+          }
+          @if (ctaItem(); as cta) {
+            <a
+              [routerLink]="cta.url"
+              (click)="sheetToggle.emit()"
+              class="w-full min-h-11 flex items-center justify-center rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors">
+              {{ cta.label }}
+            </a>
+          }
+        </div>
+      </nav>
+    </div>
+  </div>
+
+</header>

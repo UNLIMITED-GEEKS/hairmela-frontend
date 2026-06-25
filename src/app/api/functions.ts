@@ -47,6 +47,8 @@ export type { SalonsControllerUpdateSettings$Params as SalonsControllerUpdateSet
 export { salonsControllerUpdateSettings as salonsControllerUpdateSettings } from './fn/salons/salons-controller-update-settings';
 export type { SalonsControllerUpdateSlug$Params as SalonsControllerUpdateSlug$Params } from './fn/salons/salons-controller-update-slug';
 export { salonsControllerUpdateSlug as salonsControllerUpdateSlug } from './fn/salons/salons-controller-update-slug';
+export type { SalonMembershipControllerGetMyMembership$Params as SalonMembershipControllerGetMyMembership$Params } from './fn/staff/salon-membership-controller-get-my-membership';
+export { salonMembershipControllerGetMyMembership as salonMembershipControllerGetMyMembership } from './fn/staff/salon-membership-controller-get-my-membership';
 export type { StaffControllerFindAll$Params as StaffControllerFindAll$Params } from './fn/staff/staff-controller-find-all';
 export { staffControllerFindAll as staffControllerFindAll } from './fn/staff/staff-controller-find-all';
 export type { StaffControllerInvite$Params as StaffControllerInvite$Params } from './fn/staff/staff-controller-invite';
@@ -63,8 +65,6 @@ export type { StaffInviteControllerAccept$Params as StaffInviteControllerAccept$
 export { staffInviteControllerAccept as staffInviteControllerAccept } from './fn/staff/staff-invite-controller-accept';
 export type { StaffInviteControllerDecline$Params as StaffInviteControllerDecline$Params } from './fn/staff/staff-invite-controller-decline';
 export { staffInviteControllerDecline as staffInviteControllerDecline } from './fn/staff/staff-invite-controller-decline';
-export type { SalonMembershipControllerGetMyMembership$Params as SalonMembershipControllerGetMyMembership$Params } from './fn/staff/salon-membership-controller-get-my-membership';
-export { salonMembershipControllerGetMyMembership as salonMembershipControllerGetMyMembership } from './fn/staff/salon-membership-controller-get-my-membership';
 export type { MyInvitesControllerGetMyInvites$Params as MyInvitesControllerGetMyInvites$Params } from './fn/staff/my-invites-controller-get-my-invites';
 export { myInvitesControllerGetMyInvites as myInvitesControllerGetMyInvites } from './fn/staff/my-invites-controller-get-my-invites';
 export type { PublicMediaControllerGetSalonMedia$Params as PublicMediaControllerGetSalonMedia$Params } from './fn/media/public-media-controller-get-salon-media';
@@ -117,6 +117,10 @@ export type { SalonClosuresControllerDelete$Params as SalonClosuresControllerDel
 export { salonClosuresControllerDelete as salonClosuresControllerDelete } from './fn/schedules/salon-closures-controller-delete';
 export type { AvailabilityControllerGetSlots$Params as AvailabilityControllerGetSlots$Params } from './fn/schedules/availability-controller-get-slots';
 export { availabilityControllerGetSlots as availabilityControllerGetSlots } from './fn/schedules/availability-controller-get-slots';
+export type { MyEntriesControllerGetMyEntries$Params as MyEntriesControllerGetMyEntries$Params } from './fn/queues/my-entries-controller-get-my-entries';
+export { myEntriesControllerGetMyEntries as myEntriesControllerGetMyEntries } from './fn/queues/my-entries-controller-get-my-entries';
+export type { GuestEntriesControllerGetGuestEntries$Params as GuestEntriesControllerGetGuestEntries$Params } from './fn/queues/guest-entries-controller-get-guest-entries';
+export { guestEntriesControllerGetGuestEntries as guestEntriesControllerGetGuestEntries } from './fn/queues/guest-entries-controller-get-guest-entries';
 export type { PublicQueueControllerGetQueue$Params as PublicQueueControllerGetQueue$Params } from './fn/queues/public-queue-controller-get-queue';
 export { publicQueueControllerGetQueue as publicQueueControllerGetQueue } from './fn/queues/public-queue-controller-get-queue';
 export type { PublicQueueControllerGetTimeline$Params as PublicQueueControllerGetTimeline$Params } from './fn/queues/public-queue-controller-get-timeline';

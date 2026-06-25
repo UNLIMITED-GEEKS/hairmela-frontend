@@ -1,0 +1,52 @@
+<div class="py-6 px-4">
+
+  <h1 class="text-lg font-bold text-text-primary mb-4">My Visits</h1>
+
+  @if (loading()) {
+    <div class="space-y-3">
+      @for (_ of [1,2,3]; track $index) {
+        <div class="h-20 rounded-2xl skeleton-pulse"></div>
+      }
+    </div>
+  } @else if (entries().length === 0) {
+    <div class="flex flex-col items-center justify-center py-20 text-center">
+      <svg class="w-14 h-14 text-gray-200 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.48-.634-2.07M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.768.231-1.48.634-2.07m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+      </svg>
+      <p class="text-sm font-semibold text-text-secondary mb-1">No active queues</p>
+      <p class="text-xs text-text-disabled">Find a salon and join a queue to get started</p>
+    </div>
+  } @else {
+    <div class="space-y-3" aria-live="polite">
+      @for (entry of entries(); track entry.id) {
+        <button
+          (click)="goToPosition(entry)"
+          class="w-full flex items-center gap-4 bg-white border border-border rounded-2xl px-4 py-4 text-left hover:border-primary/30 hover:shadow-card transition-all min-h-[72px]">
+          <!-- Status dot -->
+          <span class="shrink-0 w-3 h-3 rounded-full"
+            [class]="entry.status === 'WAITING' ? 'bg-warning' : entry.status === 'SERVING' ? 'bg-success' : 'bg-gray-300'">
+          </span>
+
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-text-primary truncate">{{ salonName(entry) }}</p>
+            <p class="text-xs text-text-secondary mt-0.5">
+              {{ leaderName(entry) }}
+              @if (partyCount(entry) > 1) {
+                <span> + {{ partyCount(entry) - 1 }} {{ partyCount(entry) - 1 === 1 ? 'other' : 'others' }}</span>
+              }
+            </p>
+          </div>
+
+          <span class="shrink-0 text-xs font-medium text-text-secondary capitalize">
+            {{ entry.status.toLowerCase() }}
+          </span>
+
+          <svg class="shrink-0 w-4 h-4 text-text-disabled" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </button>
+      }
+    </div>
+  }
+</div>

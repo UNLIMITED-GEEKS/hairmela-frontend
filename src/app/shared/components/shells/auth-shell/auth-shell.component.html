@@ -1,0 +1,44 @@
+<div class="flex h-screen w-full overflow-hidden bg-surface-raised">
+
+  <!-- Desktop sidebar -->
+  <app-sidebar
+    [navItems]="navItems"
+    [activeSalonId]="activeSalonId()"
+    [membership]="membership()"
+    (logoutClick)="logout()" />
+
+  <div class="flex flex-col flex-1 min-w-0 overflow-hidden">
+
+    <!-- Desktop top bar -->
+    <app-top-bar
+      [showUserAvatar]="true"
+      [salons]="salons()"
+      [activeSalonId]="activeSalonId()" />
+
+    <!-- Mobile top bar + expandable sheet -->
+    <app-mobile-top-bar
+      [sheetOpen]="sheetOpen()"
+      [salons]="salons()"
+      [activeSalonId]="activeSalonId()"
+      (sheetToggle)="sheetOpen.update(v => !v)">
+      <app-mobile-sheet
+        [navItems]="navItems"
+        [open]="sheetOpen()"
+        [activeSalonId]="activeSalonId()"
+        [membership]="membership()"
+        (closed)="sheetOpen.set(false)" />
+    </app-mobile-top-bar>
+
+    <!-- Content -->
+    <main class="flex-1 overflow-y-auto pt-8 md:pt-0 pb-12 md:pb-0">
+      <div class="w-[95%] mx-auto py-6">
+        <router-outlet />
+      </div>
+    </main>
+
+    <!-- Mobile bottom nav -->
+    <app-bottom-nav [navItems]="navItems" />
+  </div>
+
+</div>
+

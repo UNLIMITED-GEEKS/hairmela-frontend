@@ -1,15 +1,27 @@
-<div class="min-h-dvh bg-gray-50 px-4 py-8">
-  <div class="max-w-lg mx-auto space-y-6">
-    <div>
-      <h1 class="text-xl font-semibold text-gray-900 mb-2">Welcome</h1>
-      <p class="text-sm text-gray-500">Find a salon and join a queue to get started.</p>
-    </div>
+<div class="space-y-6">
 
-    <app-pending-invites />
-
-    <app-no-salons-empty-state
-      message="You haven't joined any salons yet."
-      ctaLabel="Create a salon"
-      (ctaClick)="navigateToCreateSalon()" />
+  <!-- Greeting -->
+  <div>
+    <h1 class="text-2xl font-bold text-text-primary">Hi, {{ firstName() }} 👋</h1>
+    <p class="text-sm text-text-secondary mt-0.5">Welcome to HairMela</p>
   </div>
+
+  <!-- CTA -->
+  <div class="rounded-2xl border border-dashed border-border bg-white px-6 py-10 text-center">
+    <p class="text-sm font-semibold text-text-primary mb-1">Find a salon</p>
+    <p class="text-xs text-text-secondary">Use a salon's link or QR code to join their queue</p>
+  </div>
+
+  <!-- Create salon -->
+  <a routerLink="/salons/new"
+    class="flex items-center justify-between w-full bg-white border border-border rounded-2xl px-5 py-4 hover:bg-surface-overlay transition-colors">
+    <div>
+      <p class="text-sm font-semibold text-text-primary">Create a salon</p>
+      <p class="text-xs text-text-secondary mt-0.5">Set up your salon, staff, and services</p>
+    </div>
+    <svg class="w-4 h-4 text-text-secondary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    </svg>
+  </a>
+
 </div>
