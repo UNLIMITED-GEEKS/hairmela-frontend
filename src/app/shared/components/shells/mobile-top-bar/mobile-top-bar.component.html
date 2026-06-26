@@ -4,18 +4,24 @@
     <!-- Bar row -->
     <div class="flex items-center h-12 px-3 gap-2">
 
-      <!-- Salon switcher or logo -->
+      <!-- Logo (always visible) -->
+      <a routerLink="/" class="flex items-center gap-2 px-1 shrink-0">
+        <img src="/fav.jpeg" alt="HairMela" class="w-6 h-6 rounded-md object-cover shrink-0" />
+        <span class="text-base font-bold text-primary">HairMela</span>
+      </a>
+
+      <!-- Salon switcher (shown when salons are available) -->
       @if (activeSalon(); as salon) {
-        <div class="relative flex-1">
+        <div class="relative flex-1 flex justify-end">
           <button
             (click)="toggleDropdown()"
             [attr.aria-expanded]="dropdownOpen()"
-            class="w-full flex items-center gap-1.5 min-h-10 rounded-xl px-2 hover:bg-surface-overlay transition-colors text-left overflow-hidden">
+            class="flex items-center gap-1.5 min-h-10 rounded-xl px-2 hover:bg-surface-overlay transition-colors text-left overflow-hidden max-w-40">
             <div class="flex flex-col min-w-0">
               <span class="text-[10px] text-text-secondary leading-none">Salon</span>
               <span class="text-sm font-bold text-text-primary truncate leading-tight">{{ salon.salon.name }}</span>
             </div>
-            <svg class="w-4 h-4 text-text-secondary shrink-0 ml-auto transition-transform duration-200"
+            <svg class="w-4 h-4 text-text-secondary shrink-0 transition-transform duration-200"
               [class.rotate-180]="dropdownOpen()"
               fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -25,7 +31,7 @@
           <!-- Dropdown -->
           @if (dropdownOpen()) {
             <div class="fixed inset-0 z-10" (click)="closeDropdown()" aria-hidden="true"></div>
-            <ul class="absolute left-0 top-full mt-1 z-20 min-w-45 bg-white border border-border rounded-2xl shadow-lg py-1 overflow-hidden">
+            <ul class="absolute right-0 top-full mt-1 z-20 min-w-45 bg-white border border-border rounded-2xl shadow-lg py-1 overflow-hidden">
               @for (item of salons(); track item.salon.id) {
                 <li>
                   <button
@@ -49,11 +55,6 @@
             </ul>
           }
         </div>
-      } @else {
-        <a routerLink="/" class="flex items-center gap-2 flex-1 px-1">
-          <img src="/fav.jpeg" alt="HairMela" class="w-6 h-6 rounded-md object-cover shrink-0" />
-          <span class="text-base font-bold text-primary">HairMela</span>
-        </a>
       }
 
       <!-- Hamburger -->

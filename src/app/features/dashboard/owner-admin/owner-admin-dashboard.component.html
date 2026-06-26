@@ -43,8 +43,13 @@
       <span class="text-sm font-semibold text-text-primary">Settings</span>
       <span class="text-xs text-text-secondary">Hours & preferences</span>
     </a>
-    <a [routerLink]="['/salons', salon().salon.id, 'share']"
+    <a [routerLink]="['/salons', salon().salon.id, 'analytics']"
       class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+      <span class="text-sm font-semibold text-text-primary">Analytics</span>
+      <span class="text-xs text-text-secondary">Queue insights</span>
+    </a>
+    <a [routerLink]="['/salons', salon().salon.id, 'share']"
+      class="col-span-2 flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
       <span class="text-sm font-semibold text-text-primary">Share</span>
       <span class="text-xs text-text-secondary">QR code & link</span>
     </a>
