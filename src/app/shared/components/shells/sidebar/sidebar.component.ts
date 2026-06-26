@@ -15,11 +15,11 @@ const COLLAPSED_KEY = 'hm_sidebar_collapsed';
 export const CONTROL_ITEMS: ControlItem[] = [
   { label: 'Staff',      url: 'staff',     roles: [SalonRole.OWNER, SalonRole.ADMIN] },
   { label: 'Services',   url: 'services',  roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
-  { label: 'Closures',   url: 'closures',  roles: [SalonRole.OWNER, SalonRole.ADMIN] },
+  { label: 'Closures',   url: 'closures',  roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
   { label: 'Photos',     url: 'media',     roles: [SalonRole.OWNER, SalonRole.ADMIN] },
   { label: 'Settings',   url: 'settings',   roles: [SalonRole.OWNER, SalonRole.ADMIN] },
   { label: 'Analytics',  url: 'analytics', roles: [SalonRole.OWNER, SalonRole.ADMIN] },
-  { label: 'Share / QR', url: 'share',     roles: [SalonRole.OWNER, SalonRole.ADMIN] },
+  { label: 'Share / QR', url: 'share',     roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
 ];
 
 @Component({

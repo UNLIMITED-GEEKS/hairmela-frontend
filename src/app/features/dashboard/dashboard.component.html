@@ -4,6 +4,7 @@
   </div>
 } @else {
   <div class="py-6 px-4">
+    <app-pending-invites />
     @if (isCustomer()) {
       <app-customer-dashboard [firstName]="user()?.firstName ?? ''" />
     } @else if (activeSalon(); as salon) {

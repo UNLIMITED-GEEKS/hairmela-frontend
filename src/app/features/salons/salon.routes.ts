@@ -25,7 +25,7 @@ export const salonRoutes: Routes = [
   {
     path: 'share',
     canActivate: [salonRoleGuard],
-    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
+    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     loadComponent: () =>
       import('./salon-share/salon-share.component').then((m) => m.SalonShareComponent),
   },
@@ -53,7 +53,7 @@ export const salonRoutes: Routes = [
   {
     path: 'closures',
     canActivate: [salonRoleGuard],
-    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
+    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     loadChildren: () =>
       import('../../features/closures/closures.routes').then((m) => m.closuresRoutes),
   },

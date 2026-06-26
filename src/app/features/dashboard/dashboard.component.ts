@@ -8,6 +8,7 @@ import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.com
 import { OwnerAdminDashboardComponent } from './owner-admin/owner-admin-dashboard.component';
 import { StaffDashboardComponent } from './staff/staff-dashboard.component';
 import { CustomerDashboardComponent } from './customer/customer-dashboard.component';
+import { PendingInvitesComponent } from './salon/pending-invites/pending-invites.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -17,6 +18,7 @@ import { CustomerDashboardComponent } from './customer/customer-dashboard.compon
     OwnerAdminDashboardComponent,
     StaffDashboardComponent,
     CustomerDashboardComponent,
+    PendingInvitesComponent,
   ],
 })
 export class DashboardComponent implements OnInit {
