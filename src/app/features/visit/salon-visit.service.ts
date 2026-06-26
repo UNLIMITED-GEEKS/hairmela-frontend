@@ -409,6 +409,29 @@ export class SalonVisitService {
                 },
                 error: () => { this.timeline.set(entries); this.timelineLoaded.set(true); },
               });
+          } else if (this._guestStore.hasToken()) {
+            // Guest with no stored entry — fetch guest-entries to recover entryId
+            this._guestHttp.getGuestEntries()
+              .pipe(takeUntilDestroyed(this._destroyRef))
+              .subscribe({
+                next: (guestEntries) => {
+                  const mine = guestEntries.find((e) => e.queueId === queueId);
+                  if (mine) {
+                    const salon = this.salon();
+                    const recovered: ActiveEntry = {
+                      queueId,
+                      entryId: mine.id,
+                      salonId: salon?.id ?? '',
+                      salonSlug: salon?.slug ?? '',
+                    };
+                    this._activeEntryStore.save(recovered);
+                    this.activeEntry.set(recovered);
+                  }
+                  this.timeline.set(entries);
+                  this.timelineLoaded.set(true);
+                },
+                error: () => { this.timeline.set(entries); this.timelineLoaded.set(true); },
+              });
           } else {
             this.timeline.set(entries);
             this.timelineLoaded.set(true);
