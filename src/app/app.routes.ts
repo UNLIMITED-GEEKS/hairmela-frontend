@@ -4,6 +4,7 @@ import { guestGuard } from './core/guards/guest.guard';
 import { guestShellGuard } from './core/guards/guest-shell.guard';
 import { salonRoleGuard } from './core/guards/salon-role.guard';
 import { orgOwnerGuard } from './core/guards/org-owner.guard';
+import { canCreateSalonGuard } from './core/guards/can-create-salon.guard';
 import { SalonRole } from './core/salon-context/membership.types';
 
 export const routes: Routes = [
@@ -105,6 +106,7 @@ export const routes: Routes = [
       },
       {
         path: 'salons/new',
+        canActivate: [canCreateSalonGuard],
         loadComponent: () =>
           import('./features/salons/create-salon/create-salon.component').then((m) => m.CreateSalonComponent),
       },

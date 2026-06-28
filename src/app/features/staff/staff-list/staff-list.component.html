@@ -8,7 +8,7 @@
         [routerLink]="['invite']"
         class="min-h-11 px-4 py-2.5 bg-primary text-white text-sm font-medium rounded-lg
                hover:bg-primary-dark active:scale-95 transition-all">
-        Invite
+        Add Staff
       </a>
     </div>
 
@@ -16,7 +16,7 @@
       <app-skeleton variant="list-item" [count]="5" />
     } @else if (staffList().length === 0) {
       <div class="text-center py-16">
-        <p class="text-sm text-gray-500">No staff yet. Invite someone to get started.</p>
+        <p class="text-sm text-gray-500">No staff yet. add someone to get started.</p>
       </div>
     } @else {
       <div class="space-y-2 ">

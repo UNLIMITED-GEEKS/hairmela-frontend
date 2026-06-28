@@ -4,7 +4,14 @@ import { SalonRole } from '../../core/salon-context/membership.types';
 
 export const staffRoutes: Routes = [
   {
+    // FIXME: blocking the staff list for STAFF removes their only UI path to
+    // their own service-assignment page (list -> my detail -> services). STAFF
+    // are meant to manage their own services (see CLAUDE.md); add a direct path
+    // (e.g. dashboard "My Services" -> /staff/:myStaffId/services) before relying
+    // on this. The :staffId/services route still allows STAFF — only the link is gone.
     path: '',
+    canActivate: [salonRoleGuard],
+    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
     loadComponent: () =>
       import('./staff-list/staff-list.component').then((m) => m.StaffListComponent),
   },

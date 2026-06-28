@@ -1,4 +1,4 @@
-<div class="h-[calc(100dvh-3rem)] bg-white flex flex-col">
+<div class="h-mobile-content bg-white flex flex-col">
   <div class="max-w-md mx-auto w-full flex flex-col h-full">
 
     <!-- Header: barber avatar + name + badge -->
@@ -40,7 +40,12 @@
         @let isMe = entry.entryId === visit.activeEntry()?.entryId;
         @if (isMe) {
           <div class="flex items-center justify-between bg-success-light border-2 border-success/30 rounded-2xl px-4 py-3 min-h-14">
-            <span class="text-sm font-bold text-success">Me</span>
+            <span class="text-sm font-bold text-success">
+              Me
+              @if (entry.members.length > 1) {
+                <span class="text-xs font-medium text-success/70"> +{{ entry.members.length - 1 }} {{ entry.members.length - 1 === 1 ? 'kid' : 'kids' }}</span>
+              }
+            </span>
             @if (isServing) {
               <span class="text-sm font-bold text-success" aria-live="polite">Serving</span>
             } @else {
@@ -49,7 +54,12 @@
           </div>
         } @else {
           <div class="flex items-center justify-between bg-white border border-warning/30 rounded-2xl px-4 py-3 min-h-14">
-            <span class="text-sm text-gray-700">Client {{ i + 1 }}</span>
+            <span class="text-sm text-gray-700">
+              Client {{ i + 1 }}
+              @if (entry.members.length > 1) {
+                <span class="text-xs text-gray-500"> +{{ entry.members.length - 1 }} {{ entry.members.length - 1 === 1 ? 'kid' : 'kids' }}</span>
+              }
+            </span>
             @if (isServing) {
               <span class="text-sm font-bold text-success" aria-live="polite">Serving</span>
             } @else {
