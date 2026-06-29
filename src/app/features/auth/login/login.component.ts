@@ -4,10 +4,11 @@ import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ErrorCodes } from '../../../core/errors/error-codes';
 import { isApiError } from '../../../core/errors/api-error.types';
+import { PasswordToggleDirective } from '../../../shared/directives/password-toggle.directive';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, PasswordToggleDirective],
   templateUrl: './login.component.html',
 })
 export class LoginComponent {
@@ -18,6 +19,10 @@ export class LoginComponent {
 
   protected readonly justRegistered = signal(
     this._route.snapshot.queryParamMap.get('registered') === '1',
+  );
+
+  protected readonly justReset = signal(
+    this._route.snapshot.queryParamMap.get('reset') === '1',
   );
 
   protected readonly returnUrl = this._route.snapshot.queryParamMap.get('returnUrl');

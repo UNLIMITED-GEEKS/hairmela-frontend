@@ -79,6 +79,22 @@
           </a>
         }
 
+        <!-- Leave salon — any member can leave themselves -->
+        @if (activeSalonId()) {
+          <a
+            [routerLink]="['/salons', activeSalonId(), 'leave']"
+            routerLinkActive="bg-red-50 text-red-600"
+            class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors min-h-11"
+            [title]="collapsed() ? 'Leave salon' : ''">
+            <span class="w-5 h-5 shrink-0 flex items-center justify-center">
+              <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
+            </span>
+            @if (!collapsed()) {
+              <span class="truncate">Leave salon</span>
+            }
+          </a>
+        }
+
         <!-- Delete salon — owner only, destructive -->
         @if (isOwner() && activeSalonId()) {
           <a

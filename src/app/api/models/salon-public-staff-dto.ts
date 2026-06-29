@@ -6,6 +6,7 @@ export interface SalonPublicStaffDto {
   lastName: string;
   photoUrl: string | null;
   queueId: string | null;
+  queueStatus: ('OPEN' | 'PAUSED' | 'CLOSED') | null;
   serviceIds: Array<string>;
   staffId: string;
   userId: string;

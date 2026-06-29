@@ -1,6 +1,7 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { TokenStore } from '../auth/token.store';
+import { GuestStore } from '../guest/guest-store';
 import { environment } from '../../../environments/environment';
 
 const SKIP_AUTH_PATHS = [
@@ -9,8 +10,18 @@ const SKIP_AUTH_PATHS = [
   '/v1/auth/refresh',
 ];
 
+// Routes where an anonymous caller is identified by a stored guest token (the
+// backend's FlexAuthGuard accepts it). Scoped narrowly so a guest token is
+// never sent to genuinely-protected endpoints.
+const GUEST_TOKEN_PATHS = [
+  '/walk-in',
+  '/queues/guest-entries',
+  '/queues/my-entries',
+];
+
 export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   const tokenStore = inject(TokenStore);
+  const guestStore = inject(GuestStore);
 
   const isApiRequest = req.url.startsWith(environment.apiBaseUrl);
   const isSkipped = SKIP_AUTH_PATHS.some((path) => req.url.includes(path));
@@ -19,10 +30,18 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req);
   }
 
+  // User JWT always wins.
   const token = tokenStore.getAccessToken();
-  if (!token) {
-    return next(req);
+  if (token) {
+    return next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }));
   }
 
-  return next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }));
+  // No user session: fall back to the guest token on guest-eligible routes only.
+  const isGuestRoute = GUEST_TOKEN_PATHS.some((path) => req.url.includes(path));
+  const guestToken = guestStore.getToken();
+  if (isGuestRoute && guestToken) {
+    return next(req.clone({ setHeaders: { Authorization: `Bearer ${guestToken}` } }));
+  }
+
+  return next(req);
 };

@@ -1,14 +1,12 @@
 import { Injectable, DestroyRef, inject, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
 import { filter, map, switchMap, tap } from 'rxjs';
 import { Router } from '@angular/router';
 import { ApiConfiguration } from '../../api/api-configuration';
 import { QueueSocketService } from '../../core/socket/queue-socket.service';
 import { CurrentUserStore } from '../../core/auth/current-user.store';
 import { GuestStore } from '../../core/guest/guest-store';
-import { GuestHttpService } from '../../core/guest/guest-http.service';
 import { ActiveEntryStore } from '../../core/queue/active-entry.store';
 import { ConfirmDialogService } from '../../shared/components/confirm-dialog/confirm-dialog.service';
 import { ToastService } from '../../core/toast/toast.service';
@@ -26,8 +24,8 @@ import { publicQueueControllerGetTimeline } from '../../api/fn/queues/public-que
 import { publicQueueControllerGetQueue } from '../../api/fn/queues/public-queue-controller-get-queue';
 import { walkInControllerJoinQueue } from '../../api/fn/queues/walk-in-controller-join-queue';
 import { walkInControllerLeaveQueue } from '../../api/fn/queues/walk-in-controller-leave-queue';
-import { walkInControllerAddMembersToEntry } from '../../api/fn/queues/walk-in-controller-add-members-to-entry';
 import { myEntriesControllerGetMyEntries } from '../../api/fn/queues/my-entries-controller-get-my-entries';
+import { guestEntriesControllerGetGuestEntries } from '../../api/fn/queues/guest-entries-controller-get-guest-entries';
 
 import { ActiveEntry } from '../../core/queue/active-entry.store';
 export type { ActiveEntry };
@@ -45,7 +43,6 @@ export class SalonVisitService {
   private readonly _router = inject(Router);
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _guestStore = inject(GuestStore);
-  private readonly _guestHttp = inject(GuestHttpService);
   private readonly _activeEntryStore = inject(ActiveEntryStore);
   private readonly _confirmDialog = inject(ConfirmDialogService);
   private readonly _toast = inject(ToastService);
@@ -61,7 +58,9 @@ export class SalonVisitService {
   readonly services = signal<Service[]>([]);
   readonly timeline = signal<TimelineEntryDto[]>([]);
   readonly queueStatus = signal<Queue['status'] | null>(null);
-  readonly activeEntry = signal<ActiveEntry | null>(null);
+  // A customer can hold several entries in one queue (added-while-waiting creates
+  // a new one at the back). Tracked as an array; views address a single entry by id.
+  readonly activeEntries = signal<ActiveEntry[]>([]);
   readonly loading = signal(true);
   readonly timelineLoaded = signal(false);
   readonly joining = signal(false);
@@ -72,11 +71,15 @@ export class SalonVisitService {
   readonly salon = computed(() => this.salonData()?.salon ?? null);
   readonly staffList = computed(() => this.salonData()?.staff ?? []);
 
-  readonly myEntry = computed(() => {
-    const entry = this.activeEntry();
-    if (!entry) return null;
-    return this.timeline().find((e) => e.entryId === entry.entryId) ?? null;
-  });
+  /** The live timeline entry for a specific entryId (the position page's entry). */
+  myEntry(entryId: string): TimelineEntryDto | null {
+    return this.timeline().find((e) => e.entryId === entryId) ?? null;
+  }
+
+  /** True if any of the user's own entries belong to this queue's timeline. */
+  isMine(entryId: string): boolean {
+    return this.activeEntries().some((e) => e.entryId === entryId);
+  }
 
   readonly waitingEntries = computed(() =>
     this.timeline().filter((e) =>
@@ -89,17 +92,9 @@ export class SalonVisitService {
     return settings?.maxPartySize ?? 5;
   });
 
-  readonly isCalled = computed(() => {
-    const entry = this.myEntry();
-    if (!entry) return false;
-    return entry.members.some((m) => m.status === 'SERVING');
-  });
-
-  readonly partyMembers = computed(() => {
-    const entry = this.myEntry();
-    if (!entry) return [];
-    return entry.members;
-  });
+  partyMembers(entryId: string): TimelineEntryDto['members'] {
+    return this.myEntry(entryId)?.members ?? [];
+  }
 
   private readonly _servingMember = computed(() => {
     for (const entry of this.timeline()) {
@@ -169,7 +164,7 @@ export class SalonVisitService {
     this.services.set([]);
     this.timeline.set([]);
     this.queueStatus.set(null);
-    this.activeEntry.set(null);
+    this.activeEntries.set([]);
     this.loading.set(true);
     this.timelineLoaded.set(false);
     this.joining.set(false);
@@ -192,20 +187,7 @@ export class SalonVisitService {
     ).subscribe((entries) => {
       const isFirstMessage = !this._socketInitialReceived.has(queueId);
       this._socketInitialReceived.add(queueId);
-      const existing = this.activeEntry() ?? this._activeEntryStore.getForQueue(queueId) ?? null;
-      if (existing) {
-        const myTimelineEntry = entries.find((e) => e.entryId === existing.entryId);
-        if (myTimelineEntry) {
-          this.activeEntry.set(existing);
-          if (!isFirstMessage && myTimelineEntry.members.some((m) => m.status === 'SERVING')) {
-            this.calledVisible.set(true);
-            setTimeout(() => this.calledVisible.set(false), 5000);
-          }
-        } else {
-          this._activeEntryStore.remove(queueId);
-          this.activeEntry.set(null);
-        }
-      }
+      this._reconcileEntries(queueId, entries, isFirstMessage);
       this.timeline.set(entries);
       this.timelineLoaded.set(true);
     });
@@ -218,13 +200,17 @@ export class SalonVisitService {
       this._router.navigate(['/register'], { queryParams: { returnUrl: `/s/${slug}` } });
       return;
     }
-    const alreadyInQueue = this._activeEntryStore.getForQueue(staff.queueId!) !== null;
+    const myEntries = this._activeEntryStore.getAllForQueue(staff.queueId!);
     const base = this._shellPrefix ? [this._shellPrefix, 's', slug] : ['s', slug];
-    if (alreadyInQueue) {
-      this._router.navigate([...base, 'q', staff.queueId, 'position']);
-    } else {
-      this._router.navigate([...base, 'q', staff.queueId, 'join']);
+    if (myEntries.length > 0) {
+      // Already in this queue — open the position page for the (earliest) entry,
+      // even if the salon is now closed (they may still be waiting).
+      this._router.navigate([...base, 'q', staff.queueId, 'e', myEntries[0].entryId, 'position']);
+      return;
     }
+    // No existing entry — a fresh join is only allowed while the salon is open.
+    if (!this.salonData()?.isOpen) return;
+    this._router.navigate([...base, 'q', staff.queueId, 'join']);
   }
 
   joinQueue(
@@ -232,7 +218,7 @@ export class SalonVisitService {
     queueId: string,
     salonSlug: string,
     body: JoinQueueDto,
-    onSuccess: (guestToken: string | null) => void,
+    onSuccess: (result: { entryId: string; guestToken: string | null }) => void,
   ): void {
     if (this.joining()) return;
     this.joining.set(true);
@@ -241,11 +227,11 @@ export class SalonVisitService {
       .subscribe({
         next: (res) => {
           const entry: ActiveEntry = { queueId, entryId: res.body.entry.id, salonId, salonSlug };
-          this.activeEntry.set(entry);
+          this.activeEntries.update((list) => [...list.filter((e) => e.entryId !== entry.entryId), entry]);
           this._activeEntryStore.save(entry);
           this._loadInitialTimeline(queueId);
           this.joining.set(false);
-          onSuccess(res.body.guestToken ?? null);
+          onSuccess({ entryId: entry.entryId, guestToken: res.body.guestToken ?? null });
         },
         error: (err) => {
           this.joining.set(false);
@@ -258,8 +244,8 @@ export class SalonVisitService {
       });
   }
 
-  leaveQueue(onSuccess: () => void): void {
-    const entry = this.activeEntry();
+  leaveQueue(entryId: string, onSuccess: () => void): void {
+    const entry = this._activeEntryStore.getByEntryId(entryId);
     if (!entry || this.leaving()) return;
     this._confirmDialog.open({
       title: 'Leave queue?',
@@ -269,19 +255,16 @@ export class SalonVisitService {
     }).pipe(
       filter((ok) => ok),
       tap(() => this.leaving.set(true)),
-      // guest and auth use different HTTP clients — FlexAuthGuard on backend accepts both
-      switchMap(() => this._guestStore.hasToken()
-        ? this._guestHttp.leaveQueue(entry.salonId, entry.queueId, entry.entryId)
-        : walkInControllerLeaveQueue(this._http, this._apiConfig.rootUrl, {
-            salonId: entry.salonId, queueId: entry.queueId, entryId: entry.entryId,
-          }),
-      ),
+      // The interceptor attaches the guest token, so one path serves both.
+      switchMap(() => walkInControllerLeaveQueue(this._http, this._apiConfig.rootUrl, {
+        salonId: entry.salonId, queueId: entry.queueId, entryId: entry.entryId,
+      })),
       takeUntilDestroyed(this._destroyRef),
     ).subscribe({
       next: () => {
         this.leaving.set(false);
-        this._activeEntryStore.remove(entry.queueId);
-        this.activeEntry.set(null);
+        this._activeEntryStore.remove(entry.entryId);
+        this.activeEntries.update((list) => list.filter((e) => e.entryId !== entry.entryId));
         this._toast.success('You have left the queue.');
         onSuccess();
       },
@@ -289,37 +272,46 @@ export class SalonVisitService {
     });
   }
 
-  addMembers(members: AddMemberRow[], onSuccess: () => void): void {
-    const entry = this.activeEntry();
+  // "Add someone while waiting" is just another join: it creates a NEW entry at
+  // the back of the line (the leader of the new slot is the first added person).
+  // The interceptor attaches the guest token, so there is no guest/auth fork.
+  addMembers(sourceEntryId: string, members: AddMemberRow[], onSuccess: () => void): void {
+    const entry = this._activeEntryStore.getByEntryId(sourceEntryId);
     const salon = this.salon();
     if (!entry || !salon || this.addingKids()) return;
     const valid = members.filter((k) => k.name?.trim());
     if (valid.length === 0) { onSuccess(); return; }
     this.addingKids.set(true);
-    const body = { members: valid.map((k) => ({ memberName: k.name.trim(), serviceId: k.serviceId || undefined })) };
+    const body: JoinQueueDto = {
+      members: valid.map((k) => ({ memberName: k.name.trim(), serviceId: k.serviceId || undefined })),
+    };
 
-    // guest and auth use different HTTP clients — FlexAuthGuard on backend accepts both
-    const request$: Observable<void> = this._guestStore.hasToken()
-      ? this._guestHttp.addMembers(salon.id, entry.queueId, entry.entryId, body).pipe(map(() => undefined as void))
-      : walkInControllerAddMembersToEntry(this._http, this._apiConfig.rootUrl, {
-          salonId: salon.id, queueId: entry.queueId, entryId: entry.entryId, body,
-        }).pipe(map(() => undefined as void));
-
-    request$.pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
-      next: () => {
-        this.addingKids.set(false);
-        this._loadInitialTimeline(entry.queueId);
-        this._toast.success('Kids added to your queue entry.');
-        onSuccess();
-      },
-      error: (err: unknown) => {
-        this.addingKids.set(false);
-        const apiBody = (err as { error?: unknown })?.error;
-        if (isApiError(apiBody) && apiBody.code === ErrorCodes.PARTY_TOO_LARGE) {
-          this._toast.error('Party size exceeds the maximum allowed.');
-        }
-      },
-    });
+    walkInControllerJoinQueue(this._http, this._apiConfig.rootUrl, { salonId: salon.id, queueId: entry.queueId, body })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: (res) => {
+          const newEntry: ActiveEntry = {
+            queueId: entry.queueId,
+            entryId: res.body.entry.id,
+            salonId: salon.id,
+            salonSlug: entry.salonSlug,
+          };
+          if (res.body.guestToken) this._guestStore.setToken(res.body.guestToken);
+          this._activeEntryStore.save(newEntry);
+          this.activeEntries.update((list) => [...list.filter((e) => e.entryId !== newEntry.entryId), newEntry]);
+          this.addingKids.set(false);
+          this._loadInitialTimeline(entry.queueId);
+          this._toast.success('Added to the back of the line.');
+          onSuccess();
+        },
+        error: (err: unknown) => {
+          this.addingKids.set(false);
+          const apiBody = (err as { error?: unknown })?.error;
+          if (isApiError(apiBody) && apiBody.code === ErrorCodes.PARTY_TOO_LARGE) {
+            this._toast.error('Party size exceeds the maximum allowed.');
+          }
+        },
+      });
   }
 
   staffServices(staff: SalonPublicStaffDto): Service[] {
@@ -339,6 +331,25 @@ export class SalonVisitService {
 
   memberWait(memberId: string): string {
     return this.formatWait(this.memberWaitMinutes().get(memberId) ?? 0);
+  }
+
+  /**
+   * Estimated wait for someone joining now — they go behind everyone currently
+   * waiting, so they wait until the last entry *finishes*: that entry's own wait
+   * plus the duration of its still-pending members.
+   */
+  backOfLineWait(): string {
+    const entries = this.waitingEntries();
+    if (entries.length === 0) return this.formatWait(0);
+    const liveWaits = this.liveWaitMinutes();
+    const last = entries.reduce((a, b) =>
+      (liveWaits.get(b.entryId) ?? 0) >= (liveWaits.get(a.entryId) ?? 0) ? b : a,
+    );
+    const lastWait = liveWaits.get(last.entryId) ?? 0;
+    const lastPending = last.members
+      .filter((m) => m.status === 'WAITING' || m.status === 'SERVING')
+      .reduce((sum, m) => sum + m.serviceDuration, 0);
+    return this.formatWait(lastWait + lastPending);
   }
 
   staffForQueue(queueId: string): SalonPublicStaffDto | null {
@@ -379,65 +390,79 @@ export class SalonVisitService {
       .subscribe({
         next: (res) => {
           const entries = res.body;
-          const existing = this.activeEntry() ?? this._activeEntryStore.getForQueue(queueId) ?? null;
-          if (existing) {
-            const found = entries.find((e) => e.entryId === existing.entryId);
-            this.activeEntry.set(found ? existing : null);
-            if (!found) this._activeEntryStore.remove(queueId);
+          const stored = this._activeEntryStore.getAllForQueue(queueId);
+          if (stored.length > 0) {
+            this._reconcileEntries(queueId, entries, true);
             this.timeline.set(entries);
             this.timelineLoaded.set(true);
-          } else if (this._currentUser.user()) {
-            // Auth user with no stored entry — fetch my-entries to recover entryId
-            myEntriesControllerGetMyEntries(this._http, this._apiConfig.rootUrl)
-              .pipe(takeUntilDestroyed(this._destroyRef))
-              .subscribe({
-                next: (myRes) => {
-                  const mine = myRes.body.find((e) => e.queueId === queueId);
-                  if (mine) {
-                    const salon = this.salon();
-                    const recovered: ActiveEntry = {
-                      queueId,
-                      entryId: mine.id,
-                      salonId: salon?.id ?? '',
-                      salonSlug: salon?.slug ?? '',
-                    };
-                    this._activeEntryStore.save(recovered);
-                    this.activeEntry.set(recovered);
-                  }
-                  this.timeline.set(entries);
-                  this.timelineLoaded.set(true);
-                },
-                error: () => { this.timeline.set(entries); this.timelineLoaded.set(true); },
-              });
-          } else if (this._guestStore.hasToken()) {
-            // Guest with no stored entry — fetch guest-entries to recover entryId
-            this._guestHttp.getGuestEntries()
-              .pipe(takeUntilDestroyed(this._destroyRef))
-              .subscribe({
-                next: (guestEntries) => {
-                  const mine = guestEntries.find((e) => e.queueId === queueId);
-                  if (mine) {
-                    const salon = this.salon();
-                    const recovered: ActiveEntry = {
-                      queueId,
-                      entryId: mine.id,
-                      salonId: salon?.id ?? '',
-                      salonSlug: salon?.slug ?? '',
-                    };
-                    this._activeEntryStore.save(recovered);
-                    this.activeEntry.set(recovered);
-                  }
-                  this.timeline.set(entries);
-                  this.timelineLoaded.set(true);
-                },
-                error: () => { this.timeline.set(entries); this.timelineLoaded.set(true); },
-              });
-          } else {
-            this.timeline.set(entries);
-            this.timelineLoaded.set(true);
+            return;
           }
+          // No stored entries — recover all of the caller's entries for this queue.
+          // my-entries (auth) / guest-entries (guest) both carry the guest token via
+          // the interceptor now, so guest-entries no longer needs the manual client.
+          const recover$ = this._currentUser.user()
+            ? myEntriesControllerGetMyEntries(this._http, this._apiConfig.rootUrl).pipe(map((r) => r.body))
+            : this._guestStore.hasToken()
+              ? guestEntriesControllerGetGuestEntries(this._http, this._apiConfig.rootUrl).pipe(map((r) => r.body))
+              : null;
+          if (!recover$) {
+            this.timeline.set(entries);
+            this.timelineLoaded.set(true);
+            return;
+          }
+          recover$.pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
+            next: (myEntries) => {
+              const salon = this.salon();
+              const recovered = myEntries
+                .filter((e) => e.queueId === queueId)
+                .map((e): ActiveEntry => ({
+                  queueId,
+                  entryId: e.id,
+                  salonId: salon?.id ?? '',
+                  salonSlug: salon?.slug ?? '',
+                }));
+              for (const entry of recovered) this._activeEntryStore.save(entry);
+              if (recovered.length > 0) {
+                this.activeEntries.update((list) => {
+                  const ids = new Set(recovered.map((e) => e.entryId));
+                  return [...list.filter((e) => !ids.has(e.entryId)), ...recovered];
+                });
+              }
+              this.timeline.set(entries);
+              this.timelineLoaded.set(true);
+            },
+            error: () => { this.timeline.set(entries); this.timelineLoaded.set(true); },
+          });
         },
       });
+  }
+
+  /**
+   * Reconciles the caller's stored entries for a queue against the live timeline:
+   * keeps the ones still present, drops the ones that vanished (served/cancelled),
+   * and fires the "you're up" banner when one of the caller's own entries starts
+   * being served. Used by both the socket stream and the REST fallback.
+   */
+  private _reconcileEntries(queueId: string, entries: TimelineEntryDto[], isFirstMessage: boolean): void {
+    const stored = this._activeEntryStore.getAllForQueue(queueId);
+    const live: ActiveEntry[] = [];
+    for (const entry of stored) {
+      const timelineEntry = entries.find((e) => e.entryId === entry.entryId);
+      if (timelineEntry) {
+        live.push(entry);
+        if (!isFirstMessage && timelineEntry.members.some((m) => m.status === 'SERVING')) {
+          this.calledVisible.set(true);
+          setTimeout(() => this.calledVisible.set(false), 5000);
+        }
+      } else {
+        this._activeEntryStore.remove(entry.entryId);
+      }
+    }
+    // Merge this queue's live entries into the cross-queue active list.
+    this.activeEntries.update((list) => {
+      const others = list.filter((e) => e.queueId !== queueId);
+      return [...others, ...live];
+    });
   }
 
   private _startTick(): void {

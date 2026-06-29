@@ -4,6 +4,8 @@
 import { Salon } from '../models/salon';
 import { SalonPublicStaffDto } from '../models/salon-public-staff-dto';
 export interface SalonPublicDto {
+  isOpen: boolean;
+  openState: 'OPEN' | 'CLOSED_HOURS' | 'CLOSED_TODAY';
   salon: Salon;
   staff: Array<SalonPublicStaffDto>;
 }

@@ -67,6 +67,19 @@
           </a>
         }
 
+        @if (activeSalonId()) {
+          <a
+            [routerLink]="['/salons', activeSalonId(), 'leave']"
+            routerLinkActive="bg-red-50 text-red-600"
+            (click)="closed.emit()"
+            class="flex items-center gap-3 px-3 min-h-11 rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors">
+            <span class="w-5 h-5 flex items-center justify-center shrink-0">
+              <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
+            </span>
+            <span class="text-sm font-medium">Leave salon</span>
+          </a>
+        }
+
         @if (isOwner() && activeSalonId()) {
           <a
             [routerLink]="['/salons', activeSalonId(), 'delete']"

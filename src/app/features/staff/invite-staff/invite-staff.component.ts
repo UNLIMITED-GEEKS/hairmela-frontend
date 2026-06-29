@@ -1,10 +1,8 @@
 import { Component, inject } from '@angular/core';
 import { Location } from '@angular/common';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { StaffService } from '../staff.service';
-import { isApiError } from '../../../core/errors/api-error.types';
-import { ErrorCodes } from '../../../core/errors/error-codes';
 
 @Component({
   selector: 'app-invite-staff',
@@ -14,7 +12,6 @@ import { ErrorCodes } from '../../../core/errors/error-codes';
 export class InviteStaffComponent {
   protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
-  private readonly _router = inject(Router);
   private readonly _fb = inject(FormBuilder);
   private readonly _staffService = inject(StaffService);
 

@@ -1,84 +1,53 @@
-import { Injectable } from '@angular/core';
-
-export interface GuestEntry {
-  readonly queueId: string;
-  readonly entryId: string;
-  readonly salonId: string;
-  readonly salonSlug: string;
-}
+import { Injectable, inject } from '@angular/core';
+import { PersistentStore } from '../storage/persistent-store';
 
 interface GuestStoreData {
   readonly token: string;
-  readonly entries: GuestEntry[];
   readonly lastPath: string;
 }
 
 const STORAGE_KEY = 'hairmela_guest';
 
+/**
+ * Holds the anonymous caller's identity (guest token) and last-visited path.
+ * Queue entries are NOT stored here — those live in ActiveEntryStore, the single
+ * owner of entry state for both guests and signed-in users.
+ */
 @Injectable({ providedIn: 'root' })
 export class GuestStore {
-  getStore(): GuestStoreData | null {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? (JSON.parse(raw) as GuestStoreData) : null;
-    } catch {
-      return null;
-    }
-  }
+  private readonly _storage = inject(PersistentStore);
 
   hasToken(): boolean {
     return this.getToken() !== null;
   }
 
   getToken(): string | null {
-    return this.getStore()?.token ?? null;
+    return this._read()?.token ?? null;
   }
 
   setToken(token: string): void {
-    const existing = this.getStore();
-    this._write({
+    const existing = this._read();
+    this._storage.set<GuestStoreData>(STORAGE_KEY, {
       token,
-      entries: existing?.entries ?? [],
       lastPath: existing?.lastPath ?? '/g/queues',
     });
   }
 
-  addEntry(entry: GuestEntry): void {
-    const store = this.getStore();
-    if (!store) return;
-    const filtered = store.entries.filter((e) => e.queueId !== entry.queueId);
-    this._write({ ...store, entries: [...filtered, entry] });
-  }
-
-  removeEntry(queueId: string): void {
-    const store = this.getStore();
-    if (!store) return;
-    this._write({ ...store, entries: store.entries.filter((e) => e.queueId !== queueId) });
-  }
-
-  /** Removes entries whose entryId is no longer in the live list (served/cancelled). */
-  syncEntries(liveEntryIds: string[]): void {
-    const store = this.getStore();
-    if (!store) return;
-    const live = new Set(liveEntryIds);
-    this._write({ ...store, entries: store.entries.filter((e) => live.has(e.entryId)) });
+  getLastPath(): string {
+    return this._read()?.lastPath ?? '/g/queues';
   }
 
   setLastPath(path: string): void {
-    const store = this.getStore();
-    if (!store) return;
-    this._write({ ...store, lastPath: path });
+    const existing = this._read();
+    if (!existing) return;
+    this._storage.set<GuestStoreData>(STORAGE_KEY, { ...existing, lastPath: path });
   }
 
   clear(): void {
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch { /* ignore */ }
+    this._storage.remove(STORAGE_KEY);
   }
 
-  private _write(data: GuestStoreData): void {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch { /* ignore */ }
+  private _read(): GuestStoreData | null {
+    return this._storage.get<GuestStoreData>(STORAGE_KEY);
   }
 }

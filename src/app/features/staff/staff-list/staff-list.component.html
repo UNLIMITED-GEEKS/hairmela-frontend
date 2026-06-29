@@ -60,5 +60,35 @@
       </div>
     }
 
+    <!-- Pending invites (OWNER/ADMIN) -->
+    <div *hasRole="['OWNER', 'ADMIN']">
+      @if (invites().length > 0) {
+        <div class="mt-8">
+          <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Pending invites</h2>
+          <div class="space-y-2">
+            @for (invite of invites(); track invite.staffId) {
+              <div class="bg-white rounded-xl border border-amber-200 p-4 flex items-center gap-3 min-h-16">
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-gray-900 truncate">{{ invite.email }}</p>
+                  <p class="text-xs text-gray-400 truncate">
+                    {{ invite.role | lowercase }} · invited {{ invite.invitedAt | date:'mediumDate' }}
+                    @if (!invite.hasAccount) { · no account yet }
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  (click)="cancelInvite(invite)"
+                  [disabled]="cancelling() !== null"
+                  class="min-h-9 px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg
+                         hover:bg-red-50 disabled:opacity-50 transition-colors shrink-0">
+                  {{ cancelling() === invite.staffId ? '…' : 'Cancel' }}
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
   </div>
 </div>

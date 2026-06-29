@@ -37,7 +37,7 @@
     <div class="flex-1 overflow-y-auto px-5 pb-2 space-y-2" aria-live="polite">
       @for (entry of visit.waitingEntries(); track entry.entryId; let i = $index) {
         @let isServing = entry.members.some(m => m.status === 'SERVING');
-        @let isMe = entry.entryId === visit.activeEntry()?.entryId;
+        @let isMe = visit.isMine(entry.entryId);
         @if (isMe) {
           <div class="flex items-center justify-between bg-success-light border-2 border-success/30 rounded-2xl px-4 py-3 min-h-14">
             <span class="text-sm font-bold text-success">
@@ -78,25 +78,18 @@
     <!-- Fixed bottom bar -->
     <div class="shrink-0 bg-white border-t border-gray-100 px-5 pt-3 safe-area-bottom">
       <div class="flex gap-3">
-        @if (visit.activeEntry()) {
-          <button
-            (click)="leaveQueue()"
-            [disabled]="visit.leaving()"
-            class="flex-1 min-h-[52px] rounded-2xl bg-primary-light border-2 border-primary/30 text-primary font-bold text-sm disabled:opacity-50 hover:bg-primary/10 transition-colors">
-            {{ visit.leaving() ? 'Leaving…' : 'Leave queue' }}
-          </button>
-          <a [routerLink]="positionUrl"
+        @if (hasMyEntries()) {
+          <a [routerLink]="myQueuesUrl"
             class="flex-1 min-h-[52px] rounded-2xl border-2 border-warning/40 bg-warning-light text-warning font-bold text-sm flex items-center justify-center hover:bg-warning/20 transition-colors">
-            My position
+            My queues
           </a>
-        } @else {
-          <button
-            type="button"
-            (click)="_location.back()"
-            class="flex-1 min-h-[52px] rounded-2xl border-2 border-warning/40 bg-warning-light text-warning font-bold text-sm hover:bg-warning/20 transition-colors">
-            Back
-          </button>
         }
+        <button
+          type="button"
+          (click)="_location.back()"
+          class="flex-1 min-h-[52px] rounded-2xl border-2 border-warning/40 bg-warning-light text-warning font-bold text-sm hover:bg-warning/20 transition-colors">
+          Back
+        </button>
       </div>
     </div>
 

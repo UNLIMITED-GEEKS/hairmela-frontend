@@ -11,6 +11,7 @@ import { TopBarComponent } from '../top-bar/top-bar.component';
 import { MobileTopBarComponent } from '../mobile-top-bar/mobile-top-bar.component';
 import { BottomNavComponent } from '../bottom-nav/bottom-nav.component';
 import { MobileSheetComponent } from '../mobile-sheet/mobile-sheet.component';
+import { VerifyEmailBannerComponent } from '../../verify-email-banner/verify-email-banner.component';
 
 @Component({
   selector: 'app-auth-shell',
@@ -22,6 +23,7 @@ import { MobileSheetComponent } from '../mobile-sheet/mobile-sheet.component';
     MobileTopBarComponent,
     BottomNavComponent,
     MobileSheetComponent,
+    VerifyEmailBannerComponent,
   ],
 })
 export class AuthShellComponent implements OnInit {

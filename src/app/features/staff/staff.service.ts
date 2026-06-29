@@ -6,11 +6,15 @@ import { StaffWithQueueDto } from '../../api/models/staff-with-queue-dto';
 import { InviteStaffDto } from '../../api/models/invite-staff-dto';
 import { UpdateStaffRoleDto } from '../../api/models/update-staff-role-dto';
 import { TransferOwnershipDto } from '../../api/models/transfer-ownership-dto';
+import { PendingInviteDto } from '../../api/models/pending-invite-dto';
 import { staffControllerFindAll } from '../../api/fn/staff/staff-controller-find-all';
 import { staffControllerInvite } from '../../api/fn/staff/staff-controller-invite';
+import { staffControllerFindInvites } from '../../api/fn/staff/staff-controller-find-invites';
+import { staffControllerCancelInvite } from '../../api/fn/staff/staff-controller-cancel-invite';
 import { staffControllerUpdateRole } from '../../api/fn/staff/staff-controller-update-role';
 import { staffControllerTransferOwnership } from '../../api/fn/staff/staff-controller-transfer-ownership';
 import { staffControllerRemove } from '../../api/fn/staff/staff-controller-remove';
+import { staffControllerLeaveSalon } from '../../api/fn/staff/staff-controller-leave-salon';
 import { MembershipStore } from '../../core/salon-context/membership.store';
 import { ToastService } from '../../core/toast/toast.service';
 
@@ -29,9 +33,18 @@ export class StaffService {
   private readonly _loading = signal(false);
   private readonly _acting = signal(false);
 
+  // Pending invites are not cached — they change on every invite/cancel and the
+  // manager needs the live state when on the invite page.
+  private readonly _invites = signal<PendingInviteDto[]>([]);
+  private readonly _invitesLoading = signal(false);
+  private readonly _cancellingInvite = signal<string | null>(null);
+
   readonly staffList = this._staffList.asReadonly();
   readonly loading = this._loading.asReadonly();
   readonly acting = this._acting.asReadonly();
+  readonly invites = this._invites.asReadonly();
+  readonly invitesLoading = this._invitesLoading.asReadonly();
+  readonly cancellingInvite = this._cancellingInvite.asReadonly();
 
   load(salonId: string): void {
     const cached = this._cache.get(salonId);
@@ -55,6 +68,45 @@ export class StaffService {
         this._acting.set(false);
         this._toast.success('Invite sent');
         this.refresh(salonId);
+        this.loadInvites(salonId);
+        onSuccess?.();
+      },
+      error: () => this._acting.set(false),
+    });
+  }
+
+  loadInvites(salonId: string): void {
+    this._invitesLoading.set(true);
+    staffControllerFindInvites(this._http, this._apiConfig.rootUrl, { salonId }).subscribe({
+      next: (res) => {
+        this._invites.set(res.body);
+        this._invitesLoading.set(false);
+      },
+      error: () => this._invitesLoading.set(false),
+    });
+  }
+
+  cancelInvite(salonId: string, staffId: string): void {
+    if (this._cancellingInvite()) return;
+    this._cancellingInvite.set(staffId);
+    staffControllerCancelInvite(this._http, this._apiConfig.rootUrl, { salonId, staffId }).subscribe({
+      next: () => {
+        this._invites.update((list) => list.filter((i) => i.staffId !== staffId));
+        this._cancellingInvite.set(null);
+        this._toast.info('Invite cancelled');
+      },
+      error: () => this._cancellingInvite.set(null),
+    });
+  }
+
+  leaveSalon(salonId: string, onSuccess?: () => void): void {
+    if (this._acting()) return;
+    this._acting.set(true);
+    staffControllerLeaveSalon(this._http, this._apiConfig.rootUrl, { salonId }).subscribe({
+      next: () => {
+        this._acting.set(false);
+        this._membershipStore.invalidate(salonId);
+        this._toast.success('You have left the salon');
         onSuccess?.();
       },
       error: () => this._acting.set(false),
@@ -107,6 +159,7 @@ export class StaffService {
   clear(): void {
     this._cache.clear();
     this._staffList.set([]);
+    this._invites.set([]);
   }
 
   private _fetch(salonId: string): void {

@@ -12,10 +12,14 @@ import { GuestStore } from '../guest/guest-store';
 import { ActiveEntryStore } from '../queue/active-entry.store';
 import { LoginDto } from '../../api/models/login-dto';
 import { RegisterDto } from '../../api/models/register-dto';
+import { ForgotPasswordDto } from '../../api/models/forgot-password-dto';
+import { ResetPasswordDto } from '../../api/models/reset-password-dto';
 import { UserResponseDto } from '../../api/models/user-response-dto';
 import { authControllerLogin } from '../../api/fn/auth/auth-controller-login';
 import { authControllerRegister } from '../../api/fn/auth/auth-controller-register';
 import { authControllerVerifyEmail } from '../../api/fn/auth/auth-controller-verify-email';
+import { authControllerForgotPassword } from '../../api/fn/auth/auth-controller-forgot-password';
+import { authControllerResetPassword } from '../../api/fn/auth/auth-controller-reset-password';
 import { authenticatedAuthControllerGetMe } from '../../api/fn/auth/authenticated-auth-controller-get-me';
 import { authenticatedAuthControllerResendVerification } from '../../api/fn/auth/authenticated-auth-controller-resend-verification';
 
@@ -35,7 +39,10 @@ export class AuthService {
   login(dto: LoginDto): Observable<UserResponseDto> {
     return authControllerLogin(this._http, this._apiConfig.rootUrl, { body: dto }).pipe(
       tap((res) => {
+        // New identity — drop the guest token and any prior entries so the
+        // signed-in user never inherits a guest's (or stale) queue list.
         this._guestStore.clear();
+        this._activeEntryStore.clear();
         this._tokenStore.setTokens(res.body.accessToken, res.body.refreshToken);
       }),
       switchMap(() => this._fetchAndStoreUser()),
@@ -45,7 +52,10 @@ export class AuthService {
 
   register(dto: RegisterDto): Observable<void> {
     return authControllerRegister(this._http, this._apiConfig.rootUrl, { body: dto }).pipe(
-      map(() => { this._guestStore.clear(); }),
+      map(() => {
+        this._guestStore.clear();
+        this._activeEntryStore.clear();
+      }),
     );
   }
 
@@ -73,6 +83,19 @@ export class AuthService {
       this._http,
       this._apiConfig.rootUrl,
     ).pipe(map(() => undefined));
+  }
+
+  // Requests a reset code be emailed. The caller must NOT reveal whether the
+  // email exists — always show a neutral message regardless of outcome.
+  forgotPassword(body: ForgotPasswordDto): Observable<void> {
+    return authControllerForgotPassword(this._http, this._apiConfig.rootUrl, { body })
+      .pipe(map(() => undefined));
+  }
+
+  // Completes the reset using the emailed code (token) + new password.
+  resetPassword(body: ResetPasswordDto): Observable<void> {
+    return authControllerResetPassword(this._http, this._apiConfig.rootUrl, { body })
+      .pipe(map(() => undefined));
   }
 
   private _fetchAndStoreUser(): Observable<UserResponseDto> {

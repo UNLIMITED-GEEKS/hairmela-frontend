@@ -1,9 +1,12 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { PersistentStore } from '../storage/persistent-store';
 
 const REFRESH_TOKEN_KEY = 'hm_refresh_token';
 
 @Injectable({ providedIn: 'root' })
 export class TokenStore {
+  private readonly _storage = inject(PersistentStore);
+
   private readonly _accessToken = signal<string | null>(null);
 
   readonly isAuthenticated = computed(() => this._accessToken() !== null);
@@ -13,16 +16,16 @@ export class TokenStore {
   }
 
   getRefreshToken(): string | null {
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
+    return this._storage.getRaw(REFRESH_TOKEN_KEY);
   }
 
   setTokens(accessToken: string, refreshToken: string): void {
     this._accessToken.set(accessToken);
-    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    this._storage.setRaw(REFRESH_TOKEN_KEY, refreshToken);
   }
 
   clearTokens(): void {
     this._accessToken.set(null);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    this._storage.remove(REFRESH_TOKEN_KEY);
   }
 }

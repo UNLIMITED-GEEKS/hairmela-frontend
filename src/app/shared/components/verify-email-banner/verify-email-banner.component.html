@@ -1,0 +1,30 @@
+@if (visible()) {
+  <div class="bg-amber-50 border-b border-amber-200 px-4 py-2.5 mt-6 md:mt-0" role="status">
+    <div class="w-[95%] mx-auto flex items-center gap-3">
+      <svg class="w-5 h-5 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+      </svg>
+      <p class="flex-1 min-w-0 text-sm text-amber-800">
+        Verify your email to secure your account. We sent a link to
+        <span class="font-medium">{{ user()?.email }}</span>.
+      </p>
+      <button
+        type="button"
+        (click)="resend()"
+        [disabled]="resending()"
+        class="shrink-0 text-sm font-semibold text-amber-700 hover:text-amber-900 disabled:opacity-50 transition-colors">
+        {{ resending() ? 'Sending…' : 'Resend' }}
+      </button>
+      <button
+        type="button"
+        (click)="dismiss()"
+        aria-label="Dismiss"
+        class="shrink-0 text-amber-400 hover:text-amber-600 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+}

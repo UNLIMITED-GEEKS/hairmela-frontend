@@ -35,13 +35,28 @@
             </svg>
           </div>
           <h1 class="text-xl font-bold text-gray-900">Verification failed</h1>
-          <p class="text-sm text-gray-500">This link may have expired or already been used.</p>
-          <a
-            routerLink="/dashboard"
-            class="inline-block rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover transition-colors"
-          >
-            Go to dashboard
-          </a>
+          <p class="text-sm text-gray-500">This verification link is invalid or has expired.</p>
+
+          @if (resent()) {
+            <p class="text-sm text-green-600">A new verification email is on its way — check your inbox.</p>
+          } @else if (isLoggedIn()) {
+            <button
+              type="button"
+              (click)="resend()"
+              [disabled]="resending()"
+              class="inline-block rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-colors"
+            >
+              {{ resending() ? 'Sending…' : 'Resend verification email' }}
+            </button>
+          } @else {
+            <p class="text-sm text-gray-500">Sign in to request a new verification link.</p>
+            <a
+              routerLink="/login"
+              class="inline-block rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover transition-colors"
+            >
+              Sign in
+            </a>
+          }
         </div>
       }
 

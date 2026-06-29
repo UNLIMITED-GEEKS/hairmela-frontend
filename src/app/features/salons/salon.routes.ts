@@ -37,6 +37,13 @@ export const salonRoutes: Routes = [
       import('./delete-salon/delete-salon.component').then((m) => m.DeleteSalonComponent),
   },
   {
+    path: 'leave',
+    canActivate: [salonRoleGuard],
+    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
+    loadComponent: () =>
+      import('./leave-salon/leave-salon.component').then((m) => m.LeaveSalonComponent),
+  },
+  {
     path: 'analytics',
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },

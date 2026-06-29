@@ -1,6 +1,8 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { DatePipe, LowerCasePipe } from '@angular/common';
 import { SalonStaff } from '../../../api/models/salon-staff';
+import { PendingInviteDto } from '../../../api/models/pending-invite-dto';
 import { StaffService } from '../staff.service';
 import { HasRoleDirective } from '../../../shared/directives/has-role.directive';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
@@ -8,7 +10,7 @@ import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.
 @Component({
   selector: 'app-staff-list',
   templateUrl: './staff-list.component.html',
-  imports: [RouterLink, HasRoleDirective, SkeletonComponent],
+  imports: [RouterLink, HasRoleDirective, SkeletonComponent, DatePipe, LowerCasePipe],
 })
 export class StaffListComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
@@ -16,6 +18,8 @@ export class StaffListComponent implements OnInit {
 
   protected readonly staffList = this._staffService.staffList;
   protected readonly loading = this._staffService.loading;
+  protected readonly invites = this._staffService.invites;
+  protected readonly cancelling = this._staffService.cancellingInvite;
 
   protected get salonId(): string {
     return this._route.snapshot.paramMap.get('salonId') ?? '';
@@ -23,6 +27,11 @@ export class StaffListComponent implements OnInit {
 
   ngOnInit(): void {
     this._staffService.load(this.salonId);
+    this._staffService.loadInvites(this.salonId);
+  }
+
+  protected cancelInvite(invite: PendingInviteDto): void {
+    this._staffService.cancelInvite(this.salonId, invite.staffId);
   }
 
   protected roleBadgeClass(role: SalonStaff['role']): string {

@@ -51,6 +51,10 @@ export type { SalonMembershipControllerGetMyMembership$Params as SalonMembership
 export { salonMembershipControllerGetMyMembership as salonMembershipControllerGetMyMembership } from './fn/staff/salon-membership-controller-get-my-membership';
 export type { StaffControllerFindAll$Params as StaffControllerFindAll$Params } from './fn/staff/staff-controller-find-all';
 export { staffControllerFindAll as staffControllerFindAll } from './fn/staff/staff-controller-find-all';
+export type { StaffControllerFindInvites$Params as StaffControllerFindInvites$Params } from './fn/staff/staff-controller-find-invites';
+export { staffControllerFindInvites as staffControllerFindInvites } from './fn/staff/staff-controller-find-invites';
+export type { StaffControllerCancelInvite$Params as StaffControllerCancelInvite$Params } from './fn/staff/staff-controller-cancel-invite';
+export { staffControllerCancelInvite as staffControllerCancelInvite } from './fn/staff/staff-controller-cancel-invite';
 export type { StaffControllerInvite$Params as StaffControllerInvite$Params } from './fn/staff/staff-controller-invite';
 export { staffControllerInvite as staffControllerInvite } from './fn/staff/staff-controller-invite';
 export type { StaffControllerUpdateRole$Params as StaffControllerUpdateRole$Params } from './fn/staff/staff-controller-update-role';
@@ -59,6 +63,8 @@ export type { StaffControllerTransferOwnership$Params as StaffControllerTransfer
 export { staffControllerTransferOwnership as staffControllerTransferOwnership } from './fn/staff/staff-controller-transfer-ownership';
 export type { StaffControllerToggleAcceptingClients$Params as StaffControllerToggleAcceptingClients$Params } from './fn/staff/staff-controller-toggle-accepting-clients';
 export { staffControllerToggleAcceptingClients as staffControllerToggleAcceptingClients } from './fn/staff/staff-controller-toggle-accepting-clients';
+export type { StaffControllerLeaveSalon$Params as StaffControllerLeaveSalon$Params } from './fn/staff/staff-controller-leave-salon';
+export { staffControllerLeaveSalon as staffControllerLeaveSalon } from './fn/staff/staff-controller-leave-salon';
 export type { StaffControllerRemove$Params as StaffControllerRemove$Params } from './fn/staff/staff-controller-remove';
 export { staffControllerRemove as staffControllerRemove } from './fn/staff/staff-controller-remove';
 export type { StaffInviteControllerAccept$Params as StaffInviteControllerAccept$Params } from './fn/staff/staff-invite-controller-accept';
@@ -67,6 +73,8 @@ export type { StaffInviteControllerDecline$Params as StaffInviteControllerDeclin
 export { staffInviteControllerDecline as staffInviteControllerDecline } from './fn/staff/staff-invite-controller-decline';
 export type { MyInvitesControllerGetMyInvites$Params as MyInvitesControllerGetMyInvites$Params } from './fn/staff/my-invites-controller-get-my-invites';
 export { myInvitesControllerGetMyInvites as myInvitesControllerGetMyInvites } from './fn/staff/my-invites-controller-get-my-invites';
+export type { InviteResolveControllerResolveInvite$Params as InviteResolveControllerResolveInvite$Params } from './fn/staff/invite-resolve-controller-resolve-invite';
+export { inviteResolveControllerResolveInvite as inviteResolveControllerResolveInvite } from './fn/staff/invite-resolve-controller-resolve-invite';
 export type { PublicMediaControllerGetSalonMedia$Params as PublicMediaControllerGetSalonMedia$Params } from './fn/media/public-media-controller-get-salon-media';
 export { publicMediaControllerGetSalonMedia as publicMediaControllerGetSalonMedia } from './fn/media/public-media-controller-get-salon-media';
 export type { PublicMediaControllerGetStaffMedia$Params as PublicMediaControllerGetStaffMedia$Params } from './fn/media/public-media-controller-get-staff-media';
@@ -145,8 +153,6 @@ export type { WalkInControllerJoinQueue$Params as WalkInControllerJoinQueue$Para
 export { walkInControllerJoinQueue as walkInControllerJoinQueue } from './fn/queues/walk-in-controller-join-queue';
 export type { WalkInControllerStaffAddToQueue$Params as WalkInControllerStaffAddToQueue$Params } from './fn/queues/walk-in-controller-staff-add-to-queue';
 export { walkInControllerStaffAddToQueue as walkInControllerStaffAddToQueue } from './fn/queues/walk-in-controller-staff-add-to-queue';
-export type { WalkInControllerAddMembersToEntry$Params as WalkInControllerAddMembersToEntry$Params } from './fn/queues/walk-in-controller-add-members-to-entry';
-export { walkInControllerAddMembersToEntry as walkInControllerAddMembersToEntry } from './fn/queues/walk-in-controller-add-members-to-entry';
 export type { WalkInControllerLeaveQueue$Params as WalkInControllerLeaveQueue$Params } from './fn/queues/walk-in-controller-leave-queue';
 export { walkInControllerLeaveQueue as walkInControllerLeaveQueue } from './fn/queues/walk-in-controller-leave-queue';
 export type { BookingControllerBookAppointment$Params as BookingControllerBookAppointment$Params } from './fn/queues/booking-controller-book-appointment';

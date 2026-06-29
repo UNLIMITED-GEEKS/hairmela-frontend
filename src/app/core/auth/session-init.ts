@@ -22,8 +22,7 @@ export function sessionInit(): () => Promise<void> {
     // Boot check at root: redirect returning users without a full page reload cycle
     if (window.location.pathname === '/') {
       if (guestStore.hasToken() && !tokenStore.getRefreshToken()) {
-        const lastPath = guestStore.getStore()?.lastPath ?? '/g/queues';
-        router.navigateByUrl(lastPath);
+        router.navigateByUrl(guestStore.getLastPath());
         return;
       }
     }

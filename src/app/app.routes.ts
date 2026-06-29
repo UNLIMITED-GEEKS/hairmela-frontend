@@ -30,6 +30,13 @@ export const routes: Routes = [
           import('./features/auth/verify-email/verify-email.component').then((m) => m.VerifyEmailComponent),
       },
       {
+        // The emailed link uses {FRONTEND_URL}/auth/verify-email?token= (same
+        // convention as reset-password). Public — clickable while logged out.
+        path: 'auth/verify-email',
+        loadComponent: () =>
+          import('./features/auth/verify-email/verify-email.component').then((m) => m.VerifyEmailComponent),
+      },
+      {
         path: 'login',
         canActivate: [guestGuard],
         loadComponent: () =>
@@ -40,6 +47,26 @@ export const routes: Routes = [
         canActivate: [guestGuard],
         loadComponent: () =>
           import('./features/auth/register/register.component').then((m) => m.RegisterComponent),
+      },
+      {
+        path: 'forgot-password',
+        canActivate: [guestGuard],
+        loadComponent: () =>
+          import('./features/auth/forgot-password/forgot-password.component').then((m) => m.ForgotPasswordComponent),
+      },
+      {
+        // Public — the emailed token is the authorization, reachable even if
+        // a stale session exists, so no guestGuard.
+        path: 'auth/reset-password',
+        loadComponent: () =>
+          import('./features/auth/reset-password/reset-password.component').then((m) => m.ResetPasswordPageComponent),
+      },
+      {
+        // Public — resolves the invite token (no auth); handles logged-in and
+        // logged-out invitees inline, so no guard.
+        path: 'staff/accept-invite',
+        loadComponent: () =>
+          import('./features/staff/accept-invite/accept-invite.component').then((m) => m.AcceptInviteComponent),
       },
     ],
   },
