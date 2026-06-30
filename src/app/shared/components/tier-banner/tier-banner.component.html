@@ -1,7 +1,7 @@
 @if (visible()) {
   @let b = banner()!;
   <div
-    class="border-b px-4 py-2.5 mt-6 md:mt-0"
+    class="rounded-xl border px-4 py-3 mb-4"
     [class.bg-blue-50]="b.kind === 'trial'"
     [class.border-blue-200]="b.kind === 'trial'"
     [class.bg-red-50]="b.kind === 'expired'"
@@ -10,7 +10,7 @@
     [class.border-amber-200]="b.kind === 'free'"
     role="status"
     aria-live="polite">
-    <div class="w-[95%] mx-auto flex items-center gap-3">
+    <div class="flex items-center gap-3">
       <p
         class="flex-1 min-w-0 text-sm"
         [class.text-blue-800]="b.kind === 'trial'"

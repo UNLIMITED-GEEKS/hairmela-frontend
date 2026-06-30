@@ -37,6 +37,8 @@ export class TierBannerComponent {
   protected readonly banner = computed<BannerView | null>(() => {
     const m = this._salonContext.membership();
     if (!m) return null;
+    // The CTA is billing (owner/admin only); don't nag staff who can't act.
+    if (!m.canManageSalon) return null;
 
     if (m.isTrialing) {
       const days = m.daysLeft ?? 0;

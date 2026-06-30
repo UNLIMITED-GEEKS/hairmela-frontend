@@ -17,7 +17,10 @@ export class BillingComponent implements OnInit {
   private readonly _billing = inject(BillingService);
   private readonly _confirm = inject(ConfirmDialogService);
 
-  protected readonly plans = PLAN_CARDS;
+  // Free (tier 1) is hidden until launch (FRONTEND-TIER-HANDOFF §9) — show the
+  // paid plans only, matching the public pricing page. Re-include tier 1 here
+  // when the floor flips to Free.
+  protected readonly plans = PLAN_CARDS.filter((p) => p.tier >= 2);
   protected readonly tierNames = TIER_NAMES;
 
   protected readonly access = this._billing.access;
@@ -44,11 +47,13 @@ export class BillingComponent implements OnInit {
     this._billing.load(this._orgId);
   }
 
-  // Upgrade = immediate (checkout -> verify -> re-fetch). Trial counts as
-  // tier 3, so during the trial an "upgrade" to a paid plan is allowed.
+  // Upgrade = immediate (checkout -> verify -> re-fetch). During the trial no
+  // plan is purchased yet (tier reads as 3 only for access), so every plan is a
+  // purchase — show Upgrade on all of them, never Downgrade.
   protected actionFor(tier: Tier): 'current' | 'upgrade' | 'downgrade' {
+    if (this.isTrialing()) return 'upgrade';
     const current = this.currentTier();
-    if (tier === current && !this.isTrialing()) return 'current';
+    if (tier === current) return 'current';
     return tier > current ? 'upgrade' : 'downgrade';
   }
 

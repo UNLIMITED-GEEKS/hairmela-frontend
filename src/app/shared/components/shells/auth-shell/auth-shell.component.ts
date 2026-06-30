@@ -11,8 +11,6 @@ import { TopBarComponent } from '../top-bar/top-bar.component';
 import { MobileTopBarComponent } from '../mobile-top-bar/mobile-top-bar.component';
 import { BottomNavComponent } from '../bottom-nav/bottom-nav.component';
 import { MobileSheetComponent } from '../mobile-sheet/mobile-sheet.component';
-import { VerifyEmailBannerComponent } from '../../verify-email-banner/verify-email-banner.component';
-import { TierBannerComponent } from '../../tier-banner/tier-banner.component';
 import { OrgContextService } from '../../../../core/salon-context/org-context.service';
 
 @Component({
@@ -25,8 +23,6 @@ import { OrgContextService } from '../../../../core/salon-context/org-context.se
     MobileTopBarComponent,
     BottomNavComponent,
     MobileSheetComponent,
-    VerifyEmailBannerComponent,
-    TierBannerComponent,
   ],
 })
 export class AuthShellComponent implements OnInit {

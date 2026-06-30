@@ -6,11 +6,12 @@ import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/frozen-banner.component';
+import { TierBannerComponent } from '../../../shared/components/tier-banner/tier-banner.component';
 
 @Component({
   selector: 'app-salon-overview',
   templateUrl: './salon-overview.component.html',
-  imports: [RouterLink, SkeletonComponent, FrozenBannerComponent],
+  imports: [RouterLink, SkeletonComponent, FrozenBannerComponent, TierBannerComponent],
 })
 export class SalonOverviewComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);

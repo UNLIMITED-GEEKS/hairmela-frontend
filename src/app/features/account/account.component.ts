@@ -6,11 +6,12 @@ import { AuthService } from '../../core/auth/auth.service';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 import { ResetPasswordComponent } from './reset-password/reset-password.component';
 import { NotificationsToggleComponent } from './notifications-toggle/notifications-toggle.component';
+import { VerifyEmailBannerComponent } from '../../shared/components/verify-email-banner/verify-email-banner.component';
 
 @Component({
   selector: 'app-account',
   templateUrl: './account.component.html',
-  imports: [RouterLink, DatePipe, SkeletonComponent, ResetPasswordComponent, NotificationsToggleComponent],
+  imports: [RouterLink, DatePipe, SkeletonComponent, ResetPasswordComponent, NotificationsToggleComponent, VerifyEmailBannerComponent],
 })
 export class AccountComponent {
   protected readonly _currentUser = inject(CurrentUserStore);
