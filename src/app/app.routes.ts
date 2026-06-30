@@ -30,6 +30,21 @@ export const routes: Routes = [
           import('./marketing/pricing/pricing.component').then((m) => m.PricingComponent),
       },
       {
+        path: 'terms',
+        loadComponent: () =>
+          import('./marketing/terms/terms.component').then((m) => m.TermsComponent),
+      },
+      {
+        path: 'contact',
+        loadComponent: () =>
+          import('./marketing/contact/contact.component').then((m) => m.ContactComponent),
+      },
+      {
+        path: 'about',
+        loadComponent: () =>
+          import('./marketing/about/about.component').then((m) => m.AboutComponent),
+      },
+      {
         path: 'verify-email',
         loadComponent: () =>
           import('./features/auth/verify-email/verify-email.component').then((m) => m.VerifyEmailComponent),

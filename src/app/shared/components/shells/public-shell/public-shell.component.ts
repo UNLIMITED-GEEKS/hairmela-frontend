@@ -2,13 +2,14 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { NavItem } from '../nav-item.types';
 import { PublicNavComponent } from '../public-nav/public-nav.component';
+import { PublicFooterComponent } from '../public-footer/public-footer.component';
 import { CurrentUserStore } from '../../../../core/auth/current-user.store';
 import { GuestStore } from '../../../../core/guest/guest-store';
 
 @Component({
   selector: 'app-public-shell',
   templateUrl: './public-shell.component.html',
-  imports: [RouterOutlet, PublicNavComponent],
+  imports: [RouterOutlet, PublicNavComponent, PublicFooterComponent],
 })
 export class PublicShellComponent {
   private readonly _currentUser = inject(CurrentUserStore);

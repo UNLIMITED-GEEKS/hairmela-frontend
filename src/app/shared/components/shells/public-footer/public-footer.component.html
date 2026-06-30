@@ -1,0 +1,46 @@
+<footer class="w-full border-t border-gray-200 bg-surface-raised">
+  <div class="max-w-6xl mx-auto px-5 py-14">
+
+    <!-- Link columns -->
+    <div class="grid grid-cols-2 gap-10 md:flex md:justify-between md:gap-16">
+
+      <div>
+        <h3 class="mb-4 text-sm font-bold uppercase tracking-wide text-text-primary">Product</h3>
+        <ul class="flex flex-col gap-3 text-sm">
+          <li><a routerLink="/pricing" class="text-text-secondary hover:text-primary transition-colors">Pricing</a></li>
+          <li><a routerLink="/about" class="text-text-secondary hover:text-primary transition-colors">About us</a></li>
+          <li><a routerLink="/register" class="text-text-secondary hover:text-primary transition-colors">Create a salon</a></li>
+          <li><a routerLink="/login" class="text-text-secondary hover:text-primary transition-colors">Sign in</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h3 class="mb-4 text-sm font-bold uppercase tracking-wide text-text-primary">Legal</h3>
+        <ul class="flex flex-col gap-3 text-sm">
+          <li><a routerLink="/privacy" class="text-text-secondary hover:text-primary transition-colors">Privacy policy</a></li>
+          <li><a routerLink="/terms" class="text-text-secondary hover:text-primary transition-colors">Terms of use</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h3 class="mb-4 text-sm font-bold uppercase tracking-wide text-text-primary">Support</h3>
+        <ul class="flex flex-col gap-3 text-sm">
+          <li><a routerLink="/contact" class="text-text-secondary hover:text-primary transition-colors">Contact us</a></li>
+          <li><a href="mailto:hello@hairmela.com" class="text-text-secondary hover:text-primary transition-colors">hello&#64;hairmela.com</a></li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- Copyright -->
+    <div class="mt-12 flex flex-col-reverse items-start justify-between gap-4 border-t border-gray-200 pt-6 md:flex-row md:items-center">
+      <p class="text-sm text-text-secondary">© {{ year }} HairMela. All rights reserved.</p>
+    </div>
+
+    <!-- Wordmark -->
+    <p class="mt-10 text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-primary/10 select-none">
+      HairMela
+    </p>
+
+  </div>
+</footer>

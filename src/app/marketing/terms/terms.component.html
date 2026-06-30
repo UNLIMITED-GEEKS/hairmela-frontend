@@ -1,0 +1,39 @@
+<div class="min-h-screen px-5 pt-28 pb-16 scroll-smooth">
+  <div class="max-w-5xl mx-auto">
+
+    <!-- Heading -->
+    <div>
+      <p class="text-xs font-medium uppercase tracking-wide text-primary">Terms of Use</p>
+      <h1 class="mt-1 text-2xl sm:text-4xl font-bold text-gray-900">HairMela Terms of Use</h1>
+      <p class="mt-2 text-sm text-gray-500">Last updated: {{ lastUpdated }}</p>
+    </div>
+
+    <div class="mt-10 grid gap-10 md:grid-cols-[14rem_1fr]">
+
+      <!-- Sticky section nav (desktop) -->
+      <nav class="sticky top-24 hidden h-fit flex-col md:flex" aria-label="Sections">
+        @for (section of sections; track section.id) {
+          <a routerLink="/terms" [fragment]="section.id"
+            class="border-l-2 border-gray-200 px-3 py-2.5 text-sm text-gray-500 hover:border-primary hover:text-primary transition-colors">
+            {{ section.title }}
+          </a>
+        }
+      </nav>
+
+      <!-- Articles -->
+      <div class="flex flex-col gap-10">
+        @for (section of sections; track section.id; let i = $index) {
+          <article [id]="section.id" class="scroll-mt-28">
+            <h2 class="mb-3 text-lg font-bold text-gray-900">
+              <span class="text-primary mr-2">{{ i + 1 }}.</span>{{ section.title }}
+            </h2>
+            @for (para of section.body; track para) {
+              <p class="text-sm leading-7 text-gray-600">{{ para }}</p>
+            }
+          </article>
+        }
+      </div>
+
+    </div>
+  </div>
+</div>
