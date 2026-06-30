@@ -13,7 +13,7 @@ export interface Notification {
   sentAt: string | null;
   status: 'PENDING' | 'SENT' | 'FAILED';
   title: string;
-  type: 'QUEUE_CALLED' | 'QUEUE_ENTRY_CANCELLED' | 'BOOKING_CONFIRMED' | 'BOOKING_CANCELLED' | 'STAFF_INVITED' | 'STAFF_REMOVED' | 'SERVICE_DEACTIVATED';
+  type: 'QUEUE_CALLED' | 'QUEUE_ENTRY_CANCELLED' | 'BOOKING_CONFIRMED' | 'BOOKING_CANCELLED' | 'STAFF_INVITED' | 'STAFF_REMOVED' | 'SERVICE_DEACTIVATED' | 'TRIAL_ENDED';
   user: User;
   userId: string;
 }

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { salonRoleGuard } from '../../core/guards/salon-role.guard';
+import { tierGuard } from '../../core/guards/tier.guard';
 import { SalonRole } from '../../core/salon-context/membership.types';
 
 export const salonRoutes: Routes = [
@@ -44,9 +45,12 @@ export const salonRoutes: Routes = [
       import('./leave-salon/leave-salon.component').then((m) => m.LeaveSalonComponent),
   },
   {
+    // Analytics is a Tier 2 (Pro) feature — role-gated AND tier-gated. Below
+    // tier 2, tierGuard redirects to billing. The backend also returns
+    // TIER_REQUIRED as the safety net.
     path: 'analytics',
-    canActivate: [salonRoleGuard],
-    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
+    canActivate: [salonRoleGuard, tierGuard],
+    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN], requiredTier: 2 },
     loadComponent: () =>
       import('./analytics/analytics.component').then((m) => m.AnalyticsComponent),
   },

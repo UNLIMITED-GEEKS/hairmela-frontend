@@ -3,11 +3,12 @@ import { Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SalonVisitService } from '../salon-visit.service';
+import { PushPromptComponent } from '../../../shared/components/push-prompt/push-prompt.component';
 
 @Component({
   selector: 'app-my-position',
   templateUrl: './my-position.component.html',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, PushPromptComponent],
 })
 export class MyPositionComponent implements OnInit {
   protected readonly visit = inject(SalonVisitService);

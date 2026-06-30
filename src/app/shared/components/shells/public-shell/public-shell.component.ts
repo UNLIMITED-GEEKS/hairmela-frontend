@@ -21,6 +21,7 @@ export class PublicShellComponent {
     const isGuest = this._guestStore.hasToken();
 
     const base: NavItem[] = [
+      { label: 'Pricing', icon: 'info', url: '/pricing', sheet: true },
       { label: 'About',   icon: 'info', url: '/about',   sheet: true },
       { label: 'Contact', icon: 'mail', url: '/contact', sheet: true },
     ];

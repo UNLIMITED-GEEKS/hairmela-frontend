@@ -3,7 +3,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { NavItem } from '../nav-item.types';
 import { NavIconComponent } from '../nav-icon/nav-icon.component';
 import { Membership, SalonRole } from '../../../../core/salon-context/membership.types';
-import { ControlItem, CONTROL_ITEMS } from '../sidebar/sidebar.component';
+import { CONTROL_ITEMS, VisibleControl } from '../sidebar/sidebar.component';
 
 @Component({
   selector: 'app-mobile-sheet',
@@ -18,10 +18,13 @@ export class MobileSheetComponent {
   readonly membership = input<Membership | null>(null);
   readonly closed = output<void>();
 
-  readonly visibleControls = computed<ControlItem[]>(() => {
+  readonly visibleControls = computed<VisibleControl[]>(() => {
     const m = this.membership();
     if (!m || !this.activeSalonId()) return [];
-    return CONTROL_ITEMS.filter((c) => c.roles.includes(m.role));
+    return CONTROL_ITEMS.filter((c) => c.roles.includes(m.role)).map((c) => ({
+      ...c,
+      unlocked: c.requiresTier === undefined || m.tier >= c.requiresTier,
+    }));
   });
 
   readonly isOwner = computed(() => this.membership()?.role === SalonRole.OWNER);

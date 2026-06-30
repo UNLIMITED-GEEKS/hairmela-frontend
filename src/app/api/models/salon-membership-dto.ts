@@ -4,10 +4,15 @@
 export interface SalonMembershipDto {
   canManageSalon: boolean;
   canManageStaff: boolean;
+  daysLeft: number | null;
   isFrozen: boolean;
   isStaff: boolean;
+  isTrialing: boolean;
   role: {
 };
   salonId: string;
+  staffFrozen: boolean;
+  status: string;
   tier: number;
+  trialEndsAt: string | null;
 }

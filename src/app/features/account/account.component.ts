@@ -5,11 +5,12 @@ import { CurrentUserStore } from '../../core/auth/current-user.store';
 import { AuthService } from '../../core/auth/auth.service';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 import { ResetPasswordComponent } from './reset-password/reset-password.component';
+import { NotificationsToggleComponent } from './notifications-toggle/notifications-toggle.component';
 
 @Component({
   selector: 'app-account',
   templateUrl: './account.component.html',
-  imports: [RouterLink, DatePipe, SkeletonComponent, ResetPasswordComponent],
+  imports: [RouterLink, DatePipe, SkeletonComponent, ResetPasswordComponent, NotificationsToggleComponent],
 })
 export class AccountComponent {
   protected readonly _currentUser = inject(CurrentUserStore);

@@ -45,6 +45,13 @@
         }
       </div>
 
+      <!-- Get-notified nudge — contextual, only while still waiting -->
+      @if (!serviceComplete()) {
+        <div class="w-full mb-4">
+          <app-push-prompt />
+        </div>
+      }
+
       <!-- Party members -->
       @if (visit.partyMembers(_entryId).length > 0) {
         <div class="w-full space-y-2 mb-4">

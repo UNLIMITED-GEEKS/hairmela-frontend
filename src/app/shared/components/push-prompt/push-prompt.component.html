@@ -1,0 +1,26 @@
+@if (visible()) {
+  <div class="rounded-xl border border-primary/20 bg-primary/5 p-4">
+    <div class="flex items-start gap-3">
+      <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+      </svg>
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-semibold text-text-primary">Get notified when it's your turn?</p>
+        <p class="mt-0.5 text-sm text-text-secondary">
+          We'll send a notification when the barber is ready for you — even if this tab is closed.
+        </p>
+        <div class="mt-3 flex gap-2">
+          <button type="button" (click)="enable()" [disabled]="busy()"
+            class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-colors">
+            {{ busy() ? 'Enabling…' : 'Notify me' }}
+          </button>
+          <button type="button" (click)="dismiss()" [disabled]="busy()"
+            class="rounded-lg px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary disabled:opacity-50 transition-colors">
+            Not now
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

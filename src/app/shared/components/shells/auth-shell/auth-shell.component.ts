@@ -12,6 +12,8 @@ import { MobileTopBarComponent } from '../mobile-top-bar/mobile-top-bar.componen
 import { BottomNavComponent } from '../bottom-nav/bottom-nav.component';
 import { MobileSheetComponent } from '../mobile-sheet/mobile-sheet.component';
 import { VerifyEmailBannerComponent } from '../../verify-email-banner/verify-email-banner.component';
+import { TierBannerComponent } from '../../tier-banner/tier-banner.component';
+import { OrgContextService } from '../../../../core/salon-context/org-context.service';
 
 @Component({
   selector: 'app-auth-shell',
@@ -24,6 +26,7 @@ import { VerifyEmailBannerComponent } from '../../verify-email-banner/verify-ema
     BottomNavComponent,
     MobileSheetComponent,
     VerifyEmailBannerComponent,
+    TierBannerComponent,
   ],
 })
 export class AuthShellComponent implements OnInit {
@@ -31,6 +34,7 @@ export class AuthShellComponent implements OnInit {
   private readonly _auth = inject(AuthService);
   private readonly _dashboardService = inject(DashboardService);
   private readonly _salonContext = inject(SalonContextService);
+  private readonly _orgContext = inject(OrgContextService);
   protected readonly _currentUser = inject(CurrentUserStore);
 
   protected readonly sheetOpen = signal(false);
@@ -53,5 +57,8 @@ export class AuthShellComponent implements OnInit {
   ngOnInit(): void {
     this._invites.load();
     this._dashboardService.load();
+    // Resolve the user's owned org once so the tier banner's Upgrade CTA links
+    // to /org/:orgId/billing; billing + orgOwnerGuard read the same cache.
+    this._orgContext.ensureLoaded().subscribe();
   }
 }

@@ -16,4 +16,14 @@ export const organizationRoutes: Routes = [
     loadComponent: () =>
       import('./plan-explainer/plan-explainer.component').then((m) => m.PlanExplainerComponent),
   },
+  {
+    path: 'billing',
+    loadComponent: () =>
+      import('./billing/billing.component').then((m) => m.BillingComponent),
+  },
+  {
+    path: 'billing/dummy-success',
+    loadComponent: () =>
+      import('./billing/dummy-success.component').then((m) => m.DummySuccessComponent),
+  },
 ];

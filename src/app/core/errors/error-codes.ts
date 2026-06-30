@@ -46,6 +46,7 @@ export const ErrorCodes = {
 
   // ── Tiers ─────────────────────────────────────────────────────────────────────
   TIER_REQUIRED: 'TIER_REQUIRED',
+  STAFF_LIMIT_REACHED: 'STAFF_LIMIT_REACHED',
 
   // ── Notifications ─────────────────────────────────────────────────────────────
   NOTIFICATION_NOT_FOUND: 'NOTIFICATION_NOT_FOUND',

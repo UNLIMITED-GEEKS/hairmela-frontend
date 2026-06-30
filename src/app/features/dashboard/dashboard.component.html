@@ -9,7 +9,10 @@
       <app-customer-dashboard [firstName]="user()?.firstName ?? ''" />
     } @else if (activeSalon(); as salon) {
       @if (isOwnerOrAdmin()) {
-        <app-owner-admin-dashboard [salon]="salon" [firstName]="user()?.firstName ?? ''" />
+        <app-owner-admin-dashboard
+          [salon]="salon"
+          [firstName]="user()?.firstName ?? ''"
+          [canAddSalon]="canAddSalon()" />
       } @else if (isStaff()) {
         <app-staff-dashboard [salon]="salon" [firstName]="user()?.firstName ?? ''" />
       }

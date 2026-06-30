@@ -25,6 +25,11 @@ export const routes: Routes = [
           import('./marketing/privacy/privacy.component').then((m) => m.PrivacyComponent),
       },
       {
+        path: 'pricing',
+        loadComponent: () =>
+          import('./marketing/pricing/pricing.component').then((m) => m.PricingComponent),
+      },
+      {
         path: 'verify-email',
         loadComponent: () =>
           import('./features/auth/verify-email/verify-email.component').then((m) => m.VerifyEmailComponent),

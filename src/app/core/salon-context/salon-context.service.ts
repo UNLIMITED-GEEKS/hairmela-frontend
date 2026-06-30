@@ -18,6 +18,15 @@ export class SalonContextService {
   readonly membership = this._membership.asReadonly();
   readonly isFrozen = computed(() => this._membership()?.isFrozen ?? false);
 
+  // ── Tier / subscription derived state (single source for banners + gates) ──
+  readonly tier = computed(() => this._membership()?.tier ?? 0);
+  readonly status = computed(() => this._membership()?.status ?? null);
+  readonly isTrialing = computed(() => this._membership()?.isTrialing ?? false);
+  readonly daysLeft = computed(() => this._membership()?.daysLeft ?? null);
+  readonly staffFrozen = computed(() => this._membership()?.staffFrozen ?? false);
+  // Floor / no-access: the whole app is read-only when the effective tier is 0.
+  readonly isReadOnly = computed(() => this.tier() === 0);
+
   constructor() {
     this._router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd),

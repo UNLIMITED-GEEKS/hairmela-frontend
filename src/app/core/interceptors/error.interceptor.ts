@@ -43,6 +43,10 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           toast.error('This salon is over the plan limit. Upgrade to reactivate.');
           break;
 
+        case ErrorCodes.STAFF_LIMIT_REACHED:
+          toast.error('Staff limit reached for this plan. Upgrade to add more.');
+          break;
+
         case ErrorCodes.CANNOT_REMOVE_OWNER:
           toast.error('Cannot remove the owner. Use Transfer Ownership instead.');
           break;

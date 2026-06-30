@@ -1,0 +1,48 @@
+@if (visible()) {
+  @let b = banner()!;
+  <div
+    class="border-b px-4 py-2.5 mt-6 md:mt-0"
+    [class.bg-blue-50]="b.kind === 'trial'"
+    [class.border-blue-200]="b.kind === 'trial'"
+    [class.bg-red-50]="b.kind === 'expired'"
+    [class.border-red-200]="b.kind === 'expired'"
+    [class.bg-amber-50]="b.kind === 'free'"
+    [class.border-amber-200]="b.kind === 'free'"
+    role="status"
+    aria-live="polite">
+    <div class="w-[95%] mx-auto flex items-center gap-3">
+      <p
+        class="flex-1 min-w-0 text-sm"
+        [class.text-blue-800]="b.kind === 'trial'"
+        [class.text-red-800]="b.kind === 'expired'"
+        [class.text-amber-800]="b.kind === 'free'">
+        {{ b.message }}
+      </p>
+
+      <button
+        type="button"
+        (click)="upgrade()"
+        class="shrink-0 text-sm font-semibold transition-colors"
+        [class.text-blue-700]="b.kind === 'trial'"
+        [class.hover:text-blue-900]="b.kind === 'trial'"
+        [class.text-red-700]="b.kind === 'expired'"
+        [class.hover:text-red-900]="b.kind === 'expired'"
+        [class.text-amber-700]="b.kind === 'free'"
+        [class.hover:text-amber-900]="b.kind === 'free'">
+        {{ b.cta }}
+      </button>
+
+      @if (dismissible()) {
+        <button
+          type="button"
+          (click)="dismiss()"
+          aria-label="Dismiss"
+          class="shrink-0 text-amber-400 hover:text-amber-600 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      }
+    </div>
+  </div>
+}

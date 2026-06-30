@@ -10,6 +10,7 @@ import { QueueSocketService } from '../socket/queue-socket.service';
 import { CacheRegistry } from '../cache-registry.service';
 import { GuestStore } from '../guest/guest-store';
 import { ActiveEntryStore } from '../queue/active-entry.store';
+import { PushService } from '../push/push.service';
 import { LoginDto } from '../../api/models/login-dto';
 import { RegisterDto } from '../../api/models/register-dto';
 import { ForgotPasswordDto } from '../../api/models/forgot-password-dto';
@@ -35,6 +36,7 @@ export class AuthService {
   private readonly _cacheRegistry = inject(CacheRegistry);
   private readonly _guestStore = inject(GuestStore);
   private readonly _activeEntryStore = inject(ActiveEntryStore);
+  private readonly _pushService = inject(PushService);
 
   login(dto: LoginDto): Observable<UserResponseDto> {
     return authControllerLogin(this._http, this._apiConfig.rootUrl, { body: dto }).pipe(
@@ -46,7 +48,14 @@ export class AuthService {
         this._tokenStore.setTokens(res.body.accessToken, res.body.refreshToken);
       }),
       switchMap(() => this._fetchAndStoreUser()),
-      tap(() => this._socketService.connect()),
+      tap(() => {
+        this._socketService.connect();
+        // If the user already granted push permission on this device, silently
+        // re-assert the subscription (it's per-user server-side) — no prompt.
+        if (this._pushService.permission === 'granted') {
+          void this._pushService.enable();
+        }
+      }),
     );
   }
 
@@ -60,6 +69,13 @@ export class AuthService {
   }
 
   logout(): void {
+    // Unsubscribe from push FIRST — the DELETE /push/subscribe needs the still
+    // -valid Bearer token. Only after it settles do we tear down the session.
+    // disable() is best-effort and never rejects, so teardown always runs.
+    void this._pushService.disable().finally(() => this._teardownSession());
+  }
+
+  private _teardownSession(): void {
     this._socketService.disconnect();
     this._tokenStore.clearTokens();
     this._currentUserStore.clear();

@@ -8,6 +8,8 @@ export interface ControlItem {
   readonly label: string;
   readonly url: string;
   readonly roles: SalonRole[];
+  /** Minimum tier to use this feature; below it the link renders locked. */
+  readonly requiresTier?: number;
 }
 
 const COLLAPSED_KEY = 'hm_sidebar_collapsed';
@@ -18,9 +20,14 @@ export const CONTROL_ITEMS: ControlItem[] = [
   { label: 'Closures',   url: 'closures',  roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
   { label: 'Photos',     url: 'media',     roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
   { label: 'Settings',   url: 'settings',   roles: [SalonRole.OWNER, SalonRole.ADMIN] },
-  { label: 'Analytics',  url: 'analytics', roles: [SalonRole.OWNER, SalonRole.ADMIN] },
+  { label: 'Analytics',  url: 'analytics', roles: [SalonRole.OWNER, SalonRole.ADMIN], requiresTier: 2 },
   { label: 'Share / QR', url: 'share',     roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
 ];
+
+export interface VisibleControl extends ControlItem {
+  /** True when the active salon's tier meets requiresTier (or none required). */
+  readonly unlocked: boolean;
+}
 
 @Component({
   selector: 'app-sidebar',
@@ -36,10 +43,13 @@ export class SidebarComponent implements OnInit {
 
   readonly collapsed = signal(false);
 
-  readonly visibleControls = computed(() => {
+  readonly visibleControls = computed<VisibleControl[]>(() => {
     const m = this.membership();
     if (!m || !this.activeSalonId()) return [];
-    return CONTROL_ITEMS.filter((c) => c.roles.includes(m.role));
+    return CONTROL_ITEMS.filter((c) => c.roles.includes(m.role)).map((c) => ({
+      ...c,
+      unlocked: c.requiresTier === undefined || m.tier >= c.requiresTier,
+    }));
   });
 
   readonly isOwner = computed(() => this.membership()?.role === SalonRole.OWNER);
