@@ -10,7 +10,13 @@
     <div class="">
       <h1 class="text-xl font-semibold text-gray-900 mb-6">Salon Settings</h1>
 
-      <form [formGroup]="form" (ngSubmit)="save()" class="space-y-6">
+      @if (salonContext.isFrozen()) {
+        <div class="mb-6">
+          <app-frozen-banner />
+        </div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="save()" [tierFreeze]="salonContext.isFrozen()" class="space-y-6">
 
         <!-- General -->
         <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">

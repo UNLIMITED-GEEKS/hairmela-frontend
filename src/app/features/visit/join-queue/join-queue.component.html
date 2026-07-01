@@ -41,6 +41,9 @@
 
     <!-- Fixed bottom bar -->
     <div class="shrink-0 bg-white border-t border-gray-100 px-5 pt-3 safe-area-bottom">
+      @if (frozen()) {
+        <p class="mb-3 text-center text-sm text-gray-500">This salon isn’t accepting walk-ins right now.</p>
+      }
       <div class="flex gap-3">
         @if (alreadyInQueue()) {
           <a [routerLink]="myQueuesUrl"
@@ -50,7 +53,7 @@
         } @else {
           <button
             (click)="openJoinDialog()"
-            [disabled]="visit.joining() || visit.queueStatus() === 'CLOSED' || !selectedServiceId()"
+            [disabled]="visit.joining() || visit.queueStatus() === 'CLOSED' || !selectedServiceId() || frozen()"
             class="flex-1 min-h-[52px] rounded-2xl bg-warning-light border-2 border-warning/30 text-warning font-bold text-sm disabled:opacity-50 hover:bg-warning/20 transition-colors">
             {{ visit.joining() ? 'Joining...' : 'Join queue' }}
           </button>

@@ -21,7 +21,13 @@
         </h1>
       </div>
 
-      <form [formGroup]="form" (ngSubmit)="save()" class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+      @if (salonContext.isFrozen()) {
+        <div class="mb-6">
+          <app-frozen-banner />
+        </div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="save()" [tierFreeze]="salonContext.isFrozen()" class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
 
         <!-- Name -->
         <div class="space-y-1.5">

@@ -56,6 +56,10 @@ export class JoinQueueComponent implements OnInit {
     this.visit.staffForQueue(this.queueId),
   );
 
+  // Frozen salon can't accept walk-ins (backend rejects the join) — pre-block
+  // the join button and dialog so the user sees why, not a silent failure.
+  protected readonly frozen = computed(() => this.visit.salonData()?.isFrozen ?? false);
+
   /** Guest = no signed-in user; the dialog then collects name + phone. */
   protected get isGuest(): boolean {
     return !this._currentUser.user();
@@ -76,6 +80,7 @@ export class JoinQueueComponent implements OnInit {
   // "Join queue" opens the dialog for everyone — the place to add party members
   // now (anyone added later goes to the back of the line as a separate slot).
   protected openJoinDialog(): void {
+    if (this.frozen()) return;
     const user = this._currentUser.user();
     if (user) this.guestName.set(user.firstName);
     this.showJoinDialog.set(true);

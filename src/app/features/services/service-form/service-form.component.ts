@@ -13,11 +13,14 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { isApiError } from '../../../core/errors/api-error.types';
 import { ErrorCodes } from '../../../core/errors/error-codes';
 import { ServicesService } from '../services.service';
+import { SalonContextService } from '../../../core/salon-context/salon-context.service';
+import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/frozen-banner.component';
+import { TierFreezeDirective } from '../../../shared/directives/tier-freeze.directive';
 
 @Component({
   selector: 'app-service-form',
   templateUrl: './service-form.component.html',
-  imports: [ReactiveFormsModule, SkeletonComponent],
+  imports: [ReactiveFormsModule, SkeletonComponent, FrozenBannerComponent, TierFreezeDirective],
 })
 export class ServiceFormComponent implements OnInit {
   protected readonly _location = inject(Location);
@@ -29,6 +32,7 @@ export class ServiceFormComponent implements OnInit {
   private readonly _fb = inject(FormBuilder);
   private readonly _toast = inject(ToastService);
   private readonly _servicesService = inject(ServicesService);
+  protected readonly salonContext = inject(SalonContextService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);

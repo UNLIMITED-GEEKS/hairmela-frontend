@@ -23,6 +23,11 @@ export class SalonLandingComponent {
   protected readonly visit = inject(SalonVisitService);
   private readonly _route = inject(ActivatedRoute);
 
+  // Frozen = the salon is over its org's plan limit and can't accept walk-ins
+  // (the backend rejects the join). Pre-block: hide the barbers entirely and
+  // show a notice instead of letting a customer tap into a dead flow.
+  protected readonly frozen = computed(() => this.visit.salonData()?.isFrozen ?? false);
+
   private get _slug(): string {
     return this._route.snapshot.paramMap.get('slug') ?? '';
   }

@@ -9,7 +9,10 @@ import { salonsControllerUpdate } from '../../../api/fn/salons/salons-controller
 import { salonsControllerUpdateSettings } from '../../../api/fn/salons/salons-controller-update-settings';
 import { ToastService } from '../../../core/toast/toast.service';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/frozen-banner.component';
+import { TierFreezeDirective } from '../../../shared/directives/tier-freeze.directive';
 import { SalonOverviewService } from '../salon-overview/salon-overview.service';
+import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -22,7 +25,7 @@ const TIMEZONES = [
 @Component({
   selector: 'app-salon-settings',
   templateUrl: './salon-settings.component.html',
-  imports: [ReactiveFormsModule, SkeletonComponent],
+  imports: [ReactiveFormsModule, SkeletonComponent, FrozenBannerComponent, TierFreezeDirective],
 })
 export class SalonSettingsComponent implements OnInit {
   protected readonly _location = inject(Location);
@@ -34,6 +37,7 @@ export class SalonSettingsComponent implements OnInit {
   private readonly _destroyRef = inject(DestroyRef);
   private readonly _toast = inject(ToastService);
   private readonly _overview = inject(SalonOverviewService);
+  protected readonly salonContext = inject(SalonContextService);
   private readonly _currentUser = inject(CurrentUserStore);
 
   protected readonly loading = signal(true);

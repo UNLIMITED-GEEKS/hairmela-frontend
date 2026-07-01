@@ -17,14 +17,20 @@
           </svg>
         </button>
         <h1 class="text-lg font-semibold text-gray-900 flex-1">Closures</h1>
-        <button type="button" (click)="showAddForm.set(!showAddForm())"
-          class="min-h-11 min-w-11 px-3 flex items-center gap-1.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors shrink-0">
-          <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          <span class="hidden xs:inline">Add closure</span>
-        </button>
+        @if (!salonContext.isFrozen()) {
+          <button type="button" (click)="showAddForm.set(!showAddForm())"
+            class="min-h-11 min-w-11 px-3 flex items-center gap-1.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors shrink-0">
+            <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            <span class="hidden xs:inline">Add closure</span>
+          </button>
+        }
       </div>
+
+      @if (salonContext.isFrozen()) {
+        <app-frozen-banner />
+      }
 
       <!-- Tabs (only shown when staffId is present) -->
       @if (_staffId) {
@@ -44,7 +50,7 @@
 
       <!-- Add form -->
       @if (showAddForm()) {
-        <form [formGroup]="addForm" (ngSubmit)="add()"
+        <form [formGroup]="addForm" (ngSubmit)="add()" [tierFreeze]="salonContext.isFrozen()"
           class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
           <h2 class="text-sm font-semibold text-gray-700">New closure</h2>
           <div class="space-y-1.5">
@@ -94,10 +100,12 @@
                   <p class="text-xs text-gray-400 mt-0.5">{{ closure.reason }}</p>
                 }
               </div>
-              <button type="button" (click)="delete(closure)"
-                class="min-h-9 px-3 text-xs font-medium text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors shrink-0">
-                Remove
-              </button>
+              @if (!salonContext.isFrozen()) {
+                <button type="button" (click)="delete(closure)"
+                  class="min-h-9 px-3 text-xs font-medium text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors shrink-0">
+                  Remove
+                </button>
+              }
             </div>
           }
         </div>

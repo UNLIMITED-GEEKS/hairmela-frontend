@@ -6,12 +6,13 @@ import { ServicesService } from '../services.service';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/confirm-dialog.service';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/frozen-banner.component';
 import { filter } from 'rxjs';
 
 @Component({
   selector: 'app-service-list',
   templateUrl: './service-list.component.html',
-  imports: [RouterLink, SkeletonComponent],
+  imports: [RouterLink, SkeletonComponent, FrozenBannerComponent],
 })
 export class ServiceListComponent implements OnInit {
   protected readonly _location = inject(Location);
@@ -28,6 +29,10 @@ export class ServiceListComponent implements OnInit {
     const role = this.salonContext.membership()?.role;
     return role === 'OWNER' || role === 'ADMIN';
   });
+
+  // Write controls also require an unfrozen salon (frozen = over plan limit,
+  // backend rejects writes). Links can't be directive-disabled, so we hide them.
+  protected readonly canWrite = computed(() => this.canManage() && !this.salonContext.isFrozen());
 
   protected get _salonId(): string {
     return this._route.snapshot.paramMap.get('salonId') ?? '';

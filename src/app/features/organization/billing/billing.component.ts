@@ -20,7 +20,7 @@ export class BillingComponent implements OnInit {
   // Free (tier 1) is hidden until launch (FRONTEND-TIER-HANDOFF §9) — show the
   // paid plans only, matching the public pricing page. Re-include tier 1 here
   // when the floor flips to Free.
-  protected readonly plans = PLAN_CARDS.filter((p) => p.tier >= 2);
+  protected readonly plans = PLAN_CARDS;
   protected readonly tierNames = TIER_NAMES;
 
   protected readonly access = this._billing.access;
@@ -78,7 +78,8 @@ export class BillingComponent implements OnInit {
     this._confirm
       .open({
         title: 'Cancel your plan?',
-        message: 'You keep full access until the end of your current billing period, then your plan ends. No data is deleted.',
+        message:
+          'You keep full access until the end of your current billing period, then your plan ends. No data is deleted.',
         confirmLabel: 'Cancel plan',
         danger: true,
       })

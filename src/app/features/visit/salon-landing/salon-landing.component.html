@@ -28,33 +28,40 @@
       </div>
     }
 
-    <!-- Barber cards -->
-    <div class="flex flex-wrap gap-3">
-      @for (staff of visit.staffList(); track staff.staffId) {
-        @let avail = availability(staff);
-        <button
-          (click)="selectBarber(staff)"
-          [disabled]="!avail.joinable"
-          class="flex-1 min-w-30 rounded-2xl border-2 border-primary bg-warning-light
-                 px-4 py-4 flex flex-col items-center gap-2
-                 hover:bg-warning/20 transition-colors
-                 disabled:opacity-50 disabled:cursor-not-allowed">
-          <div class="w-10 h-10 rounded-full border-2 border-primary bg-white flex items-center justify-center">
-            <svg class="w-5 h-5 text-primary/50" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-            </svg>
-          </div>
-          <span class="text-sm font-semibold text-gray-800">{{ staff.firstName }}</span>
-          @if (avail.showBadge) {
-            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full border"
-              [class]="avail.badgeClasses">
-              {{ avail.label }}
-            </span>
-          }
-        </button>
-      }
-    </div>
+    <!-- Barber cards — hidden entirely when the salon is frozen (can't take walk-ins) -->
+    @if (frozen()) {
+      <div class="w-full rounded-2xl border border-gray-200 bg-gray-50 px-5 py-8 text-center">
+        <p class="text-sm font-semibold text-gray-700">Not accepting walk-ins right now</p>
+        <p class="mt-1 text-sm text-gray-500">This salon isn’t taking online check-ins at the moment. Please check back later.</p>
+      </div>
+    } @else {
+      <div class="flex flex-wrap gap-3">
+        @for (staff of visit.staffList(); track staff.staffId) {
+          @let avail = availability(staff);
+          <button
+            (click)="selectBarber(staff)"
+            [disabled]="!avail.joinable"
+            class="flex-1 min-w-30 rounded-2xl border-2 border-primary bg-warning-light
+                   px-4 py-4 flex flex-col items-center gap-2
+                   hover:bg-warning/20 transition-colors
+                   disabled:opacity-50 disabled:cursor-not-allowed">
+            <div class="w-10 h-10 rounded-full border-2 border-primary bg-white flex items-center justify-center">
+              <svg class="w-5 h-5 text-primary/50" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+              </svg>
+            </div>
+            <span class="text-sm font-semibold text-gray-800">{{ staff.firstName }}</span>
+            @if (avail.showBadge) {
+              <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full border"
+                [class]="avail.badgeClasses">
+                {{ avail.label }}
+              </span>
+            }
+          </button>
+        }
+      </div>
+    }
 
   </div>
 </div>

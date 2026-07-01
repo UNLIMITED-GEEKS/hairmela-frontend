@@ -16,13 +16,16 @@ import { staffClosuresControllerDelete } from '../../api/fn/schedules/staff-clos
 import { Closure } from '../../api/models/closure';
 import { ConfirmDialogService } from '../../shared/components/confirm-dialog/confirm-dialog.service';
 import { ToastService } from '../../core/toast/toast.service';
+import { SalonContextService } from '../../core/salon-context/salon-context.service';
+import { FrozenBannerComponent } from '../../shared/components/frozen-banner/frozen-banner.component';
+import { TierFreezeDirective } from '../../shared/directives/tier-freeze.directive';
 
 type ClosureScope = 'salon' | 'staff';
 
 @Component({
   selector: 'app-closures',
   templateUrl: './closures.component.html',
-  imports: [ReactiveFormsModule, SkeletonComponent],
+  imports: [ReactiveFormsModule, SkeletonComponent, FrozenBannerComponent, TierFreezeDirective],
 })
 export class ClosuresComponent implements OnInit {
   protected readonly _location = inject(Location);
@@ -33,6 +36,7 @@ export class ClosuresComponent implements OnInit {
   private readonly _fb = inject(FormBuilder);
   private readonly _confirmDialog = inject(ConfirmDialogService);
   private readonly _toast = inject(ToastService);
+  protected readonly salonContext = inject(SalonContextService);
 
   protected readonly loading = signal(true);
   protected readonly salonClosures = signal<Closure[]>([]);
