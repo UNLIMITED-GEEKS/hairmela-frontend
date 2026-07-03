@@ -9,11 +9,12 @@ import { QueueSocketService } from '../socket/queue-socket.service';
 import { GuestStore } from '../guest/guest-store';
 import { authenticatedAuthControllerGetMe } from '../../api/fn/auth/authenticated-auth-controller-get-me';
 
-// Once this fires, a deliberate refresh while sitting at "/" (e.g. browsing
-// the homepage while logged in) won't bounce the user to /dashboard again —
-// the redirect is a one-time "you're signed in, here's your dashboard" nudge
-// per session, not a standing rule that fights every reload.
-const DASHBOARD_REDIRECT_KEY = 'hm_dashboard_redirected';
+// Gates BOTH the guest "resume where you left off" redirect and the
+// logged-in "here's your dashboard" redirect below to once per session. Once
+// either fires, a deliberate refresh (or clicking Home) while sitting at "/"
+// no longer bounces the user away — it's a one-time landing nudge, not a
+// standing rule that fires on every reload.
+const ROOT_REDIRECT_KEY = 'hm_root_redirected';
 
 export function sessionInit(): () => Promise<void> {
   return async () => {
@@ -25,9 +26,12 @@ export function sessionInit(): () => Promise<void> {
     const guestStore = inject(GuestStore);
     const router = inject(Router);
 
-    // Boot check at root: redirect returning users without a full page reload cycle
-    if (window.location.pathname === '/') {
+    // Boot check at root: redirect returning guests without a full page reload
+    // cycle — but only once per session, so clicking Home and refreshing there
+    // doesn't keep bouncing an active guest back to their queue position.
+    if (window.location.pathname === '/' && !sessionStorage.getItem(ROOT_REDIRECT_KEY)) {
       if (guestStore.hasToken() && !tokenStore.getRefreshToken()) {
+        sessionStorage.setItem(ROOT_REDIRECT_KEY, '1');
         router.navigateByUrl(guestStore.getLastPath());
         return;
       }
@@ -54,8 +58,8 @@ export function sessionInit(): () => Promise<void> {
       // Redirect to dashboard only on cold start at root, and only once per
       // session — otherwise a deliberate refresh while browsing the homepage
       // logged-in keeps yanking the user back to /dashboard.
-      if (window.location.pathname === '/' && !sessionStorage.getItem(DASHBOARD_REDIRECT_KEY)) {
-        sessionStorage.setItem(DASHBOARD_REDIRECT_KEY, '1');
+      if (window.location.pathname === '/' && !sessionStorage.getItem(ROOT_REDIRECT_KEY)) {
+        sessionStorage.setItem(ROOT_REDIRECT_KEY, '1');
         router.navigateByUrl('/dashboard');
       }
     } catch {
