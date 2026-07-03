@@ -39,10 +39,18 @@ export type { SubscriptionsControllerCancel$Params as SubscriptionsControllerCan
 export { subscriptionsControllerCancel as subscriptionsControllerCancel } from './fn/subscriptions/subscriptions-controller-cancel';
 export type { UserSalonsControllerFindMine$Params as UserSalonsControllerFindMine$Params } from './fn/salons/user-salons-controller-find-mine';
 export { userSalonsControllerFindMine as userSalonsControllerFindMine } from './fn/salons/user-salons-controller-find-mine';
+export type { PublicSalonsControllerFindListing$Params as PublicSalonsControllerFindListing$Params } from './fn/salons/public-salons-controller-find-listing';
+export { publicSalonsControllerFindListing as publicSalonsControllerFindListing } from './fn/salons/public-salons-controller-find-listing';
 export type { UserSalonsControllerCreate$Params as UserSalonsControllerCreate$Params } from './fn/salons/user-salons-controller-create';
 export { userSalonsControllerCreate as userSalonsControllerCreate } from './fn/salons/user-salons-controller-create';
+export type { UserSalonsControllerAddFavorite$Params as UserSalonsControllerAddFavorite$Params } from './fn/salons/user-salons-controller-add-favorite';
+export { userSalonsControllerAddFavorite as userSalonsControllerAddFavorite } from './fn/salons/user-salons-controller-add-favorite';
+export type { UserSalonsControllerRemoveFavorite$Params as UserSalonsControllerRemoveFavorite$Params } from './fn/salons/user-salons-controller-remove-favorite';
+export { userSalonsControllerRemoveFavorite as userSalonsControllerRemoveFavorite } from './fn/salons/user-salons-controller-remove-favorite';
 export type { PublicSalonsControllerFindBySlug$Params as PublicSalonsControllerFindBySlug$Params } from './fn/salons/public-salons-controller-find-by-slug';
 export { publicSalonsControllerFindBySlug as publicSalonsControllerFindBySlug } from './fn/salons/public-salons-controller-find-by-slug';
+export type { UserFavoritesControllerFindMyFavorites$Params as UserFavoritesControllerFindMyFavorites$Params } from './fn/salons/user-favorites-controller-find-my-favorites';
+export { userFavoritesControllerFindMyFavorites as userFavoritesControllerFindMyFavorites } from './fn/salons/user-favorites-controller-find-my-favorites';
 export type { OrgSalonsControllerFindByOrg$Params as OrgSalonsControllerFindByOrg$Params } from './fn/salons/org-salons-controller-find-by-org';
 export { orgSalonsControllerFindByOrg as orgSalonsControllerFindByOrg } from './fn/salons/org-salons-controller-find-by-org';
 export type { OrgSalonsControllerCreate$Params as OrgSalonsControllerCreate$Params } from './fn/salons/org-salons-controller-create';

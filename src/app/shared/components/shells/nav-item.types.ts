@@ -29,4 +29,5 @@ export type NavIcon =
   | 'close'
   | 'scissors'
   | 'info'
-  | 'mail';
+  | 'mail'
+  | 'heart';

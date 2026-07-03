@@ -1,7 +1,9 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, OnInit, computed, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { SalonVisitService } from '../salon-visit.service';
 import { SalonPublicStaffDto } from '../../../api/models/salon-public-staff-dto';
+import { CurrentUserStore } from '../../../core/auth/current-user.store';
+import { FavoritesService } from '../../../core/favorites/favorites.service';
 
 interface BarberAvailability {
   readonly label: string;
@@ -19,14 +21,36 @@ interface SalonStatusBadge {
   selector: 'app-salon-landing',
   templateUrl: './salon-landing.component.html',
 })
-export class SalonLandingComponent {
+export class SalonLandingComponent implements OnInit {
   protected readonly visit = inject(SalonVisitService);
   private readonly _route = inject(ActivatedRoute);
+  private readonly _currentUser = inject(CurrentUserStore);
+  private readonly _favorites = inject(FavoritesService);
 
   // Frozen = the salon is over its org's plan limit and can't accept walk-ins
   // (the backend rejects the join). Pre-block: hide the barbers entirely and
   // show a notice instead of letting a customer tap into a dead flow.
   protected readonly frozen = computed(() => this.visit.salonData()?.isFrozen ?? false);
+
+  ngOnInit(): void {
+    if (this._currentUser.user()) {
+      this._favorites.ensureIdsLoaded();
+    }
+  }
+
+  // Heart shown only when authenticated (handoff §2) — same rule as the card,
+  // absent (not disabled) for guest/anonymous visitors on this shared route.
+  protected readonly showHeart = computed(() => !!this._currentUser.user());
+
+  protected readonly isFavorited = computed(() => {
+    const id = this.visit.salon()?.id;
+    return id ? this._favorites.isFavorited(id) : false;
+  });
+
+  protected toggleFavorite(): void {
+    const id = this.visit.salon()?.id;
+    if (id) this._favorites.toggle({ id });
+  }
 
   private get _slug(): string {
     return this._route.snapshot.paramMap.get('slug') ?? '';

@@ -40,10 +40,11 @@ export class AuthShellComponent implements OnInit {
   protected readonly membership = this._salonContext.membership;
 
   protected readonly navItems: NavItem[] = [
-    { label: 'Dashboard', icon: 'home',   url: '/dashboard', bottomNav: true, sidebar: true },
-    { label: 'My Visits', icon: 'queue',  url: '/queues',    bottomNav: true, sidebar: true },
-    { label: 'Account',   icon: 'person', url: '/account',   bottomNav: true, sidebar: true },
-    { label: 'Logout',    icon: 'login',  action: () => this._auth.logout(), sidebar: true },
+    { label: 'Dashboard',   icon: 'home',   url: '/dashboard', bottomNav: true, sidebar: true },
+    { label: 'My Visits',   icon: 'queue',  url: '/queues',    bottomNav: true, sidebar: true },
+    { label: 'Favourites',  icon: 'heart',  url: '/favorites', bottomNav: true, sidebar: true },
+    { label: 'Account',     icon: 'person', url: '/account',   bottomNav: true, sidebar: true },
+    { label: 'Logout',      icon: 'login',  action: () => this._auth.logout(), sidebar: true },
   ];
 
   logout(): void {

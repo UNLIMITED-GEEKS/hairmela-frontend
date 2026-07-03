@@ -1,12 +1,29 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { SalonListingService } from './salon-listing.service';
+// Geolocation-based location default disabled for now — inaccurate results
+// (IP-based geolocation resolves to the nearest ISP hub, not the visitor's
+// actual city). See geo-location.service.ts. Re-enable by restoring the
+// import and the resolveLocation() call in ngOnInit below.
+// import { GeoLocationService } from './geo-location.service';
+import { FavoritesService } from '../../core/favorites/favorites.service';
+import { CurrentUserStore } from '../../core/auth/current-user.store';
+import { SalonCardComponent } from '../../shared/components/salon-card/salon-card.component';
+import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
+import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-landing',
   templateUrl: './landing.component.html',
-  imports: [RouterLink],
+  imports: [RouterLink, SalonCardComponent, PaginationComponent, SkeletonComponent],
+  providers: [SalonListingService],
 })
-export class LandingComponent {
+export class LandingComponent implements OnInit {
+  protected readonly listing = inject(SalonListingService);
+  private readonly _favorites = inject(FavoritesService);
+  private readonly _currentUser = inject(CurrentUserStore);
+  // private readonly _geoLocation = inject(GeoLocationService);
+
   protected readonly steps = [
     {
       number: '1',
@@ -24,4 +41,23 @@ export class LandingComponent {
       description: 'Call the next client, track service time, and manage walk-ins from your phone.',
     },
   ];
+
+  ngOnInit(): void {
+    // Hearts on the listing cards need to know what's already favourited —
+    // only worth loading for a signed-in visitor (the cards hide the heart
+    // entirely for guests/anonymous, so there's nothing to prefetch for them).
+    if (this._currentUser.user()) {
+      this._favorites.ensureIdsLoaded();
+    }
+
+    // Location default (handoff §3) — DISABLED, see the import comment above.
+    // void this._geoLocation.resolveLocation().then((location) => {
+    //   if (location) this.listing.setLocation(location.state, location.city);
+    // });
+  }
+
+  protected onSearchInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.listing.setSearch(value);
+  }
 }

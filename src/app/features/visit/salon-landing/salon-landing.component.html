@@ -20,8 +20,23 @@
     </div>
 
     @if (visit.salon(); as s) {
-      <div class="w-full rounded-2xl border-2 border-primary bg-warning-light px-5 py-4 text-center">
+      <div class="relative w-full rounded-2xl border-2 border-primary bg-warning-light px-5 py-4 text-center">
         <h1 class="text-xl font-bold text-warning">{{ s.name }}</h1>
+        @if (showHeart()) {
+          <button type="button" (click)="toggleFavorite()"
+            [attr.aria-label]="isFavorited() ? 'Remove from favourites' : 'Add to favourites'"
+            [attr.aria-pressed]="isFavorited()"
+            class="absolute top-1/2 -translate-y-1/2 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm hover:scale-105 transition-transform">
+            <svg class="h-5 w-5 transition-colors" viewBox="0 0 24 24"
+              [attr.fill]="isFavorited() ? 'currentColor' : 'none'"
+              [class.text-primary]="isFavorited()"
+              [class.text-gray-400]="!isFavorited()"
+              stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 21.036l-7.682-8.354a4.5 4.5 0 010-6.364z" />
+            </svg>
+          </button>
+        }
       </div>
       <div class="w-full rounded-2xl border border-gray-200 px-5 py-3">
         <p class="text-sm text-gray-500">{{ s.address?.city ? s.address.city + ' — ' : '' }}Barbers in {{ s.name }}</p>

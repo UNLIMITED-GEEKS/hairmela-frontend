@@ -1,0 +1,30 @@
+@if (visible()) {
+  <nav class="flex items-center justify-center gap-1.5" aria-label="Pagination">
+    <button type="button" (click)="go(meta()!.page - 1)" [disabled]="!canPrev()"
+      class="min-h-10 min-w-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      aria-label="Previous page">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </button>
+
+    @for (p of pageWindow(); track p) {
+      <button type="button" (click)="go(p)"
+        class="min-h-10 min-w-10 px-3 flex items-center justify-center rounded-lg text-sm font-semibold transition-colors"
+        [class.bg-primary]="p === meta()!.page"
+        [class.text-white]="p === meta()!.page"
+        [class.text-gray-600]="p !== meta()!.page"
+        [class.hover:bg-gray-50]="p !== meta()!.page">
+        {{ p }}
+      </button>
+    }
+
+    <button type="button" (click)="go(meta()!.page + 1)" [disabled]="!canNext()"
+      class="min-h-10 min-w-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      aria-label="Next page">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+    </button>
+  </nav>
+}

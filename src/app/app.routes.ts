@@ -140,6 +140,11 @@ export const routes: Routes = [
           import('./features/queues/auth-queues/auth-queues.component').then((m) => m.AuthQueuesComponent),
       },
       {
+        path: 'favorites',
+        loadComponent: () =>
+          import('./features/favorites/favorites-page.component').then((m) => m.FavoritesPageComponent),
+      },
+      {
         path: 's/:slug',
         data: { shellPrefix: '' },
         loadChildren: () =>
