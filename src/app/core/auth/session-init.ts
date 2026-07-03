@@ -9,6 +9,12 @@ import { QueueSocketService } from '../socket/queue-socket.service';
 import { GuestStore } from '../guest/guest-store';
 import { authenticatedAuthControllerGetMe } from '../../api/fn/auth/authenticated-auth-controller-get-me';
 
+// Once this fires, a deliberate refresh while sitting at "/" (e.g. browsing
+// the homepage while logged in) won't bounce the user to /dashboard again —
+// the redirect is a one-time "you're signed in, here's your dashboard" nudge
+// per session, not a standing rule that fights every reload.
+const DASHBOARD_REDIRECT_KEY = 'hm_dashboard_redirected';
+
 export function sessionInit(): () => Promise<void> {
   return async () => {
     const http = inject(HttpClient);
@@ -45,8 +51,11 @@ export function sessionInit(): () => Promise<void> {
       currentUserStore.set(userResponse.body);
       socketService.connect();
 
-      // Redirect to dashboard only on cold start at root
-      if (window.location.pathname === '/') {
+      // Redirect to dashboard only on cold start at root, and only once per
+      // session — otherwise a deliberate refresh while browsing the homepage
+      // logged-in keeps yanking the user back to /dashboard.
+      if (window.location.pathname === '/' && !sessionStorage.getItem(DASHBOARD_REDIRECT_KEY)) {
+        sessionStorage.setItem(DASHBOARD_REDIRECT_KEY, '1');
         router.navigateByUrl('/dashboard');
       }
     } catch {
