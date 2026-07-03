@@ -9,12 +9,25 @@ import { QueueSocketService } from '../socket/queue-socket.service';
 import { GuestStore } from '../guest/guest-store';
 import { authenticatedAuthControllerGetMe } from '../../api/fn/auth/authenticated-auth-controller-get-me';
 
-// Gates BOTH the guest "resume where you left off" redirect and the
-// logged-in "here's your dashboard" redirect below to once per session. Once
-// either fires, a deliberate refresh (or clicking Home) while sitting at "/"
-// no longer bounces the user away — it's a one-time landing nudge, not a
-// standing rule that fires on every reload.
-const ROOT_REDIRECT_KEY = 'hm_root_redirected';
+// True on a genuine fresh navigation to the app (typing the URL, following a
+// link, opening a new tab) — but false on a page RELOAD/refresh. Lets the
+// cold-start redirect below fire when a returning visitor first opens the app,
+// while leaving them alone when they deliberately refresh at "/". Uses the
+// Navigation Timing API rather than a sessionStorage flag, because navigating
+// inside the app initializer wipes sessionStorage (trivial-history pushState→
+// replaceState), so a flag never survives to gate the next load.
+function isFreshNavigation(): boolean {
+  try {
+    const nav = performance.getEntriesByType('navigation')[0] as
+      | PerformanceNavigationTiming
+      | undefined;
+    // Only 'navigate' should redirect. 'reload' (refresh) and 'back_forward'
+    // (history nav) must not bounce the user away from where they chose to be.
+    return !nav || nav.type === 'navigate';
+  } catch {
+    return true;
+  }
+}
 
 export function sessionInit(): () => Promise<void> {
   return async () => {
@@ -26,15 +39,13 @@ export function sessionInit(): () => Promise<void> {
     const guestStore = inject(GuestStore);
     const router = inject(Router);
 
-    // Boot check at root: redirect returning guests without a full page reload
-    // cycle — but only once per session, so clicking Home and refreshing there
-    // doesn't keep bouncing an active guest back to their queue position.
-    if (window.location.pathname === '/' && !sessionStorage.getItem(ROOT_REDIRECT_KEY)) {
-      if (guestStore.hasToken() && !tokenStore.getRefreshToken()) {
-        sessionStorage.setItem(ROOT_REDIRECT_KEY, '1');
-        router.navigateByUrl(guestStore.getLastPath());
-        return;
-      }
+    const atRoot = window.location.pathname === '/';
+    const shouldRedirect = atRoot && isFreshNavigation();
+
+    // Fresh load at root as a returning guest → back to their queue.
+    if (shouldRedirect && guestStore.hasToken() && !tokenStore.getRefreshToken()) {
+      router.navigateByUrl(guestStore.getLastPath());
+      return;
     }
 
     const refreshToken = tokenStore.getRefreshToken();
@@ -55,11 +66,8 @@ export function sessionInit(): () => Promise<void> {
       currentUserStore.set(userResponse.body);
       socketService.connect();
 
-      // Redirect to dashboard only on cold start at root, and only once per
-      // session — otherwise a deliberate refresh while browsing the homepage
-      // logged-in keeps yanking the user back to /dashboard.
-      if (window.location.pathname === '/' && !sessionStorage.getItem(ROOT_REDIRECT_KEY)) {
-        sessionStorage.setItem(ROOT_REDIRECT_KEY, '1');
+      // Fresh load at root as a logged-in user → dashboard. NOT on a refresh.
+      if (shouldRedirect) {
         router.navigateByUrl('/dashboard');
       }
     } catch {
