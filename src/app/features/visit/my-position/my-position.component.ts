@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SalonVisitService } from '../salon-visit.service';
 import { PushPromptComponent } from '../../../shared/components/push-prompt/push-prompt.component';
+import { PushService } from '../../../core/push/push.service';
 
 @Component({
   selector: 'app-my-position',
@@ -16,6 +17,7 @@ export class MyPositionComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
   private readonly _fb = inject(FormBuilder);
+  private readonly _push = inject(PushService);
 
   protected readonly showAddKidsModal = signal(false);
   protected readonly serviceComplete = signal(false);
@@ -95,7 +97,12 @@ export class MyPositionComponent implements OnInit {
   protected leaveQueue(): void {
     const prefix = this._shellPrefix;
     const segments = prefix ? [prefix, 's', this._slug] : ['s', this._slug];
-    this.visit.leaveQueue(this._entryId, () => this._router.navigate(segments));
+    this.visit.leaveQueue(this._entryId, () => {
+      // Guest subscriptions are scoped to the session — unsubscribe when they
+      // leave so the device doesn't receive stale push notifications.
+      if (prefix === '/g') void this._push.disable();
+      this._router.navigate(segments);
+    });
   }
 
   private _firstServiceId(): string {
