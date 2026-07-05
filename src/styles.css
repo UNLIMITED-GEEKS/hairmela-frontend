@@ -77,6 +77,32 @@
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
+/* ── dvh fallbacks ────────────────────────────────────────────────────────────
+   dvh (dynamic viewport height) requires Chrome 108+, Firefox 101+.
+   Older Android 12 devices ship with Chrome ~95-100, so we always emit a
+   100vh fallback first; browsers that understand dvh pick up the second rule. */
+@utility h-dvh {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* h-screen-minus-topbar: full viewport minus the 3rem top bar (queue console) */
+@utility h-screen-minus-topbar {
+  height: calc(100vh - 3rem);
+  height: calc(100dvh - 3rem);
+}
+
+/* Modal max-height guards so dialogs never overflow the viewport */
+@utility max-h-80dvh {
+  max-height: 80vh;
+  max-height: 80dvh;
+}
+
+@utility max-h-85dvh {
+  max-height: 85vh;
+  max-height: 85dvh;
+}
+
 /* ── Mobile chrome (single source of truth) ──────────────────────────────────
    The mobile bottom nav's total height: its content (min-h-56px) plus the
    home-indicator safe area. Shells reserve exactly this so page content is
@@ -101,10 +127,12 @@
    so here we only subtract the floating top bar (3rem) plus a small gap so the
    panel's footer doesn't butt against the nav. md+ has no bottom nav. */
 .h-mobile-content {
+  height: calc(100vh - 3rem - var(--bottom-nav-height) - 2rem);
   height: calc(100dvh - 3rem - var(--bottom-nav-height) - 2rem);
 }
 @media (min-width: 768px) {
   .h-mobile-content {
+    height: calc(100vh - 3rem);
     height: calc(100dvh - 3rem);
   }
 }

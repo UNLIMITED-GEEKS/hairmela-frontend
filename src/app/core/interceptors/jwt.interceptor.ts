@@ -17,6 +17,7 @@ const GUEST_TOKEN_PATHS = [
   '/walk-in',
   '/queues/guest-entries',
   '/queues/my-entries',
+  '/push/subscribe',
 ];
 
 export const jwtInterceptor: HttpInterceptorFn = (req, next) => {

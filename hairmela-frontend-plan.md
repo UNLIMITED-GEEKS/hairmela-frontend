@@ -2,13 +2,15 @@
 
 > Companion to the HairMela Backend Plan. The backend is fully built (Phases 1–9 ✅), so frontend phasing is ordered by frontend dependency, not backend availability. All API paths in this document are served under the backend's **/v1** prefix (omitted in tables for readability, exactly as in the backend plan).
 
-## MVP Scope
+## Scope & Current State
 
-The MVP is the **walk-in queue product**: salon owners set up their salon, staff, services, and hours; customers sign in (or browse as a guest), join a barber's line, and watch their position live. Four capability groups are explicitly post-MVP: **booking/appointments**, **notifications + web push**, **full anonymous public access + analytics**, and **forgot/reset password**. Auth in the MVP is login + signup only.
+The core is the **walk-in queue product**: salon owners set up their salon, staff, services, and hours; customers sign in (or browse as a guest), join a barber's line, and watch their position live. **The MVP (Phases 1–7) shipped, plus four post-MVP feature waves (Phases 8–11): tier/billing, web push, salon discovery + favourites, and the marketing/legal site.** See the Build Status table for the phase breakdown. Booking/appointments and full anonymous (no-guest-token) public access + analytics remain the only large post-MVP groups still open.
 
-**Guest access is live in MVP.** Unauthenticated visitors can visit `/g/s/:slug`, choose a barber, and join the queue without an account. The backend issues a short-lived guest JWT that is stored in `localStorage` under `hairmela_guest`. Guests can track their position and add party members. When they register, the guest token is cleared and their entry persists on the backend.
+**Guest access is live.** Unauthenticated visitors can visit `/g/s/:slug`, choose a barber, and join the queue without an account. The backend issues a short-lived guest JWT stored in `localStorage` under `hairmela_guest`. Guests can track their position and add party members. When they register, the guest token is cleared and their entry persists on the backend.
 
-**Email verification is deferred to post-MVP.** The backend's `@RequiresVerifiedEmail` decorator is not applied to any route. On the frontend: do not show the `VerifyEmailPrompt`, do not gate any action on `emailVerified`, do not handle `EMAIL_NOT_VERIFIED` errors. The `/verify-email` landing page still ships so the emailed link has somewhere to land.
+**Email verification is a soft nudge, not a gate.** The backend's `@RequiresVerifiedEmail` decorator is still not applied to any route, so nothing is *gated* on `emailVerified` and `EMAIL_NOT_VERIFIED` is never handled. But a dismissible `VerifyEmailBannerComponent` (shown on the account page only) encourages verification with a resend action, and the `/verify-email` + `/auth/verify-email` landing pages confirm the emailed link.
+
+**Forgot/reset password shipped.** Link/token-based (not OTP): `/forgot-password` (neutral "if an account exists…" message, no enumeration) → emailed link → `/auth/reset-password?token=` landing.
 
 ---
 
@@ -159,10 +161,11 @@ The frontend never enforces security — the backend does. The frontend mirrors 
 | `@SalonRoles(...)` | `salonRoleGuard` + `*hasRole` | `GET /salons/:salonId/me` via `MembershipStore` |
 | `@OrgOwner` | `orgOwnerGuard` | `GET /organizations/mine` |
 | `@RequiresTier(n)` | `tierGuard` + `*requiresTier` (visible-but-locked) | `tier` from `/salons/:salonId/me` |
-| `@RequiresVerifiedEmail` | **deferred post-MVP; guard not applied on backend** | — |
-| `@ActiveSalon` (downgrade freeze) | `tierFreeze` directive + frozen banner + `SALON_FROZEN` handler | `isFrozen` from `/salons/:salonId/me` |
+| `@RequiresVerifiedEmail` | **not gated on backend** — soft `VerifyEmailBannerComponent` nudge only (account page) | `emailVerified` from `/auth/me` |
+| `@ActiveSalon` (downgrade freeze) | `tierFreeze` directive + `FrozenBannerComponent` + `SALON_FROZEN` handler; customer slug hides join on `isFrozen` | `isFrozen`/`staffFrozen` from `/salons/:salonId/me`, `isFrozen` from slug payload |
+| Subscription tier/status/limits | `BillingService` + `OrgContextService` + `TierBannerComponent` + pre-blocking gates | `EffectiveAccessDto` from `.../subscription/me`, tier fields on `/me` |
 | Error envelope + stable codes | `ApiError` type + error interceptor branching on `code` | `core/errors` |
-| Pagination meta | Generated `PaginatedResponse` models + shared `Pagination` component | generated client |
+| Pagination meta (`{data, meta}`) | `PaginatedMetaDto` model + shared `PaginationComponent` | generated client |
 | WebSocket rooms & events | `QueueSocketService` typed streams | manual socket types |
 
 ---
@@ -220,7 +223,7 @@ src/app/
 │   │   ├── auth.service.ts          ← login, register (clears guest token on success), logout, verify/resend
 │   │   ├── token.store.ts           ← access token (memory signal) + refresh token (localStorage)
 │   │   ├── current-user.store.ts    ← signal<User | null> hydrated from GET /auth/me
-│   │   └── session-init.ts          ← app initializer: silent refresh → /auth/me → hydrate; _loaded flag prevents double-run
+│   │   └── session-init.ts          ← app initializer: silent refresh → /auth/me → hydrate; cold-start redirect gated on Navigation Timing (`nav.type !== 'reload'`) so refresh at / doesn't bounce (see FIXMEs)
 │   ├── guest/
 │   │   ├── guest-store.ts           ← localStorage key `hairmela_guest` — token + entries[] + lastPath
 │   │   ├── guest-http.service.ts    ← manual HttpClient with guest Bearer header for FlexAuthGuard routes (leaveQueue, addMembers, getGuestEntries)
@@ -228,16 +231,27 @@ src/app/
 │   ├── queue/
 │   │   └── active-entry.store.ts    ← unified entry persistence; delegates to GuestStore (guest) or localStorage key `hairmela_active_entries` (auth)
 │   ├── salon-context/
-│   │   ├── salon-context.service.ts ← derives active salonId from route params; exposes membership signal
-│   │   ├── membership.store.ts      ← Map cache of GET /salons/:salonId/me; getMembership() async, getCached() sync
-│   │   └── membership.types.ts      ← SalonRole enum + Membership interface
+│   │   ├── salon-context.service.ts ← derives active salonId from route params; exposes membership + tier/status/isTrialing/daysLeft/staffFrozen/isFrozen/isReadOnly signals
+│   │   ├── org-context.service.ts   ← caches the user's owned org + its effective access (salonLimit); goToBilling() resolves org on demand
+│   │   ├── membership.store.ts      ← Map cache of GET /salons/:salonId/me; _toMembership() maps the DTO (incl. tier/status/freeze fields)
+│   │   └── membership.types.ts      ← SalonRole enum + SubscriptionStatus + Membership interface
+│   ├── tier/
+│   │   ├── tier-limits.ts           ← SALON_LIMIT / STAFF_LIMIT (1_000_000 → ∞), TIER_NAMES, displayLimit()
+│   │   └── tier-plans.ts            ← PLAN_CARDS — single source for plan copy (billing + pricing + plan-explainer)
+│   ├── favorites/
+│   │   └── favorites.service.ts     ← root-cached favoritedIds Set + favourites list; optimistic toggle; CacheRegistry registered
+│   ├── push/
+│   │   └── push.service.ts          ← SwPush wrapper: enable()/disable(), notification-click deep-link; guarded on isEnabled (prod build only)
+│   ├── storage/
+│   │   └── persistent-store.ts      ← single localStorage gateway (JSON + raw), try/catch'd
 │   ├── guards/
 │   │   ├── auth.guard.ts            ← authenticated → pass; refresh token → /login+returnUrl; /s/* URL → /g/s/*; guest token → /g/queues; else → /login
 │   │   ├── guest.guard.ts           ← JWT-authenticated → /dashboard; guest-token users and unauthenticated → pass
 │   │   ├── guest-shell.guard.ts     ← JWT-authenticated → /; everyone else → pass
 │   │   ├── salon-role.guard.ts
 │   │   ├── org-owner.guard.ts
-│   │   └── tier.guard.ts
+│   │   ├── can-create-salon.guard.ts ← /salons/new: new users + owners pass; staff/admin-only → /dashboard
+│   │   └── tier.guard.ts            ← requiredTier check; below → redirect to /org/:orgId/billing
 │   ├── interceptors/
 │   │   ├── jwt.interceptor.ts
 │   │   ├── refresh.interceptor.ts
@@ -257,7 +271,10 @@ src/app/
 │   ├── directives/
 │   │   ├── has-role.directive.ts
 │   │   ├── requires-tier.directive.ts
-│   │   └── tier-freeze.directive.ts
+│   │   ├── tier-freeze.directive.ts   ← [tierFreeze]="isFrozen" — disables inner input/button/select/textarea
+│   │   └── password-toggle.directive.ts ← eye icon show/hide on password fields
+│   ├── pipes/
+│   │   └── media-url.pipe.ts           ← relative /uploads path → apiBaseUrl-prefixed; absolute URLs pass through
 │   └── components/
 │       ├── shells/
 │       │   ├── public-shell/        ← PublicShellComponent: PublicNavComponent + router-outlet; navItems: Sign In (auth), Sign Up (cta)
@@ -268,9 +285,17 @@ src/app/
 │       │   ├── mobile-top-bar/      ← mobile only; salon switcher when activeSalon present, else logo+text link; ng-content slot for MobileSheet
 │       │   ├── mobile-sheet/        ← slide-up drawer; salon controls section driven by membership input; closed output
 │       │   ├── bottom-nav/          ← mobile only (flex md:hidden); bottomNav:true items only; active tab via routerLinkActive template var → text-primary + bold label + dot
-│       │   ├── public-nav/          ← desktop pill nav + mobile expandable; logo+"HairMela" links to / in both viewports
-│       │   ├── nav-icon/            ← renders SVG icon by name string
+│       │   ├── public-nav/          ← desktop pill nav + mobile expandable; logo+"HairMela" links to / in both viewports; Pricing/About/Contact + Sign In/Sign Up
+│       │   ├── public-footer/        ← PublicFooterComponent — product/legal/support columns; in the public shell
+│       │   ├── nav-icon/            ← renders SVG icon by name string (incl. 'heart' for Favourites)
 │       │   └── nav-item.types.ts    ← NavItem + NavIcon union type
+│       ├── salon-card/             ← shared listing card: slug link, auth-gated heart, mediaUrl pipe, /salon-placeholder.jpg fallback, fixed-height photo
+│       ├── pagination/             ← PaginationComponent over {data, meta} — used by listing + favourites (+ notifications later)
+│       ├── tier-banner/            ← trial/expired/free banner — rendered on the salon page, owner/admin only
+│       ├── frozen-banner/          ← frozen-salon notice + upgrade CTA (owner) / informational (others)
+│       ├── push-prompt/            ← contextual "notify me when it's your turn" after joining
+│       ├── verify-email-banner/    ← unverified nudge + resend (account page)
+│       ├── cookie-consent/         ← accept-all / reject-all, once per browser; in root app.ts
 │       ├── confirm-dialog/
 │       ├── connection-banner/
 │       ├── image-uploader/
@@ -280,8 +305,12 @@ src/app/
 │       └── skeleton/
 │
 ├── marketing/                       ← public marketing pages (NOT under features/)
-│   ├── landing/                     ← LandingComponent — served at /
-│   └── privacy/                     ← PrivacyComponent — served at /privacy
+│   ├── landing/                     ← LandingComponent (salon listing homepage) + salon-listing.service.ts + geo-location.service.ts (disabled)
+│   ├── pricing/                     ← PricingComponent — /pricing (renders from PLAN_CARDS)
+│   ├── about/                       ← AboutComponent — /about
+│   ├── contact/                     ← ContactComponent — /contact (logs values; API TODO)
+│   ├── privacy/                     ← PrivacyComponent — /privacy
+│   └── terms/                       ← TermsComponent — /terms
 │
 ├── utils/
 │   └── string.utils.ts              ← deslugify(slug): split on '-', capitalise each word
@@ -308,15 +337,16 @@ src/app/
     │   ├── auth-queues/             ← AuthQueuesComponent at /queues — reads ActiveEntryStore (auth key); navigates to /s/:salonSlug/q/:queueId/position
     │   └── guest-queues/            ← GuestQueuesComponent at /g/queues — reads ActiveEntryStore (guest key); navigates to /g/s/:salonSlug/q/:queueId/position
     ├── notifications/               ← NotificationsComponent at /notifications — wraps PendingInvitesComponent
-    ├── organization/
-    ├── salons/
-    ├── staff/
+    ├── favorites/                   ← FavoritesPageComponent at /favorites — shared card grid + pagination over FavoritesService
+    ├── organization/                (org-overview, org-settings, plan-explainer, billing/ — BillingComponent + DummySuccessComponent + billing.service.ts)
+    ├── salons/                      (+ analytics/ — tier-gated Tier 2 scaffold)
+    ├── staff/                       (+ accept-invite/ — public invite landing)
     ├── services/
     ├── schedules/
     ├── closures/
     ├── queue/           (staff console — QueueShellComponent + CurrentClientComponent + QueueListComponent)
     ├── visit/           (SalonShellComponent provides SalonVisitService; child routes shared by auth + guest shells via visitRoutes)
-    └── account/
+    └── account/         (+ reset-password/ + notifications-toggle/)
 ```
 
 ---
@@ -379,8 +409,9 @@ Manual `HttpClient` wrapper for the backend's `FlexAuthGuard` routes (those that
 | `guestGuard` | JWT-authenticated → `/dashboard`; guest-token users pass through (they need `/login` and `/register`) | `/login`, `/register` |
 | `guestShellGuard` | JWT-authenticated → `/`; everyone else passes | `/g/*` |
 | `salonRoleGuard` | Reads `:salonId`, awaits `MembershipStore.getMembership()`, checks `route.data.roles` | salon management routes |
+| `canCreateSalonGuard` | new users (no salons) + owners pass; staff/admin-only (own nothing) → `/dashboard` | `/salons/new` |
 | `orgOwnerGuard` | User owns `:orgId` | `/org/*` |
-| `tierGuard` | `membership.tier >= route.data.requiredTier` → pass; else redirect to plan explainer | tier-gated routes (post-MVP consumers) |
+| `tierGuard` | `membership.tier >= route.data.requiredTier` → pass; else redirect to `/org/:orgId/billing` | `/salons/:salonId/analytics` (Tier 2); appointments later |
 
 ---
 
@@ -390,7 +421,7 @@ Manual `HttpClient` wrapper for the backend's `FlexAuthGuard` routes (those that
 
 **`*requiresTier`** — default mode **lock**: render disabled with a lock icon + "Upgrade to enable" nudge. Reads `membership().tier`.
 
-**`tierFreeze`** (attribute) — when `membership().isFrozen`, wrapped controls render read-only. Enforcement is server-side; `SALON_FROZEN` handled centrally if a frozen action slips through.
+**`tierFreeze`** (attribute) — when `isFrozen`, disables all inner `input/button/select/textarea`. Applied to the settings, service-form, and closures write forms (the actual write surfaces); list pages that use `<a routerLink>` links — which the directive can't disable — hide those controls with `!isFrozen` instead and show a `FrozenBannerComponent`. Enforcement is server-side (`SALON_FROZEN` handled centrally); this is honest pre-blocking. Invite-staff additionally blocks at Tier 1 (staff limit = owner only) via a component computed, not the directive.
 
 ---
 
@@ -412,11 +443,12 @@ Manual `HttpClient` wrapper for the backend's `FlexAuthGuard` routes (those that
 | `TOKEN_INVALID` | Logout + redirect to login |
 | `INVALID_CREDENTIALS` | *local:* inline form error on login |
 | `EMAIL_ALREADY_REGISTERED` | *local:* inline error on register |
-| `EMAIL_NOT_VERIFIED` | **not handled in MVP** |
+| `EMAIL_NOT_VERIFIED` | **not handled** — verification is not gated server-side (soft nudge only) |
 | `VALIDATION_FAILED` | *local:* map `details` onto form controls; toast fallback |
-| `TIER_REQUIRED` | Upgrade nudge |
-| `SALON_FROZEN` | Frozen-salon prompt |
-| `SALON_LIMIT_REACHED` | *local:* upgrade nudge on Create Salon |
+| `TIER_REQUIRED` | Central toast "requires a higher plan"; pre-blocked in UI where possible |
+| `SALON_FROZEN` | Central toast "over the plan limit — upgrade to reactivate"; pre-blocked via `tierFreeze` |
+| `STAFF_LIMIT_REACHED` | Central toast "staff limit reached — upgrade"; pre-blocked on invite-staff (Tier 1) |
+| `SALON_LIMIT_REACHED` | *local:* upgrade nudge on Create Salon; pre-blocked via add-salon count gate |
 | `SALON_SLUG_TAKEN`, `SERVICE_NAME_TAKEN`, `STAFF_ALREADY_INVITED` | *local:* inline field errors |
 | `CANNOT_REMOVE_OWNER` | Toast directing to Transfer Ownership |
 | `PARTY_TOO_LARGE` | *local:* inline error on join form |
@@ -514,15 +546,18 @@ The `salon/` subfolder (`SalonDashboardComponent`, `MySalonsListComponent`, `Pen
 ## Feature Modules
 
 ### Auth — `features/auth/`
-**Routes (inside public shell):** `/login`, `/register`, `/verify-email`
+**Routes (inside public shell):** `/login`, `/register`, `/forgot-password`, `/auth/reset-password`, `/verify-email` (+ `/auth/verify-email`)
 
 | Component | Endpoint |
 |---|---|
-| `LoginComponent` | POST /auth/login |
+| `LoginComponent` | POST /auth/login (+ "Forgot password?" link, `?reset=1` success banner) |
 | `RegisterComponent` | POST /auth/register — clears guest token on success |
-| `VerifyEmailComponent` | POST /auth/verify-email |
+| `ForgotPasswordComponent` | POST /auth/forgot-password — always-neutral message, no enumeration |
+| `ResetPasswordPageComponent` | POST /auth/reset-password — reads `?token=`; no token → invalid |
+| `VerifyEmailComponent` | POST /auth/verify-email — resend on failure when logged in |
 
-**Guards:** `guestGuard` on login/register; verify-email is public.
+All password fields use the `appPasswordToggle` directive (eye icon show/hide).
+**Guards:** `guestGuard` on login/register/forgot-password; reset-password + verify-email are public (token-authorized / reachable with a stale session). Staff invite-accept lives under `features/staff/accept-invite` at `/staff/accept-invite` (public, handles logged-in and logged-out invitees inline).
 
 ### Notifications — `features/notifications/`
 **Route:** `/notifications` — wraps `PendingInvitesComponent`. **Guards:** `authGuard`.
@@ -534,9 +569,11 @@ The `salon/` subfolder (`SalonDashboardComponent`, `MySalonsListComponent`, `Pen
 |---|---|
 | `OrgOverviewComponent` | GET /organizations/:orgId |
 | `OrgSettingsComponent` | PATCH /organizations/:orgId |
-| `PlanExplainerComponent` | — (static) |
+| `PlanExplainerComponent` | — (static teaser; renders from `PLAN_CARDS`, links to billing) |
+| `BillingComponent` | GET/POST `.../subscription/me` `checkout` `verify` `downgrade` `cancel` via `BillingService` |
+| `DummySuccessComponent` | reads `?reference=`, calls verify, redirects to billing |
 
-**Guards:** `authGuard + orgOwnerGuard`.
+**Guards:** `authGuard + orgOwnerGuard`. Billing is owner-only (nav hidden for non-owners; backend 403s as safety net). Upgrade = immediate (`checkout`→`verify`→re-fetch `/me`); downgrade/cancel = scheduled at period end (`pendingTier`/`endsAt`).
 
 ### Salons — `features/salons/`
 **Routes:** `/salons/new`, `/salons/:salonId`, `/salons/:salonId/settings`, `/salons/:salonId/slug`, `/salons/:salonId/share`, `/salons/:salonId/delete`, `/salons/:salonId/media`
@@ -629,18 +666,31 @@ The `salon/` subfolder (`SalonDashboardComponent`, `MySalonsListComponent`, `Pen
 **Guards:** `authGuard` for auth shell; `guestShellGuard` for guest shell (`/g/*`).
 
 ### Account — `features/account/`
-**Route:** `/account` — read-only profile from `CurrentUserStore` (no extra API call). Logout button calls `AuthService.logout()`. **Guards:** `authGuard`.
+**Route:** `/account` — read-only profile from `CurrentUserStore`. Hosts `VerifyEmailBannerComponent` (unverified nudge + resend), `ResetPasswordComponent` (send-reset-link to own email), and `NotificationsToggleComponent` (push on/off). Logout button calls `AuthService.logout()`. **Guards:** `authGuard`.
+
+### Favourites — `features/favorites/`
+**Route:** `/favorites` (auth shell). `FavoritesPageComponent` renders the shared `SalonCardComponent` grid + `PaginationComponent`, fed by root-scoped `FavoritesService` (`GET /users/me/favorites`). The service caches `favoritedIds` (a `Set` used to render heart state on every card app-wide) and the current favourites page; `toggle()` is optimistic and patches both caches in place (or invalidates the list when adding from a page that lacks full card data, e.g. the salon detail page). **Guards:** `authGuard`; nav entry (sidebar + bottom nav) is inherently auth-gated by the shell.
+
+### Marketing & legal — `marketing/`
+**Routes (public shell):** `/` (salon listing homepage — `LandingComponent` + `SalonListingService`), `/pricing`, `/about`, `/contact`, `/privacy`, `/terms`. The homepage is the primary above-the-fold content: compact hero → sticky search bar → paginated salon grid (18/page = 6 rows, no infinite scroll) → the old marketing sections below. `PublicFooterComponent` and `CookieConsentComponent` are app-wide (footer in the public shell; cookie banner in the root `app.ts` alongside toast + confirm-dialog).
 
 ---
 
 ## Routing Map
 
 ```
-/                                   public shell (PublicShellComponent)
+/                                   public shell (PublicShellComponent) — salon listing homepage
+/pricing                            public shell — plan comparison (Tier 1 card commented until launch)
+/about                              public shell
+/contact                            public shell — contact form (logs values; API TODO)
 /privacy                            public shell
-/verify-email                       public shell
+/terms                              public shell
+/verify-email                       public shell (also /auth/verify-email — emailed-link convention)
 /login                              public shell + guestGuard
 /register                           public shell + guestGuard
+/forgot-password                    public shell + guestGuard
+/auth/reset-password                public shell (token-authorized; no guard — reachable with stale session)
+/staff/accept-invite                public shell (invite token; handles logged-in + logged-out inline)
 
 /g                                  guest shell (GuestShellComponent) + guestShellGuard
   /g/queues                         GuestQueuesComponent
@@ -651,22 +701,26 @@ The `salon/` subfolder (`SalonDashboardComponent`, `MySalonsListComponent`, `Pen
 
 /                                   auth shell (AuthShellComponent) + authGuard
   /dashboard                        DashboardComponent
-  /account                          AccountComponent
+  /account                          AccountComponent (+ verify-email banner + notifications toggle)
   /notifications                    NotificationsComponent
   /queues                           AuthQueuesComponent
+  /favorites                        FavoritesPageComponent
   /s/:slug                          visitRoutes (shellPrefix = '')
     /s/:slug/q/:queueId
     /s/:slug/q/:queueId/join
     /s/:slug/q/:queueId/position
   /org/:orgId                       + orgOwnerGuard
   /org/:orgId/settings              + orgOwnerGuard
-  /org/:orgId/plan                  + orgOwnerGuard
+  /org/:orgId/plan                  + orgOwnerGuard — static plan teaser → links to billing
+  /org/:orgId/billing               + orgOwnerGuard — live subscription (upgrade/downgrade/cancel)
+  /org/:orgId/billing/dummy-success + orgOwnerGuard — reads ?reference=, verifies, redirects
   /salons/new
   /salons/:salonId                  + salonRoleGuard(OWNER,ADMIN,STAFF)
   /salons/:salonId/settings         + salonRoleGuard(OWNER,ADMIN)
   /salons/:salonId/slug             + salonRoleGuard(OWNER)
   /salons/:salonId/share            + salonRoleGuard(OWNER,ADMIN)
   /salons/:salonId/delete           + salonRoleGuard(OWNER)
+  /salons/:salonId/analytics        + salonRoleGuard(OWNER,ADMIN) + tierGuard(requiredTier 2)
   /salons/:salonId/media            + salonRoleGuard(OWNER,ADMIN,STAFF)
   /salons/:salonId/closures         + salonRoleGuard(OWNER,ADMIN)
   /salons/:salonId/services         + salonRoleGuard(OWNER,ADMIN,STAFF)
@@ -691,7 +745,10 @@ The `salon/` subfolder (`SalonDashboardComponent`, `MySalonsListComponent`, `Pen
 - **Session:** `TokenStore` + `CurrentUserStore` — single source of truth for `authGuard`.
 - **Guest session:** `GuestStore` — single source for guest token, guest entries, and `guestShellGuard`.
 - **Active entries (unified):** `ActiveEntryStore` — delegates to `GuestStore` (guest) or `hairmela_active_entries` localStorage (auth). Shape includes `salonSlug` so queue list pages can navigate without a backend join.
-- **Per-salon authorization:** `MembershipStore` behind `SalonContextService`.
+- **Per-salon authorization + tier:** `MembershipStore` behind `SalonContextService` (exposes tier/status/freeze/trial signals). Invalidated on billing actions.
+- **Owned org + effective access:** `OrgContextService` — caches the user's org and its `salonLimit`; `goToBilling()` resolves on demand. Warmed once in the auth shell.
+- **Favourites:** `FavoritesService` (root) — caches `favoritedIds` (Set, drives heart state everywhere) + the favourites list page; optimistic `toggle()` patches both in place. Cleared on logout via `CacheRegistry`.
+- **Homepage listing:** `SalonListingService` (route-scoped `providedIn` on the component) — debounced search + state/city filter + pagination signals; not globally cached (staleness is fine, YAGNI).
 - **Live queue state:** socket-fed signals. REST timeline is initial paint + reconnect fallback only. **Never cached.**
 - **Live countdown:** `_tick` signal incremented by `setInterval` → `liveWaitMinutes` / `memberWaitMinutes` computed maps.
 - **RxJS:** socket streams, single-flight refresh queuing. Everything else is signals.
@@ -738,16 +795,30 @@ All 7 MVP phases are complete ✅ — plus post-Phase 7 shell work:
 | 6 ✅ | Schedules + Closures |
 | 7 ✅ | Queues: QueueSocketService, staff console, salon visit, live countdown, stale-entry validation, CalledBanner, leave |
 | Post-7 ✅ | Three-shell architecture (PublicShell / AuthShell / GuestShell), GuestStore, ActiveEntryStore, GuestHttpService, guestShellGuard, guest socket support, AuthQueuesComponent, GuestQueuesComponent, deslugify util, bottom-nav active highlight |
+| 8 ✅ | **Tier & Billing:** expanded `/salons/:salonId/me` (tier, status, isTrialing, trialEndsAt, daysLeft, staffFrozen), `tier-limits.ts` + `tier-plans.ts` constants, `OrgContextService` (owned-org + effective-access cache), billing page (`/org/:orgId/billing` — subscription/me, checkout→verify upgrade, scheduled downgrade/cancel, dummy-success), `TierBannerComponent` (trial/expired/free — salon page only, owner/admin), `plan-explainer` repurposed as static teaser, `STAFF_LIMIT_REACHED` code + interceptor; **freeze pre-blocking:** `tierFreeze` on settings/services/closures write forms, invite-staff tier+freeze gate, add-salon count gate, staff-frozen console lock, `FrozenBannerComponent`, customer slug `isFrozen` (hide barbers, disable join) |
+| 9 ✅ | **Web Push:** `PushService` over `SwPush` + `/push/*` (vapid-key, subscribe, unsubscribe), contextual permission prompt after joining a queue (`PushPromptComponent`), account notifications toggle, logout unsubscribe-before-clear ordering, notification-click deep-link via `/queues/my-entries` |
+| 10 ✅ | **Salon discovery + Favourites:** homepage reworked into a paginated salon listing (`GET /salons` search/state/city filter), shared `SalonCardComponent` (slug link, auth-gated heart, `mediaUrl` pipe, placeholder image), shared `PaginationComponent` (`{data, meta}`), `FavoritesService` (root-cached, optimistic toggle, `/salons/:id/favorite` + `/users/me/favorites`), favourites page + nav entry, heart on salon detail page |
+| 11 ✅ | **Marketing & legal site:** `/pricing`, `/about`, `/contact` (logs values — API TODO), `/privacy`, `/terms` (sticky section nav), `PublicFooterComponent`, `CookieConsentComponent` (accept-all/reject-all, once per browser), forgot/reset password flow, verify-email banner + landing, password show/hide directive |
 
 ---
 
 ## Post-MVP Backlog (in intended order)
 
-1. **Notifications + Push:** full inbox, unread badge, mark read/all, socket `notification$` toasts; PWA + `SwPush` subscribe/unsubscribe, contextual permission prompt, logout unsubscribe ordering
-2. **Full public access + Analytics:** remove guards from `/s/:slug` routes for truly anonymous (no guest token) browsing; analytics dashboard (Tier 2)
-3. **Booking & appointments:** availability slot picker, book/cancel flows, my-appointments page
-4. **Auth completion & polish:** forgot password, reset password, full AXE pass
-5. **Smaller deferrals:** profile editing, visit history, subscription self-service UI, staff self-editing of schedules, i18n, e2e suite
+Push subscribe/unsubscribe (Phase 9) and forgot/reset password (Phase 11) shipped, so they're gone from this list. What remains:
+
+1. **Notifications inbox polish:** full inbox page beyond the current invite-surfacing, unread badge, mark read / mark all, live socket `notification$` toasts. (Push *delivery* is done; this is the in-app inbox UX.)
+2. **Booking & appointments:** availability slot picker, book/cancel flows, my-appointments page (needs the backend's customer-appointments listing route).
+3. **Analytics dashboard (Tier 2):** summary cards, trends chart, service breakdown, staff performance — `analytics-component` scaffold exists and is tier-gated (`tierGuard` requiredTier 2 → billing); the data views are the remaining work.
+4. **Full anonymous public access:** remove guards from `/s/:slug` for truly anonymous (no guest token) browsing; the routes and card links are already slug-stable, so this removes guards rather than moving pages.
+5. **Billing polish:** real payment provider (current provider is a dummy — `checkout` returns a fake reference, `verify` always succeeds; the flow is provider-ready), and surfacing a scheduled downgrade/cancel on billing-page *reload* (needs `pendingTier`/`endsAt` — now on `EffectiveAccessDto` and wired, verify end-to-end).
+6. **Contact form API:** `ContactComponent.submit()` currently logs the payload (single TODO seam) — wire the real endpoint when it exists.
+7. **Geolocation location-default:** built (`GeoLocationService`, BigDataCloud reverse-geocode) but **disabled** — IP-based accuracy resolves to the nearest ISP hub, not the visitor's city. Re-enable behind a real GPS/permission story or a better provider.
+8. **Smaller deferrals:** profile editing (`PATCH /users/profile` doesn't exist), visit history, staff self-editing of schedules, i18n, e2e suite, full AXE pass on all public flows.
+
+### Known FIXMEs in code
+- `session-init.ts` — cold-start redirect (guest→queue / user→dashboard) fires only on a fresh navigation, gated via the Navigation Timing API (`nav.type !== 'reload'`) so a refresh at `/` doesn't bounce. Documented tradeoff: redirecting from the app initializer is timing-sensitive; a post-bootstrap approach (guard/ngOnInit) wipes `sessionStorage` via trivial-history `pushState→replaceState`.
+- Salon-switch (`top-bar`/`mobile-top-bar`) bounces through `/dashboard` to force teardown — replace with `runGuardsAndResolvers` or a dedicated salon-switch event.
+- STAFF service-assignment route is blocked rather than path-scoped — the "my services" sub-path gap is noted for a later split.
 
 ---
 
@@ -758,8 +829,8 @@ All 7 MVP phases are complete ✅ — plus post-Phase 7 shell work:
 - Per-salon roles → MembershipStore + salonRoleGuard + three directives
 - `/salons/mine` → Dashboard
 - Org-owner authority → orgOwnerGuard + Organization feature
-- Tiers + downgrade freeze + `SALON_FROZEN` → tierGuard + `*requiresTier` + `tierFreeze`
-- Verified-email gating → **deferred post-MVP**
+- Tiers + downgrade freeze + `SALON_FROZEN`/`STAFF_LIMIT_REACHED` → tierGuard + `*requiresTier` + `tierFreeze` + pre-blocking gates + `BillingService`
+- Verified-email → **not gated** (backend never applies the guard); soft banner nudge only
 - Salons (slug, settings, address, timezone, delete + cascades) → Salons feature
 - Enriched public slug payload → Visit feature (both shells)
 - Staff lifecycle (invite → claim → accept/decline → role → transfer → remove) → Staff feature + /notifications
@@ -770,7 +841,13 @@ All 7 MVP phases are complete ✅ — plus post-Phase 7 shell work:
 - `GET /queues/guest-entries` → `GuestEntryValidatorService.validate()` on guest shell mount
 - `GET /queues/my-entries` → `SalonVisitService._loadInitialTimeline` fallback for auth users whose guest store was cleared
 - Walk-in `guestToken` in response → stored in `GuestStore` at join time
-- Media (Cloudinary, galleries, reorder) → shared media components
+- Media (Cloudinary, galleries, reorder) → shared media components; `mediaUrl` pipe resolves relative dev paths against `apiBaseUrl`
 - WebSocket contract (auth payload, rooms, `queueTimeline`, reconnect re-join) → QueueSocketService
 - Error envelope + stable codes + requestId → core/errors + interceptor
 - /v1 versioning + no-hardcoded-URLs → environment configuration discipline
+- Subscription (`GET .../subscription/me`, checkout, verify, downgrade, cancel) → `BillingService` + billing page; effective access (tier/status/limits/pendingTier/endsAt) via `EffectiveAccessDto`
+- Downgrade freeze across the board (`SALON_FROZEN`, `STAFF_LIMIT_REACHED`, `TIER_REQUIRED`, `SALON_LIMIT_REACHED`) → `tierFreeze` directive + pre-blocking gates + `FrozenBannerComponent` + central interceptor handling; customer-side `isFrozen` on the slug payload hides join
+- Web push (`GET /push/vapid-public-key`, `POST`/`DELETE /push/subscribe`) → `PushService` over `SwPush`; notification-click deep-link resolves via `GET /queues/my-entries`
+- Salon listing (`GET /salons` — state/city/search/page/limit, `{data, meta}`) → homepage `SalonListingService` + `SalonCardComponent` + `PaginationComponent`
+- Favourites (`POST`/`DELETE /salons/:salonId/favorite`, `GET /users/me/favorites`) → root-cached `FavoritesService`, optimistic toggle, favourites page
+- Forgot/reset password (`POST /auth/forgot-password`, `/auth/reset-password`) → auth feature; verify-email (`/auth/verify-email`, resend) → banner + landing
