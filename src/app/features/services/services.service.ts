@@ -173,7 +173,12 @@ export class ServicesService {
     });
   }
 
-  setDefaultService(salonId: string, staffId: string, body: SetDefaultServiceDto): void {
+  setDefaultService(
+    salonId: string,
+    staffId: string,
+    body: SetDefaultServiceDto,
+    onRevert?: () => void,
+  ): void {
     const ctx = `${salonId}:${staffId}`;
     this._optimistic.run({
       signal: this._staffServices,
@@ -188,6 +193,7 @@ export class ServicesService {
         }),
       errorMessage: 'Could not set default service. Reverted.',
       onSuccess: () => this._toast.success('Default service updated'),
+      onRevert,
     });
   }
 

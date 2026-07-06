@@ -31,8 +31,7 @@
         <div class="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
           @for (service of allServices(); track service.id) {
             <button type="button" (click)="toggle(service)"
-              [disabled]="toggling() !== null"
-              class="w-full flex items-center gap-3 px-4 py-4 min-h-14 hover:bg-gray-50 disabled:opacity-60 transition-colors text-left">
+              class="w-full flex items-center gap-3 px-4 py-4 min-h-14 hover:bg-gray-50 transition-colors text-left">
               <div class="w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors"
                 [class]="assignedIds().has(service.id)
                   ? 'bg-primary border-primary'
@@ -47,9 +46,6 @@
                 <p class="text-sm font-medium text-gray-900">{{ service.name }}</p>
                 <p class="text-xs text-gray-400">{{ service.duration }}m · ₦{{ service.price }}</p>
               </div>
-              @if (toggling() === service.id) {
-                <span class="text-xs text-gray-400 shrink-0">…</span>
-              }
             </button>
           }
         </div>
@@ -63,8 +59,7 @@
           <div class="space-y-2">
             @for (service of assignedServices(); track service.id) {
               <button type="button" (click)="setDefault(service.id)"
-                [disabled]="settingDefault()"
-                class="w-full flex items-center gap-3 px-3 py-2.5 min-h-11 rounded-lg border transition-colors disabled:opacity-60"
+                class="w-full flex items-center gap-3 px-3 py-2.5 min-h-11 rounded-lg border transition-colors"
                 [class]="defaultServiceId() === service.id
                   ? 'border-primary bg-primary/5 text-primary'
                   : 'border-gray-200 text-gray-700 hover:bg-gray-50'">

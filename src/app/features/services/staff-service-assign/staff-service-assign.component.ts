@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, computed, signal } from '@angular/core';
+import { Component, inject, OnInit, computed } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Service } from '../../../api/models/service';
@@ -19,8 +19,6 @@ export class StaffServiceAssignComponent implements OnInit {
 
   protected readonly loading = this._assignService.loading;
   protected readonly error = this._assignService.error;
-  protected readonly toggling = signal<string | null>(null);
-  protected readonly settingDefault = signal(false);
 
   // Derived from the engine-managed staffServices signal — always in sync, never diverges
   protected readonly assignedIds = computed(
@@ -56,22 +54,20 @@ export class StaffServiceAssignComponent implements OnInit {
   }
 
   protected toggle(service: Service): void {
-    if (this.toggling()) return;
     const isAssigned = this.assignedIds().has(service.id);
-    this.toggling.set(service.id);
     if (isAssigned) {
       this._servicesService.removeService(this._salonId, this._staffId, service.id);
     } else {
       this._servicesService.assignService(this._salonId, this._staffId, service.id);
     }
-    this.toggling.set(null);
   }
 
   protected setDefault(serviceId: string): void {
-    if (this.settingDefault()) return;
-    this.settingDefault.set(true);
+    const prev = this.defaultServiceId();
     this._assignService.setDefaultServiceId(serviceId);
-    this._servicesService.setDefaultService(this._salonId, this._staffId, { serviceId });
-    this.settingDefault.set(false);
+    this._servicesService.setDefaultService(this._salonId, this._staffId, { serviceId }, () => {
+      // Revert the local defaultServiceId if the engine rolled back
+      this._assignService.setDefaultServiceId(prev);
+    });
   }
 }
