@@ -67,6 +67,7 @@ export class SalonSettingsService {
   ): void {
     this._optimistic.run({
       signal: this._salon,
+      dedupeKey: `SalonSettingsService.update:${salonId}`,
       // Cast needed: UpdateSalonDto has AddressDto while Salon has Address (extra fields).
       // The spread only touches the fields we're actually updating; reconcile corrects the full shape.
       apply: (s) => (s ? ({ ...s, ...salonBody } as unknown as Salon) : s),
@@ -107,6 +108,7 @@ export class SalonSettingsService {
   ): void {
     this._optimistic.run({
       signal: this._salon,
+      dedupeKey: `SalonSettingsService.updateSlug:${salonId}`,
       apply: (s) => (s ? { ...s, slug: body.slug } : s),
       reconcile: (_, res) => res.body,
       mirror: (v) => {

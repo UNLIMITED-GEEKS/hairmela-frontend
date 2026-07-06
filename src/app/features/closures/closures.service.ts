@@ -83,9 +83,13 @@ export class ClosuresService {
     const optimisticRow = { id: tempId, date: body.date, reason: body.reason ?? null } as Closure;
     this._optimistic.run({
       signal: this._salonClosures,
-      apply: (list) => [...list, optimisticRow],
+      // apply is REPLAYED on every recompute (e.g. a concurrent load()'s
+      // commitRead landing while this create is still pending) — must be
+      // idempotent or a replay duplicates the row. Guard by tempId.
+      apply: (list) => (list.some((c) => c.id === tempId) ? list : [...list, optimisticRow]),
       reconcile: (list, res) => list.map((c) => (c.id === tempId ? res.body : c)),
       tempId,
+      dedupeKey: `create-closure:${salonId}:${body.date}`,
       mirror: (v) => this._salonCache.set(salonId, v),
       contextKey: salonId,
       request: () =>
@@ -106,9 +110,13 @@ export class ClosuresService {
     const optimisticRow = { id: tempId, date: body.date, reason: body.reason ?? null } as Closure;
     this._optimistic.run({
       signal: this._staffClosures,
-      apply: (list) => [...list, optimisticRow],
+      // apply is REPLAYED on every recompute (e.g. a concurrent load()'s
+      // commitRead landing while this create is still pending) — must be
+      // idempotent or a replay duplicates the row. Guard by tempId.
+      apply: (list) => (list.some((c) => c.id === tempId) ? list : [...list, optimisticRow]),
       reconcile: (list, res) => list.map((c) => (c.id === tempId ? res.body : c)),
       tempId,
+      dedupeKey: `create-closure:${ctx}:${body.date}`,
       mirror: (v) => this._staffCache.set(ctx, v),
       contextKey: ctx,
       request: () =>
@@ -126,6 +134,7 @@ export class ClosuresService {
     if (this._optimistic.isPending(closureId)) return;
     this._optimistic.run({
       signal: this._salonClosures,
+      dedupeKey: `ClosuresService.deleteSalon:${closureId}`,
       apply: (list) => list.filter((c) => c.id !== closureId),
       mirror: (v) => this._salonCache.set(salonId, v),
       contextKey: salonId,
@@ -141,6 +150,7 @@ export class ClosuresService {
     if (this._optimistic.isPending(closureId)) return;
     this._optimistic.run({
       signal: this._staffClosures,
+      dedupeKey: `ClosuresService.deleteStaff:${closureId}`,
       apply: (list) => list.filter((c) => c.id !== closureId),
       mirror: (v) => this._staffCache.set(ctx, v),
       contextKey: ctx,

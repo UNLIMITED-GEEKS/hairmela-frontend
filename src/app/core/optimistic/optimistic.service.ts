@@ -1,23 +1,33 @@
 import { Injectable, WritableSignal, DestroyRef, signal, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Observable } from 'rxjs';
+import { Observable, finalize } from 'rxjs';
 import { ToastService } from '../toast/toast.service';
 import { isApiError } from '../errors/api-error.types';
 
 export interface OptimisticConfig<T, R = unknown> {
-  signal: WritableSignal<T>;                     // view state to mutate
-  apply: (current: T) => T;                      // predict — MUST be pure; it is REPLAYED
-  request: () => Observable<R>;                  // the real backend call (typed)
-  reconcile?: (current: T, response: R) => T;    // fold server truth into baseline (creates/updates)
-  mirror?: (value: T) => void;                   // write-through to the Map cache slice
-  contextKey?: string;                           // scope key (e.g. salonId); context change replaces the ledger
-  tempId?: string;                               // quarantined id for temp rows (creates/uploads)
-  errorMessage?: string;                         // toast ONLY on generic reverted case
-  onSuccess?: (response: R) => void;             // after confirm (close dialog, navigate)
-  onRevert?: () => void;                         // after revert (e.g. re-open the edit dialog)
-  onSettled?: () => void;                        // fires exactly once on EVERY terminal path (confirm,
-                                                 // revert, superseded-confirm, superseded-revert);
-                                                 // use for cleanup that must happen regardless (blob revoke)
+  signal: WritableSignal<T>; // view state to mutate
+  apply: (current: T) => T; // predict — MUST be pure; it is REPLAYED
+  request: () => Observable<R>; // the real backend call (typed)
+  reconcile?: (current: T, response: R) => T; // fold server truth into baseline (creates/updates)
+  mirror?: (value: T) => void; // write-through to the Map cache slice
+  contextKey?: string; // scope key (e.g. salonId); context change replaces the ledger
+  tempId?: string; // quarantined id for temp rows (creates/uploads)
+  // In-flight idempotency key — REQUIRED on every run(). A second run() with
+  // the same key while the first is unsettled is DROPPED entirely (no paint,
+  // no request). This is what stops a double-tap from producing two rows and
+  // two POSTs (creates can't self-guard on isPending — every call mints a
+  // fresh tempId). Convention: `${ClassName}.${methodName}:${entityId}` —
+  // the class+method pair is unique by construction, so two different
+  // operations on the same entity (e.g. update vs deactivate) can never
+  // collide with each other, only with themselves. For creates (no existing
+  // id yet), key off the payload instead, e.g. `ServicesService.create:${salonId}:${name}`.
+  dedupeKey: string;
+  errorMessage?: string; // toast ONLY on generic reverted case
+  onSuccess?: (response: R) => void; // after confirm (close dialog, navigate)
+  onRevert?: () => void; // after revert (e.g. re-open the edit dialog)
+  onSettled?: () => void; // fires exactly once on EVERY terminal path (confirm,
+  // revert, superseded-confirm, superseded-revert);
+  // use for cleanup that must happen regardless (blob revoke)
 }
 
 interface PendingOp<T> {
@@ -53,7 +63,10 @@ export class OptimisticService {
   // feature-scoped service's ledger dies with its signal — no leak, no root.
   private readonly _ledgers = new WeakMap<WritableSignal<unknown>, Ledger<unknown>>();
   private readonly _pendingIds = signal<ReadonlySet<string>>(new Set());
-  private _epochStamp = 0;                         // globally monotonic — no epoch is ever reused
+  // In-flight dedupe keys (see OptimisticConfig.dedupeKey). Plain Set, not a
+  // signal — no template reads it; it exists only to reject re-entrant run()s.
+  private readonly _inflightKeys = new Set<string>();
+  private _epochStamp = 0; // globally monotonic — no epoch is ever reused
 
   /** Templates/services check this to quarantine temp rows. */
   isPending(id: string): boolean {
@@ -70,19 +83,30 @@ export class OptimisticService {
   }
 
   run<T, R>(config: OptimisticConfig<T, R>, destroyRef?: DestroyRef): void {
+    // Idempotency gate: a re-entrant run() with a dedupeKey already in flight
+    // is dropped entirely — no op, no optimistic paint, no request. This is
+    // what stops a double-tapped "Create" from producing two rows + two POSTs
+    // (creates can't self-guard on isPending — every call mints a fresh tempId).
+    if (this._inflightKeys.has(config.dedupeKey)) return;
+    this._inflightKeys.add(config.dedupeKey);
+
     const ledger = this._ledgerFor(config.signal, config.mirror, config.contextKey);
     const op: PendingOp<T> = { key: Symbol(), apply: config.apply };
     ledger.pending.push(op);
     if (config.tempId) this._markPending(config.tempId, true);
-    this._recompute(config.signal, ledger);          // instant paint
+    this._recompute(config.signal, ledger); // instant paint
 
     const request$ = config.request();
-    const guarded$ = destroyRef
-      ? request$.pipe(takeUntilDestroyed(destroyRef))
-      : request$;
+    // finalize guarantees the dedupe key is freed even if teardown
+    // (takeUntilDestroyed) unsubscribes mid-flight, where neither next nor
+    // error would fire — otherwise the key would leak in _inflightKeys forever.
+    const guarded$ = (destroyRef ? request$.pipe(takeUntilDestroyed(destroyRef)) : request$).pipe(
+      finalize(() => this._releaseKey(config.dedupeKey)),
+    );
 
     guarded$.subscribe({
-      next: (response) => {                          // CONFIRM
+      next: (response) => {
+        // CONFIRM
         if (this._isSuperseded(config.signal, ledger)) {
           // Context switched while this op was in flight. The mutation
           // succeeded server-side; the next load() of that context will
@@ -96,12 +120,13 @@ export class OptimisticService {
         let base = op.apply(ledger.baseline);
         if (config.reconcile) base = config.reconcile(base, response);
         ledger.baseline = base;
-        ledger.epoch = ++this._epochStamp;             // a confirmed write happened
+        ledger.epoch = ++this._epochStamp; // a confirmed write happened
         this._settle(config.signal, ledger, op, config.tempId);
         config.onSuccess?.(response);
         config.onSettled?.();
       },
-      error: (err) => {                              // REVERT (surgical)
+      error: (err) => {
+        // REVERT (surgical)
         if (this._isSuperseded(config.signal, ledger)) {
           // Still toast (the user should know it failed) but don't touch the
           // current signal/baseline — it belongs to a newer context now.
@@ -121,7 +146,8 @@ export class OptimisticService {
   /**
    * Services commit ALL reads through this instead of signal.set directly.
    * `token` is what beginRead() returned when the load was issued.
-   * Returns `true` if the read was accepted, `false` if dropped (stale).
+   * Returns `true` if the read was accepted, `false` if dropped (stale OR
+   * deferred to a pending op — see below).
    *
    * PEEK-ONLY: commitRead never creates or replaces a ledger. A response
    * arriving is not a user context switch — only `beginRead` and `run`
@@ -130,6 +156,19 @@ export class OptimisticService {
    * Two guards: ledger exists, epoch matches. Epochs are globally monotonic,
    * so an epoch match implies same ledger incarnation and therefore same
    * context — no explicit contextKey comparison needed.
+   *
+   * A third guard: pending ops in flight. `run()`'s instant-paint recompute
+   * calls `mirror()` on the OPTIMISTIC value before the request settles — so
+   * a cache a service reads from (e.g. `load()`'s cache-hit path) can itself
+   * contain an unconfirmed row while its own create/update op is still
+   * pending. If commitRead trusted that value as the new baseline, a later
+   * revert would have nothing left in `pending` to undo — the unconfirmed
+   * row would get silently welded into confirmed state forever (the "no
+   * rollback on failed create" bug). So: while any op is pending on this
+   * ledger, the read is deferred — baseline is left untouched, and the
+   * eventual confirm/revert's own recompute repaints from the true baseline.
+   * The read is not lost forever; once the ledger drains, the next load()
+   * (against a by-then-corrected cache) succeeds normally.
    */
   commitRead<T>(
     sig: WritableSignal<T>,
@@ -138,17 +177,23 @@ export class OptimisticService {
     mirror?: (v: T) => void,
   ): boolean {
     const ledger = this._ledgers.get(sig as WritableSignal<unknown>) as Ledger<T> | undefined;
-    if (!ledger) return false;                       // no ledger exists — nothing to commit into
-    if (ledger.epoch !== token.epoch) return false;   // stale — a write, newer read, or context switch raced this
-    if (mirror) ledger.mirror = mirror;              // adopt mirror within matching context
+    if (!ledger) return false; // no ledger exists — nothing to commit into
+    if (ledger.epoch !== token.epoch) return false; // stale — a write, newer read, or context switch raced this
+    if (ledger.pending.length > 0) return false; // deferred — see doc comment above
+    if (mirror) ledger.mirror = mirror; // adopt mirror within matching context
     ledger.baseline = value;
-    ledger.epoch = ++this._epochStamp;                // an accepted read IS a baseline write —
-                                                     // it must invalidate older in-flight reads too
+    ledger.epoch = ++this._epochStamp; // an accepted read IS a baseline write —
+    // it must invalidate older in-flight reads too
     this._recompute(sig, ledger);
     return true;
   }
 
   // ── internals ──────────────────────────────────────────────────────────
+
+  /** Free an in-flight dedupe key once its request settles (any terminal path). */
+  private _releaseKey(dedupeKey: string | undefined): void {
+    if (dedupeKey !== undefined) this._inflightKeys.delete(dedupeKey);
+  }
 
   /** True once a context switch has replaced this op's ledger out from under it. */
   private _isSuperseded<T>(sig: WritableSignal<T>, ledger: Ledger<T>): boolean {
@@ -182,7 +227,11 @@ export class OptimisticService {
     }
   }
 
-  private _ledgerFor<T>(sig: WritableSignal<T>, mirror?: (v: T) => void, contextKey?: string): Ledger<T> {
+  private _ledgerFor<T>(
+    sig: WritableSignal<T>,
+    mirror?: (v: T) => void,
+    contextKey?: string,
+  ): Ledger<T> {
     let ledger = this._ledgers.get(sig as WritableSignal<unknown>) as Ledger<T> | undefined;
     if (!ledger || ledger.contextKey !== contextKey) {
       // New signal, OR context changed (e.g. user navigated from salon A to B).
@@ -197,7 +246,12 @@ export class OptimisticService {
     return ledger;
   }
 
-  private _settle<T>(sig: WritableSignal<T>, ledger: Ledger<T>, op: PendingOp<T>, tempId?: string): void {
+  private _settle<T>(
+    sig: WritableSignal<T>,
+    ledger: Ledger<T>,
+    op: PendingOp<T>,
+    tempId?: string,
+  ): void {
     ledger.pending = ledger.pending.filter((p) => p.key !== op.key);
     if (tempId) this._markPending(tempId, false);
     this._recompute(sig, ledger);

@@ -52,6 +52,7 @@ export class OrgService {
   update(orgId: string, body: UpdateOrganizationDto, onSuccess?: () => void): void {
     this._optimistic.run({
       signal: this._org,
+      dedupeKey: `OrgService.update:${orgId}`,
       apply: (org) => (org ? { ...org, name: body.name ?? org.name } : org),
       reconcile: (_, res) => res.body,
       request: () =>

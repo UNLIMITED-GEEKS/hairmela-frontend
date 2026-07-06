@@ -69,6 +69,7 @@ export class SalonOverviewService {
     const next = !this._myStaff()?.isAcceptingClients;
     this._optimistic.run({
       signal: this._myStaff,
+      dedupeKey: `SalonOverviewService.toggleAcceptingClients:${staffId}`,
       apply: (s) => (s ? { ...s, isAcceptingClients: next } : s),
       mirror: (v) => {
         const entry = this._cache.get(salonId);

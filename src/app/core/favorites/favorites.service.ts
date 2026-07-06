@@ -108,6 +108,7 @@ export class FavoritesService {
 
     this._optimistic.run({
       signal: this._favoritedIds,
+      dedupeKey: `FavoritesService.toggle:${salon.id}`,
       apply: (ids) => {
         const next = new Set(ids);
         wasFavorited ? next.delete(salon.id) : next.add(salon.id);

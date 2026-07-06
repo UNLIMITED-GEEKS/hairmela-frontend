@@ -59,9 +59,13 @@ export class SalonMediaService {
     };
     this._optimistic.run({
       signal: this._media,
-      apply: (list) => [...list, optimisticTile],
+      // apply is REPLAYED on every recompute (e.g. a concurrent load()'s
+      // commitRead landing while this upload is still pending) — must be
+      // idempotent or a replay duplicates the tile. Guard by tempId.
+      apply: (list) => (list.some((m) => m.id === tempId) ? list : [...list, optimisticTile]),
       reconcile: (list, res) => list.map((m) => (m.id === tempId ? res.body : m)),
       tempId,
+      dedupeKey: `SalonMediaService.upload:${salonId}:${file.name}:${file.size}:${file.lastModified}`,
       mirror: (v) => this._cache.set(salonId, v),
       contextKey: salonId,
       request: () =>
@@ -78,6 +82,7 @@ export class SalonMediaService {
     if (this._optimistic.isPending(mediaId)) return;
     this._optimistic.run({
       signal: this._media,
+      dedupeKey: `SalonMediaService.delete:${mediaId}`,
       apply: (list) => list.filter((m) => m.id !== mediaId),
       mirror: (v) => this._cache.set(salonId, v),
       contextKey: salonId,
@@ -90,6 +95,7 @@ export class SalonMediaService {
   reorder(salonId: string, body: ReorderMediaDto, onSuccess?: () => void): void {
     this._optimistic.run({
       signal: this._media,
+      dedupeKey: `SalonMediaService.reorder:${salonId}`,
       apply: (list) => {
         const idxMap = new Map(body.orderedIds.map((id, i) => [id, i]));
         return [...list].sort(
@@ -113,10 +119,16 @@ export class SalonMediaService {
     this._media.set([]);
   }
 
-  /** Apply a client-side patch without an API call (API already completed in a child component). */
+  /**
+   * Apply a client-side patch without an API call (API already completed in a
+   * child component). request: () => of(null) settles synchronously within
+   * run() itself, so there's no real in-flight window to dedupe — a fresh key
+   * per call is fine since nothing can ever collide with it.
+   */
   patchMedia(salonId: string, updater: (list: Media[]) => Media[]): void {
     this._optimistic.run({
       signal: this._media,
+      dedupeKey: `SalonMediaService.patchMedia:${salonId}:${crypto.randomUUID()}`,
       apply: updater,
       mirror: (v) => this._cache.set(salonId, v),
       contextKey: salonId,

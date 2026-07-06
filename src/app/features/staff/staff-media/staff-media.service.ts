@@ -57,9 +57,13 @@ export class StaffMediaService {
     };
     this._optimistic.run({
       signal: this._media,
-      apply: (list) => [...list, optimisticTile],
+      // apply is REPLAYED on every recompute (e.g. a concurrent load()'s
+      // commitRead landing while this upload is still pending) — must be
+      // idempotent or a replay duplicates the tile. Guard by tempId.
+      apply: (list) => (list.some((m) => m.id === tempId) ? list : [...list, optimisticTile]),
       reconcile: (list, res) => list.map((m) => (m.id === tempId ? res.body : m)),
       tempId,
+      dedupeKey: `StaffMediaService.upload:${staffId}:${file.name}:${file.size}:${file.lastModified}`,
       mirror: (v) => this._cache.set(staffId, v),
       contextKey: staffId,
       request: () =>
@@ -79,6 +83,7 @@ export class StaffMediaService {
       apply: (list) => list.filter((m) => m.id !== mediaId),
       mirror: (v) => this._cache.set(staffId, v),
       contextKey: staffId,
+      dedupeKey: `delete-media:${staffId}:${mediaId}`,
       request: () => mediaControllerDelete(this._http, this._apiConfig.rootUrl, { id: mediaId }),
       errorMessage: 'Could not delete image. Restored.',
       onSuccess: () => onSuccess?.(),
@@ -97,6 +102,7 @@ export class StaffMediaService {
       apply: updater,
       mirror: (v) => this._cache.set(staffId, v),
       contextKey: staffId,
+      dedupeKey: `patch-media:${staffId}:${crypto.randomUUID()}`,
       request: () => of(null),
     });
   }

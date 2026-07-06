@@ -1,4 +1,4 @@
-import { Component, effect, inject, OnInit, computed } from '@angular/core';
+import { Component, effect, inject, OnInit, computed, signal } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
@@ -21,13 +21,17 @@ export class ServiceFormComponent implements OnInit {
   protected readonly salonContext = inject(SalonContextService);
 
   protected readonly loading = this._servicesService.loading;
+  // Guards against a double-tap firing two ngSubmits before navigation away
+  // completes — each would create its own optimistic op + a real duplicate
+  // server-side create (nothing else in the form/service call chain blocks it).
+  protected readonly submitting = signal(false);
 
   protected readonly isEdit = computed(() => !!this._serviceId);
 
   protected readonly form = this._fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
     duration: [30, [Validators.required, Validators.min(1)]],
-    price: ['', Validators.required],
+    price: [0, [Validators.required, Validators.min(0)]],
     description: [''],
   });
 
@@ -51,7 +55,7 @@ export class ServiceFormComponent implements OnInit {
           this.form.patchValue({
             name: service.name,
             duration: service.duration,
-            price: service.price,
+            price: Number(service.price),
             description: service.description ?? '',
           });
         }
@@ -61,12 +65,13 @@ export class ServiceFormComponent implements OnInit {
   }
 
   protected save(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid || this.submitting()) return;
+    this.submitting.set(true);
     const { name, duration, price, description } = this.form.getRawValue();
     const body = {
       name: name!,
       duration: duration!,
-      price: price!,
+      price: String(price!),
       description: description || undefined,
     };
     const sid = this._serviceId;

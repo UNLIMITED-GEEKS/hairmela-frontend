@@ -62,9 +62,13 @@ export class SchedulesService {
     const optimisticRow = { id: tempId, ...body } as StaffSchedule;
     this._optimistic.run({
       signal: this._schedules,
-      apply: (list) => [...list, optimisticRow],
+      // apply is REPLAYED on every recompute (e.g. a concurrent load()'s
+      // commitRead landing while this create is still pending) — must be
+      // idempotent or a replay duplicates the row. Guard by tempId.
+      apply: (list) => (list.some((s) => s.id === tempId) ? list : [...list, optimisticRow]),
       reconcile: (list, res) => list.map((s) => (s.id === tempId ? res.body : s)),
       tempId,
+      dedupeKey: `create-schedule:${ctx}:${body.dayOfWeek}:${body.startTime}`,
       mirror: (v) => this._cache.set(ctx, v),
       contextKey: ctx,
       request: () =>
@@ -85,6 +89,7 @@ export class SchedulesService {
     if (this._optimistic.isPending(scheduleId)) return;
     this._optimistic.run({
       signal: this._schedules,
+      dedupeKey: `SchedulesService.update:${scheduleId}`,
       apply: (list) => list.map((s) => (s.id === scheduleId ? { ...s, ...body } : s)),
       mirror: (v) => this._cache.set(ctx, v),
       contextKey: ctx,
@@ -107,6 +112,7 @@ export class SchedulesService {
       signal: this._schedules,
       apply: (list) => list.filter((s) => s.id !== scheduleId),
       mirror: (v) => this._cache.set(ctx, v),
+      dedupeKey: `SchedulesService.remove:${scheduleId}`,
       contextKey: ctx,
       request: () =>
         schedulesControllerDelete(this._http, this._apiConfig.rootUrl, {

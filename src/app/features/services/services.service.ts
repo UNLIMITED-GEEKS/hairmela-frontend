@@ -93,9 +93,13 @@ export class ServicesService {
     // (delete/edit/assign would otherwise send the fake temp_ id to the server).
     this._optimistic.run({
       signal: this._services,
-      apply: (list) => [...list, optimisticRow],
+      // apply is REPLAYED on every recompute (e.g. a concurrent load()'s
+      // commitRead landing while this create is still pending) — must be
+      // idempotent or a replay duplicates the row. Guard by tempId.
+      apply: (list) => (list.some((s) => s.id === tempId) ? list : [...list, optimisticRow]),
       reconcile: (list, res) => list.map((s) => (s.id === tempId ? res.body : s)),
       tempId,
+      dedupeKey: `create-service:${salonId}:${body.name}`,
       mirror: (v) => this._cache.set(salonId, v),
       contextKey: salonId,
       request: () =>
@@ -113,6 +117,7 @@ export class ServicesService {
       reconcile: (list, res) => list.map((s) => (s.id === serviceId ? res.body : s)),
       mirror: (v) => this._cache.set(salonId, v),
       contextKey: salonId,
+      dedupeKey: `update-service:${salonId}:${serviceId}`,
       request: () =>
         servicesControllerUpdate(this._http, this._apiConfig.rootUrl, { salonId, serviceId, body }),
       errorMessage: 'Could not update service. Reverted.',
@@ -127,6 +132,7 @@ export class ServicesService {
       apply: (list) => list.filter((s) => s.id !== serviceId),
       mirror: (v) => this._cache.set(salonId, v),
       contextKey: salonId,
+      dedupeKey: `deactivate-service:${salonId}:${serviceId}`,
       request: () =>
         servicesControllerDeactivate(this._http, this._apiConfig.rootUrl, { salonId, serviceId }),
       errorMessage: 'Could not remove service. Restored.',
@@ -151,6 +157,7 @@ export class ServicesService {
       reconcile: (_, res) => res.body,
       mirror: (v) => this._staffServicesCache.set(ctx, v),
       contextKey: ctx,
+      dedupeKey: `assign-service:${salonId}:${staffId}:${serviceId}`,
       request: () =>
         staffServicesControllerAssignService(this._http, this._apiConfig.rootUrl, {
           salonId,
@@ -170,6 +177,7 @@ export class ServicesService {
       reconcile: (_, res) => res.body,
       mirror: (v) => this._staffServicesCache.set(ctx, v),
       contextKey: ctx,
+      dedupeKey: `remove-service:${salonId}:${staffId}:${serviceId}`,
       request: () =>
         staffServicesControllerRemoveService(this._http, this._apiConfig.rootUrl, {
           salonId,
@@ -192,6 +200,7 @@ export class ServicesService {
       apply: (list) => list.map((s) => ({ ...s, isDefault: s.serviceId === body.serviceId })),
       mirror: (v) => this._staffServicesCache.set(ctx, v),
       contextKey: ctx,
+      dedupeKey: `set-default-service:${salonId}:${staffId}:${body.serviceId}`,
       request: () =>
         staffServicesControllerSetDefaultService(this._http, this._apiConfig.rootUrl, {
           salonId,

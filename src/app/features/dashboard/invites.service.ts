@@ -61,6 +61,7 @@ export class InvitesService {
     if (this._optimistic.isPending(invite.staffId)) return;
     this._optimistic.run({
       signal: this._invites,
+      dedupeKey: `InvitesService.accept:${invite.staffId}`,
       apply: (list) => list.filter((i) => i.staffId !== invite.staffId),
       request: () =>
         staffInviteControllerAccept(this._http, this._apiConfig.rootUrl, {
@@ -83,6 +84,7 @@ export class InvitesService {
     if (this._optimistic.isPending(invite.staffId)) return;
     this._optimistic.run({
       signal: this._invites,
+      dedupeKey: `InvitesService.decline:${invite.staffId}`,
       apply: (list) => list.filter((i) => i.staffId !== invite.staffId),
       request: () =>
         staffInviteControllerDecline(this._http, this._apiConfig.rootUrl, {

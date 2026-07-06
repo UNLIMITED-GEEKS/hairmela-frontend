@@ -81,7 +81,10 @@ export class StaffService {
     };
     this._optimistic.run({
       signal: this._invites,
-      apply: (list) => [...list, optimisticInvite],
+      // apply is REPLAYED on every recompute (e.g. a concurrent loadInvites()
+      // commitRead landing while this invite is still pending) — must be
+      // idempotent or a replay duplicates the row. Guard by tempId.
+      apply: (list) => (list.some((i) => i.staffId === tempId) ? list : [...list, optimisticInvite]),
       // The backend returns the created SalonStaff — map its fields onto the
       // PendingInviteDto shape so the temp row gets the real staffId/invitedAt
       // without a refetch (SalonStaff.userId set means the invitee already has
@@ -100,6 +103,7 @@ export class StaffService {
         ),
       contextKey: salonId,
       tempId,
+      dedupeKey: `invite-staff:${salonId}:${body.email}`,
       request: () => staffControllerInvite(this._http, this._apiConfig.rootUrl, { salonId, body }),
       errorMessage: 'Could not send invite. Reverted.',
       onSuccess: () => {
@@ -136,6 +140,7 @@ export class StaffService {
       signal: this._invites,
       apply: (list) => list.filter((i) => i.staffId !== staffId),
       contextKey: salonId,
+      dedupeKey: `cancel-invite:${salonId}:${staffId}`,
       request: () =>
         staffControllerCancelInvite(this._http, this._apiConfig.rootUrl, { salonId, staffId }),
       errorMessage: 'Could not cancel invite. Restored.',
@@ -178,6 +183,7 @@ export class StaffService {
         list.map((entry) => (entry.staff.id === staffId ? { ...entry, staff: res.body } : entry)),
       mirror: (v) => this._cache.set(salonId, v),
       contextKey: salonId,
+      dedupeKey: `update-role:${salonId}:${staffId}`,
       request: () =>
         staffControllerUpdateRole(this._http, this._apiConfig.rootUrl, { salonId, staffId, body }),
       errorMessage: 'Could not update role. Reverted.',
@@ -213,6 +219,7 @@ export class StaffService {
       apply: (list) => list.filter((entry) => entry.staff.id !== staffId),
       mirror: (v) => this._cache.set(salonId, v),
       contextKey: salonId,
+      dedupeKey: `remove-staff:${salonId}:${staffId}`,
       request: () =>
         staffControllerRemove(this._http, this._apiConfig.rootUrl, { salonId, staffId }),
       errorMessage: 'Could not remove staff member. Restored.',
