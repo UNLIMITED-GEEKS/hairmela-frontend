@@ -1,15 +1,9 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { Location } from '@angular/common';
 import { Router } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
 import { FormBuilder, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ApiConfiguration } from '../../../api/api-configuration';
-import { userSalonsControllerCreate } from '../../../api/fn/salons/user-salons-controller-create';
-import { ToastService } from '../../../core/toast/toast.service';
-import { isApiError } from '../../../core/errors/api-error.types';
-import { ErrorCodes } from '../../../core/errors/error-codes';
 import { DashboardService } from '../../dashboard/dashboard.service';
+import { SalonService } from '../salon.service';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -36,12 +30,10 @@ const TIMEZONES = [
 export class CreateSalonComponent {
   private readonly _location = inject(Location);
   private readonly _router = inject(Router);
-  private readonly _http = inject(HttpClient);
-  private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _fb = inject(FormBuilder);
   private readonly _destroyRef = inject(DestroyRef);
-  private readonly _toast = inject(ToastService);
   private readonly _dashboardService = inject(DashboardService);
+  private readonly _salonService = inject(SalonService);
 
   protected readonly saving = signal(false);
   protected readonly days = DAYS;
@@ -91,8 +83,8 @@ export class CreateSalonComponent {
         endTime: h.endTime ?? '18:00',
       }));
 
-    userSalonsControllerCreate(this._http, this._apiConfig.rootUrl, {
-      body: {
+    this._salonService.create(
+      {
         name: v.name!,
         address: {
           country: v.address!.country!,
@@ -110,23 +102,15 @@ export class CreateSalonComponent {
           description: v.service!.description ?? undefined,
         },
       },
-    }).pipe(
-      takeUntilDestroyed(this._destroyRef),
-    ).subscribe({
-      next: () => {
+      this._destroyRef,
+      () => {
         this.saving.set(false);
-        this._toast.success('Salon created');
         this._dashboardService.clear();
         this._dashboardService.load();
         this._router.navigate(['/dashboard']);
       },
-      error: (err: unknown) => {
-        this.saving.set(false);
-        if (isApiError(err) && err.code === ErrorCodes.SALON_LIMIT_REACHED) {
-          this._toast.error('Plan limit reached — upgrade to create more salons');
-        }
-      },
-    });
+      () => this.saving.set(false),
+    );
   }
 
   protected cancel(): void {

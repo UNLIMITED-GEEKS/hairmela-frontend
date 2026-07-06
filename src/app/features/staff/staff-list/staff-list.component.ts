@@ -18,8 +18,8 @@ export class StaffListComponent implements OnInit {
 
   protected readonly staffList = this._staffService.staffList;
   protected readonly loading = this._staffService.loading;
+  protected readonly error = this._staffService.error;
   protected readonly invites = this._staffService.invites;
-  protected readonly cancelling = this._staffService.cancellingInvite;
 
   protected get salonId(): string {
     return this._route.snapshot.paramMap.get('salonId') ?? '';
@@ -28,6 +28,10 @@ export class StaffListComponent implements OnInit {
   ngOnInit(): void {
     this._staffService.load(this.salonId);
     this._staffService.loadInvites(this.salonId);
+  }
+
+  protected retry(): void {
+    this._staffService.refresh(this.salonId);
   }
 
   protected cancelInvite(invite: PendingInviteDto): void {

@@ -1,5 +1,6 @@
 import { CacheRegistry } from '../../../core/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
+import { retry } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
@@ -10,6 +11,7 @@ import { staffControllerFindAll } from '../../../api/fn/staff/staff-controller-f
 import { staffControllerToggleAcceptingClients } from '../../../api/fn/staff/staff-controller-toggle-accepting-clients';
 import { MembershipStore } from '../../../core/salon-context/membership.store';
 import { ToastService } from '../../../core/toast/toast.service';
+import { OptimisticService, ReadToken } from '../../../core/optimistic/optimistic.service';
 
 interface MyStaff {
   id: string;
@@ -30,19 +32,23 @@ export class SalonOverviewService {
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _membershipStore = inject(MembershipStore);
   private readonly _toast = inject(ToastService);
+  private readonly _optimistic = inject(OptimisticService);
 
-  constructor() { this._cacheRegistry.register(this); }
+  constructor() {
+    this._cacheRegistry.register(this);
+  }
 
   private readonly _cache = new Map<string, SalonOverviewCache>();
   private readonly _salon = signal<Salon | null>(null);
   private readonly _myStaff = signal<MyStaff | null>(null);
   private readonly _loading = signal(false);
-  private readonly _toggling = signal(false);
+  private readonly _error = signal(false);
+  private _inflight = new Set<string>();
 
   readonly salon = this._salon.asReadonly();
   readonly myStaff = this._myStaff.asReadonly();
   readonly loading = this._loading.asReadonly();
-  readonly toggling = this._toggling.asReadonly();
+  readonly error = this._error.asReadonly();
 
   load(salonId: string, currentUserId: string): void {
     const cached = this._cache.get(salonId);
@@ -60,26 +66,22 @@ export class SalonOverviewService {
   }
 
   toggleAcceptingClients(salonId: string, staffId: string): void {
-    if (this._toggling()) return;
     const next = !this._myStaff()?.isAcceptingClients;
-    this._toggling.set(true);
-    staffControllerToggleAcceptingClients(this._http, this._apiConfig.rootUrl, {
-      salonId,
-      staffId,
-      body: { isAcceptingClients: next },
-    }).subscribe({
-      next: () => {
-        this._myStaff.update((s) => s ? { ...s, isAcceptingClients: next } : s);
-        const cached = this._cache.get(salonId);
-        if (cached?.myStaff) {
-          this._cache.set(salonId, { ...cached, myStaff: { ...cached.myStaff, isAcceptingClients: next } });
-        }
-        this._toggling.set(false);
+    this._optimistic.run({
+      signal: this._myStaff,
+      apply: (s) => (s ? { ...s, isAcceptingClients: next } : s),
+      mirror: (v) => {
+        const entry = this._cache.get(salonId);
+        if (entry) this._cache.set(salonId, { ...entry, myStaff: v });
       },
-      error: () => {
-        this._toggling.set(false);
-        this._toast.error('Failed to update status.');
-      },
+      contextKey: salonId,
+      request: () =>
+        staffControllerToggleAcceptingClients(this._http, this._apiConfig.rootUrl, {
+          salonId,
+          staffId,
+          body: { isAcceptingClients: next },
+        }),
+      errorMessage: 'Failed to update status. Reverted.',
     });
   }
 
@@ -94,23 +96,42 @@ export class SalonOverviewService {
   }
 
   private _fetch(salonId: string, currentUserId: string): void {
+    this._inflight.add(salonId);
     this._loading.set(true);
+    this._error.set(false);
+    // Capture read token before the request fires — guards against a
+    // concurrent toggleAcceptingClients bumping the epoch mid-flight.
+    const token = this._optimistic.beginRead(this._myStaff, salonId);
     forkJoin({
       salon: salonsControllerFindOne(this._http, this._apiConfig.rootUrl, { salonId }),
       staff: staffControllerFindAll(this._http, this._apiConfig.rootUrl, { salonId }),
     }).subscribe({
       next: ({ salon, staff }) => {
+        this._inflight.delete(salonId);
         const mine = staff.body.find((s) => s.staff.userId === currentUserId);
         const myStaff: MyStaff | null = mine
-          ? { id: mine.staff.id, queueId: mine.queueId, isAcceptingClients: mine.staff.isAcceptingClients, role: mine.staff.role }
+          ? {
+              id: mine.staff.id,
+              queueId: mine.queueId,
+              isAcceptingClients: mine.staff.isAcceptingClients,
+              role: mine.staff.role,
+            }
           : null;
         const entry: SalonOverviewCache = { salon: salon.body, myStaff };
         this._cache.set(salonId, entry);
         this._salon.set(salon.body);
-        this._myStaff.set(myStaff);
+        // Commit through the engine so a concurrent toggle win doesn't get stomped
+        this._optimistic.commitRead(this._myStaff, myStaff, token, (v) => {
+          const cached = this._cache.get(salonId);
+          if (cached) this._cache.set(salonId, { ...cached, myStaff: v });
+        });
         this._loading.set(false);
       },
-      error: () => this._loading.set(false),
+      error: () => {
+        this._inflight.delete(salonId);
+        this._error.set(true);
+        this._loading.set(false);
+      },
     });
   }
 }

@@ -1,11 +1,5 @@
 <div class="space-y-6">
 
-  <!-- Greeting -->
-  <div>
-    <h1 class="text-2xl font-bold text-text-primary">Hi, {{ firstName() }} 👋</h1>
-    <p class="text-sm text-text-secondary mt-0.5">Welcome back to HairMela</p>
-  </div>
-
   <!-- Salon header -->
   <div class="flex items-start gap-4">
     <div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -28,6 +22,18 @@
 
   <!-- Quick links -->
   <div class="grid grid-cols-2 gap-3">
+    @if (myQueueId(); as queueId) {
+      <a [routerLink]="['/salons', salon().salon.id, 'queues', queueId, 'console']"
+        class="col-span-2 flex items-center gap-3 bg-primary text-white rounded-2xl px-4 py-4 hover:bg-primary/90 transition-colors">
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.48-.634-2.07M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.768.231-1.48.634-2.07m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        <div>
+          <span class="text-sm font-semibold">My Queue</span>
+          <span class="block text-xs text-white/70">Open your queue console</span>
+        </div>
+      </a>
+    }
     <a [routerLink]="['/salons', salon().salon.id, 'staff']"
       class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
       <span class="text-sm font-semibold text-text-primary">Staff</span>
@@ -54,32 +60,5 @@
       <span class="text-xs text-text-secondary">QR code & link</span>
     </a>
   </div>
-
-  <!-- Create salon (owner only) -->
-  @if (salon().role === 'OWNER') {
-    @if (canAddSalon()) {
-      <a routerLink="/salons/new"
-        class="flex items-center justify-between w-full bg-white border border-border rounded-2xl px-5 py-4 hover:bg-surface-overlay transition-colors">
-        <div>
-          <p class="text-sm font-semibold text-text-primary">Create a salon</p>
-          <p class="text-xs text-text-secondary mt-0.5">Set up another salon</p>
-        </div>
-        <svg class="w-4 h-4 text-text-secondary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-        </svg>
-      </a>
-    } @else {
-      <button type="button" (click)="viewPlans()"
-        class="flex items-center justify-between w-full bg-white border border-border rounded-2xl px-5 py-4 hover:bg-surface-overlay transition-colors text-left">
-        <div>
-          <p class="text-sm font-semibold text-text-primary">Create a salon</p>
-          <p class="text-xs text-text-secondary mt-0.5">You've reached your plan's salon limit — upgrade to add more</p>
-        </div>
-        <svg class="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-        </svg>
-      </button>
-    }
-  }
 
 </div>

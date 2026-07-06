@@ -1,0 +1,102 @@
+<div class="py-6 px-4">
+  <div class="max-w-lg mx-auto space-y-6">
+
+    <!-- Header -->
+    <div class="flex items-center gap-3">
+      <a routerLink="/account" class="text-gray-500 hover:text-gray-700 min-h-11 min-w-11 flex items-center justify-center">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+      </a>
+      <h1 class="text-xl font-semibold text-gray-900">Edit Profile</h1>
+    </div>
+
+    <!-- Form -->
+    <form [formGroup]="form" (ngSubmit)="save()" class="space-y-5">
+
+      <!-- First Name -->
+      <div>
+        <label for="firstName" class="block text-sm font-medium text-gray-700 mb-1">First name</label>
+        <input id="firstName" formControlName="firstName" type="text" autocomplete="given-name"
+          class="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+          placeholder="First name" />
+        @if (form.controls.firstName.touched && form.controls.firstName.errors) {
+          <p class="mt-1 text-xs text-red-500">
+            @if (form.controls.firstName.errors['required']) {
+              First name is required
+            } @else if (form.controls.firstName.errors['server']) {
+              {{ form.controls.firstName.errors['server'] }}
+            }
+          </p>
+        }
+      </div>
+
+      <!-- Last Name -->
+      <div>
+        <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">Last name</label>
+        <input id="lastName" formControlName="lastName" type="text" autocomplete="family-name"
+          class="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+          placeholder="Last name" />
+        @if (form.controls.lastName.touched && form.controls.lastName.errors) {
+          <p class="mt-1 text-xs text-red-500">
+            @if (form.controls.lastName.errors['required']) {
+              Last name is required
+            } @else if (form.controls.lastName.errors['server']) {
+              {{ form.controls.lastName.errors['server'] }}
+            }
+          </p>
+        }
+      </div>
+
+      <!-- Nickname -->
+      <div>
+        <label for="nickname" class="block text-sm font-medium text-gray-700 mb-1">Nickname <span class="text-gray-400">(optional)</span></label>
+        <input id="nickname" formControlName="nickname" type="text" autocomplete="nickname"
+          class="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+          placeholder="e.g. J-Money" />
+        <p class="mt-1 text-xs text-gray-400">Shown in brackets next to your name where applicable</p>
+        @if (form.controls.nickname.touched && form.controls.nickname.errors) {
+          <p class="mt-1 text-xs text-red-500">{{ form.controls.nickname.errors['server'] }}</p>
+        }
+      </div>
+
+      <!-- Phone -->
+      <div>
+        <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone number <span class="text-gray-400">(optional)</span></label>
+        <input id="phone" formControlName="phone" type="tel" autocomplete="tel"
+          class="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+          placeholder="+234 800 000 0000" />
+        @if (form.controls.phone.touched && form.controls.phone.errors) {
+          <p class="mt-1 text-xs text-red-500">
+            {{ form.controls.phone.errors['server'] }}
+          </p>
+        }
+      </div>
+
+      <!-- Email (read-only) -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <p class="px-4 py-3 text-sm text-gray-500 bg-gray-50 rounded-xl border border-gray-100">
+          {{ _currentUser.user()?.email }}
+        </p>
+        <p class="mt-1 text-xs text-gray-400">Email cannot be changed</p>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex gap-3 pt-2">
+        <a routerLink="/account"
+          class="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 text-center hover:bg-gray-50 transition-colors min-h-11">
+          Cancel
+        </a>
+        <button type="submit" [disabled]="form.invalid || saving()"
+          class="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-11">
+          @if (saving()) {
+            Saving…
+          } @else {
+            Save changes
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -13,18 +13,22 @@
     <app-verify-email-banner />
 
     @if (_currentUser.user(); as user) {
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center gap-4">
+      <a routerLink="/account/edit-profile"
+        class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center gap-4 hover:bg-gray-50 transition-colors">
         <div class="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-white text-lg font-bold shrink-0">
           {{ initials }}
         </div>
-        <div class="min-w-0">
+        <div class="min-w-0 flex-1">
           <p class="text-base font-semibold text-gray-900 truncate">{{ user.firstName }} {{ user.lastName }}</p>
           <p class="text-sm text-gray-500 truncate">{{ user.email }}</p>
           @if (user.phone) {
             <p class="text-sm text-gray-400 truncate">{{ user.phone }}</p>
           }
         </div>
-      </div>
+        <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+      </a>
 
       <div class="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-100">
         <div class="px-6 py-4 flex justify-between items-center">
@@ -44,6 +48,31 @@
       <app-reset-password />
 
       <app-notifications-toggle />
+
+      <!-- Create salon -->
+      @if (canAddSalon()) {
+        <a routerLink="/salons/new"
+          class="flex items-center justify-between w-full bg-white border border-border rounded-2xl px-5 py-4 mt-4 hover:bg-surface-overlay transition-colors">
+          <div>
+            <p class="text-sm font-semibold text-text-primary">Create a salon</p>
+            <p class="text-xs text-text-secondary mt-0.5">Set up your salon, staff, and services</p>
+          </div>
+          <svg class="w-4 h-4 text-text-secondary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+        </a>
+      } @else {
+        <button type="button" (click)="viewPlans()"
+          class="flex items-center justify-between w-full bg-white border border-border rounded-2xl px-5 py-4 hover:bg-surface-overlay transition-colors text-left">
+          <div>
+            <p class="text-sm font-semibold text-text-primary">Create a salon</p>
+            <p class="text-xs text-text-secondary mt-0.5">You've reached your plan's salon limit — upgrade to add more</p>
+          </div>
+          <svg class="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+        </button>
+      }
 
       <button
         (click)="_auth.logout()"

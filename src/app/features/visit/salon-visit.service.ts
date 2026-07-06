@@ -35,6 +35,11 @@ export interface AddMemberRow {
   serviceId: string;
 }
 
+export type PendingJoin =
+  | { status: 'pending' }
+  | { status: 'joined'; entryId: string; queueId: string; slug: string; shellPrefix: string }
+  | { status: 'failed'; reason: 'closed' | 'party-too-large' | 'generic' };
+
 @Injectable({ providedIn: 'root' })
 export class SalonVisitService {
   private readonly _http = inject(HttpClient);
@@ -67,6 +72,11 @@ export class SalonVisitService {
   readonly leaving = signal(false);
   readonly addingKids = signal(false);
   readonly calledVisible = signal(false);
+  // Signal-based result for the navigation-is-feedback join flow.
+  // Set to `pending` before navigating to /joining; resolved to `joined` or `failed`
+  // by joinQueue(); the JoiningQueueComponent reads it and routes accordingly.
+  // Writable by design — the JoiningQueueComponent clears it after handling.
+  readonly pendingJoin = signal<PendingJoin | null>(null);
 
   readonly salon = computed(() => this.salonData()?.salon ?? null);
   readonly staffList = computed(() => this.salonData()?.staff ?? []);
@@ -129,7 +139,10 @@ export class SalonVisitService {
       const isServing = entry.members.some((m) => m.status === 'SERVING');
       let pendingDuration = 0;
       for (const member of entry.members) {
-        if (member.status === 'SERVED') { map.set(member.memberId, 0); continue; }
+        if (member.status === 'SERVED') {
+          map.set(member.memberId, 0);
+          continue;
+        }
         if (member.status === 'SERVING') {
           map.set(member.memberId, 0);
           pendingDuration = member.serviceDuration - elapsedMinutes;
@@ -171,6 +184,7 @@ export class SalonVisitService {
     this.leaving.set(false);
     this.addingKids.set(false);
     this.calledVisible.set(false);
+    this.pendingJoin.set(null);
   }
 
   watchQueue(queueId: string): void {
@@ -182,15 +196,16 @@ export class SalonVisitService {
     this._loadQueueStatus(queueId);
     this._loadInitialTimeline(queueId);
 
-    this._socket.queueTimeline$(queueId).pipe(
-      takeUntilDestroyed(this._destroyRef),
-    ).subscribe((entries) => {
-      const isFirstMessage = !this._socketInitialReceived.has(queueId);
-      this._socketInitialReceived.add(queueId);
-      this._reconcileEntries(queueId, entries, isFirstMessage);
-      this.timeline.set(entries);
-      this.timelineLoaded.set(true);
-    });
+    this._socket
+      .queueTimeline$(queueId)
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe((entries) => {
+        const isFirstMessage = !this._socketInitialReceived.has(queueId);
+        this._socketInitialReceived.add(queueId);
+        this._reconcileEntries(queueId, entries, isFirstMessage);
+        this.timeline.set(entries);
+        this.timelineLoaded.set(true);
+      });
   }
 
   selectBarber(staff: SalonPublicStaffDto, slug: string): void {
@@ -213,32 +228,38 @@ export class SalonVisitService {
     this._router.navigate([...base, 'q', staff.queueId, 'join']);
   }
 
-  joinQueue(
-    salonId: string,
-    queueId: string,
-    salonSlug: string,
-    body: JoinQueueDto,
-    onSuccess: (result: { entryId: string; guestToken: string | null }) => void,
-  ): void {
-    if (this.joining()) return;
-    this.joining.set(true);
+  joinQueue(salonId: string, queueId: string, salonSlug: string, body: JoinQueueDto): void {
     walkInControllerJoinQueue(this._http, this._apiConfig.rootUrl, { salonId, queueId, body })
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe({
         next: (res) => {
-          const entry: ActiveEntry = { queueId, entryId: res.body.entry.id, salonId, salonSlug };
-          this.activeEntries.update((list) => [...list.filter((e) => e.entryId !== entry.entryId), entry]);
+          const entryId = res.body.entry.id;
+          const guestToken = res.body.guestToken ?? null;
+          const entry: ActiveEntry = { queueId, entryId, salonId, salonSlug };
+          this.activeEntries.update((list) => [
+            ...list.filter((e) => e.entryId !== entryId),
+            entry,
+          ]);
           this._activeEntryStore.save(entry);
           this._loadInitialTimeline(queueId);
-          this.joining.set(false);
-          onSuccess({ entryId: entry.entryId, guestToken: res.body.guestToken ?? null });
+          if (guestToken) this._guestStore.setToken(guestToken);
+          this.pendingJoin.set({
+            status: 'joined',
+            entryId,
+            queueId,
+            slug: salonSlug,
+            shellPrefix: this._shellPrefix,
+          });
         },
         error: (err) => {
-          this.joining.set(false);
           const apiBody = (err as { error?: unknown })?.error;
           if (isApiError(apiBody) && apiBody.code === ErrorCodes.QUEUE_NOT_OPEN) {
-            this._toast.info('Queue is not open right now.');
             this.queueStatus.set('CLOSED');
+            this.pendingJoin.set({ status: 'failed', reason: 'closed' });
+          } else if (isApiError(apiBody) && apiBody.code === ErrorCodes.PARTY_TOO_LARGE) {
+            this.pendingJoin.set({ status: 'failed', reason: 'party-too-large' });
+          } else {
+            this.pendingJoin.set({ status: 'failed', reason: 'generic' });
           }
         },
       });
@@ -247,29 +268,36 @@ export class SalonVisitService {
   leaveQueue(entryId: string, onSuccess: () => void): void {
     const entry = this._activeEntryStore.getByEntryId(entryId);
     if (!entry || this.leaving()) return;
-    this._confirmDialog.open({
-      title: 'Leave queue?',
-      message: 'Your spot will be lost and you will need to rejoin.',
-      confirmLabel: 'Leave',
-      danger: true,
-    }).pipe(
-      filter((ok) => ok),
-      tap(() => this.leaving.set(true)),
-      // The interceptor attaches the guest token, so one path serves both.
-      switchMap(() => walkInControllerLeaveQueue(this._http, this._apiConfig.rootUrl, {
-        salonId: entry.salonId, queueId: entry.queueId, entryId: entry.entryId,
-      })),
-      takeUntilDestroyed(this._destroyRef),
-    ).subscribe({
-      next: () => {
-        this.leaving.set(false);
-        this._activeEntryStore.remove(entry.entryId);
-        this.activeEntries.update((list) => list.filter((e) => e.entryId !== entry.entryId));
-        this._toast.success('You have left the queue.');
-        onSuccess();
-      },
-      error: () => this.leaving.set(false),
-    });
+    this._confirmDialog
+      .open({
+        title: 'Leave queue?',
+        message: 'Your spot will be lost and you will need to rejoin.',
+        confirmLabel: 'Leave',
+        danger: true,
+      })
+      .pipe(
+        filter((ok) => ok),
+        tap(() => this.leaving.set(true)),
+        // The interceptor attaches the guest token, so one path serves both.
+        switchMap(() =>
+          walkInControllerLeaveQueue(this._http, this._apiConfig.rootUrl, {
+            salonId: entry.salonId,
+            queueId: entry.queueId,
+            entryId: entry.entryId,
+          }),
+        ),
+        takeUntilDestroyed(this._destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.leaving.set(false);
+          this._activeEntryStore.remove(entry.entryId);
+          this.activeEntries.update((list) => list.filter((e) => e.entryId !== entry.entryId));
+          this._toast.success('You have left the queue.');
+          onSuccess();
+        },
+        error: () => this.leaving.set(false),
+      });
   }
 
   // "Add someone while waiting" is just another join: it creates a NEW entry at
@@ -280,13 +308,23 @@ export class SalonVisitService {
     const salon = this.salon();
     if (!entry || !salon || this.addingKids()) return;
     const valid = members.filter((k) => k.name?.trim());
-    if (valid.length === 0) { onSuccess(); return; }
+    if (valid.length === 0) {
+      onSuccess();
+      return;
+    }
     this.addingKids.set(true);
     const body: JoinQueueDto = {
-      members: valid.map((k) => ({ memberName: k.name.trim(), serviceId: k.serviceId || undefined })),
+      members: valid.map((k) => ({
+        memberName: k.name.trim(),
+        serviceId: k.serviceId || undefined,
+      })),
     };
 
-    walkInControllerJoinQueue(this._http, this._apiConfig.rootUrl, { salonId: salon.id, queueId: entry.queueId, body })
+    walkInControllerJoinQueue(this._http, this._apiConfig.rootUrl, {
+      salonId: salon.id,
+      queueId: entry.queueId,
+      body,
+    })
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe({
         next: (res) => {
@@ -298,7 +336,10 @@ export class SalonVisitService {
           };
           if (res.body.guestToken) this._guestStore.setToken(res.body.guestToken);
           this._activeEntryStore.save(newEntry);
-          this.activeEntries.update((list) => [...list.filter((e) => e.entryId !== newEntry.entryId), newEntry]);
+          this.activeEntries.update((list) => [
+            ...list.filter((e) => e.entryId !== newEntry.entryId),
+            newEntry,
+          ]);
           this.addingKids.set(false);
           this._loadInitialTimeline(entry.queueId);
           this._toast.success('Added to the back of the line.');
@@ -363,7 +404,9 @@ export class SalonVisitService {
         next: (res) => {
           this.salonData.set(res.body);
           this.loading.set(false);
-          publicServicesControllerFindBySalon(this._http, this._apiConfig.rootUrl, { salonId: res.body.salon.id })
+          publicServicesControllerFindBySalon(this._http, this._apiConfig.rootUrl, {
+            salonId: res.body.salon.id,
+          })
             .pipe(takeUntilDestroyed(this._destroyRef))
             .subscribe({ next: (svc) => this.services.set(svc.body) });
           for (const stored of storedEntries) {
@@ -374,7 +417,10 @@ export class SalonVisitService {
             }
           }
         },
-        error: () => { this.loading.set(false); this._toast.error('Salon not found'); },
+        error: () => {
+          this.loading.set(false);
+          this._toast.error('Salon not found');
+        },
       });
   }
 
@@ -401,9 +447,13 @@ export class SalonVisitService {
           // my-entries (auth) / guest-entries (guest) both carry the guest token via
           // the interceptor now, so guest-entries no longer needs the manual client.
           const recover$ = this._currentUser.user()
-            ? myEntriesControllerGetMyEntries(this._http, this._apiConfig.rootUrl).pipe(map((r) => r.body))
+            ? myEntriesControllerGetMyEntries(this._http, this._apiConfig.rootUrl).pipe(
+                map((r) => r.body),
+              )
             : this._guestStore.hasToken()
-              ? guestEntriesControllerGetGuestEntries(this._http, this._apiConfig.rootUrl).pipe(map((r) => r.body))
+              ? guestEntriesControllerGetGuestEntries(this._http, this._apiConfig.rootUrl).pipe(
+                  map((r) => r.body),
+                )
               : null;
           if (!recover$) {
             this.timeline.set(entries);
@@ -415,12 +465,14 @@ export class SalonVisitService {
               const salon = this.salon();
               const recovered = myEntries
                 .filter((e) => e.queueId === queueId)
-                .map((e): ActiveEntry => ({
-                  queueId,
-                  entryId: e.id,
-                  salonId: salon?.id ?? '',
-                  salonSlug: salon?.slug ?? '',
-                }));
+                .map(
+                  (e): ActiveEntry => ({
+                    queueId,
+                    entryId: e.id,
+                    salonId: salon?.id ?? '',
+                    salonSlug: salon?.slug ?? '',
+                  }),
+                );
               for (const entry of recovered) this._activeEntryStore.save(entry);
               if (recovered.length > 0) {
                 this.activeEntries.update((list) => {
@@ -431,7 +483,10 @@ export class SalonVisitService {
               this.timeline.set(entries);
               this.timelineLoaded.set(true);
             },
-            error: () => { this.timeline.set(entries); this.timelineLoaded.set(true); },
+            error: () => {
+              this.timeline.set(entries);
+              this.timelineLoaded.set(true);
+            },
           });
         },
       });
@@ -443,7 +498,11 @@ export class SalonVisitService {
    * and fires the "you're up" banner when one of the caller's own entries starts
    * being served. Used by both the socket stream and the REST fallback.
    */
-  private _reconcileEntries(queueId: string, entries: TimelineEntryDto[], isFirstMessage: boolean): void {
+  private _reconcileEntries(
+    queueId: string,
+    entries: TimelineEntryDto[],
+    isFirstMessage: boolean,
+  ): void {
     const stored = this._activeEntryStore.getAllForQueue(queueId);
     const live: ActiveEntry[] = [];
     for (const entry of stored) {
@@ -470,7 +529,9 @@ export class SalonVisitService {
   }
 
   private _stopTick(): void {
-    if (this._tickInterval) { clearInterval(this._tickInterval); this._tickInterval = null; }
+    if (this._tickInterval) {
+      clearInterval(this._tickInterval);
+      this._tickInterval = null;
+    }
   }
-
 }

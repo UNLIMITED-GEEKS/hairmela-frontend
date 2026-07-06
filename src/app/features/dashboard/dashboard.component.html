@@ -2,20 +2,59 @@
   <div class="py-6 px-4">
     <app-skeleton variant="card" [count]="3" />
   </div>
+} @else if (error()) {
+  <div class="py-16 flex flex-col items-center gap-3">
+    <p class="text-sm text-gray-500">Failed to load your dashboard.</p>
+    <button type="button" (click)="_dashboardService.refresh()"
+      class="px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors">
+      Retry
+    </button>
+  </div>
 } @else {
-  <div class="py-6 px-4">
+  <div class="py-6 px-4 space-y-6">
+    <!-- Greeting -->
+    <div>
+      <h1 class="text-2xl font-bold text-text-primary">Hi, {{ user()?.firstName ?? '' }} 👋</h1>
+      <p class="text-sm text-text-secondary mt-0.5">{{ greetingSubtitle() }}</p>
+    </div>
+
+    
     <app-pending-invites />
     @if (isCustomer()) {
-      <app-customer-dashboard [firstName]="user()?.firstName ?? ''" />
+      <app-customer-dashboard />
     } @else if (activeSalon(); as salon) {
       @if (isOwnerOrAdmin()) {
         <app-owner-admin-dashboard
           [salon]="salon"
-          [firstName]="user()?.firstName ?? ''"
-          [canAddSalon]="canAddSalon()" />
+          [myQueueId]="myQueueId()" />
       } @else if (isStaff()) {
-        <app-staff-dashboard [salon]="salon" [firstName]="user()?.firstName ?? ''" />
+        <app-staff-dashboard
+          [salon]="salon"
+          [myQueueId]="myQueueId()" />
       }
     }
+    @if (activeEntries().length > 0) {
+      <app-my-visits [entries]="activeEntries()" />
+    }
+
+    <!-- Scan QR Code -->
+    <button (click)="showScanner.set(true)" type="button"
+      class="w-full flex items-center gap-3 mt-4 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+      <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+        </svg>
+      </div>
+      <div>
+        <p class="text-sm font-semibold text-start text-text-primary">Scan QR Code</p>
+        <p class="text-xs text-text-secondary">Scan a salon's QR code to join their queue</p>
+      </div>
+    </button>
   </div>
+}
+
+@if (showScanner()) {
+  <app-qr-scanner
+    (scanned)="onQrScanned($event)"
+    (closed)="showScanner.set(false)" />
 }

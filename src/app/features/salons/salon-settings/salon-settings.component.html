@@ -108,10 +108,10 @@
                    text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
             Cancel
           </button>
-          <button type="submit" [disabled]="form.invalid || saving()"
+          <button type="submit" [disabled]="form.invalid"
             class="flex-1 min-h-11 bg-primary text-white text-sm font-medium rounded-lg
                    hover:bg-primary-dark disabled:opacity-50 active:scale-95 transition-all">
-            {{ saving() ? 'Saving…' : 'Save changes' }}
+            Save changes
           </button>
         </div>
 

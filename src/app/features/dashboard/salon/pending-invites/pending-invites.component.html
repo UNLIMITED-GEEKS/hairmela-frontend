@@ -2,6 +2,12 @@
   <div class="flex justify-center py-6">
     <div class="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
   </div>
+} @else if (_invites.error()) {
+  <div class="mb-6 flex items-center gap-3 text-sm text-gray-500">
+    <span>Could not load invites.</span>
+    <button type="button" (click)="_invites.refresh()"
+      class="text-primary underline underline-offset-2 hover:no-underline">Retry</button>
+  </div>
 } @else if (_invites.invites().length > 0) {
   <div class="mb-6">
     <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Pending Invites</h2>
@@ -16,18 +22,16 @@
             <button
               type="button"
               (click)="_invites.decline(invite)"
-              [disabled]="_invites.responding() !== null"
               class="min-h-9 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-300 rounded-lg
-                     hover:bg-gray-50 disabled:opacity-50 transition-colors">
+                     hover:bg-gray-50 transition-colors">
               Decline
             </button>
             <button
               type="button"
               (click)="_invites.accept(invite)"
-              [disabled]="_invites.responding() !== null"
               class="min-h-9 px-3 py-1.5 text-xs font-medium text-white bg-primary rounded-lg
-                     hover:bg-primary-dark disabled:opacity-50 transition-colors">
-              {{ _invites.responding() === invite.staffId ? '…' : 'Accept' }}
+                     hover:bg-primary-dark transition-colors">
+              Accept
             </button>
           </div>
         </div>

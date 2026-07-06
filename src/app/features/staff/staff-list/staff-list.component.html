@@ -14,6 +14,14 @@
 
     @if (loading()) {
       <app-skeleton variant="list-item" [count]="5" />
+    } @else if (error()) {
+      <div class="flex flex-col items-center py-16 gap-3">
+        <p class="text-sm text-gray-500">Failed to load staff.</p>
+        <button type="button" (click)="retry()"
+          class="px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors">
+          Retry
+        </button>
+      </div>
     } @else if (staffList().length === 0) {
       <div class="text-center py-16">
         <p class="text-sm text-gray-500">No staff yet. add someone to get started.</p>
@@ -78,10 +86,9 @@
                 <button
                   type="button"
                   (click)="cancelInvite(invite)"
-                  [disabled]="cancelling() !== null"
                   class="min-h-9 px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg
-                         hover:bg-red-50 disabled:opacity-50 transition-colors shrink-0">
-                  {{ cancelling() === invite.staffId ? '…' : 'Cancel' }}
+                         hover:bg-red-50 transition-colors shrink-0">
+                  Cancel
                 </button>
               </div>
             }

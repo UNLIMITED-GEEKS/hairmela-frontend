@@ -15,6 +15,7 @@ export class OrgOverviewComponent implements OnInit {
 
   protected readonly org = this._orgService.org;
   protected readonly loading = this._orgService.loading;
+  protected readonly error = this._orgService.error;
 
   private get _orgId(): string {
     return this._route.snapshot.paramMap.get('orgId') ?? '';
@@ -25,5 +26,9 @@ export class OrgOverviewComponent implements OnInit {
     if (!this.org() && !this.loading()) {
       this._router.navigate(['/dashboard']);
     }
+  }
+
+  protected retry(): void {
+    this._orgService.refresh(this._orgId);
   }
 }

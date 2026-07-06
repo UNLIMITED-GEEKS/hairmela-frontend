@@ -1,5 +1,6 @@
 import { CacheRegistry } from '../../core/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
+import { retry } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { ApiConfiguration } from '../../api/api-configuration';
 import { StaffSchedule } from '../../api/models/staff-schedule';
@@ -9,61 +10,112 @@ import { schedulesControllerFindAll } from '../../api/fn/schedules/schedules-con
 import { schedulesControllerCreate } from '../../api/fn/schedules/schedules-controller-create';
 import { schedulesControllerUpdate } from '../../api/fn/schedules/schedules-controller-update';
 import { schedulesControllerDelete } from '../../api/fn/schedules/schedules-controller-delete';
+import { OptimisticService, ReadToken } from '../../core/optimistic/optimistic.service';
 
 @Injectable({ providedIn: 'root' })
 export class SchedulesService {
   private readonly _http = inject(HttpClient);
   private readonly _cacheRegistry = inject(CacheRegistry);
   private readonly _apiConfig = inject(ApiConfiguration);
+  private readonly _optimistic = inject(OptimisticService);
 
-  constructor() { this._cacheRegistry.register(this); }
+  constructor() {
+    this._cacheRegistry.register(this);
+  }
 
   private readonly _cache = new Map<string, StaffSchedule[]>();
   private readonly _schedules = signal<StaffSchedule[]>([]);
   private readonly _loading = signal(false);
-  private readonly _acting = signal(false);
+  private readonly _error = signal(false);
+  private _inflight = new Set<string>();
 
   readonly schedules = this._schedules.asReadonly();
   readonly loading = this._loading.asReadonly();
-  readonly acting = this._acting.asReadonly();
+  readonly error = this._error.asReadonly();
 
-  private _key(salonId: string, staffId: string): string { return `${salonId}:${staffId}`; }
+  private _key(salonId: string, staffId: string): string {
+    return `${salonId}:${staffId}`;
+  }
 
   load(salonId: string, staffId: string): void {
-    const cached = this._cache.get(this._key(salonId, staffId));
-    if (cached) { this._schedules.set(cached); return; }
-    this._fetch(salonId, staffId);
+    const ctx = this._key(salonId, staffId);
+    const token = this._optimistic.beginRead(this._schedules, ctx);
+    const cached = this._cache.get(ctx);
+    if (cached) {
+      this._optimistic.commitRead(this._schedules, cached, token, (v) => this._cache.set(ctx, v));
+      return;
+    }
+    if (this._inflight.has(ctx)) return;
+    this._fetch(salonId, staffId, token);
   }
 
   refresh(salonId: string, staffId: string): void {
-    this._cache.delete(this._key(salonId, staffId));
-    this._fetch(salonId, staffId);
+    const ctx = this._key(salonId, staffId);
+    const token = this._optimistic.beginRead(this._schedules, ctx);
+    this._cache.delete(ctx);
+    this._fetch(salonId, staffId, token);
   }
 
   create(salonId: string, staffId: string, body: CreateScheduleDto, onSuccess?: () => void): void {
-    if (this._acting()) return;
-    this._acting.set(true);
-    schedulesControllerCreate(this._http, this._apiConfig.rootUrl, { salonId, staffId, body }).subscribe({
-      next: () => { this._acting.set(false); this.refresh(salonId, staffId); onSuccess?.(); },
-      error: () => this._acting.set(false),
+    const ctx = this._key(salonId, staffId);
+    const tempId = `temp_${crypto.randomUUID()}`;
+    const optimisticRow = { id: tempId, ...body } as StaffSchedule;
+    this._optimistic.run({
+      signal: this._schedules,
+      apply: (list) => [...list, optimisticRow],
+      reconcile: (list, res) => list.map((s) => (s.id === tempId ? res.body : s)),
+      tempId,
+      mirror: (v) => this._cache.set(ctx, v),
+      contextKey: ctx,
+      request: () =>
+        schedulesControllerCreate(this._http, this._apiConfig.rootUrl, { salonId, staffId, body }),
+      errorMessage: 'Could not add schedule. Reverted.',
+      onSuccess: () => onSuccess?.(),
     });
   }
 
-  update(salonId: string, staffId: string, scheduleId: string, body: UpdateScheduleDto, onSuccess?: () => void): void {
-    if (this._acting()) return;
-    this._acting.set(true);
-    schedulesControllerUpdate(this._http, this._apiConfig.rootUrl, { salonId, staffId, scheduleId, body }).subscribe({
-      next: () => { this._acting.set(false); this.refresh(salonId, staffId); onSuccess?.(); },
-      error: () => this._acting.set(false),
+  update(
+    salonId: string,
+    staffId: string,
+    scheduleId: string,
+    body: UpdateScheduleDto,
+    onSuccess?: () => void,
+  ): void {
+    const ctx = this._key(salonId, staffId);
+    if (this._optimistic.isPending(scheduleId)) return;
+    this._optimistic.run({
+      signal: this._schedules,
+      apply: (list) => list.map((s) => (s.id === scheduleId ? { ...s, ...body } : s)),
+      mirror: (v) => this._cache.set(ctx, v),
+      contextKey: ctx,
+      request: () =>
+        schedulesControllerUpdate(this._http, this._apiConfig.rootUrl, {
+          salonId,
+          staffId,
+          scheduleId,
+          body,
+        }),
+      errorMessage: 'Could not update schedule. Reverted.',
+      onSuccess: () => onSuccess?.(),
     });
   }
 
   remove(salonId: string, staffId: string, scheduleId: string, onSuccess?: () => void): void {
-    if (this._acting()) return;
-    this._acting.set(true);
-    schedulesControllerDelete(this._http, this._apiConfig.rootUrl, { salonId, staffId, scheduleId }).subscribe({
-      next: () => { this._acting.set(false); this.refresh(salonId, staffId); onSuccess?.(); },
-      error: () => this._acting.set(false),
+    const ctx = this._key(salonId, staffId);
+    if (this._optimistic.isPending(scheduleId)) return;
+    this._optimistic.run({
+      signal: this._schedules,
+      apply: (list) => list.filter((s) => s.id !== scheduleId),
+      mirror: (v) => this._cache.set(ctx, v),
+      contextKey: ctx,
+      request: () =>
+        schedulesControllerDelete(this._http, this._apiConfig.rootUrl, {
+          salonId,
+          staffId,
+          scheduleId,
+        }),
+      errorMessage: 'Could not remove schedule. Restored.',
+      onSuccess: () => onSuccess?.(),
     });
   }
 
@@ -72,15 +124,27 @@ export class SchedulesService {
     this._schedules.set([]);
   }
 
-  private _fetch(salonId: string, staffId: string): void {
+  private _fetch(salonId: string, staffId: string, token: ReadToken): void {
+    const ctx = this._key(salonId, staffId);
+    this._inflight.add(ctx);
     this._loading.set(true);
-    schedulesControllerFindAll(this._http, this._apiConfig.rootUrl, { salonId, staffId }).subscribe({
-      next: (res) => {
-        this._cache.set(this._key(salonId, staffId), res.body);
-        this._schedules.set(res.body);
-        this._loading.set(false);
-      },
-      error: () => this._loading.set(false),
-    });
+    this._error.set(false);
+    schedulesControllerFindAll(this._http, this._apiConfig.rootUrl, { salonId, staffId })
+      .pipe(retry(1))
+      .subscribe({
+        next: (res) => {
+          this._inflight.delete(ctx);
+          this._cache.set(ctx, res.body);
+          this._optimistic.commitRead(this._schedules, res.body, token, (v) =>
+            this._cache.set(ctx, v),
+          );
+          this._loading.set(false);
+        },
+        error: () => {
+          this._inflight.delete(ctx);
+          this._error.set(true);
+          this._loading.set(false);
+        },
+      });
   }
 }

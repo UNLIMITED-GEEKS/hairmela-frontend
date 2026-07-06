@@ -1,0 +1,28 @@
+<div class="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center">
+  <!-- Close button -->
+  <button (click)="close()" type="button"
+    class="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors"
+    aria-label="Close scanner">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+    </svg>
+  </button>
+
+  <h2 class="text-white text-lg font-semibold mb-4">Scan Salon QR Code</h2>
+
+  @if (error(); as err) {
+    <div class="bg-white rounded-2xl p-6 mx-4 text-center max-w-sm">
+      <svg class="w-10 h-10 mx-auto mb-3 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+      </svg>
+      <p class="text-sm text-gray-700">{{ err }}</p>
+      <button (click)="close()" type="button"
+        class="mt-4 px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors">
+        Close
+      </button>
+    </div>
+  } @else {
+    <div id="qr-reader" #reader class="w-[300px] h-[300px] rounded-xl overflow-hidden"></div>
+    <p class="text-white/60 text-xs mt-4">Point your camera at a HairMela QR code</p>
+  }
+</div>

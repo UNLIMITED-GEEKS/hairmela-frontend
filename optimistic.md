@@ -1,0 +1,563 @@
+# optimistic.md — Optimistic Updates Framework (v2)
+
+## Purpose
+
+Every mutation in the app currently waits for the server round-trip before the UI changes: `acting.set(true)` → request → `refresh()` (a second round-trip) → paint. The app feels sluggish because the network latency is visible on every action.
+
+This framework makes predictable mutations paint instantly, fire the request in the background, and roll back + toast on failure. Truth comes from the mutation's own response (reconcile), not a second GET.
+
+Excluded entirely: auth, billing/subscriptions.
+
+Built in RxJS throughout — the generated client is Observable-native, the whole codebase ties in-flight requests to `takeUntilDestroyed(DestroyRef)`, and CLAUDE.md forbids raw Promises in data methods. No `firstValueFrom` in the engine — a Promise gives no teardown, so a request outliving a destroyed feature-scoped service would `signal.set` into a dead context.
+
+## What changed from v1 (and why)
+
+1. **Snapshot-revert replaced by an operation ledger.** v1's `signal.set(before)` had a concurrency hole: op A snapshots, op B applies on top, A fails → A's revert wipes B's optimistic state even if B later succeeds. Two quick deletes where the first fails would resurrect *both* rows visually until B confirmed — or worse, drop B's change permanently if B had no reconcile. The engine now keeps a per-signal ledger (`baseline` = last server-confirmed state, `pending` = ordered ops) and **recomputes** the signal on every settle instead of restoring a snapshot. Reverting A removes only A's op; B's apply survives the replay.
+2. **`CachePatch` deleted, replaced by `mirror`.** The Map cache slice exists to mirror the view signal — so instead of patching signal and cache independently (v1's triple-method interface, with its own snapshot-clobber problem), the engine writes the recomputed signal value through to the cache after every change. One source of truth; ghosts become impossible by construction.
+3. **Read-vs-write AND read-vs-read races handled via `beginRead`/`commitRead` + a monotonic epoch.** v1 said nothing about a `load()` already in flight when an optimistic apply lands — the stale GET would resolve and stomp the optimistic state. Services now commit reads through the engine, which stamps a monotonic epoch on every accepted write *and every accepted read*: a read whose captured epoch still matches becomes the new `baseline` (pending ops replay on top, epoch bumps); a read whose epoch was moved by a confirmed write *or a newer read that already landed* is dropped. This closes the whole staleness family — write-clobbers-write, read-clobbers-write, and read-clobbers-read (two overlapping loads landing out of order). Fresh state always wins; stale state — from any source — can never overwrite it.
+4. **`run<T, R>` is generic over the response.** `reconcile: (current: T, response: R) => T` — no more `as { body: Service }` casts at every call site. The generated client is typed; the engine now preserves that.
+5. **Temp-id quarantine specified now, not deferred.** The engine tracks pending ids; services guard, templates disable. Mechanism below.
+6. **The ledger is `WeakMap`-keyed and carries a monotonic epoch bumped by every accepted write and read.** Two holes the first ledger draft left open, both closed structurally rather than by discipline:
+   - *Leak:* a `Map<WritableSignal, Ledger>` makes the signal a GC root — a feature-scoped service destroyed mid-flight would pin a dead signal forever. `WeakMap` keys are weakly held, so the ledger dies with the signal.
+   - *Stale-response races:* if the ledger were dropped once `pending` empties (the naive GC), a `load()` resolving *after* the last op confirmed would find no ledger and `set()` stale server data — resurrecting a just-confirmed delete. So the ledger is retained (bounded by the `WeakMap`), and every *accepted* write and read stamps the monotonic `epoch`. `beginRead` captures the epoch when the GET is *issued*; `commitRead` drops the result if the epoch has since moved — whether by a confirmed write or by a newer read that already landed. Freshest state always wins; a stale response (from either vector) is discarded, not applied.
+7. **Ledgers are context-keyed, not just signal-keyed.** Many services reuse a single signal as a "slot" whose meaning changes when the user navigates (e.g. `ServicesService._services` holds the *current* salon's list; a `Map` cache is keyed per salon). The ledger is keyed by signal object, so it outlives any single context. Without a context key, navigating from salon A to salon B means: the mirror still closes over A's salonId (first-caller-wins), every recompute writes B's data into A's cache slice; and any pending op from A replays its `apply` on B's baseline, appending phantom rows. Both failures are deterministic on the second salon a user opens — not a race, corruption.
+
+   The fix: `run` and `beginRead` carry an optional `contextKey` (the salonId for multi-salon services, omitted or a constant for single-entity services like OrgService). When `_ledgerFor` sees a key that differs from the current ledger's, it **replaces** the ledger — fresh baseline from `sig()`, a fresh globally-monotonic epoch, new mirror — and every settle path first checks `this._ledgers.get(sig) === ledger`; a superseded ledger's ops settle silently (the mutation succeeded or failed server-side, but its context is gone; the next `load()` of that salon will reflect reality). `commitRead` is **peek-only**: it checks only that a ledger exists and the token's epoch matches. Epochs are globally monotonic (never reused across incarnations), so an epoch match *implies* same incarnation and therefore same context — no explicit `contextKey` on the token is needed. This closes the ABA problem: a token from incarnation 1 can never collide with incarnation 2's epoch. This gives "superseded" a defined meaning and strengthens the two-writer invariant (rule #3): a signal's writers are `run` and `commitRead` *within the current context*; a context switch is a clean break, not a mutation.
+
+## Part 1 — The Two Categories
+
+### Category A — Predictable → the optimistic engine
+
+You can compute the resulting state from the inputs alone.
+
+| Service | Methods |
+|---|---|
+| SalonOverviewService | `toggleAcceptingClients` (also fixes the current backwards impl — it waits for success before flipping) |
+| ServicesService | `create`, `update`, `deactivate`, `assignService`, `removeService`, `setDefaultService` |
+| ClosuresService | `createSalon`, `createStaff`, `deleteSalon`, `deleteStaff` |
+| SchedulesService | `create`, `update`, `remove` |
+| StaffService | `cancelInvite`, `updateRole`, `remove` |
+| OrgService | `update` (rename) |
+| SalonMediaService / StaffMediaService | `delete`, `reorder`, `upload` (blob-preview reconcile) |
+| InvitesService | `accept`, `decline` (already list-splice; migrate onto engine) |
+| FavoritesService | `toggle` (already optimistic; migrate for one consistent path) |
+| New SalonSettingsService | settings + slug edits (moved out of components — decision #4) |
+
+### Category B — Non-predictable → NOT the engine
+
+The server computes something you can't fake.
+
+| Flow | Treatment |
+|---|---|
+| Join queue | Navigation-is-feedback (Part 5) — navigate to position page instantly, socket fills in position |
+| Queue console (call-next / serve / complete / no-show / cancel / extend) | Leave socket-driven; timeline recomputes server-side, arrives over the socket |
+| Billing (checkout / verify / upgrade / downgrade / cancel) | Server-confirmed; spinner is honest |
+| Salon create / delete | Navigation + destructive; spinner is honest |
+| All auth | Excluded by decision |
+
+## Part 2 — The Engine (RxJS, ledger-based)
+
+Location: `src/app/core/optimistic/optimistic.service.ts`
+
+Mental model: **baseline + pending ops → recompute.** The signal's rendered value is always `pending.reduce(apply, baseline)`. Confirm folds an op into the baseline (via its reconcile); revert removes the op; either way the signal is recomputed from what remains. There is no "restore snapshot" anywhere — restoration is a *consequence* of replay, which is why concurrent ops can't clobber each other.
+
+The machinery is identical for every mutation; only `apply` (the prediction) differs. That's why it's one engine, not 15 copies.
+
+```ts
+import { Injectable, WritableSignal, DestroyRef, signal, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Observable } from 'rxjs';
+import { ToastService } from '../toast/toast.service';
+import { isApiError } from '../errors/api-error.types';
+
+export interface OptimisticConfig<T, R = unknown> {
+  signal: WritableSignal<T>;                     // view state to mutate
+  apply: (current: T) => T;                      // predict — MUST be pure; it is REPLAYED
+  request: () => Observable<R>;                  // the real backend call (typed)
+  reconcile?: (current: T, response: R) => T;    // fold server truth into baseline (creates/updates)
+  mirror?: (value: T) => void;                   // write-through to the Map cache slice
+  contextKey?: string;                           // scope key (e.g. salonId); context change replaces the ledger
+  tempId?: string;                               // quarantined id for temp rows (creates/uploads)
+  errorMessage?: string;                         // toast ONLY on generic reverted case
+  onSuccess?: (response: R) => void;             // after confirm (close dialog, navigate)
+  onRevert?: () => void;                         // after revert (e.g. re-open the edit dialog)
+  onSettled?: () => void;                        // fires exactly once on EVERY terminal path (confirm,
+                                                 // revert, superseded-confirm, superseded-revert);
+                                                 // use for cleanup that must happen regardless (blob revoke)
+}
+
+interface PendingOp<T> {
+  key: symbol;
+  apply: (s: T) => T;
+}
+
+interface Ledger<T> {
+  baseline: T;                    // last server-confirmed state
+  pending: PendingOp<T>[];        // ordered optimistic ops not yet settled
+  mirror?: (v: T) => void;        // set on ledger creation or adopted within matching context
+  contextKey?: string;            // scope key — a different key triggers ledger replacement
+  epoch: number;                  // bumped on every accepted write AND accepted read; guards stale reads
+}
+
+/**
+ * Read token captured by a service the moment it ISSUES a load(). Handed back
+ * to commitRead when the response lands, so the engine can tell a stale read
+ * (a write confirmed OR a newer read landed while this GET was in flight) from
+ * one that is genuinely the freshest state (apply it as the new baseline).
+ * Epochs are globally monotonic (never reused across ledger incarnations), so
+ * an epoch match implies same incarnation and therefore same context — no
+ * explicit contextKey on the token is needed.
+ */
+export interface ReadToken {
+  readonly epoch: number;
+}
+
+@Injectable({ providedIn: 'root' })
+export class OptimisticService {
+  private readonly _toast = inject(ToastService);
+  // WeakMap, not Map: the signal is a weakly-held key, so a destroyed
+  // feature-scoped service's ledger dies with its signal — no leak, no root.
+  private readonly _ledgers = new WeakMap<WritableSignal<unknown>, Ledger<unknown>>();
+  private readonly _pendingIds = signal<ReadonlySet<string>>(new Set());
+  private _epochStamp = 0;                         // globally monotonic — no epoch is ever reused
+
+  /** Templates/services check this to quarantine temp rows. */
+  isPending(id: string): boolean {
+    return this._pendingIds().has(id);
+  }
+
+  /**
+   * Capture the current epoch for a signal BEFORE issuing a load().
+   * Pass the returned token to commitRead when the response arrives.
+   * beginRead expresses user intent — it MAY create or replace a ledger.
+   */
+  beginRead<T>(sig: WritableSignal<T>, contextKey?: string): ReadToken {
+    return { epoch: this._ledgerFor(sig, undefined, contextKey).epoch };
+  }
+
+  run<T, R>(config: OptimisticConfig<T, R>, destroyRef?: DestroyRef): void {
+    const ledger = this._ledgerFor(config.signal, config.mirror, config.contextKey);
+    const op: PendingOp<T> = { key: Symbol(), apply: config.apply };
+    ledger.pending.push(op);
+    if (config.tempId) this._markPending(config.tempId, true);
+    this._recompute(config.signal, ledger);          // instant paint
+
+    const request$ = config.request();
+    const guarded$ = destroyRef
+      ? request$.pipe(takeUntilDestroyed(destroyRef))
+      : request$;
+
+    guarded$.subscribe({
+      next: (response) => {                          // CONFIRM
+        // Superseded ledger — context switched while this op was in flight.
+        // The mutation succeeded server-side; the next load() of that context
+        // will reflect it. Nothing to do to the current signal.
+        if (this._ledgers.get(config.signal as WritableSignal<unknown>) !== ledger) {
+          if (config.tempId) this._markPending(config.tempId, false);
+          config.onSettled?.();
+          return;
+        }
+        // Fold this op into confirmed truth: apply it to baseline, then let
+        // the server's response correct/enrich it. Remaining pending ops
+        // replay on top in the recompute.
+        let base = op.apply(ledger.baseline);
+        if (config.reconcile) base = config.reconcile(base, response);
+        ledger.baseline = base;
+        ledger.epoch = ++this._epochStamp;             // a confirmed write happened
+        this._settle(config.signal, ledger, op, config.tempId);
+        config.onSuccess?.(response);
+        config.onSettled?.();
+      },
+      error: (err) => {                              // REVERT (surgical)
+        // Superseded ledger — still toast (the user should know it failed)
+        // but don't touch the current signal/baseline.
+        if (this._ledgers.get(config.signal as WritableSignal<unknown>) !== ledger) {
+          if (config.tempId) this._markPending(config.tempId, false);
+          const body = (err as { error?: unknown })?.error;
+          if (!isApiError(body)) {
+            this._toast.error(config.errorMessage ?? 'Something went wrong. Changes reverted.');
+          }
+          config.onRevert?.();
+          config.onSettled?.();
+          return;
+        }
+        // Remove ONLY this op; every other pending op survives the replay.
+        // No epoch bump — a failed op changed no confirmed state.
+        this._settle(config.signal, ledger, op, config.tempId);
+        config.onRevert?.();
+        // Suppress our toast when the interceptor already spoke about a known
+        // ApiError (avoids double-toast). Only speak for network/unknown.
+        const body = (err as { error?: unknown })?.error;
+        if (!isApiError(body)) {
+          this._toast.error(config.errorMessage ?? 'Something went wrong. Changes reverted.');
+        }
+        config.onSettled?.();
+      },
+    });
+  }
+
+  /**
+   * Services commit ALL reads through this instead of signal.set directly.
+   * `token` is what beginRead() returned when the load was issued.
+   * Returns `true` if the read was accepted, `false` if dropped (stale).
+   * Callers that need guaranteed freshness (e.g. pull-to-refresh) can
+   * re-issue the load on `false` instead of silently showing nothing new.
+   *
+   * PEEK-ONLY: commitRead never creates or replaces a ledger. A response
+   * arriving is not a user context switch — only `beginRead` and `run`
+   * (calls that express user intent) may switch context.
+   *
+   * Two guards: ledger exists, epoch matches. Epochs are globally monotonic,
+   * so an epoch match implies same ledger incarnation and therefore same
+   * context — no explicit contextKey comparison needed. A context switch
+   * replaces the ledger with a fresh globally-unique epoch, which is
+   * guaranteed to differ from any token issued before the switch.
+   */
+  commitRead<T>(
+    sig: WritableSignal<T>,
+    value: T,
+    token: ReadToken,
+    mirror?: (v: T) => void,
+  ): boolean {
+    const ledger = this._ledgers.get(sig as WritableSignal<unknown>) as Ledger<T> | undefined;
+    if (!ledger) return false;                       // no ledger exists — nothing to commit into
+    if (ledger.epoch !== token.epoch) return false;   // stale — a write, newer read, or context switch raced this
+    if (mirror) ledger.mirror = mirror;              // adopt mirror within matching context
+    ledger.baseline = value;
+    ledger.epoch = ++this._epochStamp;                // an accepted read IS a baseline write —
+                                                     // it must invalidate older in-flight reads too
+    this._recompute(sig, ledger);
+    return true;
+  }
+
+  // ── internals ──────────────────────────────────────────────────────────
+
+  private _ledgerFor<T>(sig: WritableSignal<T>, mirror?: (v: T) => void, contextKey?: string): Ledger<T> {
+    let ledger = this._ledgers.get(sig as WritableSignal<unknown>) as Ledger<T> | undefined;
+    if (!ledger || ledger.contextKey !== contextKey) {
+      // New signal, OR context changed (e.g. user navigated from salon A to B).
+      // Replace the ledger entirely: fresh baseline from the signal's current
+      // value, fresh globally-monotonic epoch, new mirror. The old ledger's
+      // pending ops will find themselves superseded on settle (checked in run's
+      // subscribe callbacks). Globally-monotonic epoch means a token from an old
+      // incarnation can never collide with the reborn ledger's epoch (ABA fix).
+      // Assumption: services clear the signal or show a skeleton on navigation,
+      // so sig() here reflects "empty/loading" rather than the old context's data.
+      ledger = { baseline: sig(), pending: [], mirror, contextKey, epoch: ++this._epochStamp };
+      this._ledgers.set(sig as WritableSignal<unknown>, ledger as Ledger<unknown>);
+    } else if (mirror) {
+      // Same context — adopt the mirror. Safe because same contextKey means
+      // the closures capture the same salonId; "latest wins within a context"
+      // is well-defined. Covers the common load-first sequence: beginRead
+      // creates the ledger with no mirror, then run/commitRead supplies one.
+      ledger.mirror = mirror;
+    }
+    return ledger;
+  }
+
+  // A settled ledger is deliberately NOT deleted — retention is defense-in-depth,
+  // not load-bearing: a missing ledger already causes commitRead to return false,
+  // and a recreated one would get a fresh global epoch that can't match any old
+  // token. Keeping it avoids the needless delete-then-recreate churn on the
+  // common load-after-settle path. Bounded by the WeakMap — reclaimed when the
+  // signal is collected.
+  private _settle<T>(sig: WritableSignal<T>, ledger: Ledger<T>, op: PendingOp<T>, tempId?: string): void {
+    ledger.pending = ledger.pending.filter((p) => p.key !== op.key);
+    if (tempId) this._markPending(tempId, false);
+    this._recompute(sig, ledger);
+  }
+
+  private _recompute<T>(sig: WritableSignal<T>, ledger: Ledger<T>): void {
+    const next = ledger.pending.reduce((s, p) => p.apply(s), ledger.baseline);
+    sig.set(next);
+    ledger.mirror?.(next);
+  }
+
+  private _markPending(id: string, on: boolean): void {
+    this._pendingIds.update((set) => {
+      const next = new Set(set);
+      on ? next.add(id) : next.delete(id);
+      return next;
+    });
+  }
+}
+```
+
+### Engine properties
+
+- **Concurrent ops can't clobber each other.** Two overlapping deletes: A fails, B in flight → recompute = baseline + B's apply. Only A's row comes back. This was the v1 flaw; it's structurally impossible now.
+- **`apply` is replayed, so it must be pure.** No side effects, no reading external mutable state. Side effects belong in `reconcile`, `onSuccess`, `onRevert` (each fires **at most once** — superseded ops skip them entirely). `onSettled` is the only **exactly-once** hook; must-run cleanup goes there, success-only effects go in `onSuccess`. This is the discipline the ledger buys its safety with — it goes in code review checklists.
+- **Out-of-order confirms are accepted.** If B's response lands before A's, B folds into baseline first and A replays on top; for non-commutative edits to the *same* item this can transiently differ from wall-clock order until both settle. This is the last-write-wins decision (#7), now stated precisely: it applies to *ordering*, not to *survival* — no op ever destroys another's state.
+- **The `acting` guard disappears.** Buttons stay live; each action is an independent bet.
+- **No `refresh()` after success.** Deleting that second round-trip is the whole point. Truth comes from `reconcile` (the mutation's own response), not a fresh GET.
+- **One mirror per signal per context.** The mirror is set when the ledger is created — a context switch recreates the ledger with the new mirror. Within a matching context, any caller that supplies a mirror sets it (`if (mirror) ledger.mirror = mirror`), which covers the common load-first sequence: `beginRead` creates the ledger with no mirror, then `run` or `commitRead` supplies one. Safe because same `contextKey` means the closures capture the same salonId; "latest wins within a context" is well-defined where "first wins across contexts" wasn't.
+- **Ledgers are `WeakMap`-keyed and outlive `pending`.** The ledger is *not* deleted when `pending` empties. Retention is defense-in-depth, not load-bearing: with globally-monotonic epochs, a missing ledger already causes `commitRead` to return `false`, and a recreated one would get a fresh epoch that can't match any old token. Keeping it avoids needless delete-then-recreate churn on the common load-after-settle path. Retention is bounded structurally: the `WeakMap` holds the signal weakly, so when the signal itself is collected (its owning service destroyed and unreferenced) the ledger goes with it. Nothing pins a dead signal.
+- **Stale reads are dropped, not applied — against writes *and* other reads.** `commitRead` compares the read's captured `epoch` against the ledger's current one, and bumps the epoch when it accepts. So a read is discarded if, while its GET was in flight, either a write confirmed (delete-then-late-GET can't resurrect the row), a newer read already landed (two overlapping loads can't settle out of order), *or* a context switch replaced the ledger (globally-monotonic epoch guarantees no collision). An accepted read is itself a baseline write; treating it as one is what closes read-vs-read.
+- **`destroyRef` is optional.** Root singletons (most services) never destroy → omit it. A feature-scoped service (e.g. QueueConsoleService) passes its `_destroyRef`. If teardown cancels a request mid-flight, neither `next` nor `error` fires — the op lingers in the ledger, but the ledger is keyed weakly by a now-unreferenced signal, so both are reclaimed together. No leak.
+- **Context switch replaces the ledger; superseded ops settle silently.** When `_ledgerFor` sees a `contextKey` that differs from the current ledger's, it replaces the ledger entirely — fresh baseline, a fresh globally-monotonic epoch (never 0, never reused), new mirror. In-flight ops from the old context check `this._ledgers.get(sig) === ledger` on settle: a superseded ledger's success drops silently (the mutation landed server-side; the next `load()` of that context will show it); a superseded error still toasts (the user should know it failed) but does not touch the signal or baseline. Single-entity services (OrgService) omit `contextKey` or pass a constant — no replacement ever triggers. **Assumption:** when `beginRead(B)` creates the new ledger, its baseline seeds from `sig()`, which still holds A's data until the read commits. Services must clear the signal or show a skeleton on navigation so state is visibly "loading" rather than stale; the engine does not enforce this.
+- **`commitRead` is peek-only — it never creates or replaces a ledger.** A response arriving is not a user context switch. Only `beginRead` and `run` — calls that express user intent — may create or replace a ledger. `commitRead` looks up the existing ledger via `_ledgers.get()` and checks only that the token's epoch matches. Epochs are globally monotonic, so an epoch match implies same ledger incarnation and same context — no explicit `contextKey` comparison on the token is needed. This closes both the A→B ping-pong (context switch bumps epoch) and the A→B→A ABA problem (reborn ledger gets a fresh epoch that can never collide with a token from the previous incarnation).
+
+### Temp-id quarantine (specified, not deferred)
+
+A `temp_` row must never send its fake id to the server. Two layers:
+
+1. **UI:** templates disable row actions via `optimistic.isPending(row.id)` (expose the engine or a service passthrough). Pending gallery tiles already render dimmed + spinner.
+2. **Service backstop:** any engine-migrated method that *receives* an id starts with:
+
+```ts
+if (this._optimistic.isPending(serviceId)) return;   // quarantined until reconcile swaps the real id
+```
+
+The engine adds/removes ids from `_pendingIds` automatically when `tempId` is set in the config — no per-service bookkeeping.
+
+### Read commits (the load() rule)
+
+Every service `load()` that writes an engine-managed signal goes through `commitRead`. Capture the read token with `beginRead` *before* issuing the request, and hand it back on arrival:
+
+```ts
+load(salonId: string): void {
+  const token = this._optimistic.beginRead(this._services, salonId);   // capture epoch
+  servicesControllerList(this._http, this._apiConfig.rootUrl, { salonId }).subscribe((res) => {
+    this._optimistic.commitRead(this._services, res.body, token, (v) => this._cache.set(salonId, v));
+  });
+}
+```
+
+Four outcomes, all correct:
+- **No write or newer read landed while the GET was in flight** → the read is the freshest truth: it becomes the new baseline and any still-pending ops replay on top. Server data and in-flight optimism compose.
+- **A write confirmed mid-flight** (epoch moved) → the read is stale relative to confirmed state and is **dropped**. This is the case a late GET after a confirmed delete would otherwise lose to — resurrecting the deleted row. The epoch closes it whether or not any op is still pending.
+- **A newer read landed first** (epoch moved by a prior `commitRead`) → this read is stale relative to the newer server data and is **dropped**. Two overlapping loads can't settle out of order — the epoch-on-read bump is what closes read-vs-read.
+- **Context switched** (epoch moved because the context switch created a new ledger with a fresh globally-monotonic epoch) → the read belongs to a context the user has navigated away from and is **dropped**. `commitRead` is peek-only — it never creates or replaces a ledger. The globally-monotonic epoch also closes the ABA variant: navigating A→B→A creates a reborn ledger whose epoch can never match a token from the original incarnation.
+
+## Part 3 — Migration examples (the real shapes)
+
+### 3a. Delete (no reconcile) — `ServicesService.deactivate`
+
+```ts
+deactivate(salonId: string, serviceId: string, onSuccess?: () => void): void {
+  if (this._optimistic.isPending(serviceId)) return;           // temp-row backstop
+  this._optimistic.run({
+    signal: this._services,
+    apply: (list) => list.filter((s) => s.id !== serviceId),
+    mirror: (v) => this._cache.set(salonId, v),
+    contextKey: salonId,
+    request: () => servicesControllerDeactivate(this._http, this._apiConfig.rootUrl, { salonId, serviceId }),
+    errorMessage: 'Could not remove service. Restored.',
+    onSuccess,
+  });
+}
+```
+
+### 3b. Toggle — `SalonOverviewService.toggleAcceptingClients` (fixes the backwards one)
+
+```ts
+toggleAcceptingClients(salonId: string, staffId: string): void {
+  const next = !this._myStaff()?.isAcceptingClients;
+  this._optimistic.run({
+    signal: this._myStaff,
+    apply: (s) => (s ? { ...s, isAcceptingClients: next } : s),
+    mirror: (v) => {
+      const entry = this._cache.get(salonId);
+      if (entry) this._cache.set(salonId, { ...entry, myStaff: v });
+    },
+    contextKey: salonId,
+    request: () => staffControllerToggleAcceptingClients(this._http, this._apiConfig.rootUrl, {
+      salonId, staffId, body: { isAcceptingClients: next },
+    }),
+    errorMessage: 'Failed to update status. Reverted.',
+  });
+}
+```
+
+(Note: the v1 open question about `SalonOverviewCache.myStaff` needing a one-off `CachePatch` shape evaporates — a mirror is just a function, so object-shaped caches are the same three lines as list-shaped ones.)
+
+### 3c. Create with temp-id + typed reconcile — `ServicesService.create`
+
+Append a `temp_` row instantly; swap in the server's real entity on success so the row's edit/delete actions get the real id. Note `reconcile` is now typed against the generated client's response — no casts.
+
+```ts
+create(salonId: string, body: CreateServiceDto, onSuccess?: () => void): void {
+  const tempId = `temp_${crypto.randomUUID()}`;
+  const optimisticRow = { id: tempId, ...body } as Service;
+  this._optimistic.run({
+    signal: this._services,
+    apply: (list) => [...list, optimisticRow],
+    reconcile: (list, res) => list.map((s) => (s.id === tempId ? res.body : s)),
+    tempId,                                                    // engine quarantines it
+    mirror: (v) => this._cache.set(salonId, v),
+    contextKey: salonId,
+    request: () => servicesControllerCreate(this._http, this._apiConfig.rootUrl, { salonId, body }),
+    errorMessage: 'Could not create service. Reverted.',
+    onSuccess,
+  });
+}
+```
+
+### 3d. Media upload — blob preview + reconcile
+
+The reference case for "placeholder that swaps for the real entity." Show the picked file instantly via a local blob URL; upload in background; swap the blob tile for the real Cloudinary Media on success, drop it + toast on failure. Blob URLs are revoked in `onSettled` — the one hook that fires exactly once on every terminal path (confirm, revert, superseded-confirm, superseded-revert). Revoking in `reconcile` or `onRevert` would miss the superseded paths; revoking in `apply` is unsafe because `apply` replays.
+
+```ts
+upload(salonId: string, file: File, onSuccess?: () => void): void {
+  const tempId = `temp_${crypto.randomUUID()}`;
+  const blobUrl = URL.createObjectURL(file);
+  const optimisticTile = { id: tempId, url: blobUrl, pending: true } as Media & { pending?: boolean };
+  this._optimistic.run({
+    signal: this._media,
+    apply: (list) => [...list, optimisticTile],                // pure — replay-safe
+    reconcile: (list, res) => {
+      return list.map((m) => (m.id === tempId ? res.body : m));
+    },
+    tempId,
+    mirror: (v) => this._cache.set(salonId, v),
+    contextKey: salonId,
+    request: () => mediaControllerUpload(this._http, this._apiConfig.rootUrl, {
+      body: { file, entityType: 'SALON', entityId: salonId, type: 'GALLERY' },
+    }),
+    errorMessage: 'Upload failed. Removed.',
+    onSuccess,
+    onSettled: () => URL.revokeObjectURL(blobUrl),             // fires exactly once — all paths
+  });
+}
+```
+
+The gallery template renders pending tiles dimmed with a spinner; `pending` is a view-only augment on the temp tile and never touches the real Media model. Tile actions are disabled via `isPending`.
+
+### 3e. Settings/slug moved into a service (decision #4)
+
+`salon-settings.component.ts` and `salon-slug.component.ts` currently call the generated client directly (violating "no HttpClient in components"). Create `SalonSettingsService` (`providedIn: 'root'`, registered with CacheRegistry) holding a salon signal + Map cache; move `salonsControllerUpdate` / `salonsControllerUpdateSettings` / `salonsControllerUpdateSlug` into it and run each through the engine. Components then call `this._settingsService.updateSlug(...)` and read signals.
+
+## Part 4 — Category B: Join Queue (navigation-is-feedback)
+
+Different mechanism — documented here so the two never get confused. You can't optimistically fake a queue position (server-assigned). You can make it feel instant:
+
+1. On tap, navigate to the position page immediately, request in flight.
+2. Position page shows a real pending state: "Finding your spot…" skeleton — not a fake number.
+3. POST returns `{ entryId, guestToken }` → store ActiveEntry → socket `queueTimeline$` delivers the real position → skeleton resolves.
+4. On failure (`QUEUE_NOT_OPEN`, network): toast + navigate back to the salon page. The "rollback" for a navigation is undoing the route, not a signal.
+
+Honest: the user sees motion instantly; the only thing that waits is the number, which nobody can know until the server speaks. This is a routing pattern, not the OptimisticService engine. Keep them separate in code and in your head.
+
+The full design for this — plus the console's call-next button, a second non-engine case — is Part 4a below.
+
+## Part 4a — Call-Next (local-predict, socket-reconciled) + Join-Queue (navigation-is-feedback, detailed)
+
+Two more non-engine patterns, each a deliberate exception to a documented rule, worked out in full because each has a real failure mode that a naive version gets wrong.
+
+### 4a.1 — Call-Next: optimistic, but NOT the engine
+
+**Why not the engine, precisely:** Category B (queue console) stays socket-driven because most console actions recompute the *whole* timeline server-side and another operator could act concurrently — optimistically reordering the full queue risks showing a state that's flatly wrong. Call-next is the one console action where the local prediction is small, almost-always-correct, and cheap to fix if wrong: the head `WAITING` entry becomes `SERVING`. That's a single-entry status flip, not a full-timeline guess — a materially smaller bet, and it's the button barbers press dozens of times an hour, so latency there is felt more than anywhere else in the app.
+
+**Contained in `QueueConsoleService.callNext()`** (queue-console.service.ts:153–170) + the call-next button's `[disabled]` in `queue-shell.component.html`.
+
+```
+callNext(salonId, queueId, onResolveNeeded):
+  1. PREDICT
+     const waiting = this.waitingEntries()
+     if waiting.length === 0 → return              // nothing to call
+     const head = waiting[0]
+     const predicted = timeline().map(e =>
+       e.entryId !== head.entryId ? e :
+       { ...e, members: e.members.map(m =>
+           m.isLeader && m.status === 'WAITING'
+             ? { ...m, status: 'SERVING', servedAt: new Date().toISOString() }
+             : m) })
+     timeline.set(predicted)                        // instant paint
+
+  2. FIRE (acting guard REMOVED from this path only)
+     callNext(...).subscribe({
+       next: () => {}                               // socket delivers truth; nothing to do
+       error: (err) => {
+         // 3. REVERT = re-assert authority, never hand-undo
+         publicQueueControllerGetTimeline({ queueId })
+           .subscribe(res => timeline.set(res.body))
+         // then the existing resolve/toast branch:
+         if (ENTRY_ALREADY_SERVING || ENTRY_NOT_WAITING) onResolveNeeded()
+         else toast.info('Resolve the current client first…')
+       }
+     })
+```
+
+**Why the revert re-fetches instead of restoring a snapshot:** the socket may push a new timeline between `set(predicted)` and the error landing. Restoring a captured snapshot would stomp that newer socket state — the exact `read-current-to-undo` bug the whole engine (Part 2) was built to eliminate. On failure the server changed nothing, so its authoritative timeline is already correct; the GET (the same call `init()` already uses) pulls it and the overlay vanishes cleanly. **The socket is authority — the revert comes from authority, not from a hand-merge.**
+
+**Concurrency:** `acting` is removed only from the call-next path. Two rapid taps each layer a prediction; whichever fails re-fetches authority, which corrects both. A double-tap's second POST 409s (`ENTRY_ALREADY_SERVING`) → `onResolveNeeded()` fires → correct. No new guard needed.
+
+**Does NOT change:** the socket subscription (still the source of truth), `acting` on every other console action (setStatus, endSession, noShow, cancel), the engine itself.
+
+### 4a.2 — Join-Queue: navigation-is-feedback, with the two failure modes pinned down
+
+The mechanism (navigate instantly, let the socket fill in the position) is right, but two things make or break it in practice — both closed here, not left as follow-up.
+
+**Crux #1 — result delivery must survive either arrival order.** Navigation and the POST response are now decoupled: the POST can resolve *before* the lazy-loaded joining page finishes mounting and subscribing. A plain `Subject` drops that emission — the page hangs on "Finding your spot…" forever. Fix: a **signal**, not a Subject, so the component reads current state on init regardless of timing (a signal read-on-mount can't miss what already happened; a Subject can).
+
+```ts
+// SalonVisitService — new state
+type PendingJoin =
+  | { status: 'pending' }
+  | { status: 'joined'; entryId: string; queueId: string; slug: string; shellPrefix: string }
+  | { status: 'failed'; reason: 'closed' | 'generic' };
+
+readonly pendingJoin = signal<PendingJoin | null>(null);
+```
+
+`confirmJoin` sets `pending` and navigates to `/joining`. `joinQueue`'s existing `next`/`error` handlers set `joined`/`failed` (keeping the existing ActiveEntry save + guest-token capture on success). `JoiningQueueComponent` reads `pendingJoin()` in a constructor effect — fires on mount *and* on every change, so a result landed before mount is picked up immediately.
+
+**Crux #2 — not every failure should let the user leave the page.** Split by whether the failure is knowable before confirming or only from the server:
+
+- **Block BEFORE navigation** (no bounce): frozen salon (already checked, join-queue.component.ts:61,83) and already-in-queue (`alreadyInQueue()`, line 51) — both checkable at confirm time. `confirmJoin` returns early, never navigates.
+- **Bounce AFTER navigation** (genuinely server-only): `QUEUE_NOT_OPEN` (queue closed between page-load and confirm), `PARTY_TOO_LARGE` (server-enforced cap), network/generic. `pendingJoin → failed(reason)`; the joining page navigates back to the salon page + the reason's toast.
+
+This keeps predictable failures on the form (no flash) and only bounces for the rare, unknowable-until-server ones.
+
+**File-by-file:**
+1. **visit.routes.ts** (after the `join` route): add `q/:queueId/joining` → lazy-loads `JoiningQueueComponent`. Needs no `entryId` param — which is why guests work (their `guestToken` only exists post-response).
+2. **New `joining-queue/joining-queue.component.ts` + `.html`:** skeleton "Finding your spot…" (reuse the position page's circle for visual continuity). Constructor effect on `pendingJoin()`: `joined` → `router.navigate([...base,'q',queueId,'e',entryId,'position'], { replaceUrl: true })`; `failed` → navigate back to salon + toast. Clears `pendingJoin` after handling.
+3. **salon-visit.service.ts `joinQueue()`:** keep the POST, ActiveEntry save, guest-token capture, `_loadInitialTimeline`; replace the `onSuccess` callback contract with setting `pendingJoin`.
+4. **join-queue.component.ts `confirmJoin`/`_submitJoin`:** after closing the dialog, guard (frozen/alreadyInQueue → return), then set `pendingJoin` to `pending` + navigate to `/joining`, then call `visit.joinQueue(...)`. The old success-navigation block is deleted — that's the joining page's job now.
+
+**Does NOT change:** `MyPositionComponent` (reads `entryId` from the route + socket timeline — works untouched once the real URL exists), the socket subscription, ActiveEntry storage, the guest-token flow (completes inside the joining→position handoff), and the rejoin path (`selectBarber` still routes existing entries straight to position — `/joining` is fresh-join only).
+
+**Accepted residual:** on success there's a brief window where the joining page has handed off to `/e/:entryId/position` but that page's own socket timeline hasn't arrived yet, so the position page shows its own short skeleton. Two skeletons in sequence on a slow connection, not one continuous one. Correct and honest (we genuinely don't have the position yet) — accepted rather than fixed, since unifying them would couple the joining page to the position page's timeline just to shave one transition.
+
+## Part 5 — The hard rules (what makes this safe)
+
+1. **`apply` is pure and replayable.** It runs multiple times (every recompute). No side effects, no ambient reads. Side effects live in `reconcile` / `onSuccess` / `onRevert`, which fire **at most once** (superseded ops skip them). `onSettled` is the only **exactly-once** hook — must-run cleanup goes there; success-only effects go in `onSuccess`. This is the #1 code-review check for every migration.
+2. **Revert is removal, never restoration.** Failed ops are removed from the ledger and the signal recomputes from `baseline` + surviving ops. There is no snapshot to restore — concurrent ops cannot clobber each other by construction.
+3. **An engine-managed signal has exactly two writers: `run` and `commitRead`.** Nothing else may call `.set`/`.update` on it — not a cache-hit fast path, not a filter reset, not a socket handler added later. A stray direct write diverges the signal from `ledger.baseline`, and the next recompute silently snaps the UI back to the stale baseline — a failure that reads as "the engine randomly undid my change," nastier than any race. This is greppable: for every signal the engine manages, the only `.set` sites in the codebase should be inside `OptimisticService`. Reads therefore always go through `beginRead` + `commitRead` (capture the token before issuing the GET) — a `load()` that calls `signal.set` directly is exactly the violation this rule forbids.
+4. **Signal and cache move together via `mirror`.** The cache is write-through from the signal, never patched independently. Miss the mirror → a ghost reappears on the next load. Mirror is set on ledger creation; a context switch recreates the ledger with the new mirror. Within a matching context, a late-arriving mirror is adopted (`if (mirror) ledger.mirror = mirror`) — this covers the common load-first sequence where `beginRead` creates the ledger and `commitRead` or `run` supplies the mirror later.
+5. **No double-toast.** Engine stays silent when the error is a known `ApiError` (interceptor already toasted); it speaks only for network/unknown, via `errorMessage`.
+6. **Reconcile only when the server enriches.** Deletes/toggles: none. Creates/updates/uploads: reconcile from the mutation's own typed response, never a separate GET.
+7. **Temp ids are quarantined by the engine.** Pass `tempId` in the config; check `isPending(id)` in templates (disable) and at the top of service methods (backstop). A fake id must never reach the server.
+8. **Blob URLs are revoked in `onSettled`.** The hook fires exactly once on every terminal path — confirm, revert, superseded-confirm, superseded-revert — so no path can leak.
+9. **Concurrency = last-write-wins on ordering, not survival.** Overlapping edits to the same item may settle in response order rather than wall-clock order (accepted for single-user salon editing). No operation ever destroys another's state. Revisit with per-entity serialization only if overlapping same-item edits become real — not now (YAGNI).
+10. **Teardown via `takeUntilDestroyed`.** Root services omit `destroyRef`; feature-scoped services pass theirs so an in-flight request can't settle into a destroyed context.
+
+## Part 6 — Build order
+
+1. **OptimisticService engine (ledger) + `beginRead`/`commitRead` + quarantine.** Unit tests, in order of what they protect:
+   - apply → reject → signal recomputed without the op, `onRevert` fired (basic revert);
+   - **two overlapping ops, first rejects, second confirms → second's state survives throughout** (the v1 clobber case — this test is the reason v2 exists);
+   - op in flight + newer `commitRead` lands → server data as baseline, op replayed on top (read composes);
+   - **`beginRead` → op confirms (epoch bumps) → that read's `commitRead` lands late → read DROPPED, confirmed state intact** (read-clobbers-write — a delete-then-late-GET must not resurrect the row);
+   - **two `beginRead` tokens → the second commits first (accepted, epoch bumps) → the first commits late → first DROPPED, newer read's data intact** (read-clobbers-read — the last hole the epoch-on-read bump closes; without the bump the older response would win);
+   - `tempId` present in `isPending` during flight, absent after both settle paths;
+   - mirror called with the recomputed value on every transition;
+   - **`_ledgers` is a `WeakMap`** — a structural assertion (the store's type, and that `run`'s subscription is the only transient strong ref, released by `takeUntilDestroyed`). Not a behavioral GC test: forcing collection needs `FinalizationRegistry` + `--expose-gc` and is nondeterministic under Karma — a flaky GC probe must never gate the suite;
+   - **context switch → mirror follows new context** — run with contextKey A, switch to B, run with B → mirror writes to B's cache slice, not A's. The old ledger is replaced; the new one starts with a fresh baseline from `sig()`;
+   - **old-context pending op settles without touching new context** — run with contextKey A (op pending), switch to B (ledger replaced), A's op confirms → signal unchanged, B's cache untouched, no recompute. Error path still toasts;
+   - `commitRead` returns `true` when accepted, `false` when dropped (stale epoch);
+   - **A→B→A ping-pong: late B read dropped, A's view intact** — `beginRead(B)` replaces ledger (context B), user navigates back to A → `beginRead(A)` replaces ledger (context A), B's response lands → `commitRead` peeks, finds token epoch ≠ ledger epoch (globally monotonic) → dropped, signal still shows A's data. The ping-pong proof;
+   - **ABA epoch-reuse: old read from incarnation 1 can't match incarnation 2** — `beginRead(A)` (slow read₁ in flight, token captures epoch N) → delete confirms (epoch stamps to N+1) → `beginRead(B)` (ledger replaced, epoch N+2) → `beginRead(A)` (ledger reborn, epoch N+3) → read₁'s `commitRead` lands with epoch N → N ≠ N+3 → **dropped**, `false` returned, deleted row stays gone. Without the global epoch stamp this test fails (reborn ledger would start at 0 and match the old token). The ABA proof;
+   - **load-first mirror adoption** — `beginRead(B)` creates ledger with no mirror, `commitRead(B)` supplies mirror → mirror adopted within matching context, subsequent mutation via `run(B)` mirrors to B's cache slice. Proves Bug 2 fix;
+   - **`onSettled` fires exactly once on all four terminal paths** — confirm, revert, superseded-confirm, superseded-revert. Verify with a counter incremented in `onSettled`; assert count === 1 after each settle.
+2. **`toggleAcceptingClients`** — fixes a bug and demos the pattern (clearest win).
+3. **Migrate every `load()` in engine-adjacent services to `commitRead`** — must land before the mutation migrations widen, or read races reappear service by service.
+4. **Deletes/toggles across services** (no reconcile — lowest risk).
+5. **Updates + creates** (temp-id + reconcile).
+6. **Media upload** (blob preview — highest complexity; do it once the pattern is proven).
+7. **Extract `SalonSettingsService`;** migrate settings/slug off the components.
+8. **Call-next optimistic** (Part 4a.1) — self-contained in `QueueConsoleService` + one template binding; no new files; ships independently of the engine migration. ~30 min.
+9. **Join-queue navigation-is-feedback** (Part 4a.2) — new route + `JoiningQueueComponent` + `SalonVisitService.pendingJoin` + `JoinQueueComponent` changes; ships independently of the engine migration. ~1 hr.
+10. **Delete the orphaned code** — the `acting`/`refresh()`-after-mutate paths the migration makes dead.
+
+No open design questions remain deferred: the myStaff cache shape is solved by `mirror` being an arbitrary function (3b), temp-row quarantining is engine-owned (Part 2), and the signal-identity-vs-entity-identity problem is solved by `contextKey` (change #7).

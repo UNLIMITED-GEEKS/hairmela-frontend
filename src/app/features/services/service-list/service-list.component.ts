@@ -22,8 +22,8 @@ export class ServiceListComponent implements OnInit {
 
   protected readonly salonContext = inject(SalonContextService);
   protected readonly loading = this._servicesService.loading;
+  protected readonly error = this._servicesService.error;
   protected readonly services = this._servicesService.services;
-  protected readonly actioning = this._servicesService.acting;
 
   protected readonly canManage = computed(() => {
     const role = this.salonContext.membership()?.role;
@@ -42,15 +42,23 @@ export class ServiceListComponent implements OnInit {
     this._servicesService.load(this._salonId);
   }
 
+  protected retry(): void {
+    this._servicesService.refresh(this._salonId);
+  }
+
   protected deactivate(service: Service): void {
-    this._confirmDialog.open({
-      title: `Deactivate "${service.name}"?`,
-      message: 'This service will be unassigned from all staff and removed from new queues. In-flight queue entries keep their duration.',
-      confirmLabel: 'Deactivate',
-      danger: true,
-    }).pipe(filter((ok) => ok)).subscribe(() => {
-      this._servicesService.deactivate(this._salonId, service.id);
-    });
+    this._confirmDialog
+      .open({
+        title: `Deactivate "${service.name}"?`,
+        message:
+          'This service will be unassigned from all staff and removed from new queues. In-flight queue entries keep their duration.',
+        confirmLabel: 'Deactivate',
+        danger: true,
+      })
+      .pipe(filter((ok) => ok))
+      .subscribe(() => {
+        this._servicesService.deactivate(this._salonId, service.id);
+      });
   }
 
   protected formatDuration(minutes: number): string {

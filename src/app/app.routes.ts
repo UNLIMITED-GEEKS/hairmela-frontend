@@ -12,7 +12,9 @@ export const routes: Routes = [
   {
     path: '',
     loadComponent: () =>
-      import('./shared/components/shells/public-shell/public-shell.component').then((m) => m.PublicShellComponent),
+      import('./shared/components/shells/public-shell/public-shell.component').then(
+        (m) => m.PublicShellComponent,
+      ),
     children: [
       {
         path: '',
@@ -47,14 +49,18 @@ export const routes: Routes = [
       {
         path: 'verify-email',
         loadComponent: () =>
-          import('./features/auth/verify-email/verify-email.component').then((m) => m.VerifyEmailComponent),
+          import('./features/auth/verify-email/verify-email.component').then(
+            (m) => m.VerifyEmailComponent,
+          ),
       },
       {
         // The emailed link uses {FRONTEND_URL}/auth/verify-email?token= (same
         // convention as reset-password). Public — clickable while logged out.
         path: 'auth/verify-email',
         loadComponent: () =>
-          import('./features/auth/verify-email/verify-email.component').then((m) => m.VerifyEmailComponent),
+          import('./features/auth/verify-email/verify-email.component').then(
+            (m) => m.VerifyEmailComponent,
+          ),
       },
       {
         path: 'login',
@@ -72,21 +78,27 @@ export const routes: Routes = [
         path: 'forgot-password',
         canActivate: [guestGuard],
         loadComponent: () =>
-          import('./features/auth/forgot-password/forgot-password.component').then((m) => m.ForgotPasswordComponent),
+          import('./features/auth/forgot-password/forgot-password.component').then(
+            (m) => m.ForgotPasswordComponent,
+          ),
       },
       {
         // Public — the emailed token is the authorization, reachable even if
         // a stale session exists, so no guestGuard.
         path: 'auth/reset-password',
         loadComponent: () =>
-          import('./features/auth/reset-password/reset-password.component').then((m) => m.ResetPasswordPageComponent),
+          import('./features/auth/reset-password/reset-password.component').then(
+            (m) => m.ResetPasswordPageComponent,
+          ),
       },
       {
         // Public — resolves the invite token (no auth); handles logged-in and
         // logged-out invitees inline, so no guard.
         path: 'staff/accept-invite',
         loadComponent: () =>
-          import('./features/staff/accept-invite/accept-invite.component').then((m) => m.AcceptInviteComponent),
+          import('./features/staff/accept-invite/accept-invite.component').then(
+            (m) => m.AcceptInviteComponent,
+          ),
       },
     ],
   },
@@ -96,18 +108,21 @@ export const routes: Routes = [
     path: 'g',
     canActivate: [guestShellGuard],
     loadComponent: () =>
-      import('./shared/components/shells/guest-shell/guest-shell.component').then((m) => m.GuestShellComponent),
+      import('./shared/components/shells/guest-shell/guest-shell.component').then(
+        (m) => m.GuestShellComponent,
+      ),
     children: [
       {
         path: 'queues',
         loadComponent: () =>
-          import('./features/queues/guest-queues/guest-queues.component').then((m) => m.GuestQueuesComponent),
+          import('./features/queues/guest-queues/guest-queues.component').then(
+            (m) => m.GuestQueuesComponent,
+          ),
       },
       {
         path: 's/:slug',
         data: { shellPrefix: '/g' },
-        loadChildren: () =>
-          import('./features/visit/visit.routes').then((m) => m.visitRoutes),
+        loadChildren: () => import('./features/visit/visit.routes').then((m) => m.visitRoutes),
       },
     ],
   },
@@ -117,7 +132,9 @@ export const routes: Routes = [
     path: '',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./shared/components/shells/auth-shell/auth-shell.component').then((m) => m.AuthShellComponent),
+      import('./shared/components/shells/auth-shell/auth-shell.component').then(
+        (m) => m.AuthShellComponent,
+      ),
     children: [
       {
         path: 'dashboard',
@@ -130,25 +147,37 @@ export const routes: Routes = [
           import('./features/account/account.component').then((m) => m.AccountComponent),
       },
       {
+        path: 'account/edit-profile',
+        loadComponent: () =>
+          import('./features/account/edit-profile/edit-profile.component').then(
+            (m) => m.EditProfileComponent,
+          ),
+      },
+      {
         path: 'notifications',
         loadComponent: () =>
-          import('./features/notifications/notifications.component').then((m) => m.NotificationsComponent),
+          import('./features/notifications/notifications.component').then(
+            (m) => m.NotificationsComponent,
+          ),
       },
       {
         path: 'queues',
         loadComponent: () =>
-          import('./features/queues/auth-queues/auth-queues.component').then((m) => m.AuthQueuesComponent),
+          import('./features/queues/auth-queues/auth-queues.component').then(
+            (m) => m.AuthQueuesComponent,
+          ),
       },
       {
         path: 'favorites',
         loadComponent: () =>
-          import('./features/favorites/favorites-page.component').then((m) => m.FavoritesPageComponent),
+          import('./features/favorites/favorites-page.component').then(
+            (m) => m.FavoritesPageComponent,
+          ),
       },
       {
         path: 's/:slug',
         data: { shellPrefix: '' },
-        loadChildren: () =>
-          import('./features/visit/visit.routes').then((m) => m.visitRoutes),
+        loadChildren: () => import('./features/visit/visit.routes').then((m) => m.visitRoutes),
       },
       {
         path: 'org/:orgId',
@@ -160,31 +189,38 @@ export const routes: Routes = [
         path: 'salons/new',
         canActivate: [canCreateSalonGuard],
         loadComponent: () =>
-          import('./features/salons/create-salon/create-salon.component').then((m) => m.CreateSalonComponent),
+          import('./features/salons/create-salon/create-salon.component').then(
+            (m) => m.CreateSalonComponent,
+          ),
       },
       {
         path: 'salons/:salonId',
         canActivate: [salonRoleGuard],
         data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
-        loadChildren: () =>
-          import('./features/salons/salon.routes').then((m) => m.salonRoutes),
+        loadChildren: () => import('./features/salons/salon.routes').then((m) => m.salonRoutes),
       },
       {
         path: 'salons/:salonId/queues/:queueId/console',
         canActivate: [salonRoleGuard],
         data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
         loadComponent: () =>
-          import('./features/queue/queue-shell/queue-shell.component').then((m) => m.QueueShellComponent),
+          import('./features/queue/queue-shell/queue-shell.component').then(
+            (m) => m.QueueShellComponent,
+          ),
         children: [
           {
             path: '',
             loadComponent: () =>
-              import('./features/queue/current-client/current-client.component').then((m) => m.CurrentClientComponent),
+              import('./features/queue/current-client/current-client.component').then(
+                (m) => m.CurrentClientComponent,
+              ),
           },
           {
             path: 'queue',
             loadComponent: () =>
-              import('./features/queue/queue-list/queue-list.component').then((m) => m.QueueListComponent),
+              import('./features/queue/queue-list/queue-list.component').then(
+                (m) => m.QueueListComponent,
+              ),
           },
         ],
       },

@@ -1,13 +1,8 @@
 import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DestroyRef } from '@angular/core';
 import { QueueConsoleService } from '../queue-console/queue-console.service';
 import { ToastService } from '../../../core/toast/toast.service';
-import { ApiConfiguration } from '../../../api/api-configuration';
-import { walkInControllerStaffAddToQueue } from '../../../api/fn/queues/walk-in-controller-staff-add-to-queue';
 
 @Component({
   selector: 'app-current-client',
@@ -17,17 +12,13 @@ import { walkInControllerStaffAddToQueue } from '../../../api/fn/queues/walk-in-
 export class CurrentClientComponent {
   protected readonly console = inject(QueueConsoleService);
   private readonly _route = inject(ActivatedRoute);
-  private readonly _http = inject(HttpClient);
-  private readonly _apiConfig = inject(ApiConfiguration);
-  private readonly _toast = inject(ToastService);
-  private readonly _destroyRef = inject(DestroyRef);
   private readonly _fb = inject(FormBuilder);
+  private readonly _toast = inject(ToastService);
 
   protected readonly staffServices = this.console.staffServices;
   protected readonly showEndPartyModal = signal(false);
   protected readonly showExtendModal = signal(false);
   protected readonly showAddQueueModal = signal(false);
-  protected readonly addingToQueue = signal(false);
   protected readonly extendTargetEntryId = signal<string | null>(null);
   protected readonly extendTargetMemberId = signal<string | null>(null);
   protected readonly extendMinutes = signal<number | null>(null);
@@ -55,7 +46,9 @@ export class CurrentClientComponent {
   protected endSession(): void {
     const entry = this.console.servingEntry();
     if (!entry || this.console.acting()) return;
-    const unfinished = entry.members.filter((m) => m.status === 'WAITING' || m.status === 'SERVING');
+    const unfinished = entry.members.filter(
+      (m) => m.status === 'WAITING' || m.status === 'SERVING',
+    );
     if (unfinished.length > 1) {
       this.showEndPartyModal.set(true);
       return;
@@ -89,7 +82,9 @@ export class CurrentClientComponent {
     const minutes = this.extendMinutes();
     if (!entryId || !memberId || !minutes || minutes < 1) return;
     this.showExtendModal.set(false);
-    this.console.extendMember(this._salonId, this._queueId, entryId, memberId, { extraMinutes: minutes });
+    this.console.extendMember(this._salonId, this._queueId, entryId, memberId, {
+      extraMinutes: minutes,
+    });
   }
 
   protected openAddQueueModal(): void {
@@ -99,23 +94,18 @@ export class CurrentClientComponent {
   }
 
   protected staffAddToQueue(): void {
-    if (this.addingToQueue()) return;
     const rows = this.addQueueMembers.value as { name: string; serviceId: string }[];
     const valid = rows.filter((r) => r.name?.trim());
-    if (valid.length === 0) { this._toast.error('Enter at least one name.'); return; }
-    this.addingToQueue.set(true);
-    walkInControllerStaffAddToQueue(this._http, this._apiConfig.rootUrl, {
-      salonId: this._salonId,
-      queueId: this._queueId,
-      body: { members: valid.map((r) => ({ memberName: r.name.trim(), serviceId: r.serviceId || undefined })) },
-    }).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
-      next: () => {
-        this.addingToQueue.set(false);
-        this.showAddQueueModal.set(false);
-        this._toast.success('Client added to queue.');
-      },
-      error: () => this.addingToQueue.set(false),
-    });
+    if (valid.length === 0) {
+      this._toast.error('Enter at least one name.');
+      return;
+    }
+    this.console.staffAddToQueue(
+      this._salonId,
+      this._queueId,
+      valid.map((r) => ({ memberName: r.name.trim(), serviceId: r.serviceId || undefined })),
+      () => this.showAddQueueModal.set(false),
+    );
   }
 
   protected addQueueMemberRow(): void {

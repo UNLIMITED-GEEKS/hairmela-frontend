@@ -11,6 +11,7 @@ export interface PlanCard {
   readonly tagline: string;
   readonly salons: string;
   readonly staff: string;
+  readonly price: number;
   readonly features: readonly string[];
 }
 
@@ -21,11 +22,13 @@ export const PLAN_CARDS: readonly PlanCard[] = [
     tagline: 'For a single barber getting started.',
     salons: '1 salon',
     staff: '1 staff (owner only)',
+    price: 0,
     features: ['Walk-in queue'],
   },
   {
     tier: 2,
     name: 'Pro',
+    price: 3000,
     tagline: 'For growing salons with a team.',
     salons: 'Up to 3 salons',
     staff: 'Unlimited staff',
@@ -34,6 +37,7 @@ export const PLAN_CARDS: readonly PlanCard[] = [
   {
     tier: 3,
     name: 'Scale',
+    price: 10000,
     tagline: 'For multi-location businesses.',
     salons: 'Unlimited salons',
     staff: 'Unlimited staff',

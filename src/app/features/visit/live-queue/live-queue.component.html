@@ -13,7 +13,7 @@
           </div>
           <div class="flex-1 min-w-0">
             <div class="rounded-xl bg-warning-light border border-warning/30 px-3 py-2 inline-block mb-1">
-              <p class="text-base font-bold text-warning">{{ staff.firstName }} {{ staff.lastName }}</p>
+              <p class="text-base font-bold text-warning">{{ staff.firstName }} {{ staff.lastName }}@if (staff.nickname) { <span class="font-normal text-warning/70">({{ staff.nickname }})</span>}</p>
             </div>
             <div>
               @if (staff.queueId) {

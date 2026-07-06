@@ -66,6 +66,7 @@ export type { ToggleAcceptingClientsDto } from './models/toggle-accepting-client
 export type { TransferOwnershipDto } from './models/transfer-ownership-dto';
 export type { TrendDataPointDto } from './models/trend-data-point-dto';
 export type { UpdateOrganizationDto } from './models/update-organization-dto';
+export type { UpdateProfileDto } from './models/update-profile-dto';
 export type { UpdateSalonDto } from './models/update-salon-dto';
 export type { UpdateSalonSettingsDto } from './models/update-salon-settings-dto';
 export type { UpdateScheduleDto } from './models/update-schedule-dto';

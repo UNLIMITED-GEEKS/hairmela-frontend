@@ -11,23 +11,23 @@ import { RequestBuilder } from '../../request-builder';
 export interface StaffClosuresControllerDelete$Params {
 
 /**
+ * Salon UUID
+ */
+  salonId: string;
+
+/**
  * SalonStaff UUID
  */
   staffId: string;
   closureId: string;
-
-/**
- * Salon UUID
- */
-  salonId: string;
 }
 
 export function staffClosuresControllerDelete(http: HttpClient, rootUrl: string, params: StaffClosuresControllerDelete$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
   const rb = new RequestBuilder(rootUrl, staffClosuresControllerDelete.PATH, 'delete');
   if (params) {
+    rb.path('salonId', params.salonId, {});
     rb.path('staffId', params.staffId, {});
     rb.path('closureId', params.closureId, {});
-    rb.path('salonId', params.salonId, {});
   }
 
   return http.request(

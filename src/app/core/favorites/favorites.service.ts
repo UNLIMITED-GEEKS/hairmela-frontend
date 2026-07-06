@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, firstValueFrom } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { ApiConfiguration } from '../../api/api-configuration';
 import { userFavoritesControllerFindMyFavorites } from '../../api/fn/salons/user-favorites-controller-find-my-favorites';
 import { userSalonsControllerAddFavorite } from '../../api/fn/salons/user-salons-controller-add-favorite';
@@ -9,6 +9,7 @@ import { SalonListingItemDto } from '../../api/models/salon-listing-item-dto';
 import { PaginatedMetaDto } from '../../api/models/paginated-meta-dto';
 import { CacheRegistry } from '../cache-registry.service';
 import { ToastService } from '../toast/toast.service';
+import { OptimisticService } from '../optimistic/optimistic.service';
 
 // Root-scoped, cached favourites state. The listing card DTO carries no
 // isFavorited flag, so heart state on ANY card (homepage, detail page,
@@ -22,6 +23,7 @@ export class FavoritesService {
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _cacheRegistry = inject(CacheRegistry);
   private readonly _toast = inject(ToastService);
+  private readonly _optimistic = inject(OptimisticService);
 
   constructor() {
     this._cacheRegistry.register(this);
@@ -92,35 +94,40 @@ export class FavoritesService {
   // place, fire the request, and only revert if it genuinely fails.
   toggle(salon: Pick<SalonListingItemDto, 'id'> | SalonListingItemDto): void {
     const wasFavorited = this.isFavorited(salon.id);
-    this._setFavorited(salon.id, !wasFavorited);
 
-    // Removing never needs card data — just drop it from whatever list is
-    // cached so the favourites page updates without a refetch.
+    // _list splice stays inline — it's a separate signal the engine doesn't own.
     if (wasFavorited) {
       this._list.update((items) => items.filter((s) => s.id !== salon.id));
     } else if ('slug' in salon) {
-      // Adding, and the caller has the full card (listing/favourites page) —
-      // splice it in directly, no refetch needed.
       this._list.update((items) =>
         items.some((s) => s.id === salon.id) ? items : [salon as SalonListingItemDto, ...items],
       );
     } else {
-      // Adding, but the caller only has an id (e.g. the salon detail page,
-      // which has a different DTO shape with no address/photoUrl/isOpen to
-      // splice in safely). Invalidate the list cache so the next loadPage()
-      // does a real refetch instead of silently missing this favourite.
       this._listLoadedPage = null;
     }
 
-    const call$ = wasFavorited
-      ? userSalonsControllerRemoveFavorite(this._http, this._apiConfig.rootUrl, { salonId: salon.id })
-      : userSalonsControllerAddFavorite(this._http, this._apiConfig.rootUrl, { salonId: salon.id });
-
-    firstValueFrom(call$).catch(() => {
-      // Revert on genuine failure only (network/server error) — both API
-      // calls are idempotent server-side, so a retry-by-toggling-again is safe.
-      this._setFavorited(salon.id, wasFavorited);
-      this._toast.error('Could not update favourites — please try again.');
+    this._optimistic.run({
+      signal: this._favoritedIds,
+      apply: (ids) => {
+        const next = new Set(ids);
+        wasFavorited ? next.delete(salon.id) : next.add(salon.id);
+        return next;
+      },
+      request: () =>
+        wasFavorited
+          ? userSalonsControllerRemoveFavorite(this._http, this._apiConfig.rootUrl, { salonId: salon.id })
+          : userSalonsControllerAddFavorite(this._http, this._apiConfig.rootUrl, { salonId: salon.id }),
+      errorMessage: 'Could not update favourites — please try again.',
+      onRevert: () => {
+        // Also revert the list splice
+        if (wasFavorited && 'slug' in salon) {
+          this._list.update((items) =>
+            items.some((s) => s.id === salon.id) ? items : [salon as SalonListingItemDto, ...items],
+          );
+        } else if (!wasFavorited) {
+          this._list.update((items) => items.filter((s) => s.id !== salon.id));
+        }
+      },
     });
   }
 
@@ -131,15 +138,6 @@ export class FavoritesService {
     this._list.set([]);
     this._meta.set(null);
     this._listLoadedPage = null;
-  }
-
-  private _setFavorited(salonId: string, favorited: boolean): void {
-    this._favoritedIds.update((ids) => {
-      const next = new Set(ids);
-      if (favorited) next.add(salonId);
-      else next.delete(salonId);
-      return next;
-    });
   }
 
   private async _fetchPage(

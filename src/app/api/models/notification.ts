@@ -9,6 +9,8 @@ export interface Notification {
   entityType: string | null;
   id: string;
   message: string;
+  metadata: {
+} | null;
   readAt: string | null;
   sentAt: string | null;
   status: 'PENDING' | 'SENT' | 'FAILED';

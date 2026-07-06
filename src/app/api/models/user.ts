@@ -10,6 +10,7 @@ export interface User {
   firstName: string;
   id: string;
   lastName: string;
+  nickname: string | null;
   passwordHash: string | null;
   passwordResetExpiresAt: string | null;
   passwordResetTokenHash: string | null;

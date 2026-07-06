@@ -5,6 +5,14 @@
       <app-skeleton variant="list-item" [count]="5" />
     </div>
   </div>
+} @else if (error()) {
+  <div class="py-16 flex flex-col items-center gap-3">
+    <p class="text-sm text-gray-500">Failed to load services.</p>
+    <button type="button" (click)="retry()"
+      class="px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors">
+      Retry
+    </button>
+  </div>
 } @else {
   <div class="py-6 px-4">
 
@@ -69,8 +77,7 @@
                     Edit
                   </a>
                   <button type="button" (click)="deactivate(service)"
-                    [disabled]="actioning()"
-                    class="min-h-9 px-3 flex items-center text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors">
+                    class="min-h-9 px-3 flex items-center text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
                     Deactivate
                   </button>
                 </div>

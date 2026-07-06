@@ -9,5 +9,5 @@ import { MySalonDto } from '../../../api/models/my-salon-dto';
 })
 export class StaffDashboardComponent {
   readonly salon = input.required<MySalonDto>();
-  readonly firstName = input<string>('');
+  readonly myQueueId = input<string | null>(null);
 }

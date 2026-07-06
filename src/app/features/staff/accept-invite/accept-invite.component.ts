@@ -1,19 +1,15 @@
 import { Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { HttpClient } from '@angular/common/http';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
-import { ApiConfiguration } from '../../../api/api-configuration';
 import { AuthService } from '../../../core/auth/auth.service';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { ResolveInviteDto } from '../../../api/models/resolve-invite-dto';
-import { inviteResolveControllerResolveInvite } from '../../../api/fn/staff/invite-resolve-controller-resolve-invite';
-import { staffInviteControllerAccept } from '../../../api/fn/staff/staff-invite-controller-accept';
-import { staffInviteControllerDecline } from '../../../api/fn/staff/staff-invite-controller-decline';
 import { ErrorCodes } from '../../../core/errors/error-codes';
 import { isApiError } from '../../../core/errors/api-error.types';
 import { PasswordToggleDirective } from '../../../shared/directives/password-toggle.directive';
+import { InviteResolveService } from './invite-resolve.service';
 
 // The view is a state machine over the resolve result + session + auth mode.
 type View =
@@ -33,8 +29,7 @@ type View =
   templateUrl: './accept-invite.component.html',
 })
 export class AcceptInviteComponent implements OnInit {
-  private readonly _http = inject(HttpClient);
-  private readonly _apiConfig = inject(ApiConfiguration);
+  private readonly _inviteResolve = inject(InviteResolveService);
   private readonly _auth = inject(AuthService);
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _router = inject(Router);
@@ -73,10 +68,9 @@ export class AcceptInviteComponent implements OnInit {
       this.view.set('invalid');
       return;
     }
-    inviteResolveControllerResolveInvite(this._http, this._apiConfig.rootUrl, { token: this._token })
+    this._inviteResolve.resolve(this._token)
       .subscribe({
         next: (res) => this._onResolved(res.body),
-        // 401 → expired/invalid token (distinct from a NOT_FOUND status in the body).
         error: (err) => this.view.set(err?.status === 401 ? 'invalid' : 'notFound'),
       });
   }
@@ -162,7 +156,7 @@ export class AcceptInviteComponent implements OnInit {
     const dto = this.invite();
     if (!dto || this.submitting()) return;
     this.submitting.set(true);
-    staffInviteControllerDecline(this._http, this._apiConfig.rootUrl, { salonId: dto.salonId }).subscribe({
+    this._inviteResolve.decline(dto.salonId).subscribe({
       next: () => this._router.navigate(['/dashboard']),
       error: () => this._router.navigate(['/dashboard']),
     });
@@ -174,7 +168,7 @@ export class AcceptInviteComponent implements OnInit {
     const dto = this.invite();
     if (!dto) return;
     this.view.set('accepting');
-    staffInviteControllerAccept(this._http, this._apiConfig.rootUrl, { salonId: dto.salonId }).subscribe({
+    this._inviteResolve.accept(dto.salonId).subscribe({
       next: () => this.view.set('accepted'),
       error: (err) => {
         if (err?.status === 404) {

@@ -5,7 +5,7 @@ import { ApiConfiguration } from '../../api/api-configuration';
 import { MySalonDto } from '../../api/models/my-salon-dto';
 import { userSalonsControllerFindMine } from '../../api/fn/salons/user-salons-controller-find-mine';
 import { MembershipStore } from '../../core/salon-context/membership.store';
-import { forkJoin } from 'rxjs';
+import { forkJoin, retry } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
@@ -14,17 +14,23 @@ export class DashboardService {
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _membershipStore = inject(MembershipStore);
 
-  constructor() { this._cacheRegistry.register(this); }
+  constructor() {
+    this._cacheRegistry.register(this);
+  }
 
   private readonly _salons = signal<MySalonDto[]>([]);
   private readonly _loading = signal(false);
+  private readonly _error = signal(false);
   private _loaded = false;
+  private _inflight = false;
 
   readonly salons = this._salons.asReadonly();
   readonly loading = this._loading.asReadonly();
+  readonly error = this._error.asReadonly();
 
   load(): void {
     if (this._loaded) return;
+    if (this._inflight) return;
     this._fetch();
   }
 
@@ -39,21 +45,33 @@ export class DashboardService {
   }
 
   private _fetch(): void {
+    this._inflight = true;
     this._loading.set(true);
-    userSalonsControllerFindMine(this._http, this._apiConfig.rootUrl).subscribe({
-      next: (res) => {
-        this._salons.set(res.body);
-        if (res.body.length === 0) {
-          this._loaded = true;
+    this._error.set(false);
+    userSalonsControllerFindMine(this._http, this._apiConfig.rootUrl)
+      .pipe(retry(1))
+      .subscribe({
+        next: (res) => {
+          this._salons.set(res.body);
+          if (res.body.length === 0) {
+            this._inflight = false;
+            this._loaded = true;
+            this._loading.set(false);
+            return;
+          }
+          forkJoin(res.body.map((s) => this._membershipStore.getMembership(s.salon.id))).subscribe(
+            () => {
+              this._inflight = false;
+              this._loaded = true;
+              this._loading.set(false);
+            },
+          );
+        },
+        error: () => {
+          this._inflight = false;
+          this._error.set(true);
           this._loading.set(false);
-          return;
-        }
-        forkJoin(res.body.map((s) => this._membershipStore.getMembership(s.salon.id))).subscribe(() => {
-          this._loaded = true;
-          this._loading.set(false);
-        });
-      },
-      error: () => this._loading.set(false),
-    });
+        },
+      });
   }
 }

@@ -63,18 +63,23 @@ export class SalonLandingComponent implements OnInit {
     if (!data) return null;
     switch (data.openState) {
       case 'OPEN':
-        return { label: 'Open Now', badgeClasses: 'bg-success-light text-success border-success/20' };
+        return {
+          label: 'Open Now',
+          badgeClasses: 'bg-success-light text-success border-success/20',
+        };
       case 'CLOSED_HOURS':
         return { label: 'Closed', badgeClasses: 'bg-primary-light text-primary border-primary/20' };
       default: // 'CLOSED_TODAY'
-        return { label: 'Closed today', badgeClasses: 'bg-primary-light text-primary border-primary/20' };
+        return {
+          label: 'Closed today',
+          badgeClasses: 'bg-primary-light text-primary border-primary/20',
+        };
     }
   });
 
-  // Real availability from the barber's live queue status. PAUSED still forms a
-  // line (joins accepted), so it's joinable; CLOSED or no queue is not.
-  // When the salon itself is closed, no barber is joinable and no badge shows —
-  // the salon-level state overrides per-barber status.
+  // Real availability from the barber's live queue status. CLOSED or PAUSED
+  // queues are not joinable from the landing page. When the salon itself is
+  // closed, no barber is joinable and no badge shows.
   protected availability(staff: SalonPublicStaffDto): BarberAvailability {
     if (!this.visit.salonData()?.isOpen) {
       return { label: '', badgeClasses: '', joinable: false, showBadge: false };
@@ -91,7 +96,7 @@ export class SalonLandingComponent implements OnInit {
         return {
           label: 'On break',
           badgeClasses: 'bg-warning-light text-warning border-warning/30',
-          joinable: true,
+          joinable: false,
           showBadge: true,
         };
       default: // 'CLOSED' or null (no queue yet)

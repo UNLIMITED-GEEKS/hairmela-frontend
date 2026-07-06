@@ -9,6 +9,7 @@ export interface UserResponseDto {
   firstName: string;
   id: string;
   lastName: string;
+  nickname: string | null;
   passwordResetExpiresAt: string | null;
   phone: string | null;
   updatedAt: string;

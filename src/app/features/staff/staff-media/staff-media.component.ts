@@ -1,12 +1,9 @@
-import { Component, DestroyRef, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, computed, inject, OnInit } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ApiConfiguration } from '../../../api/api-configuration';
-import { publicMediaControllerGetStaffMedia } from '../../../api/fn/media/public-media-controller-get-staff-media';
 import { Media } from '../../../api/models/media';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
+import { StaffMediaService } from './staff-media.service';
 import { ImageUploaderComponent } from '../../../shared/components/image-uploader/image-uploader.component';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
 import { GalleryComponent } from '../../../shared/components/gallery/gallery.component';
@@ -20,14 +17,13 @@ import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.
 export class StaffMediaComponent implements OnInit {
   protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
-  private readonly _http = inject(HttpClient);
-  private readonly _apiConfig = inject(ApiConfiguration);
-  private readonly _destroyRef = inject(DestroyRef);
+  private readonly _staffMediaService = inject(StaffMediaService);
 
   protected readonly salonContext = inject(SalonContextService);
 
-  protected readonly loading = signal(true);
-  protected readonly media = signal<Media[]>([]);
+  protected readonly loading = this._staffMediaService.loading;
+  protected readonly error = this._staffMediaService.error;
+  protected readonly media = this._staffMediaService.media;
 
   protected readonly profilePhoto = computed(
     () => this.media().find((m) => m.type === 'PROFILE') ?? null,
@@ -45,33 +41,27 @@ export class StaffMediaComponent implements OnInit {
     return this._route.snapshot.paramMap.get('staffId') ?? '';
   }
 
-  protected get _salonId(): string {
-    return this._route.snapshot.paramMap.get('salonId') ?? '';
+  ngOnInit(): void {
+    this._staffMediaService.load(this._staffId);
   }
 
-  ngOnInit(): void {
-    publicMediaControllerGetStaffMedia(this._http, this._apiConfig.rootUrl, {
-      entityId: this._staffId,
-    })
-      .pipe(takeUntilDestroyed(this._destroyRef))
-      .subscribe({
-        next: (res) => {
-          this.media.set(res.body);
-          this.loading.set(false);
-        },
-        error: () => this.loading.set(false),
-      });
+  protected retry(): void {
+    this._staffMediaService.refresh(this._staffId);
   }
 
   protected onProfileUploaded(m: Media): void {
-    this.media.update((list) => [m, ...list.filter((x) => x.type !== 'PROFILE')]);
+    this._staffMediaService.patchMedia(this._staffId, (list) => [
+      m,
+      ...list.filter((x) => x.type !== 'PROFILE'),
+    ]);
   }
 
   protected onGalleryUploaded(m: Media): void {
-    this.media.update((list) => [...list, m]);
+    this._staffMediaService.patchMedia(this._staffId, (list) => [...list, m]);
   }
 
   protected onDeleted(id: string): void {
-    this.media.update((list) => list.filter((m) => m.id !== id));
+    this._staffMediaService.patchMedia(this._staffId, (list) => list.filter((m) => m.id !== id));
   }
 }
+

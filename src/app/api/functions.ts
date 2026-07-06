@@ -5,6 +5,10 @@ export type { AppControllerGetHello$Params as AppControllerGetHello$Params } fro
 export { appControllerGetHello as appControllerGetHello } from './fn/app/app-controller-get-hello';
 export type { HealthControllerCheck$Params as HealthControllerCheck$Params } from './fn/health/health-controller-check';
 export { healthControllerCheck as healthControllerCheck } from './fn/health/health-controller-check';
+export type { UsersControllerGetProfile$Params as UsersControllerGetProfile$Params } from './fn/users/users-controller-get-profile';
+export { usersControllerGetProfile as usersControllerGetProfile } from './fn/users/users-controller-get-profile';
+export type { UsersControllerUpdateProfile$Params as UsersControllerUpdateProfile$Params } from './fn/users/users-controller-update-profile';
+export { usersControllerUpdateProfile as usersControllerUpdateProfile } from './fn/users/users-controller-update-profile';
 export type { AuthControllerRegister$Params as AuthControllerRegister$Params } from './fn/auth/auth-controller-register';
 export { authControllerRegister as authControllerRegister } from './fn/auth/auth-controller-register';
 export type { AuthControllerLogin$Params as AuthControllerLogin$Params } from './fn/auth/auth-controller-login';

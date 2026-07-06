@@ -13,22 +13,22 @@ import { CreateClosureDto } from '../../models/create-closure-dto';
 export interface StaffClosuresControllerCreate$Params {
 
 /**
- * SalonStaff UUID
- */
-  staffId: string;
-
-/**
  * Salon UUID
  */
   salonId: string;
+
+/**
+ * SalonStaff UUID
+ */
+  staffId: string;
       body: CreateClosureDto
 }
 
 export function staffClosuresControllerCreate(http: HttpClient, rootUrl: string, params: StaffClosuresControllerCreate$Params, context?: HttpContext): Observable<StrictHttpResponse<Closure>> {
   const rb = new RequestBuilder(rootUrl, staffClosuresControllerCreate.PATH, 'post');
   if (params) {
-    rb.path('staffId', params.staffId, {});
     rb.path('salonId', params.salonId, {});
+    rb.path('staffId', params.staffId, {});
     rb.body(params.body, 'application/json');
   }
 

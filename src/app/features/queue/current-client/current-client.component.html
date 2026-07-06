@@ -191,9 +191,9 @@
           class="flex-1 min-h-12 rounded-2xl border-2 border-dashed border-primary/30 text-primary text-sm font-medium hover:bg-primary-light/30 transition-colors">
           + Add another
         </button>
-        <button (click)="staffAddToQueue()" [disabled]="addingToQueue()"
-          class="flex-1 min-h-12 rounded-2xl bg-warning-light border-2 border-warning/30 text-warning font-bold text-sm disabled:opacity-50 hover:bg-warning/20 transition-colors">
-          {{ addingToQueue() ? 'Adding...' : 'Add to queue' }}
+        <button (click)="staffAddToQueue()"
+          class="flex-1 min-h-12 rounded-2xl bg-warning-light border-2 border-warning/30 text-warning font-bold text-sm hover:bg-warning/20 transition-colors">
+          Add to queue
         </button>
       </div>
     </div>

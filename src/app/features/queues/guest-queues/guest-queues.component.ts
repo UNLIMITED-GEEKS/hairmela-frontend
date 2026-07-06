@@ -1,9 +1,7 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Component, inject, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { ApiConfiguration } from '../../../api/api-configuration';
-import { guestEntriesControllerGetGuestEntries } from '../../../api/fn/queues/guest-entries-controller-get-guest-entries';
 import { QueueEntry } from '../../../api/models/queue-entry';
+import { GuestQueuesService } from './guest-queues.service';
 
 @Component({
   selector: 'app-guest-queues',
@@ -11,26 +9,22 @@ import { QueueEntry } from '../../../api/models/queue-entry';
   imports: [RouterLink],
 })
 export class GuestQueuesComponent implements OnInit {
-  private readonly _http = inject(HttpClient);
-  private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _router = inject(Router);
+  private readonly _service = inject(GuestQueuesService);
 
-  protected readonly entries = signal<QueueEntry[]>([]);
-  protected readonly loading = signal(true);
+  protected readonly entries = this._service.entries;
+  protected readonly loading = this._service.loading;
+  protected readonly error = this._service.error;
 
   ngOnInit(): void {
-    guestEntriesControllerGetGuestEntries(this._http, this._apiConfig.rootUrl).subscribe({
-      next: (res) => {
-        this.entries.set(res.body);
-        this.loading.set(false);
-      },
-      error: () => this.loading.set(false),
-    });
+    this._service.load();
+  }
+
+  protected retry(): void {
+    this._service.load();
   }
 
   protected goToPosition(entry: QueueEntry): void {
-    // Slug comes from the entry's own server payload — never the client store,
-    // which can be missing/out of sync after the queue changes server-side.
     const slug = entry.queue?.salon?.slug;
     if (!slug) return;
     this._router.navigate(['/g/s', slug, 'q', entry.queueId, 'e', entry.id, 'position']);

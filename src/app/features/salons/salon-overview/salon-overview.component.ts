@@ -24,9 +24,8 @@ export class SalonOverviewComponent implements OnInit {
   protected readonly salon = this._salonOverviewService.salon;
   protected readonly myStaff = this._salonOverviewService.myStaff;
   protected readonly loading = this._salonOverviewService.loading;
-  protected readonly toggling = this._salonOverviewService.toggling;
+  protected readonly error = this._salonOverviewService.error;
   protected readonly invites = this._invitesService.invites;
-  protected readonly respondingInvite = this._invitesService.responding;
 
   private get _salonId(): string {
     return this._route.snapshot.paramMap.get('salonId') ?? '';
@@ -40,6 +39,11 @@ export class SalonOverviewComponent implements OnInit {
     if (!this.salon() && !this.loading()) {
       this._router.navigate(['/dashboard']);
     }
+  }
+
+  protected retry(): void {
+    const userId = this._currentUser.user()?.id ?? '';
+    this._salonOverviewService.refresh(this._salonId, userId);
   }
 
   protected toggleAcceptingClients(): void {

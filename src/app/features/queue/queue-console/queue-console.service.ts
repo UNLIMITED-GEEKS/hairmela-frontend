@@ -21,6 +21,7 @@ import { queueManagementControllerCompleteMember } from '../../../api/fn/queues/
 import { queueManagementControllerExtendMember } from '../../../api/fn/queues/queue-management-controller-extend-member';
 import { queueManagementControllerMarkNoShow } from '../../../api/fn/queues/queue-management-controller-mark-no-show';
 import { queueManagementControllerCancelEntry } from '../../../api/fn/queues/queue-management-controller-cancel-entry';
+import { walkInControllerStaffAddToQueue } from '../../../api/fn/queues/walk-in-controller-staff-add-to-queue';
 import { staffServicesControllerGetStaffServices } from '../../../api/fn/services/staff-services-controller-get-staff-services';
 import { StaffService } from '../../../api/models/staff-service';
 
@@ -105,7 +106,10 @@ export class QueueConsoleService {
       const isServing = entry.members.some((m) => m.status === 'SERVING');
       let pendingDuration = 0;
       for (const member of entry.members) {
-        if (member.status === 'SERVED') { map.set(member.memberId, 0); continue; }
+        if (member.status === 'SERVED') {
+          map.set(member.memberId, 0);
+          continue;
+        }
         if (member.status === 'SERVING') {
           map.set(member.memberId, 0);
           pendingDuration = member.serviceDuration - elapsedMinutes;
@@ -124,13 +128,22 @@ export class QueueConsoleService {
 
   init(salonId: string, queueId: string): void {
     this._loadQueueStatus(salonId, queueId);
-    this._socket.queueTimeline$(queueId).pipe(
-      takeUntilDestroyed(this._destroyRef),
-    ).subscribe((entries) => { this.timeline.set(entries); this.loading.set(false); });
+    this._socket
+      .queueTimeline$(queueId)
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe((entries) => {
+        this.timeline.set(entries);
+        this.loading.set(false);
+      });
     this._socket.watchQueueAsStaff(queueId);
     publicQueueControllerGetTimeline(this._http, this._apiConfig.rootUrl, { queueId })
       .pipe(takeUntilDestroyed(this._destroyRef))
-      .subscribe({ next: (res) => { this.timeline.set(res.body); this.loading.set(false); } });
+      .subscribe({
+        next: (res) => {
+          this.timeline.set(res.body);
+          this.loading.set(false);
+        },
+      });
     this._startTick();
   }
 
@@ -143,26 +156,62 @@ export class QueueConsoleService {
     if (this.acting()) return;
     this.acting.set(true);
     queueManagementControllerSetStatus(this._http, this._apiConfig.rootUrl, {
-      salonId, queueId, body: { status },
-    }).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
-      next: (res) => { this.queue.set(res.body); this.acting.set(false); },
-      error: () => this.acting.set(false),
-    });
+      salonId,
+      queueId,
+      body: { status },
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.queue.set(res.body);
+          this.acting.set(false);
+        },
+        error: () => this.acting.set(false),
+      });
   }
 
   callNext(salonId: string, queueId: string, onResolveNeeded: () => void): void {
-    if (this.acting()) return;
-    this.acting.set(true);
+    // PREDICT — acting guard removed from this path only; two rapid taps are OK
+    // (second will 409, re-fetch corrects both)
+    const waiting = this.waitingEntries();
+    if (waiting.length === 0) return;
+    const head = waiting[0];
+    const predicted = this.timeline().map((e) =>
+      e.entryId !== head.entryId
+        ? e
+        : {
+            ...e,
+            members: e.members.map((m) =>
+              m.isLeader && m.status === 'WAITING'
+                ? { ...m, status: 'SERVING' as const, servedAt: new Date().toISOString() }
+                : m,
+            ),
+          },
+    );
+    this.timeline.set(predicted);
+
+    // FIRE
     queueManagementControllerCallNext(this._http, this._apiConfig.rootUrl, { salonId, queueId })
-      .pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
-        next: () => this.acting.set(false),
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: () => {
+          // Socket delivers truth; nothing to do here
+        },
         error: (err: unknown) => {
-          this.acting.set(false);
+          // REVERT by re-asserting authority — never hand-undo to avoid stomping a
+          // concurrent socket push that arrived between predict and the error landing.
+          publicQueueControllerGetTimeline(this._http, this._apiConfig.rootUrl, { queueId })
+            .pipe(takeUntilDestroyed(this._destroyRef))
+            .subscribe({ next: (res) => this.timeline.set(res.body) });
+
           const body = (err as { error?: unknown })?.error;
-          if (isApiError(body) && (
-            body.code === ErrorCodes.ENTRY_ALREADY_SERVING ||
-            body.code === ErrorCodes.ENTRY_NOT_WAITING
-          )) { onResolveNeeded(); } else {
+          if (
+            isApiError(body) &&
+            (body.code === ErrorCodes.ENTRY_ALREADY_SERVING ||
+              body.code === ErrorCodes.ENTRY_NOT_WAITING)
+          ) {
+            onResolveNeeded();
+          } else {
             this._toast.info('Resolve the current client first before calling the next one.');
           }
         },
@@ -173,55 +222,80 @@ export class QueueConsoleService {
     const member = this.servingMember();
     const entry = this.servingEntry();
     if (!member || !entry || this.acting()) return;
-    this._confirmDialog.open({
-      title: 'End session?',
-      message: `Mark ${member.memberName} as complete?`,
-      confirmLabel: 'End Session',
-      danger: false,
-    }).pipe(
-      filter((ok) => ok),
-      tap(() => this.acting.set(true)),
-      switchMap(() => queueManagementControllerCompleteMember(this._http, this._apiConfig.rootUrl, {
-        salonId, queueId, entryId: entry.entryId, memberId: member.memberId,
-      })),
-      takeUntilDestroyed(this._destroyRef),
-    ).subscribe({ next: () => this.acting.set(false), error: () => this.acting.set(false) });
+    this._confirmDialog
+      .open({
+        title: 'End session?',
+        message: `Mark ${member.memberName} as complete?`,
+        confirmLabel: 'End Session',
+        danger: false,
+      })
+      .pipe(
+        filter((ok) => ok),
+        tap(() => this.acting.set(true)),
+        switchMap(() =>
+          queueManagementControllerCompleteMember(this._http, this._apiConfig.rootUrl, {
+            salonId,
+            queueId,
+            entryId: entry.entryId,
+            memberId: member.memberId,
+          }),
+        ),
+        takeUntilDestroyed(this._destroyRef),
+      )
+      .subscribe({ next: () => this.acting.set(false), error: () => this.acting.set(false) });
   }
-
 
   endAllMembers(salonId: string, queueId: string): void {
     const entry = this.servingEntry();
     if (!entry || this.acting()) return;
     this.acting.set(true);
     queueManagementControllerCompleteAllMembers(this._http, this._apiConfig.rootUrl, {
-      salonId, queueId, entryId: entry.entryId,
-    }).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
-      next: () => this.acting.set(false),
-      error: () => this.acting.set(false),
-    });
+      salonId,
+      queueId,
+      entryId: entry.entryId,
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: () => this.acting.set(false),
+        error: () => this.acting.set(false),
+      });
   }
 
   completeMember(salonId: string, queueId: string, entryId: string, memberId: string): void {
     if (this.acting()) return;
     this.acting.set(true);
-    queueManagementControllerCompleteMember(this._http, this._apiConfig.rootUrl, { salonId, queueId, entryId, memberId })
+    queueManagementControllerCompleteMember(this._http, this._apiConfig.rootUrl, {
+      salonId,
+      queueId,
+      entryId,
+      memberId,
+    })
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe({ next: () => this.acting.set(false), error: () => this.acting.set(false) });
   }
 
   noShow(salonId: string, queueId: string, entryId: string): void {
     if (this.acting()) return;
-    this._confirmDialog.open({
-      title: 'Mark as no-show?',
-      message: 'This client will be removed from the queue.',
-      confirmLabel: 'No-show',
-      danger: true,
-    }).pipe(
-      filter((ok) => ok),
-      tap(() => this.acting.set(true)),
-      switchMap(() => queueManagementControllerMarkNoShow(this._http, this._apiConfig.rootUrl, { salonId, queueId, entryId })),
-      takeUntilDestroyed(this._destroyRef),
-    ).subscribe({ next: () => this.acting.set(false), error: () => this.acting.set(false) });
+    this._confirmDialog
+      .open({
+        title: 'Mark as no-show?',
+        message: 'This client will be removed from the queue.',
+        confirmLabel: 'No-show',
+        danger: true,
+      })
+      .pipe(
+        filter((ok) => ok),
+        tap(() => this.acting.set(true)),
+        switchMap(() =>
+          queueManagementControllerMarkNoShow(this._http, this._apiConfig.rootUrl, {
+            salonId,
+            queueId,
+            entryId,
+          }),
+        ),
+        takeUntilDestroyed(this._destroyRef),
+      )
+      .subscribe({ next: () => this.acting.set(false), error: () => this.acting.set(false) });
   }
 
   cancelEntry(salonId: string, queueId: string, entryId: string): void {
@@ -251,17 +325,55 @@ export class QueueConsoleService {
   serveMember(salonId: string, queueId: string, entryId: string, memberId: string): void {
     if (this.acting()) return;
     this.acting.set(true);
-    queueManagementControllerServeMember(this._http, this._apiConfig.rootUrl, { salonId, queueId, entryId, memberId })
+    queueManagementControllerServeMember(this._http, this._apiConfig.rootUrl, {
+      salonId,
+      queueId,
+      entryId,
+      memberId,
+    })
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe({ next: () => this.acting.set(false), error: () => this.acting.set(false) });
   }
 
-  extendMember(salonId: string, queueId: string, entryId: string, memberId: string, body: ExtendMemberDto): void {
+  extendMember(
+    salonId: string,
+    queueId: string,
+    entryId: string,
+    memberId: string,
+    body: ExtendMemberDto,
+  ): void {
     if (this.acting()) return;
     this.acting.set(true);
-    queueManagementControllerExtendMember(this._http, this._apiConfig.rootUrl, { salonId, queueId, entryId, memberId, body })
+    queueManagementControllerExtendMember(this._http, this._apiConfig.rootUrl, {
+      salonId,
+      queueId,
+      entryId,
+      memberId,
+      body,
+    })
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe({ next: () => this.acting.set(false), error: () => this.acting.set(false) });
+  }
+
+  staffAddToQueue(
+    salonId: string,
+    queueId: string,
+    members: { memberName: string; serviceId?: string }[],
+    onSuccess?: () => void,
+  ): void {
+    walkInControllerStaffAddToQueue(this._http, this._apiConfig.rootUrl, {
+      salonId,
+      queueId,
+      body: { members },
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: () => {
+          this._toast.success('Client added to queue.');
+          onSuccess?.();
+        },
+        error: () => this._toast.error('Failed to add client to queue.'),
+      });
   }
 
   formatWait(minutes: number): string {
@@ -283,12 +395,15 @@ export class QueueConsoleService {
     publicQueueControllerGetQueue(this._http, this._apiConfig.rootUrl, { queueId })
       .pipe(
         tap((res) => this.queue.set(res.body)),
-        switchMap((res) => staffServicesControllerGetStaffServices(this._http, this._apiConfig.rootUrl, {
-          salonId,
-          staffId: res.body.staffId,
-        })),
+        switchMap((res) =>
+          staffServicesControllerGetStaffServices(this._http, this._apiConfig.rootUrl, {
+            salonId,
+            staffId: res.body.staffId,
+          }),
+        ),
         takeUntilDestroyed(this._destroyRef),
-      ).subscribe({ next: (res) => this.staffServices.set(res.body) });
+      )
+      .subscribe({ next: (res) => this.staffServices.set(res.body) });
   }
 
   private _startTick(): void {
@@ -296,6 +411,9 @@ export class QueueConsoleService {
   }
 
   private _stopTick(): void {
-    if (this._tickInterval) { clearInterval(this._tickInterval); this._tickInterval = null; }
+    if (this._tickInterval) {
+      clearInterval(this._tickInterval);
+      this._tickInterval = null;
+    }
   }
 }

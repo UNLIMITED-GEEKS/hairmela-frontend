@@ -1,11 +1,7 @@
-import { Component, input } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component } from '@angular/core';
 
 @Component({
   selector: 'app-customer-dashboard',
   templateUrl: './customer-dashboard.component.html',
-  imports: [RouterLink],
 })
-export class CustomerDashboardComponent {
-  readonly firstName = input<string>('');
-}
+export class CustomerDashboardComponent {}

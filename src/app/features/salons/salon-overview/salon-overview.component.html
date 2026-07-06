@@ -2,6 +2,14 @@
   <div class="p-6">
     <app-skeleton variant="list-item" [count]="3" />
   </div>
+} @else if (error()) {
+  <div class="p-6 flex flex-col items-center gap-3 py-16">
+    <p class="text-sm text-gray-500">Failed to load salon.</p>
+    <button type="button" (click)="retry()"
+      class="px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors">
+      Retry
+    </button>
+  </div>
 } @else if (salon(); as salon) {
   <div class="p-6 space-y-4">
 
@@ -37,8 +45,7 @@
         </div>
         <button
           (click)="toggleAcceptingClients()"
-          [disabled]="toggling()"
-          [class]="'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50 ' + (staff.isAcceptingClients ? 'bg-primary' : 'bg-gray-300')"
+          [class]="'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 ' + (staff.isAcceptingClients ? 'bg-primary' : 'bg-gray-300')"
           role="switch"
           [attr.aria-checked]="staff.isAcceptingClients"
           aria-label="Toggle accepting clients">
@@ -64,14 +71,12 @@
                 <div class="flex gap-2 shrink-0">
                   <button
                     (click)="acceptInvite(invite)"
-                    [disabled]="respondingInvite() === invite.staffId"
-                    class="px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-lg min-h-8 disabled:opacity-50">
+                    class="px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-lg min-h-8">
                     Accept
                   </button>
                   <button
                     (click)="declineInvite(invite)"
-                    [disabled]="respondingInvite() === invite.staffId"
-                    class="px-3 py-1.5 bg-white border border-border text-text-primary text-xs font-semibold rounded-lg min-h-8 disabled:opacity-50">
+                    class="px-3 py-1.5 bg-white border border-border text-text-primary text-xs font-semibold rounded-lg min-h-8">
                     Decline
                   </button>
                 </div>

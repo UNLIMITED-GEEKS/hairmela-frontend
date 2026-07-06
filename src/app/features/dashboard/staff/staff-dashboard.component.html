@@ -1,11 +1,5 @@
 <div class="space-y-6">
 
-  <!-- Greeting -->
-  <div>
-    <h1 class="text-2xl font-bold text-text-primary">Hi, {{ firstName() }} 👋</h1>
-    <p class="text-sm text-text-secondary mt-0.5">Ready for today?</p>
-  </div>
-
   <!-- Salon header -->
   <div class="flex items-start gap-4">
     <div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -28,6 +22,18 @@
 
   <!-- Quick links -->
   <div class="grid grid-cols-2 gap-3">
+    @if (myQueueId(); as queueId) {
+      <a [routerLink]="['/salons', salon().salon.id, 'queues', queueId, 'console']"
+        class="col-span-2 flex items-center gap-3 bg-primary text-white rounded-2xl px-4 py-4 hover:bg-primary/90 transition-colors">
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.48-.634-2.07M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.768.231-1.48.634-2.07m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        <div>
+          <span class="text-sm font-semibold">My Queue</span>
+          <span class="block text-xs text-white/70">Open your queue console</span>
+        </div>
+      </a>
+    }
     <a [routerLink]="['/salons', salon().salon.id, 'services']"
       class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
       <span class="text-sm font-semibold text-text-primary">My Services</span>

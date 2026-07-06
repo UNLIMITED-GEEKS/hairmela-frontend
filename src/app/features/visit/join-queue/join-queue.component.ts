@@ -100,6 +100,9 @@ export class JoinQueueComponent implements OnInit {
   }
 
   protected confirmJoin(): void {
+    // Block BEFORE navigation — knowable failures stay on the form, no bounce
+    if (this.frozen() || this.alreadyInQueue()) return;
+
     const leaderName = this.isGuest ? this.guestName().trim() : (this._currentUser.user()?.firstName ?? '');
     const phone = this.isGuest ? this.guestPhone().trim() : undefined;
     if (this.isGuest && (!leaderName || !phone)) return;
@@ -121,18 +124,16 @@ export class JoinQueueComponent implements OnInit {
     const prefix = this._shellPrefix;
     if (!salon || !queueId) return;
 
-    this.visit.joinQueue(
-      salon.id,
-      queueId,
-      slug,
-      { members },
-      ({ entryId, guestToken }) => {
-        if (guestToken) this._guestStore.setToken(guestToken);
-        const tail = ['q', queueId, 'e', entryId, 'position'];
-        const segments = prefix ? [prefix, 's', slug, ...tail] : ['s', slug, ...tail];
-        this._router.navigate(segments);
-      },
-    );
+    // Navigate to /joining FIRST (navigation-is-feedback).
+    // The JoiningQueueComponent reads visit.pendingJoin() and routes to position or back.
+    this.visit.pendingJoin.set({ status: 'pending' });
+    const joiningUrl = prefix
+      ? [prefix, 's', slug, 'q', queueId, 'joining']
+      : ['s', slug, 'q', queueId, 'joining'];
+    this._router.navigate(joiningUrl);
+
+    // Fire the request — result is delivered via visit.pendingJoin, not a callback.
+    this.visit.joinQueue(salon.id, queueId, slug, { members });
   }
 
   private _firstServiceId(): string {

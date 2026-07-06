@@ -1,12 +1,9 @@
-import { Component, DestroyRef, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, computed, inject, OnInit } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ApiConfiguration } from '../../../api/api-configuration';
-import { publicMediaControllerGetSalonMedia } from '../../../api/fn/media/public-media-controller-get-salon-media';
 import { Media } from '../../../api/models/media';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
+import { SalonMediaService } from './salon-media.service';
 import { ImageUploaderComponent } from '../../../shared/components/image-uploader/image-uploader.component';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
 import { GalleryComponent } from '../../../shared/components/gallery/gallery.component';
@@ -20,14 +17,13 @@ import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.
 export class SalonMediaComponent implements OnInit {
   protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
-  private readonly _http = inject(HttpClient);
-  private readonly _apiConfig = inject(ApiConfiguration);
-  private readonly _destroyRef = inject(DestroyRef);
+  private readonly _salonMediaService = inject(SalonMediaService);
 
   protected readonly salonContext = inject(SalonContextService);
 
-  protected readonly loading = signal(true);
-  protected readonly media = signal<Media[]>([]);
+  protected readonly loading = this._salonMediaService.loading;
+  protected readonly error = this._salonMediaService.error;
+  protected readonly media = this._salonMediaService.media;
 
   protected readonly profilePhoto = computed(
     () => this.media().find((m) => m.type === 'PROFILE') ?? null,
@@ -46,38 +42,32 @@ export class SalonMediaComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    publicMediaControllerGetSalonMedia(this._http, this._apiConfig.rootUrl, {
-      entityId: this._salonId,
-    })
-      .pipe(takeUntilDestroyed(this._destroyRef))
-      .subscribe({
-        next: (res) => {
-          this.media.set(res.body);
-          this.loading.set(false);
-        },
-        error: () => this.loading.set(false),
-      });
+    this._salonMediaService.load(this._salonId);
+  }
+
+  protected retry(): void {
+    this._salonMediaService.refresh(this._salonId);
   }
 
   protected onProfileUploaded(m: Media): void {
-    this.media.update((list) => {
-      const without = list.filter((x) => x.type !== 'PROFILE');
-      return [m, ...without];
-    });
+    this._salonMediaService.patchMedia(this._salonId, (list) => [
+      m,
+      ...list.filter((x) => x.type !== 'PROFILE'),
+    ]);
   }
 
   protected onGalleryUploaded(m: Media): void {
-    this.media.update((list) => [...list, m]);
+    this._salonMediaService.patchMedia(this._salonId, (list) => [...list, m]);
   }
 
   protected onReordered(reordered: Media[]): void {
-    this.media.update((list) => {
-      const profile = list.filter((m) => m.type === 'PROFILE');
-      return [...profile, ...reordered];
-    });
+    this._salonMediaService.patchMedia(this._salonId, (list) => [
+      ...list.filter((m) => m.type === 'PROFILE'),
+      ...reordered,
+    ]);
   }
 
   protected onDeleted(id: string): void {
-    this.media.update((list) => list.filter((m) => m.id !== id));
+    this._salonMediaService.patchMedia(this._salonId, (list) => list.filter((m) => m.id !== id));
   }
 }

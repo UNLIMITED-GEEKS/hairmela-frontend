@@ -58,7 +58,7 @@
 
       <button
         (click)="callNext()"
-        [disabled]="console.acting() || console.queueStatus() !== 'OPEN' || console.waitingEntries().length === 0"
+        [disabled]="console.queueStatus() !== 'OPEN' || console.waitingEntries().length === 0"
         class="w-full min-h-11 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-40 transition-opacity">
         Call next
       </button>

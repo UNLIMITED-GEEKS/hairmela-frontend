@@ -20,7 +20,7 @@ export class BillingComponent implements OnInit {
   // Free (tier 1) is hidden until launch (FRONTEND-TIER-HANDOFF §9) — show the
   // paid plans only, matching the public pricing page. Re-include tier 1 here
   // when the floor flips to Free.
-  protected readonly plans = PLAN_CARDS;
+  protected readonly plans = PLAN_CARDS.filter((p) => p.tier >= 2);
   protected readonly tierNames = TIER_NAMES;
 
   protected readonly access = this._billing.access;
