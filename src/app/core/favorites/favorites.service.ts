@@ -95,18 +95,12 @@ export class FavoritesService {
   toggle(salon: Pick<SalonListingItemDto, 'id'> | SalonListingItemDto): void {
     const wasFavorited = this.isFavorited(salon.id);
 
-    // _list splice stays inline — it's a separate signal the engine doesn't own.
-    if (wasFavorited) {
-      this._list.update((items) => items.filter((s) => s.id !== salon.id));
-    } else if ('slug' in salon) {
-      this._list.update((items) =>
-        items.some((s) => s.id === salon.id) ? items : [salon as SalonListingItemDto, ...items],
-      );
-    } else {
-      this._listLoadedPage = null;
-    }
-
-    this._optimistic.run({
+    // The dedupeKey gate can silently drop run() (a re-entrant toggle while the
+    // first is still in flight). The _list splice is a manually-kept-in-sync
+    // companion signal (Part 3h) — it must only be mutated when run() actually
+    // accepted the op, otherwise a dropped second tap still splices _list with
+    // nothing left to ever revert it (see optimistic.md Part 7.1).
+    const accepted = this._optimistic.run({
       signal: this._favoritedIds,
       dedupeKey: `FavoritesService.toggle:${salon.id}`,
       apply: (ids) => {
@@ -130,10 +124,22 @@ export class FavoritesService {
         }
       },
     });
+    if (!accepted) return;
+
+    // _list splice stays inline — it's a separate signal the engine doesn't own.
+    if (wasFavorited) {
+      this._list.update((items) => items.filter((s) => s.id !== salon.id));
+    } else if ('slug' in salon) {
+      this._list.update((items) =>
+        items.some((s) => s.id === salon.id) ? items : [salon as SalonListingItemDto, ...items],
+      );
+    } else {
+      this._listLoadedPage = null;
+    }
   }
 
   clear(): void {
-    this._favoritedIds.set(new Set());
+    this._optimistic.reset(this._favoritedIds, new Set());
     this._favoritedIdsLoaded.set(false);
     this._idsInflight$ = null;
     this._list.set([]);

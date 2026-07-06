@@ -444,6 +444,10 @@ export class SalonVisitService {
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe({
         next: (res) => {
+          // Skip if the socket already delivered a fresher frame — the socket is
+          // the authoritative source. The _socketInitialReceived Set is populated
+          // in watchQueue()'s socket subscription.
+          if (this._socketInitialReceived.has(queueId)) return;
           const entries = res.body;
           const stored = this._activeEntryStore.getAllForQueue(queueId);
           if (stored.length > 0) {

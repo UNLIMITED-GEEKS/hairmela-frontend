@@ -1,6 +1,6 @@
 import { CacheRegistry } from '../../core/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
-import { retry } from 'rxjs';
+import { map } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { ApiConfiguration } from '../../api/api-configuration';
 import { Organization } from '../../api/models/organization';
@@ -8,7 +8,8 @@ import { UpdateOrganizationDto } from '../../api/models/update-organization-dto'
 import { organizationsControllerFindOne } from '../../api/fn/organizations/organizations-controller-find-one';
 import { organizationsControllerUpdate } from '../../api/fn/organizations/organizations-controller-update';
 import { ToastService } from '../../core/toast/toast.service';
-import { OptimisticService, ReadToken } from '../../core/optimistic/optimistic.service';
+import { OptimisticService } from '../../core/optimistic/optimistic.service';
+import { CachedLoader } from '../../core/optimistic/cached-loader';
 
 @Injectable({ providedIn: 'root' })
 export class OrgService {
@@ -22,31 +23,30 @@ export class OrgService {
     this._cacheRegistry.register(this);
   }
 
-  private readonly _cache = new Map<string, Organization>();
+  private readonly _cache = new Map<string, Organization | null>();
   private readonly _org = signal<Organization | null>(null);
-  private readonly _loading = signal(false);
-  private readonly _error = signal(false);
-  private _inflight: string | null = null;
+
+  private readonly _loader = new CachedLoader({
+    signal: this._org,
+    optimistic: this._optimistic,
+    cache: this._cache,
+    fetch: (orgId) =>
+      organizationsControllerFindOne(this._http, this._apiConfig.rootUrl, { orgId }).pipe(
+        map((r) => r.body as Organization | null),
+      ),
+    shouldCache: (v) => v !== null,
+  });
 
   readonly org = this._org.asReadonly();
-  readonly loading = this._loading.asReadonly();
-  readonly error = this._error.asReadonly();
+  readonly loading = this._loader.loading;
+  readonly error = this._loader.error;
 
   load(orgId: string): void {
-    const token = this._optimistic.beginRead(this._org);
-    const cached = this._cache.get(orgId);
-    if (cached) {
-      this._optimistic.commitRead(this._org, cached, token);
-      return;
-    }
-    if (this._inflight === orgId) return;
-    this._fetch(orgId, token);
+    this._loader.load(orgId);
   }
 
   refresh(orgId: string): void {
-    const token = this._optimistic.beginRead(this._org);
-    this._cache.delete(orgId);
-    this._fetch(orgId, token);
+    this._loader.refresh(orgId);
   }
 
   update(orgId: string, body: UpdateOrganizationDto, onSuccess?: () => void): void {
@@ -55,11 +55,11 @@ export class OrgService {
       dedupeKey: `OrgService.update:${orgId}`,
       apply: (org) => (org ? { ...org, name: body.name ?? org.name } : org),
       reconcile: (_, res) => res.body,
+      mirror: this._loader.mirrorFn(orgId),
       request: () =>
         organizationsControllerUpdate(this._http, this._apiConfig.rootUrl, { orgId, body }),
       errorMessage: 'Could not rename organisation. Reverted.',
-      onSuccess: (res) => {
-        this._cache.set(orgId, res.body);
+      onSuccess: () => {
         this._toast.success('Organisation renamed');
         onSuccess?.();
       },
@@ -68,27 +68,6 @@ export class OrgService {
 
   clear(): void {
     this._cache.clear();
-    this._org.set(null);
-  }
-
-  private _fetch(orgId: string, token: ReadToken): void {
-    this._inflight = orgId;
-    this._loading.set(true);
-    this._error.set(false);
-    organizationsControllerFindOne(this._http, this._apiConfig.rootUrl, { orgId })
-      .pipe(retry(1))
-      .subscribe({
-        next: (res) => {
-          this._inflight = null;
-          this._cache.set(orgId, res.body);
-          this._optimistic.commitRead(this._org, res.body, token);
-          this._loading.set(false);
-        },
-        error: () => {
-          this._inflight = null;
-          this._error.set(true);
-          this._loading.set(false);
-        },
-      });
+    this._optimistic.reset(this._org, null);
   }
 }

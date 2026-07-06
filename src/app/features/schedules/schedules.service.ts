@@ -1,6 +1,6 @@
 import { CacheRegistry } from '../../core/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
-import { retry } from 'rxjs';
+import { map } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { ApiConfiguration } from '../../api/api-configuration';
 import { StaffSchedule } from '../../api/models/staff-schedule';
@@ -10,7 +10,8 @@ import { schedulesControllerFindAll } from '../../api/fn/schedules/schedules-con
 import { schedulesControllerCreate } from '../../api/fn/schedules/schedules-controller-create';
 import { schedulesControllerUpdate } from '../../api/fn/schedules/schedules-controller-update';
 import { schedulesControllerDelete } from '../../api/fn/schedules/schedules-controller-delete';
-import { OptimisticService, ReadToken } from '../../core/optimistic/optimistic.service';
+import { OptimisticService } from '../../core/optimistic/optimistic.service';
+import { CachedLoader } from '../../core/optimistic/cached-loader';
 
 @Injectable({ providedIn: 'root' })
 export class SchedulesService {
@@ -25,35 +26,36 @@ export class SchedulesService {
 
   private readonly _cache = new Map<string, StaffSchedule[]>();
   private readonly _schedules = signal<StaffSchedule[]>([]);
-  private readonly _loading = signal(false);
-  private readonly _error = signal(false);
-  private _inflight = new Set<string>();
+
+  private readonly _loader = new CachedLoader({
+    signal: this._schedules,
+    optimistic: this._optimistic,
+    cache: this._cache,
+    fetch: (ctx) => {
+      const colonIdx = ctx.indexOf(':');
+      const salonId = ctx.slice(0, colonIdx);
+      const staffId = ctx.slice(colonIdx + 1);
+      return schedulesControllerFindAll(this._http, this._apiConfig.rootUrl, {
+        salonId,
+        staffId,
+      }).pipe(map((r) => r.body));
+    },
+  });
 
   readonly schedules = this._schedules.asReadonly();
-  readonly loading = this._loading.asReadonly();
-  readonly error = this._error.asReadonly();
+  readonly loading = this._loader.loading;
+  readonly error = this._loader.error;
 
   private _key(salonId: string, staffId: string): string {
     return `${salonId}:${staffId}`;
   }
 
   load(salonId: string, staffId: string): void {
-    const ctx = this._key(salonId, staffId);
-    const token = this._optimistic.beginRead(this._schedules, ctx);
-    const cached = this._cache.get(ctx);
-    if (cached) {
-      this._optimistic.commitRead(this._schedules, cached, token, (v) => this._cache.set(ctx, v));
-      return;
-    }
-    if (this._inflight.has(ctx)) return;
-    this._fetch(salonId, staffId, token);
+    this._loader.load(this._key(salonId, staffId));
   }
 
   refresh(salonId: string, staffId: string): void {
-    const ctx = this._key(salonId, staffId);
-    const token = this._optimistic.beginRead(this._schedules, ctx);
-    this._cache.delete(ctx);
-    this._fetch(salonId, staffId, token);
+    this._loader.refresh(this._key(salonId, staffId));
   }
 
   create(salonId: string, staffId: string, body: CreateScheduleDto, onSuccess?: () => void): void {
@@ -68,8 +70,8 @@ export class SchedulesService {
       apply: (list) => (list.some((s) => s.id === tempId) ? list : [...list, optimisticRow]),
       reconcile: (list, res) => list.map((s) => (s.id === tempId ? res.body : s)),
       tempId,
-      dedupeKey: `create-schedule:${ctx}:${body.dayOfWeek}:${body.startTime}`,
-      mirror: (v) => this._cache.set(ctx, v),
+      dedupeKey: `SchedulesService.create:${ctx}:${body.dayOfWeek}:${body.startTime}`,
+      mirror: this._loader.mirrorFn(ctx),
       contextKey: ctx,
       request: () =>
         schedulesControllerCreate(this._http, this._apiConfig.rootUrl, { salonId, staffId, body }),
@@ -91,7 +93,7 @@ export class SchedulesService {
       signal: this._schedules,
       dedupeKey: `SchedulesService.update:${scheduleId}`,
       apply: (list) => list.map((s) => (s.id === scheduleId ? { ...s, ...body } : s)),
-      mirror: (v) => this._cache.set(ctx, v),
+      mirror: this._loader.mirrorFn(ctx),
       contextKey: ctx,
       request: () =>
         schedulesControllerUpdate(this._http, this._apiConfig.rootUrl, {
@@ -111,7 +113,7 @@ export class SchedulesService {
     this._optimistic.run({
       signal: this._schedules,
       apply: (list) => list.filter((s) => s.id !== scheduleId),
-      mirror: (v) => this._cache.set(ctx, v),
+      mirror: this._loader.mirrorFn(ctx),
       dedupeKey: `SchedulesService.remove:${scheduleId}`,
       contextKey: ctx,
       request: () =>
@@ -127,30 +129,6 @@ export class SchedulesService {
 
   clear(): void {
     this._cache.clear();
-    this._schedules.set([]);
-  }
-
-  private _fetch(salonId: string, staffId: string, token: ReadToken): void {
-    const ctx = this._key(salonId, staffId);
-    this._inflight.add(ctx);
-    this._loading.set(true);
-    this._error.set(false);
-    schedulesControllerFindAll(this._http, this._apiConfig.rootUrl, { salonId, staffId })
-      .pipe(retry(1))
-      .subscribe({
-        next: (res) => {
-          this._inflight.delete(ctx);
-          this._cache.set(ctx, res.body);
-          this._optimistic.commitRead(this._schedules, res.body, token, (v) =>
-            this._cache.set(ctx, v),
-          );
-          this._loading.set(false);
-        },
-        error: () => {
-          this._inflight.delete(ctx);
-          this._error.set(true);
-          this._loading.set(false);
-        },
-      });
+    this._optimistic.reset(this._schedules, []);
   }
 }

@@ -51,18 +51,24 @@ export class SalonOverviewService {
   readonly error = this._error.asReadonly();
 
   load(salonId: string, currentUserId: string): void {
+    const token = this._optimistic.beginRead(this._myStaff, salonId);
     const cached = this._cache.get(salonId);
     if (cached) {
       this._salon.set(cached.salon);
-      this._myStaff.set(cached.myStaff);
+      this._optimistic.commitRead(this._myStaff, cached.myStaff, token, (v) => {
+        const entry = this._cache.get(salonId);
+        if (entry) this._cache.set(salonId, { ...entry, myStaff: v });
+      });
       return;
     }
-    this._fetch(salonId, currentUserId);
+    if (this._inflight.has(salonId)) return;
+    this._fetch(salonId, currentUserId, token);
   }
 
   refresh(salonId: string, currentUserId: string): void {
+    const token = this._optimistic.beginRead(this._myStaff, salonId);
     this._cache.delete(salonId);
-    this._fetch(salonId, currentUserId);
+    this._fetch(salonId, currentUserId, token);
   }
 
   toggleAcceptingClients(salonId: string, staffId: string): void {
@@ -93,46 +99,45 @@ export class SalonOverviewService {
   clear(): void {
     this._cache.clear();
     this._salon.set(null);
-    this._myStaff.set(null);
+    this._optimistic.reset(this._myStaff, null);
   }
 
-  private _fetch(salonId: string, currentUserId: string): void {
+  private _fetch(salonId: string, currentUserId: string, token: ReadToken): void {
     this._inflight.add(salonId);
     this._loading.set(true);
     this._error.set(false);
-    // Capture read token before the request fires — guards against a
-    // concurrent toggleAcceptingClients bumping the epoch mid-flight.
-    const token = this._optimistic.beginRead(this._myStaff, salonId);
     forkJoin({
       salon: salonsControllerFindOne(this._http, this._apiConfig.rootUrl, { salonId }),
       staff: staffControllerFindAll(this._http, this._apiConfig.rootUrl, { salonId }),
-    }).subscribe({
-      next: ({ salon, staff }) => {
-        this._inflight.delete(salonId);
-        const mine = staff.body.find((s) => s.staff.userId === currentUserId);
-        const myStaff: MyStaff | null = mine
-          ? {
-              id: mine.staff.id,
-              queueId: mine.queueId,
-              isAcceptingClients: mine.staff.isAcceptingClients,
-              role: mine.staff.role,
-            }
-          : null;
-        const entry: SalonOverviewCache = { salon: salon.body, myStaff };
-        this._cache.set(salonId, entry);
-        this._salon.set(salon.body);
-        // Commit through the engine so a concurrent toggle win doesn't get stomped
-        this._optimistic.commitRead(this._myStaff, myStaff, token, (v) => {
-          const cached = this._cache.get(salonId);
-          if (cached) this._cache.set(salonId, { ...cached, myStaff: v });
-        });
-        this._loading.set(false);
-      },
-      error: () => {
-        this._inflight.delete(salonId);
-        this._error.set(true);
-        this._loading.set(false);
-      },
-    });
+    })
+      .pipe(retry(1))
+      .subscribe({
+        next: ({ salon, staff }) => {
+          this._inflight.delete(salonId);
+          const mine = staff.body.find((s) => s.staff.userId === currentUserId);
+          const myStaff: MyStaff | null = mine
+            ? {
+                id: mine.staff.id,
+                queueId: mine.queueId,
+                isAcceptingClients: mine.staff.isAcceptingClients,
+                role: mine.staff.role,
+              }
+            : null;
+          const entry: SalonOverviewCache = { salon: salon.body, myStaff };
+          this._cache.set(salonId, entry);
+          this._salon.set(salon.body);
+          // Commit through the engine so a concurrent toggle win doesn't get stomped
+          this._optimistic.commitRead(this._myStaff, myStaff, token, (v) => {
+            const cached = this._cache.get(salonId);
+            if (cached) this._cache.set(salonId, { ...cached, myStaff: v });
+          });
+          this._loading.set(false);
+        },
+        error: () => {
+          this._inflight.delete(salonId);
+          this._error.set(true);
+          this._loading.set(false);
+        },
+      });
   }
 }

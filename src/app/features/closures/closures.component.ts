@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
@@ -28,13 +28,21 @@ export class ClosuresComponent implements OnInit {
   private readonly _closuresService = inject(ClosuresService);
   protected readonly salonContext = inject(SalonContextService);
 
-  protected readonly loading = this._closuresService.loading;
-  protected readonly error = this._closuresService.error;
-  protected readonly salonClosures = this._closuresService.salonClosures;
-  protected readonly staffClosures = this._closuresService.staffClosures;
-
   protected readonly activeTab = signal<ClosureScope>('salon');
   protected readonly showAddForm = signal(false);
+
+  protected readonly loading = computed(() =>
+    this.activeTab() === 'salon'
+      ? this._closuresService.salonLoading()
+      : this._closuresService.staffLoading(),
+  );
+  protected readonly error = computed(() =>
+    this.activeTab() === 'salon'
+      ? this._closuresService.salonError()
+      : this._closuresService.staffError(),
+  );
+  protected readonly salonClosures = this._closuresService.salonClosures;
+  protected readonly staffClosures = this._closuresService.staffClosures;
 
   protected readonly addForm = this._fb.group({
     date: ['', Validators.required],

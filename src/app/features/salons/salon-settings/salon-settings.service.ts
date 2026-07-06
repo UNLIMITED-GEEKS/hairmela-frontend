@@ -2,7 +2,6 @@ import { CacheRegistry } from '../../../core/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { catchError, forkJoin, map, throwError } from 'rxjs';
-import { retry } from 'rxjs/operators';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { Salon } from '../../../api/models/salon';
 import { UpdateSalonDto } from '../../../api/models/update-salon-dto';
@@ -13,7 +12,8 @@ import { salonsControllerUpdate } from '../../../api/fn/salons/salons-controller
 import { salonsControllerUpdateSettings } from '../../../api/fn/salons/salons-controller-update-settings';
 import { salonsControllerUpdateSlug } from '../../../api/fn/salons/salons-controller-update-slug';
 import { ToastService } from '../../../core/toast/toast.service';
-import { OptimisticService, ReadToken } from '../../../core/optimistic/optimistic.service';
+import { OptimisticService } from '../../../core/optimistic/optimistic.service';
+import { CachedLoader } from '../../../core/optimistic/cached-loader';
 import { isApiError } from '../../../core/errors/api-error.types';
 import { ErrorCodes } from '../../../core/errors/error-codes';
 import { SalonOverviewService } from '../salon-overview/salon-overview.service';
@@ -31,27 +31,26 @@ export class SalonSettingsService {
     this._cacheRegistry.register(this);
   }
 
-  private readonly _cache = new Map<string, Salon>();
+  private readonly _cache = new Map<string, Salon | null>();
   private readonly _salon = signal<Salon | null>(null);
-  private readonly _loading = signal(false);
-  private readonly _error = signal(false);
-  private _inflight = new Set<string>();
+
+  private readonly _loader = new CachedLoader({
+    signal: this._salon,
+    optimistic: this._optimistic,
+    cache: this._cache,
+    fetch: (salonId) =>
+      salonsControllerFindOne(this._http, this._apiConfig.rootUrl, { salonId }).pipe(
+        map((r) => r.body as Salon | null),
+      ),
+    shouldCache: (v) => v !== null,
+  });
 
   readonly salon = this._salon.asReadonly();
-  readonly loading = this._loading.asReadonly();
-  readonly error = this._error.asReadonly();
+  readonly loading = this._loader.loading;
+  readonly error = this._loader.error;
 
   load(salonId: string): void {
-    const token = this._optimistic.beginRead(this._salon, salonId);
-    const cached = this._cache.get(salonId);
-    if (cached) {
-      this._optimistic.commitRead(this._salon, cached, token, (v) => {
-        if (v) this._cache.set(salonId, v);
-      });
-      return;
-    }
-    if (this._inflight.has(salonId)) return;
-    this._fetch(salonId, token);
+    this._loader.load(salonId);
   }
 
   /**
@@ -72,9 +71,7 @@ export class SalonSettingsService {
       // The spread only touches the fields we're actually updating; reconcile corrects the full shape.
       apply: (s) => (s ? ({ ...s, ...salonBody } as unknown as Salon) : s),
       reconcile: (_, { salon }) => salon.body,
-      mirror: (v) => {
-        if (v) this._cache.set(salonId, v);
-      },
+      mirror: this._loader.mirrorFn(salonId),
       contextKey: salonId,
       request: () =>
         forkJoin({
@@ -111,9 +108,7 @@ export class SalonSettingsService {
       dedupeKey: `SalonSettingsService.updateSlug:${salonId}`,
       apply: (s) => (s ? { ...s, slug: body.slug } : s),
       reconcile: (_, res) => res.body,
-      mirror: (v) => {
-        if (v) this._cache.set(salonId, v);
-      },
+      mirror: this._loader.mirrorFn(salonId),
       contextKey: salonId,
       request: () =>
         salonsControllerUpdateSlug(this._http, this._apiConfig.rootUrl, { salonId, body }).pipe(
@@ -137,29 +132,6 @@ export class SalonSettingsService {
 
   clear(): void {
     this._cache.clear();
-    this._salon.set(null);
-  }
-
-  private _fetch(salonId: string, token: ReadToken): void {
-    this._inflight.add(salonId);
-    this._loading.set(true);
-    this._error.set(false);
-    salonsControllerFindOne(this._http, this._apiConfig.rootUrl, { salonId })
-      .pipe(retry(1))
-      .subscribe({
-        next: (res) => {
-          this._inflight.delete(salonId);
-          this._cache.set(salonId, res.body);
-          this._optimistic.commitRead(this._salon, res.body, token, (v) => {
-            if (v) this._cache.set(salonId, v);
-          });
-          this._loading.set(false);
-        },
-        error: () => {
-          this._inflight.delete(salonId);
-          this._error.set(true);
-          this._loading.set(false);
-        },
-      });
+    this._optimistic.reset(this._salon, null);
   }
 }

@@ -1,7 +1,7 @@
 import { Injectable, DestroyRef, inject, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
-import { filter, switchMap, tap } from 'rxjs';
+import { filter, retry, switchMap, tap } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { QueueSocketService } from '../../../core/socket/queue-socket.service';
 import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/confirm-dialog.service';
@@ -38,11 +38,16 @@ export class QueueConsoleService {
 
   private readonly _tick = signal(0);
   private _tickInterval: ReturnType<typeof setInterval> | null = null;
+  // Tracks whether a socket frame has arrived for the current queue session.
+  // The REST GET in init() is a fallback for a slow socket; if a socket frame
+  // lands first, a later REST response must not stomp it.
+  private _socketInitialReceived = false;
 
   readonly queue = signal<Queue | null>(null);
   readonly timeline = signal<TimelineEntryDto[]>([]);
   readonly staffServices = signal<StaffService[]>([]);
   readonly loading = signal(true);
+  readonly error = signal(false);
   readonly acting = signal(false);
 
   readonly queueStatus = computed(() => this.queue()?.status ?? 'CLOSED');
@@ -129,21 +134,31 @@ export class QueueConsoleService {
   });
 
   init(salonId: string, queueId: string): void {
+    this._socketInitialReceived = false;
     this._loadQueueStatus(salonId, queueId);
     this._socket
       .queueTimeline$(queueId)
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe((entries) => {
+        this._socketInitialReceived = true;
         this.timeline.set(entries);
         this.loading.set(false);
       });
     this._socket.watchQueueAsStaff(queueId);
     publicQueueControllerGetTimeline(this._http, this._apiConfig.rootUrl, { queueId })
-      .pipe(takeUntilDestroyed(this._destroyRef))
+      .pipe(retry(1), takeUntilDestroyed(this._destroyRef))
       .subscribe({
         next: (res) => {
+          // Skip if the socket already delivered a fresher frame — the socket is
+          // the authoritative source and always contains the latest server state.
+          if (this._socketInitialReceived) return;
           this.timeline.set(res.body);
           this.loading.set(false);
+        },
+        error: () => {
+          if (this._socketInitialReceived) return; // socket already loaded — not a failure
+          this.loading.set(false);
+          this.error.set(true);
         },
       });
     this._startTick();
@@ -157,6 +172,7 @@ export class QueueConsoleService {
   setStatus(salonId: string, queueId: string, status: 'OPEN' | 'PAUSED' | 'CLOSED'): void {
     if (this.acting()) return;
     const prev = this.queue();
+    this.acting.set(true);
     this._socketPredict.run({
       signal: this.queue,
       apply: (q) => (q ? { ...q, status } : q),
@@ -172,6 +188,7 @@ export class QueueConsoleService {
         this._toast.error('Failed to update queue status');
       },
       destroyRef: this._destroyRef,
+      onSettled: () => this.acting.set(false),
     });
   }
 
@@ -179,6 +196,10 @@ export class QueueConsoleService {
     const waiting = this.waitingEntries();
     if (waiting.length === 0) return;
     const head = waiting[0];
+    // Quarantine backstop: the head entry might be a temp row from staffAddToQueue
+    // while the POST is still in flight. Sending a temp_ id to the server is a
+    // guaranteed 404 — skip until the socket replaces it with the real id.
+    if (head.entryId.startsWith('temp_')) return;
 
     this._socketPredict.run({
       signal: this.timeline,
@@ -283,6 +304,7 @@ export class QueueConsoleService {
   }
 
   completeMember(salonId: string, queueId: string, entryId: string, memberId: string): void {
+    if (entryId.startsWith('temp_') || memberId.startsWith('temp_')) return; // quarantine backstop
     this._socketPredict.run({
       signal: this.timeline,
       apply: (t) =>
@@ -309,6 +331,7 @@ export class QueueConsoleService {
   }
 
   noShow(salonId: string, queueId: string, entryId: string): void {
+    if (entryId.startsWith('temp_')) return; // quarantine backstop
     this._confirmDialog
       .open({
         title: 'Mark as no-show?',
@@ -337,6 +360,7 @@ export class QueueConsoleService {
   }
 
   cancelEntry(salonId: string, queueId: string, entryId: string): void {
+    if (entryId.startsWith('temp_')) return; // quarantine backstop
     this._confirmDialog
       .open({
         title: 'Cancel entry?',
@@ -365,6 +389,7 @@ export class QueueConsoleService {
   }
 
   serveMember(salonId: string, queueId: string, entryId: string, memberId: string): void {
+    if (entryId.startsWith('temp_') || memberId.startsWith('temp_')) return; // quarantine backstop
     this._socketPredict.run({
       signal: this.timeline,
       apply: (t) =>
@@ -399,6 +424,7 @@ export class QueueConsoleService {
     memberId: string,
     body: ExtendMemberDto,
   ): void {
+    if (entryId.startsWith('temp_') || memberId.startsWith('temp_')) return; // quarantine backstop
     this._socketPredict.run({
       signal: this.timeline,
       apply: (t) =>
@@ -459,6 +485,9 @@ export class QueueConsoleService {
       }),
     };
 
+    // dedupeKey keyed on the payload (no existing entity id yet, same reasoning
+    // as OptimisticService creates) — stops a double-tap from painting two temp
+    // entries and firing two POSTs (two real queue entries created server-side).
     this._socketPredict.run({
       signal: this.timeline,
       apply: (t) => [...t, tempEntry],
@@ -474,6 +503,7 @@ export class QueueConsoleService {
       },
       onError: () => this._refetchTimeline(queueId),
       destroyRef: this._destroyRef,
+      dedupeKey: `QueueConsoleService.staffAddToQueue:${queueId}:${members.map((m) => `${m.memberName}:${m.serviceId ?? ''}`).join(',')}`,
     });
   }
 
@@ -495,13 +525,14 @@ export class QueueConsoleService {
   private _refetchTimeline(queueId: string): void {
     this._toast.error('Action failed — refreshing queue');
     publicQueueControllerGetTimeline(this._http, this._apiConfig.rootUrl, { queueId })
-      .pipe(takeUntilDestroyed(this._destroyRef))
+      .pipe(retry(1), takeUntilDestroyed(this._destroyRef))
       .subscribe({ next: (res) => this.timeline.set(res.body) });
   }
 
   private _loadQueueStatus(salonId: string, queueId: string): void {
     publicQueueControllerGetQueue(this._http, this._apiConfig.rootUrl, { queueId })
       .pipe(
+        retry(1),
         tap((res) => this.queue.set(res.body)),
         switchMap((res) =>
           staffServicesControllerGetStaffServices(this._http, this._apiConfig.rootUrl, {
@@ -511,7 +542,10 @@ export class QueueConsoleService {
         ),
         takeUntilDestroyed(this._destroyRef),
       )
-      .subscribe({ next: (res) => this.staffServices.set(res.body) });
+      .subscribe({
+        next: (res) => this.staffServices.set(res.body),
+        error: () => this._toast.error('Could not load queue status'),
+      });
   }
 
   private _startTick(): void {

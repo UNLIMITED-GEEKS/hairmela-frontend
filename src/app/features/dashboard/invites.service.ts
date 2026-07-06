@@ -37,11 +37,8 @@ export class InvitesService {
   readonly error = this._error.asReadonly();
 
   load(): void {
+    if (this._loaded) return; // signal IS the cache — nothing to commit, no epoch bump needed
     const token = this._optimistic.beginRead(this._invites);
-    if (this._loaded) {
-      this._optimistic.commitRead(this._invites, this._invites(), token);
-      return;
-    }
     if (this._inflight) return;
     this._fetch(token);
   }
@@ -53,7 +50,7 @@ export class InvitesService {
   }
 
   clear(): void {
-    this._invites.set([]);
+    this._optimistic.reset(this._invites, []);
     this._loaded = false;
   }
 

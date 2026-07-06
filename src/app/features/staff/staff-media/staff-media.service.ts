@@ -1,6 +1,6 @@
 import { CacheRegistry } from '../../../core/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
-import { retry, of } from 'rxjs';
+import { map, of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { Media } from '../../../api/models/media';
@@ -8,7 +8,8 @@ import { publicMediaControllerGetStaffMedia } from '../../../api/fn/media/public
 import { mediaControllerUpload } from '../../../api/fn/media/media-controller-upload';
 import { mediaControllerDelete } from '../../../api/fn/media/media-controller-delete';
 import { ToastService } from '../../../core/toast/toast.service';
-import { OptimisticService, ReadToken } from '../../../core/optimistic/optimistic.service';
+import { OptimisticService } from '../../../core/optimistic/optimistic.service';
+import { CachedLoader } from '../../../core/optimistic/cached-loader';
 
 @Injectable({ providedIn: 'root' })
 export class StaffMediaService {
@@ -24,29 +25,27 @@ export class StaffMediaService {
 
   private readonly _cache = new Map<string, Media[]>();
   private readonly _media = signal<Media[]>([]);
-  private readonly _loading = signal(false);
-  private readonly _error = signal(false);
-  private _inflight = new Set<string>();
+
+  private readonly _loader = new CachedLoader({
+    signal: this._media,
+    optimistic: this._optimistic,
+    cache: this._cache,
+    fetch: (staffId) =>
+      publicMediaControllerGetStaffMedia(this._http, this._apiConfig.rootUrl, {
+        entityId: staffId,
+      }).pipe(map((r) => r.body)),
+  });
 
   readonly media = this._media.asReadonly();
-  readonly loading = this._loading.asReadonly();
-  readonly error = this._error.asReadonly();
+  readonly loading = this._loader.loading;
+  readonly error = this._loader.error;
 
   load(staffId: string): void {
-    const token = this._optimistic.beginRead(this._media, staffId);
-    const cached = this._cache.get(staffId);
-    if (cached) {
-      this._optimistic.commitRead(this._media, cached, token, (v) => this._cache.set(staffId, v));
-      return;
-    }
-    if (this._inflight.has(staffId)) return;
-    this._fetch(staffId, token);
+    this._loader.load(staffId);
   }
 
   refresh(staffId: string): void {
-    const token = this._optimistic.beginRead(this._media, staffId);
-    this._cache.delete(staffId);
-    this._fetch(staffId, token);
+    this._loader.refresh(staffId);
   }
 
   upload(staffId: string, file: File, onSuccess?: () => void): void {
@@ -64,7 +63,7 @@ export class StaffMediaService {
       reconcile: (list, res) => list.map((m) => (m.id === tempId ? res.body : m)),
       tempId,
       dedupeKey: `StaffMediaService.upload:${staffId}:${file.name}:${file.size}:${file.lastModified}`,
-      mirror: (v) => this._cache.set(staffId, v),
+      mirror: this._loader.mirrorFn(staffId),
       contextKey: staffId,
       request: () =>
         mediaControllerUpload(this._http, this._apiConfig.rootUrl, {
@@ -81,9 +80,9 @@ export class StaffMediaService {
     this._optimistic.run({
       signal: this._media,
       apply: (list) => list.filter((m) => m.id !== mediaId),
-      mirror: (v) => this._cache.set(staffId, v),
+      mirror: this._loader.mirrorFn(staffId),
       contextKey: staffId,
-      dedupeKey: `delete-media:${staffId}:${mediaId}`,
+      dedupeKey: `StaffMediaService.delete:${staffId}:${mediaId}`,
       request: () => mediaControllerDelete(this._http, this._apiConfig.rootUrl, { id: mediaId }),
       errorMessage: 'Could not delete image. Restored.',
       onSuccess: () => onSuccess?.(),
@@ -92,7 +91,7 @@ export class StaffMediaService {
 
   clear(): void {
     this._cache.clear();
-    this._media.set([]);
+    this._optimistic.reset(this._media, []);
   }
 
   /** Apply a client-side patch without an API call (API already completed in a child component). */
@@ -100,33 +99,10 @@ export class StaffMediaService {
     this._optimistic.run({
       signal: this._media,
       apply: updater,
-      mirror: (v) => this._cache.set(staffId, v),
+      mirror: this._loader.mirrorFn(staffId),
       contextKey: staffId,
-      dedupeKey: `patch-media:${staffId}:${crypto.randomUUID()}`,
+      dedupeKey: `StaffMediaService.patchMedia:${staffId}:${crypto.randomUUID()}`,
       request: () => of(null),
     });
-  }
-
-  private _fetch(staffId: string, token: ReadToken): void {
-    this._inflight.add(staffId);
-    this._loading.set(true);
-    this._error.set(false);
-    publicMediaControllerGetStaffMedia(this._http, this._apiConfig.rootUrl, { entityId: staffId })
-      .pipe(retry(1))
-      .subscribe({
-        next: (res) => {
-          this._inflight.delete(staffId);
-          this._cache.set(staffId, res.body);
-          this._optimistic.commitRead(this._media, res.body, token, (v) =>
-            this._cache.set(staffId, v),
-          );
-          this._loading.set(false);
-        },
-        error: () => {
-          this._inflight.delete(staffId);
-          this._error.set(true);
-          this._loading.set(false);
-        },
-      });
   }
 }

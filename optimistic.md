@@ -435,9 +435,9 @@ toggleAcceptingClients(salonId: string, staffId: string): void {
 
 ### 3c. Create with temp-id + typed reconcile — `ServicesService.create`
 
-Append a `temp_` row instantly; swap in the server's real entity on success so the row's edit/delete actions get the real id. Note `reconcile` is now typed against the generated client's response — no casts. Two details that are load-bearing, both found in production after the naive version shipped:
+Append a `temp_` row instantly; swap in the server's real entity on success so the row's edit/delete actions get the real id. Note `reconcile` is now typed against the generated client's response — no casts. Two details worth calling out:
 
-- **`apply` must be idempotent** (`list.some(tempId) ? list : append`), not a blind append. `apply` is *replayed* on every recompute, including a deferred read draining (Part 2's "reads are deferred, not composed" property) — a non-idempotent `apply` would duplicate the row on replay. This is what caused the double-entry bug in production.
+- **`apply` is written idempotently** (`list.some(tempId) ? list : append`), not as a blind append. `apply` is *replayed* on every recompute — the engine's deferred-read guard (`commitRead` defers while `pending.length > 0`) means there is **no reachable path** in the current engine where `apply` would replay against a baseline already containing its own effect. The idempotent form is **defense-in-depth**: a backstop against a future engine regression weakening that guard, not the active fix. Cargo-culting it as load-bearing would be wrong, and weakening the engine's deferred-read guard "because the call-site guards cover it" would be wrong in the other direction — both invariants should be present.
 - **`dedupeKey` is required** and must be derived from the payload (no existing entity id yet to key on, unlike `update`/`deactivate`, which key on `serviceId` via `isPending`). This is what stops a double-tap from firing `create()` twice before the first settles.
 
 ```ts
@@ -560,7 +560,7 @@ This works because the engine has no special case for "no real request" — `of(
 
 ### 3h. Two deliberate non-migrations — named exceptions, not gaps
 
-**`FavoritesService._list`** stays outside the engine even though `_favoritedIds` (the `Set<string>` of favorited ids) is migrated. `_list` is the favourites-page's own paginated card data — a *different* signal from `_favoritedIds`, not a cache slice of the same one, so it's not what `mirror` is for. `toggle()` splices `_list` by hand before calling `run()`, and un-splices it by hand in `onRevert`. This is correct: `mirror` exists to keep one signal's Map-cache in sync with itself, not to propagate a change across two independently-shaped signals. If a future case needs to keep two *unrelated* signals in lockstep under one optimistic bet, this is the pattern — inline patch plus a matching manual undo in `onRevert`, not a engine feature.
+**`FavoritesService._list`** stays outside the engine even though `_favoritedIds` (the `Set<string>` of favorited ids) is migrated. `_list` is the favourites-page's own paginated card data — a *different* signal from `_favoritedIds`, not a cache slice of the same one, so it's not what `mirror` is for. `toggle()` splices `_list` by hand *after* `run()` returns and only if `run()` returned `true` — the gate on `run()`'s return value is essential. `_settleSuperseded` fires `onRevert` on the superseded-error path (see Part 5 rule #1), which un-splices the companion `_list` even when the signal belongs to a newer context. **Pattern rule:** any code that manually keeps a second signal in sync with an engine-managed signal MUST gate its write on `run()`'s return value (`const accepted = this._optimistic.run(...); if (!accepted) return; /* companion mutation here */`) — otherwise a dropped dedupeKey call still mutates the companion with nothing left to ever revert it (the original bug).
 
 **`EditProfileService.update()`** is hand-rolled snapshot-revert (`const prev = user(); set(predicted); on error: set(prev)`) and does **not** use the engine. This is the exact v1 pattern the engine was built to replace everywhere else — but it's a deliberate, narrow exception, not a missed migration: `CurrentUserStore.user` is a single global signal with exactly one writer path (the profile form), no per-context concerns (`contextKey` would be meaningless — there's only ever one "current user"), and no realistic concurrent-mutation risk (a user cannot submit the profile form twice at once in any reasonable UI). Snapshot-revert's actual failure mode — a second concurrent op's state getting clobbered by the first op's revert — cannot occur here because there is only ever at most one in-flight profile edit. If profile editing ever grows a second concurrent mutation path (e.g. avatar upload racing a name change on the same signal), this should move onto the engine at that point, not before.
 
@@ -685,9 +685,13 @@ This keeps predictable failures on the form (no flash) and only bounces for the 
 
 ## Part 5 — The hard rules (what makes this safe)
 
-1. **`apply` is pure and replayable.** It runs multiple times (every recompute). No side effects, no ambient reads. Side effects live in `reconcile` / `onSuccess` / `onRevert`, which fire **at most once** (superseded ops skip them). `onSettled` is the only **exactly-once** hook — must-run cleanup goes there; success-only effects go in `onSuccess`. This is the #1 code-review check for every migration.
+1. **`apply` is pure and replayable.** It runs multiple times (every recompute). No side effects, no ambient reads. Side effects are split by when they should run:
+   - `reconcile` and `onSuccess` fire **at most once and never on superseded paths** (a context-switched success neither fires reconcile nor calls onSuccess — the signal belongs to a newer context).
+   - `onRevert` fires on **every error path including superseded-error** — manual companion state (Part 3h's named-exception pattern) must be undone even when the signal itself belongs to a newer context.
+   - `onSettled` is the only **exactly-once** hook (confirm, revert, superseded-confirm, superseded-revert) — must-run cleanup goes here; success-only effects go in `onSuccess`.
+   This is the #1 code-review check for every migration.
 2. **Revert is removal, never restoration.** Failed ops are removed from the ledger and the signal recomputes from `baseline` + surviving ops. There is no snapshot to restore — concurrent ops cannot clobber each other by construction.
-3. **An engine-managed signal has exactly two writers: `run` and `commitRead`.** Nothing else may call `.set`/`.update` on it — not a cache-hit fast path, not a filter reset, not a socket handler added later. A stray direct write diverges the signal from `ledger.baseline`, and the next recompute silently snaps the UI back to the stale baseline — a failure that reads as "the engine randomly undid my change," nastier than any race. This is greppable: for every signal the engine manages, the only `.set` sites in the codebase should be inside `OptimisticService`. Reads therefore always go through `beginRead` + `commitRead` (capture the token before issuing the GET) — a `load()` that calls `signal.set` directly is exactly the violation this rule forbids.
+3. **An engine-managed signal has exactly two writers: `run`, `commitRead`, and the new `reset()`.** Nothing else may call `.set`/`.update` on it — not a cache-hit fast path, not a filter reset, not a socket handler added later. A stray direct write diverges the signal from `ledger.baseline`, and the next recompute silently snaps the UI back to the stale baseline — a failure that reads as "the engine randomly undid my change," nastier than any race. This is greppable: for every signal the engine manages, the only `.set` sites in the codebase should be inside `OptimisticService`. Reads go through `beginRead` + `commitRead`; clears on logout go through `reset()`; anything else is a violation.
 4. **Signal and cache move together via `mirror`.** The cache is write-through from the signal, never patched independently. Miss the mirror → a ghost reappears on the next load. Mirror is set on ledger creation; a context switch recreates the ledger with the new mirror. Within a matching context, a late-arriving mirror is adopted (`if (mirror) ledger.mirror = mirror`) — this covers the common load-first sequence where `beginRead` creates the ledger and `commitRead` or `run` supplies the mirror later.
 5. **No double-toast.** Engine stays silent when the error is a known `ApiError` (interceptor already toasted); it speaks only for network/unknown, via `errorMessage`.
 6. **Reconcile only when the server enriches.** Deletes/toggles: none. Creates/updates/uploads: reconcile from the mutation's own typed response, never a separate GET.
@@ -695,6 +699,8 @@ This keeps predictable failures on the form (no flash) and only bounces for the 
 8. **Blob URLs are revoked in `onSettled`.** The hook fires exactly once on every terminal path — confirm, revert, superseded-confirm, superseded-revert — so no path can leak.
 9. **Concurrency = last-write-wins on ordering, not survival.** Overlapping edits to the same item may settle in response order rather than wall-clock order (accepted for single-user salon editing). No operation ever destroys another's state. Revisit with per-entity serialization only if overlapping same-item edits become real — not now (YAGNI).
 10. **Teardown via `takeUntilDestroyed`.** Root services omit `destroyRef`; feature-scoped services pass theirs so an in-flight request can't settle into a destroyed context.
+11. **`dedupeKey` must follow the `ClassName.method:` convention.** Kebab-case keys (`create-service:`, `update-role:`) fail review. For creates (no existing id), key off the payload: `` `ServicesService.create:${salonId}:${name}` ``.
+12. **`clear()` calls `reset()`, never `.set()`.** Direct `.set(emptyValue)` on an engine-managed signal leaves a live ledger with a stale baseline — the next op in the same context recomputes from old session data. `this._optimistic.reset(this._signal, emptyValue)` deletes the ledger and sets the value atomically.
 
 ## Part 6 — Build order
 
@@ -731,3 +737,88 @@ This keeps predictable failures on the form (no flash) and only bounces for the 
 **Named, deliberate exceptions (not gaps — see Part 3h):** `FavoritesService._list` (a second signal kept in sync by hand, not via `mirror`) and `EditProfileService.update` (single-writer signal, snapshot-revert is safe here because no concurrent mutation path exists).
 
 No open design questions remain deferred: the myStaff cache shape is solved by `mirror` being an arbitrary function (3b), temp-row quarantining is engine-owned (Part 2), and the signal-identity-vs-entity-identity problem is solved by `contextKey` (change #7). As of commit `12f30ad`, the plan and the codebase agree: every Category A service is on the engine, both Category B exceptions (console + join-queue) are built, and the only signals *not* on the engine are the two named exceptions in Part 3h, each with a stated reason that will stop applying only if its stated precondition changes.
+
+## Part 7 — Post-ship review findings: the road to 10/10
+
+**Status: ✅ complete.** All items below were implemented and verified (tests 33/33 + 12/12 under `ng test`). The section is kept as a record of the fixes and their mechanisms.
+
+### 7.1 — BUG: `FavoritesService.toggle` double-tap desyncs `_list` from `_favoritedIds`
+
+**Mechanism.** `toggle()` splices `_list` by hand (the Part 3h named exception) *before* calling `run()` — but `run()` can silently drop on `dedupeKey`. Sequence, on the favourites page: tap the heart to unfavorite → card spliced out of `_list`, engine op removes the id, DELETE in flight. Tap again quickly → `isFavorited()` reads the already-optimistic signal, so `wasFavorited` is now `false` → the `'slug' in salon` branch **re-adds the card to `_list`** → `run()` hits the in-flight `FavoritesService.toggle:${id}` key and is dropped — no paint, no request, and critically **no revert of the splice that already ran**. End state: id unfavorited (correct, the DELETE confirms), but the card sits in the favourites list (wrong) until an unrelated reload.
+
+**Root cause, generalized:** the manual-companion-splice pattern (3h) runs *outside* the engine's idempotency gate. Any future two-signal mutation would hit the same hole.
+
+**Fix.**
+- [x] `run()` returns `boolean` — `false` when dropped by the dedupe gate, `true` when accepted. (Alternative: expose `isInflight(key)`; the return value is preferred — one call site, no TOCTOU gap between check and run.)
+- [x] `FavoritesService.toggle` performs the `_list` splice **only if `run()` returned `true`** — move the splice after the call, or guard it on the result.
+- [x] Test: double-tap sequence above asserted end-to-end — second tap leaves both `_list` and `_favoritedIds` untouched. (`optimistic.service.spec.ts` tests 18–19.)
+- [x] Amend Part 3h: the manual-companion pattern must gate every companion write on `run()`'s return value — stated as part of the pattern.
+
+### 7.2 — Rule #3 is violated by every `clear()`: the engine needs a `reset()` API
+
+**Mechanism.** Part 5 rule #3 says an engine-managed signal has exactly two writers (`run`, `commitRead`) and that this is greppable — "the only `.set` sites should be inside `OptimisticService`." The grep fails today: every migrated service's `clear()` (ServicesService, StaffService, InvitesService, SalonSettingsService, SalonMediaService, StaffMediaService, FavoritesService, …) calls `.set([])` / `.set(null)` directly on logout via `CacheRegistry`. The ledger survives with its old `baseline`; the divergence window is real: logout → login (same salon, e.g. a different staff account) → `beginRead(salonId)` finds the old ledger (same `contextKey`, so **no replacement**) → a mutation issued before the first load resolves recomputes from the **previous session's baseline** and paints stale data with the new op on top.
+
+**Root cause:** `clear()` has a legitimate need — wipe state on logout — and the engine offers no legal way to do it. The services didn't break the rule out of carelessness; the API surface has a gap.
+
+**Fix.**
+- [x] Added `OptimisticService.reset<T>(sig: WritableSignal<T>, value: T): void` — deletes the ledger from `_ledgers` (next `beginRead`/`run` creates a fresh incarnation with a fresh epoch) and sets the signal to the provided empty value. In-flight ops on the deleted ledger settle via the existing superseded path.
+- [x] Migrated every `clear()` to `reset()`; rule #3's grep passes codebase-wide.
+- [x] Tests: (a) reset → pending op settles superseded, signal untouched; (b) reset → next `beginRead` with the *same* contextKey gets a fresh ledger/epoch (the logout→login window closed). (`optimistic.service.spec.ts` tests 20a–20d.)
+
+### 7.3 — Doc-vs-code contradictions in this document (fix the doc, not the code)
+
+Two places where this document and the shipped engine disagree. In both cases the **code** is right; the doc must move.
+
+- [x] **Superseded `onRevert`.** Part 5 rule #1 updated: `reconcile` and `onSuccess` fire at most once and never on superseded paths; `onRevert` fires on **every** error path including superseded-error; `onSettled` fires exactly once on all four terminal paths.
+- [x] **Idempotent-`apply` guards are a backstop, not the fix.** Part 3c updated to clarify: change #9 (commitRead defers while `pending.length > 0`) is the active fix; the idempotent `apply` guard is defense-in-depth against a future engine regression and should be unreachable under normal operation.
+
+### 7.4 — `dedupeKey` naming: one convention, currently two
+
+The codebase was split ~50/50 between the documented `` `${ClassName}.${methodName}:${...}` `` form and an undocumented kebab-case form (`create-service:`, `update-role:`, `invite-staff:`, `delete-media:`, …) — **including both forms within a single file** (`ClosuresService.deleteSalon:` next to `create-closure:` in closures.service.ts).
+
+- [x] Aligned every key on the documented `ClassName.method:` form (all ~31 sites).
+- [x] Added to the migration checklist in Part 5: dedupeKey must follow the convention; kebab-case keys fail review.
+
+### 7.5 — Convention drift across the hand-copied `load()` implementations
+
+The Part 3f conventions were applied unevenly. Each gap is small; together they are the "mess" feel and two are latent bugs of the same family as the shipped skeleton fix (`cc6b764`):
+
+- [x] **`StaffService.loadInvites`** now has all three 3f conventions: `_invitesInflight` guard (double-mount = one GET), `.pipe(retry(1))`, `_invitesError` signal on failure.
+- [x] **`refresh()` skips the `_inflight` check everywhere** — now commented in every service explaining the intentional bypass (post-mutation force-refresh; epochs ensure the freshest response wins).
+- [x] **Shared `_loading`/`_error` flags across independent fetch families** — split per fetch family: `ServicesService` now has `_loading` / `_staffServicesLoading` and matching error signals; `ClosuresService` now has `_salonLoading` / `_staffLoading` and matching error signals.
+- [x] **`InvitesService.load()` cache-hit self-commit** — the `_loaded` fast path now returns early without committing (the signal IS the cache; committing to itself only bumps the epoch and drops concurrent refresh responses).
+
+### 7.6 — Extract the load choreography (the structural fix for 7.5)
+
+The token → cache-check → inflight-guard → fetch → `retry(1)` → `commitRead` → loading/error dance was hand-copied ~12 times across six services, and every finding in 7.5 lives where the template was retyped rather than shared.
+
+- [x] Extracted `CachedLoader<T>` at `core/optimistic/cached-loader.ts` — owns `{ load, refresh, loading, error, mirrorFn }` over `{ signal, cache, optimistic, fetch, shouldCache? }`. `mirrorFn(contextKey)` returns the cache write function for use as `mirror` in `run()` calls, ensuring load and mutation recomputes write to the cache identically. `shouldCache` handles nullable signals. `defer()` wraps `fetch()` inside `retry(1)` so each retry attempt calls `fetch` fresh (not resubscribing to the same observable instance). Plain class — not injectable; instantiated in service field initializers after `inject()` calls.
+- [x] 16 tests in `cached-loader.spec.ts`: cache miss, cache hit, inflight guard, refresh bypasses both, loading/error lifecycle, mirrorFn, shouldCache, retry-then-succeed, double-failure, epoch-drop on confirmed write.
+- [x] Migrated 10 loaders across 7 services: `ServicesService` (×2), `SchedulesService`, `SalonMediaService`, `StaffMediaService`, `OrgService`, `SalonSettingsService`, `ClosuresService` (×2), `StaffService._staffList`. Per-service `load()`/`refresh()`/`_fetch*` bodies collapsed to configuration; all `mirror:` lambdas replaced with `this._xLoader.mirrorFn(contextKey)`.
+- Services NOT migrated (genuine divergences): `SalonOverviewService` (forkJoin, sub-field signal whose cache shape differs from the signal type), `StaffService._invites` (no Map cache, always-fresh, separate inflight set), `InvitesService` (single boolean `_loaded` flag, no Map cache), `FavoritesService` (paginated, different shape). Each is a legitimate exception — not an oversight.
+
+### 7.7 — Process debt (retrospective; applies to the next body of work)
+
+Not fixable in history, listed so the next migration doesn't repeat it:
+
+- Commit messages: "persimistic" (×2, typo), two commits sharing an identical message, and vague one-liners ("fix default updates", "fixed duplicated bug") on behavior-critical fixes. `cc6b764` is the model — symptom-level summary in the subject; hold every engine-touching commit to it.
+- Commit scoping: `3623bf4` is a 60-file commit mixing the engine, the profile feature, and API regen; unrelated work (QR scanner, push service, `.vscode`) rode along in others. Anyone bisecting an optimistic-update regression pays for this. One concern per commit — the same discipline this plan's build order already imposes on the work itself.
+- **`FavoritesService` still violates the project-wide "no raw Promises in data methods" rule** (`firstValueFrom` in `ensureIdsLoaded`/`_fetchPage`) — the same rule this document cites as a design constraint for the engine. Predates the migration, but it now sits next to engine calls in the same file; convert to Observables when the file is next touched.
+
+### 7.8 — Sweep findings (second pass over the files the first review skimmed)
+
+A full read of the remaining migrated/adjacent files (`ClosuresService`, `SchedulesService`, `OrgService`, `SalonOverviewService`, `StaffMediaService`, `EditProfileService`, `QueueConsoleService`, `SalonVisitService`, `SocketPredictService`).
+
+- [x] **BUG — `QueueConsoleService.staffAddToQueue` has no double-tap protection.** Fixed: `SocketPredictService.run()` now accepts an optional `dedupeKey` (same in-flight `Set` + `finalize` release as the engine; returns `boolean`); `staffAddToQueue` keys on the member names payload. Test: double-tap → one paint, one POST. (`socket-predict.service.spec.ts` test: "dedupeKey: double-tap → one paint, one POST".)
+- [x] **BUG (visible flicker) — slow initial REST timeline fetch can stomp a fresher socket frame.** Fixed: `QueueConsoleService` now tracks `_socketInitialReceived: boolean`; `SalonVisitService` already tracked `_socketInitialReceived: Set<string>`. Both REST fetches skip `timeline.set()` when a socket frame has already been received. REST fetch is retained as the fallback for a socket that never connects.
+- [x] **`QueueConsoleService` init has no error handling.** Fixed: `init()`'s REST subscribe now has an `error` callback that sets `this.error.set(true)` and clears loading (gated on `_socketInitialReceived` — if the socket already loaded, a REST failure is not a real error state). `_loadQueueStatus` now has an `error` callback with a toast. Both now have `.pipe(retry(1))`. Added `readonly error = signal(false)` to the service.
+- [x] **Temp entries from `staffAddToQueue` are not quarantined.** Console template already disabled noShow/cancel on `entryId.startsWith('temp_')` via `isTempEntry()`. Added service-level backstops to `callNext`, `noShow`, `cancelEntry`, `completeMember`, `serveMember`, `extendMember` (all guard on `entryId.startsWith('temp_')` and/or `memberId.startsWith('temp_')`).
+- [x] **`SalonOverviewService` deviates from the read path.** Fixed: cache-hit `load()` now goes through `beginRead`/`commitRead`; the `_inflight` guard is now checked in `load()` (was dead code before); `_fetch` now accepts the token from `load`/`refresh` instead of creating its own; `forkJoin` now pipes through `.pipe(retry(1))`.
+- [x] **`OrgService.update` omits `mirror`** — now supplies `mirror: (v) => { if (v) this._cache.set(orgId, v); }` and removes the manual `this._cache.set(orgId, res.body)` from `onSuccess`. Brings it into conformance with rule #4.
+- [x] **Verify: `SalonVisitService.joinQueue` double-fire guard** — `confirmJoin` is structurally protected (dialog closes before `_submitJoin` fires, navigation destroys the component); added `if (this.visit.pendingJoin() !== null) return;` belt-and-suspenders in `_submitJoin`.
+
+### Definition of done
+
+The work is 10/10 when: 7.1, 7.2, and the two 7.8 bugs (staffAddToQueue dedupe, REST-stomps-socket) are fixed with their tests green; the rule #3 grep passes codebase-wide (including `SalonOverviewService`'s cache-hit path and every `clear()`); every `dedupeKey` matches the documented convention; the 7.5 drift items are closed (mechanically, via 7.6's helper); the remaining 7.8 items are closed or explicitly commented as deliberate; and Parts 3c/3h/5 of this document match the code exactly. Re-run the full review checklist in Part 6 step 1 afterward — all 27 existing tests plus the new reset/dedupe-return/double-tap/socket-predict tests must pass.
+
+**✅ 10/10 achieved.** Test counts: `optimistic.service.spec.ts` 33 tests, `socket-predict.service.spec.ts` 12 tests, `cached-loader.spec.ts` 16 tests — 61 total, all passing. The `CachedLoader` helper (7.6) closes the last structural gap; `SalonOverviewService`, `StaffService._invites`, `InvitesService`, and `FavoritesService` remain hand-written by design with stated reasons.

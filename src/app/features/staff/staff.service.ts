@@ -1,6 +1,6 @@
 import { CacheRegistry } from '../../core/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
-import { retry } from 'rxjs';
+import { map, retry } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { ApiConfiguration } from '../../api/api-configuration';
 import { StaffWithQueueDto } from '../../api/models/staff-with-queue-dto';
@@ -19,6 +19,7 @@ import { staffControllerLeaveSalon } from '../../api/fn/staff/staff-controller-l
 import { MembershipStore } from '../../core/salon-context/membership.store';
 import { ToastService } from '../../core/toast/toast.service';
 import { OptimisticService, ReadToken } from '../../core/optimistic/optimistic.service';
+import { CachedLoader } from '../../core/optimistic/cached-loader';
 
 @Injectable({ providedIn: 'root' })
 export class StaffService {
@@ -35,39 +36,38 @@ export class StaffService {
 
   private readonly _cache = new Map<string, StaffWithQueueDto[]>();
   private readonly _staffList = signal<StaffWithQueueDto[]>([]);
-  private readonly _loading = signal(false);
   private readonly _acting = signal(false);
+
+  private readonly _loader = new CachedLoader({
+    signal: this._staffList,
+    optimistic: this._optimistic,
+    cache: this._cache,
+    fetch: (salonId) =>
+      staffControllerFindAll(this._http, this._apiConfig.rootUrl, { salonId }).pipe(
+        map((r) => r.body),
+      ),
+  });
 
   // Pending invites are not cached — they change on every invite/cancel and the
   // manager needs the live state when on the invite page.
   private readonly _invites = signal<PendingInviteDto[]>([]);
   private readonly _invitesLoading = signal(false);
-  private readonly _error = signal(false);
-  private _inflight = new Set<string>();
+  private readonly _invitesError = signal(false);
+  private _invitesInflight = new Set<string>();
   readonly staffList = this._staffList.asReadonly();
-  readonly loading = this._loading.asReadonly();
+  readonly loading = this._loader.loading;
   readonly acting = this._acting.asReadonly();
-  readonly error = this._error.asReadonly();
+  readonly error = this._loader.error;
   readonly invites = this._invites.asReadonly();
   readonly invitesLoading = this._invitesLoading.asReadonly();
+  readonly invitesError = this._invitesError.asReadonly();
 
   load(salonId: string): void {
-    const token = this._optimistic.beginRead(this._staffList, salonId);
-    const cached = this._cache.get(salonId);
-    if (cached) {
-      this._optimistic.commitRead(this._staffList, cached, token, (v) =>
-        this._cache.set(salonId, v),
-      );
-      return;
-    }
-    if (this._inflight.has(salonId)) return;
-    this._fetch(salonId, token);
+    this._loader.load(salonId);
   }
 
   refresh(salonId: string): void {
-    const token = this._optimistic.beginRead(this._staffList, salonId);
-    this._cache.delete(salonId);
-    this._fetch(salonId, token);
+    this._loader.refresh(salonId);
   }
 
   invite(salonId: string, body: InviteStaffDto, onSuccess?: () => void): void {
@@ -84,7 +84,8 @@ export class StaffService {
       // apply is REPLAYED on every recompute (e.g. a concurrent loadInvites()
       // commitRead landing while this invite is still pending) — must be
       // idempotent or a replay duplicates the row. Guard by tempId.
-      apply: (list) => (list.some((i) => i.staffId === tempId) ? list : [...list, optimisticInvite]),
+      apply: (list) =>
+        list.some((i) => i.staffId === tempId) ? list : [...list, optimisticInvite],
       // The backend returns the created SalonStaff — map its fields onto the
       // PendingInviteDto shape so the temp row gets the real staffId/invitedAt
       // without a refetch (SalonStaff.userId set means the invitee already has
@@ -103,7 +104,7 @@ export class StaffService {
         ),
       contextKey: salonId,
       tempId,
-      dedupeKey: `invite-staff:${salonId}:${body.email}`,
+      dedupeKey: `StaffService.invite:${salonId}:${body.email}`,
       request: () => staffControllerInvite(this._http, this._apiConfig.rootUrl, { salonId, body }),
       errorMessage: 'Could not send invite. Reverted.',
       onSuccess: () => {
@@ -123,15 +124,25 @@ export class StaffService {
 
   loadInvites(salonId: string): void {
     // Route reads through the engine so optimistic predictions survive in-flight loads
+    if (this._invitesInflight.has(salonId)) return;
     const token = this._optimistic.beginRead(this._invites, salonId);
+    this._invitesInflight.add(salonId);
     this._invitesLoading.set(true);
-    staffControllerFindInvites(this._http, this._apiConfig.rootUrl, { salonId }).subscribe({
-      next: (res) => {
-        this._optimistic.commitRead(this._invites, res.body, token);
-        this._invitesLoading.set(false);
-      },
-      error: () => this._invitesLoading.set(false),
-    });
+    this._invitesError.set(false);
+    staffControllerFindInvites(this._http, this._apiConfig.rootUrl, { salonId })
+      .pipe(retry(1))
+      .subscribe({
+        next: (res) => {
+          this._invitesInflight.delete(salonId);
+          this._optimistic.commitRead(this._invites, res.body, token);
+          this._invitesLoading.set(false);
+        },
+        error: () => {
+          this._invitesInflight.delete(salonId);
+          this._invitesError.set(true);
+          this._invitesLoading.set(false);
+        },
+      });
   }
 
   cancelInvite(salonId: string, staffId: string): void {
@@ -140,7 +151,7 @@ export class StaffService {
       signal: this._invites,
       apply: (list) => list.filter((i) => i.staffId !== staffId),
       contextKey: salonId,
-      dedupeKey: `cancel-invite:${salonId}:${staffId}`,
+      dedupeKey: `StaffService.cancelInvite:${salonId}:${staffId}`,
       request: () =>
         staffControllerCancelInvite(this._http, this._apiConfig.rootUrl, { salonId, staffId }),
       errorMessage: 'Could not cancel invite. Restored.',
@@ -181,9 +192,9 @@ export class StaffService {
       // other server-side change lands too, not just the role we predicted.
       reconcile: (list, res) =>
         list.map((entry) => (entry.staff.id === staffId ? { ...entry, staff: res.body } : entry)),
-      mirror: (v) => this._cache.set(salonId, v),
+      mirror: this._loader.mirrorFn(salonId),
       contextKey: salonId,
-      dedupeKey: `update-role:${salonId}:${staffId}`,
+      dedupeKey: `StaffService.updateRole:${salonId}:${staffId}`,
       request: () =>
         staffControllerUpdateRole(this._http, this._apiConfig.rootUrl, { salonId, staffId, body }),
       errorMessage: 'Could not update role. Reverted.',
@@ -217,9 +228,9 @@ export class StaffService {
     this._optimistic.run({
       signal: this._staffList,
       apply: (list) => list.filter((entry) => entry.staff.id !== staffId),
-      mirror: (v) => this._cache.set(salonId, v),
+      mirror: this._loader.mirrorFn(salonId),
       contextKey: salonId,
-      dedupeKey: `remove-staff:${salonId}:${staffId}`,
+      dedupeKey: `StaffService.remove:${salonId}:${staffId}`,
       request: () =>
         staffControllerRemove(this._http, this._apiConfig.rootUrl, { salonId, staffId }),
       errorMessage: 'Could not remove staff member. Restored.',
@@ -232,30 +243,7 @@ export class StaffService {
 
   clear(): void {
     this._cache.clear();
-    this._staffList.set([]);
-    this._invites.set([]);
-  }
-
-  private _fetch(salonId: string, token: ReadToken): void {
-    this._inflight.add(salonId);
-    this._loading.set(true);
-    this._error.set(false);
-    staffControllerFindAll(this._http, this._apiConfig.rootUrl, { salonId })
-      .pipe(retry(1))
-      .subscribe({
-        next: (res) => {
-          this._inflight.delete(salonId);
-          this._cache.set(salonId, res.body);
-          this._optimistic.commitRead(this._staffList, res.body, token, (v) =>
-            this._cache.set(salonId, v),
-          );
-          this._loading.set(false);
-        },
-        error: () => {
-          this._inflight.delete(salonId);
-          this._error.set(true);
-          this._loading.set(false);
-        },
-      });
+    this._optimistic.reset(this._staffList, []);
+    this._optimistic.reset(this._invites, []);
   }
 }

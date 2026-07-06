@@ -1,6 +1,6 @@
 import { CacheRegistry } from '../../../core/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
-import { of, retry } from 'rxjs';
+import { map, of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { Media } from '../../../api/models/media';
@@ -10,7 +10,8 @@ import { mediaControllerUpload } from '../../../api/fn/media/media-controller-up
 import { mediaControllerDelete } from '../../../api/fn/media/media-controller-delete';
 import { mediaReorderControllerReorderSalonGallery } from '../../../api/fn/media/media-reorder-controller-reorder-salon-gallery';
 import { ToastService } from '../../../core/toast/toast.service';
-import { OptimisticService, ReadToken } from '../../../core/optimistic/optimistic.service';
+import { OptimisticService } from '../../../core/optimistic/optimistic.service';
+import { CachedLoader } from '../../../core/optimistic/cached-loader';
 
 @Injectable({ providedIn: 'root' })
 export class SalonMediaService {
@@ -26,29 +27,27 @@ export class SalonMediaService {
 
   private readonly _cache = new Map<string, Media[]>();
   private readonly _media = signal<Media[]>([]);
-  private readonly _loading = signal(false);
-  private readonly _error = signal(false);
-  private _inflight = new Set<string>();
+
+  private readonly _loader = new CachedLoader({
+    signal: this._media,
+    optimistic: this._optimistic,
+    cache: this._cache,
+    fetch: (salonId) =>
+      publicMediaControllerGetSalonMedia(this._http, this._apiConfig.rootUrl, {
+        entityId: salonId,
+      }).pipe(map((r) => r.body)),
+  });
 
   readonly media = this._media.asReadonly();
-  readonly loading = this._loading.asReadonly();
-  readonly error = this._error.asReadonly();
+  readonly loading = this._loader.loading;
+  readonly error = this._loader.error;
 
   load(salonId: string): void {
-    const token = this._optimistic.beginRead(this._media, salonId);
-    const cached = this._cache.get(salonId);
-    if (cached) {
-      this._optimistic.commitRead(this._media, cached, token, (v) => this._cache.set(salonId, v));
-      return;
-    }
-    if (this._inflight.has(salonId)) return;
-    this._fetch(salonId, token);
+    this._loader.load(salonId);
   }
 
   refresh(salonId: string): void {
-    const token = this._optimistic.beginRead(this._media, salonId);
-    this._cache.delete(salonId);
-    this._fetch(salonId, token);
+    this._loader.refresh(salonId);
   }
 
   upload(salonId: string, file: File, onSuccess?: () => void): void {
@@ -66,7 +65,7 @@ export class SalonMediaService {
       reconcile: (list, res) => list.map((m) => (m.id === tempId ? res.body : m)),
       tempId,
       dedupeKey: `SalonMediaService.upload:${salonId}:${file.name}:${file.size}:${file.lastModified}`,
-      mirror: (v) => this._cache.set(salonId, v),
+      mirror: this._loader.mirrorFn(salonId),
       contextKey: salonId,
       request: () =>
         mediaControllerUpload(this._http, this._apiConfig.rootUrl, {
@@ -84,7 +83,7 @@ export class SalonMediaService {
       signal: this._media,
       dedupeKey: `SalonMediaService.delete:${mediaId}`,
       apply: (list) => list.filter((m) => m.id !== mediaId),
-      mirror: (v) => this._cache.set(salonId, v),
+      mirror: this._loader.mirrorFn(salonId),
       contextKey: salonId,
       request: () => mediaControllerDelete(this._http, this._apiConfig.rootUrl, { id: mediaId }),
       errorMessage: 'Could not delete image. Restored.',
@@ -102,7 +101,7 @@ export class SalonMediaService {
           (a, b) => (idxMap.get(a.id) ?? Infinity) - (idxMap.get(b.id) ?? Infinity),
         );
       },
-      mirror: (v) => this._cache.set(salonId, v),
+      mirror: this._loader.mirrorFn(salonId),
       contextKey: salonId,
       request: () =>
         mediaReorderControllerReorderSalonGallery(this._http, this._apiConfig.rootUrl, {
@@ -116,46 +115,17 @@ export class SalonMediaService {
 
   clear(): void {
     this._cache.clear();
-    this._media.set([]);
+    this._optimistic.reset(this._media, []);
   }
 
-  /**
-   * Apply a client-side patch without an API call (API already completed in a
-   * child component). request: () => of(null) settles synchronously within
-   * run() itself, so there's no real in-flight window to dedupe — a fresh key
-   * per call is fine since nothing can ever collide with it.
-   */
   patchMedia(salonId: string, updater: (list: Media[]) => Media[]): void {
     this._optimistic.run({
       signal: this._media,
       dedupeKey: `SalonMediaService.patchMedia:${salonId}:${crypto.randomUUID()}`,
       apply: updater,
-      mirror: (v) => this._cache.set(salonId, v),
+      mirror: this._loader.mirrorFn(salonId),
       contextKey: salonId,
       request: () => of(null),
     });
-  }
-
-  private _fetch(salonId: string, token: ReadToken): void {
-    this._inflight.add(salonId);
-    this._loading.set(true);
-    this._error.set(false);
-    publicMediaControllerGetSalonMedia(this._http, this._apiConfig.rootUrl, { entityId: salonId })
-      .pipe(retry(1))
-      .subscribe({
-        next: (res) => {
-          this._inflight.delete(salonId);
-          this._cache.set(salonId, res.body);
-          this._optimistic.commitRead(this._media, res.body, token, (v) =>
-            this._cache.set(salonId, v),
-          );
-          this._loading.set(false);
-        },
-        error: () => {
-          this._inflight.delete(salonId);
-          this._error.set(true);
-          this._loading.set(false);
-        },
-      });
   }
 }

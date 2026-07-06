@@ -27,9 +27,12 @@ describe('OptimisticService', () => {
     const sig = makeSignal<number[]>([1, 2]);
     const onRevert = vi.fn();
     svc.run({
-      signal: sig, apply: (list) => [...list, 3],
+      signal: sig,
+      apply: (list) => [...list, 3],
       request: () => throwError(() => ({ error: {} })),
-      errorMessage: 'oops', onRevert, dedupeKey: 'test-1',
+      errorMessage: 'oops',
+      onRevert,
+      dedupeKey: 'test-1',
     });
     expect(sig()).toEqual([1, 2]);
     expect(onRevert).toHaveBeenCalledTimes(1);
@@ -41,13 +44,24 @@ describe('OptimisticService', () => {
     const sig = makeSignal<string[]>([]);
     const subjectA = new Subject<void>();
     const subjectB = new Subject<void>();
-    svc.run({ signal: sig, apply: (list) => [...list, 'A'], request: () => subjectA.asObservable(), dedupeKey: 'test-2-a' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'A'],
+      request: () => subjectA.asObservable(),
+      dedupeKey: 'test-2-a',
+    });
     expect(sig()).toEqual(['A']);
-    svc.run({ signal: sig, apply: (list) => [...list, 'B'], request: () => subjectB.asObservable(), dedupeKey: 'test-2-b' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'B'],
+      request: () => subjectB.asObservable(),
+      dedupeKey: 'test-2-b',
+    });
     expect(sig()).toEqual(['A', 'B']);
     subjectA.error({ error: {} });
     expect(sig()).toEqual(['B']);
-    subjectB.next(); subjectB.complete();
+    subjectB.next();
+    subjectB.complete();
     expect(sig()).toEqual(['B']);
   });
 
@@ -65,7 +79,12 @@ describe('OptimisticService', () => {
     const sig = makeSignal<string[]>([]);
     const subject = new Subject<void>();
     const token = svc.beginRead(sig);
-    svc.run({ signal: sig, apply: (list) => [...list, 'optimistic'], request: () => subject.asObservable(), dedupeKey: 'test-3' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'optimistic'],
+      request: () => subject.asObservable(),
+      dedupeKey: 'test-3',
+    });
     expect(sig()).toEqual(['optimistic']);
     const accepted = svc.commitRead(sig, ['server'], token);
     expect(accepted).toBe(false); // deferred — op still pending
@@ -78,7 +97,12 @@ describe('OptimisticService', () => {
   it('late GET after confirmed delete is dropped — deleted row does not resurrect', () => {
     const sig = makeSignal<string[]>(['initial']);
     const token = svc.beginRead(sig);
-    svc.run({ signal: sig, apply: (list) => list.filter((x) => x !== 'initial'), request: () => of(null), dedupeKey: 'test-4' });
+    svc.run({
+      signal: sig,
+      apply: (list) => list.filter((x) => x !== 'initial'),
+      request: () => of(null),
+      dedupeKey: 'test-4',
+    });
     expect(sig()).toEqual([]);
     const accepted = svc.commitRead(sig, ['initial'], token);
     expect(accepted).toBe(false);
@@ -100,16 +124,29 @@ describe('OptimisticService', () => {
   it('isPending true during flight, false after confirm', () => {
     const sig = makeSignal<string[]>([]);
     const subject = new Subject<void>();
-    svc.run({ signal: sig, apply: (list) => [...list, 'temp_123'], request: () => subject.asObservable(), tempId: 'temp_123', dedupeKey: 'test-6a' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'temp_123'],
+      request: () => subject.asObservable(),
+      tempId: 'temp_123',
+      dedupeKey: 'test-6a',
+    });
     expect(svc.isPending('temp_123')).toBe(true);
-    subject.next(); subject.complete();
+    subject.next();
+    subject.complete();
     expect(svc.isPending('temp_123')).toBe(false);
   });
 
   // 6b. tempId: gone after revert
   it('isPending false after revert', () => {
     const sig = makeSignal<string[]>([]);
-    svc.run({ signal: sig, apply: (list) => [...list, 'temp_456'], request: () => throwError(() => ({ error: {} })), tempId: 'temp_456', dedupeKey: 'test-6b' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'temp_456'],
+      request: () => throwError(() => ({ error: {} })),
+      tempId: 'temp_456',
+      dedupeKey: 'test-6b',
+    });
     expect(svc.isPending('temp_456')).toBe(false);
   });
 
@@ -118,9 +155,16 @@ describe('OptimisticService', () => {
     const sig = makeSignal<number[]>([]);
     const mirror = vi.fn();
     const subject = new Subject<void>();
-    svc.run({ signal: sig, apply: (list) => [...list, 1], request: () => subject.asObservable(), mirror, dedupeKey: 'test-7a' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 1],
+      request: () => subject.asObservable(),
+      mirror,
+      dedupeKey: 'test-7a',
+    });
     expect(mirror).toHaveBeenCalledWith([1]);
-    subject.next(); subject.complete();
+    subject.next();
+    subject.complete();
     expect(mirror).toHaveBeenLastCalledWith([1]);
   });
 
@@ -128,7 +172,13 @@ describe('OptimisticService', () => {
   it('mirror receives baseline value after revert', () => {
     const sig = makeSignal<number[]>([10]);
     const mirror = vi.fn();
-    svc.run({ signal: sig, apply: (list) => [...list, 99], request: () => throwError(() => ({ error: {} })), mirror, dedupeKey: 'test-7b' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 99],
+      request: () => throwError(() => ({ error: {} })),
+      mirror,
+      dedupeKey: 'test-7b',
+    });
     const lastCall = mirror.mock.calls[mirror.mock.calls.length - 1][0] as number[];
     expect(lastCall).toEqual([10]);
   });
@@ -143,10 +193,24 @@ describe('OptimisticService', () => {
     const sig = makeSignal<string[]>([]);
     const mirrorA = vi.fn();
     const mirrorB = vi.fn();
-    svc.run({ signal: sig, apply: (list) => [...list, 'a'], request: () => of(null), mirror: mirrorA, contextKey: 'A', dedupeKey: 'test-9-a' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'a'],
+      request: () => of(null),
+      mirror: mirrorA,
+      contextKey: 'A',
+      dedupeKey: 'test-9-a',
+    });
     expect(mirrorA).toHaveBeenCalled();
     sig.set([]);
-    svc.run({ signal: sig, apply: (list) => [...list, 'b'], request: () => of(null), mirror: mirrorB, contextKey: 'B', dedupeKey: 'test-9-b' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'b'],
+      request: () => of(null),
+      mirror: mirrorB,
+      contextKey: 'B',
+      dedupeKey: 'test-9-b',
+    });
     expect(mirrorB).toHaveBeenCalled();
     const lastB = mirrorB.mock.calls[mirrorB.mock.calls.length - 1][0] as string[];
     expect(lastB).toContain('b');
@@ -156,11 +220,24 @@ describe('OptimisticService', () => {
   it('superseded op (A) confirms after switch to B — signal unchanged', () => {
     const sig = makeSignal<string[]>([]);
     const subjectA = new Subject<void>();
-    svc.run({ signal: sig, apply: (list) => [...list, 'from-A'], request: () => subjectA.asObservable(), contextKey: 'A', dedupeKey: 'test-10a-a' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'from-A'],
+      request: () => subjectA.asObservable(),
+      contextKey: 'A',
+      dedupeKey: 'test-10a-a',
+    });
     sig.set([]);
-    svc.run({ signal: sig, apply: (list) => [...list, 'from-B'], request: () => of(null), contextKey: 'B', dedupeKey: 'test-10a-b' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'from-B'],
+      request: () => of(null),
+      contextKey: 'B',
+      dedupeKey: 'test-10a-b',
+    });
     const afterB = sig();
-    subjectA.next(); subjectA.complete();
+    subjectA.next();
+    subjectA.complete();
     expect(sig()).toEqual(afterB);
   });
 
@@ -168,9 +245,22 @@ describe('OptimisticService', () => {
   it('superseded op (A) errors — toasts, does not touch signal', () => {
     const sig = makeSignal<string[]>([]);
     const subjectA = new Subject<void>();
-    svc.run({ signal: sig, apply: (list) => [...list, 'from-A'], request: () => subjectA.asObservable(), contextKey: 'A', errorMessage: 'A failed', dedupeKey: 'test-10b-a' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'from-A'],
+      request: () => subjectA.asObservable(),
+      contextKey: 'A',
+      errorMessage: 'A failed',
+      dedupeKey: 'test-10b-a',
+    });
     sig.set([]);
-    svc.run({ signal: sig, apply: (list) => [...list, 'from-B'], request: () => of(null), contextKey: 'B', dedupeKey: 'test-10b-b' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'from-B'],
+      request: () => of(null),
+      contextKey: 'B',
+      dedupeKey: 'test-10b-b',
+    });
     const afterB = sig();
     subjectA.error({ error: {} });
     expect(toast.error).toHaveBeenCalledWith('A failed');
@@ -182,7 +272,7 @@ describe('OptimisticService', () => {
     const sig = makeSignal<number[]>([]);
     const token = svc.beginRead(sig);
     expect(svc.commitRead(sig, [1], token)).toBe(true);
-    expect(svc.commitRead(sig, [2], token)).toBe(false);  // epoch moved
+    expect(svc.commitRead(sig, [2], token)).toBe(false); // epoch moved
   });
 
   // 12. A→B→A ping-pong
@@ -201,9 +291,16 @@ describe('OptimisticService', () => {
   it('ABA: old read from incarnation 1 cannot match incarnation 2 epoch', () => {
     const sig = makeSignal<string[]>(['initial']);
     const tokenInc1 = svc.beginRead(sig);
-    svc.run({ signal: sig, apply: (list) => list.filter((x) => x !== 'initial'), request: () => of(null), dedupeKey: 'test-13' });
-    sig.set([]); svc.beginRead(sig, 'B');
-    sig.set(['A-reborn']); svc.beginRead(sig, 'A');
+    svc.run({
+      signal: sig,
+      apply: (list) => list.filter((x) => x !== 'initial'),
+      request: () => of(null),
+      dedupeKey: 'test-13',
+    });
+    sig.set([]);
+    svc.beginRead(sig, 'B');
+    sig.set(['A-reborn']);
+    svc.beginRead(sig, 'A');
     expect(svc.commitRead(sig, ['should-not-land'], tokenInc1)).toBe(false);
     expect(sig()).toEqual(['A-reborn']);
   });
@@ -216,39 +313,88 @@ describe('OptimisticService', () => {
     svc.commitRead(sig, ['from-server'], token, mirror);
     expect(mirror).toHaveBeenCalledWith(['from-server']);
     mirror.mockClear();
-    svc.run({ signal: sig, apply: (list) => [...list, 'op'], request: () => of(null), contextKey: 'salon1', dedupeKey: 'test-14' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'op'],
+      request: () => of(null),
+      contextKey: 'salon1',
+      dedupeKey: 'test-14',
+    });
     expect(mirror).toHaveBeenCalled();
   });
 
   // 15. onSettled fires exactly once — all four terminal paths
   it('onSettled fires exactly once on confirm', () => {
-    const sig = makeSignal<number[]>([]); let count = 0;
-    svc.run({ signal: sig, apply: (list) => [...list, 1], request: () => of(null), onSettled: () => count++, dedupeKey: 'test-15a' });
+    const sig = makeSignal<number[]>([]);
+    let count = 0;
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 1],
+      request: () => of(null),
+      onSettled: () => count++,
+      dedupeKey: 'test-15a',
+    });
     expect(count).toBe(1);
   });
 
   it('onSettled fires exactly once on revert', () => {
-    const sig = makeSignal<number[]>([]); let count = 0;
-    svc.run({ signal: sig, apply: (list) => [...list, 1], request: () => throwError(() => ({ error: {} })), onSettled: () => count++, dedupeKey: 'test-15b' });
+    const sig = makeSignal<number[]>([]);
+    let count = 0;
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 1],
+      request: () => throwError(() => ({ error: {} })),
+      onSettled: () => count++,
+      dedupeKey: 'test-15b',
+    });
     expect(count).toBe(1);
   });
 
   it('onSettled fires exactly once on superseded-confirm', () => {
     const sig = makeSignal<string[]>([]);
-    const subjectA = new Subject<void>(); let count = 0;
-    svc.run({ signal: sig, apply: (list) => [...list, 'A'], request: () => subjectA.asObservable(), contextKey: 'A', onSettled: () => count++, dedupeKey: 'test-15c-a' });
+    const subjectA = new Subject<void>();
+    let count = 0;
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'A'],
+      request: () => subjectA.asObservable(),
+      contextKey: 'A',
+      onSettled: () => count++,
+      dedupeKey: 'test-15c-a',
+    });
     sig.set([]);
-    svc.run({ signal: sig, apply: (list) => [...list, 'B'], request: () => of(null), contextKey: 'B', dedupeKey: 'test-15c-b' });
-    subjectA.next(); subjectA.complete();
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'B'],
+      request: () => of(null),
+      contextKey: 'B',
+      dedupeKey: 'test-15c-b',
+    });
+    subjectA.next();
+    subjectA.complete();
     expect(count).toBe(1);
   });
 
   it('onSettled fires exactly once on superseded-revert', () => {
     const sig = makeSignal<string[]>([]);
-    const subjectA = new Subject<void>(); let count = 0;
-    svc.run({ signal: sig, apply: (list) => [...list, 'A'], request: () => subjectA.asObservable(), contextKey: 'A', onSettled: () => count++, dedupeKey: 'test-15d-a' });
+    const subjectA = new Subject<void>();
+    let count = 0;
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'A'],
+      request: () => subjectA.asObservable(),
+      contextKey: 'A',
+      onSettled: () => count++,
+      dedupeKey: 'test-15d-a',
+    });
     sig.set([]);
-    svc.run({ signal: sig, apply: (list) => [...list, 'B'], request: () => of(null), contextKey: 'B', dedupeKey: 'test-15d-b' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'B'],
+      request: () => of(null),
+      contextKey: 'B',
+      dedupeKey: 'test-15d-b',
+    });
     subjectA.error({ error: {} });
     expect(count).toBe(1);
   });
@@ -260,29 +406,62 @@ describe('OptimisticService', () => {
     const sig = makeSignal<string[]>([]);
     const subject = new Subject<void>();
     let requestCount = 0;
-    const request = () => { requestCount++; return subject.asObservable(); };
-    svc.run({ signal: sig, apply: (list) => [...list, 'row'], request, dedupeKey: 'create:salon1:name' });
+    const request = () => {
+      requestCount++;
+      return subject.asObservable();
+    };
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'row'],
+      request,
+      dedupeKey: 'create:salon1:name',
+    });
     expect(sig()).toEqual(['row']);
     // Second call, same key, first still unsettled — must be a no-op.
-    svc.run({ signal: sig, apply: (list) => [...list, 'row'], request, dedupeKey: 'create:salon1:name' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'row'],
+      request,
+      dedupeKey: 'create:salon1:name',
+    });
     expect(sig()).toEqual(['row']); // NOT ['row', 'row']
     expect(requestCount).toBe(1);
   });
 
   it('dedupeKey: releases on confirm — a later call with the same key runs normally', () => {
     const sig = makeSignal<string[]>([]);
-    svc.run({ signal: sig, apply: (list) => [...list, 'first'], request: () => of(null), dedupeKey: 'k' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'first'],
+      request: () => of(null),
+      dedupeKey: 'k',
+    });
     expect(sig()).toEqual(['first']);
     // First has already settled synchronously (of(null)) — key is free again.
-    svc.run({ signal: sig, apply: (list) => [...list, 'second'], request: () => of(null), dedupeKey: 'k' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'second'],
+      request: () => of(null),
+      dedupeKey: 'k',
+    });
     expect(sig()).toEqual(['first', 'second']);
   });
 
   it('dedupeKey: releases on revert — a later call with the same key runs normally', () => {
     const sig = makeSignal<string[]>([]);
-    svc.run({ signal: sig, apply: (list) => [...list, 'x'], request: () => throwError(() => ({ error: {} })), dedupeKey: 'k' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'x'],
+      request: () => throwError(() => ({ error: {} })),
+      dedupeKey: 'k',
+    });
     expect(sig()).toEqual([]); // reverted
-    svc.run({ signal: sig, apply: (list) => [...list, 'y'], request: () => of(null), dedupeKey: 'k' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'y'],
+      request: () => of(null),
+      dedupeKey: 'k',
+    });
     expect(sig()).toEqual(['y']); // key was free — this call went through
   });
 
@@ -294,14 +473,33 @@ describe('OptimisticService', () => {
     // being destroyed mid-flight (real Angular calls this when the injector tears down).
     let destroyCallback: (() => void) | undefined;
     const destroyRef = {
-      onDestroy: (cb: () => void) => { destroyCallback = cb; return () => {}; },
+      onDestroy: (cb: () => void) => {
+        destroyCallback = cb;
+        return () => {};
+      },
       destroyed: false,
     } as unknown as DestroyRef;
     // No next/error/complete ever emitted — simulates a component destroyed mid-flight.
-    svc.run({ signal: sig, apply: (list) => [...list, 'row'], request: () => subject.asObservable(), dedupeKey: 'k' }, destroyRef);
+    svc.run(
+      {
+        signal: sig,
+        apply: (list) => [...list, 'row'],
+        request: () => subject.asObservable(),
+        dedupeKey: 'k',
+      },
+      destroyRef,
+    );
     destroyCallback?.(); // fire teardown — takeUntilDestroyed unsubscribes, finalize runs
     let requestCount = 0;
-    svc.run({ signal: sig, apply: (list) => [...list, 'row2'], request: () => { requestCount++; return of(null); }, dedupeKey: 'k' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'row2'],
+      request: () => {
+        requestCount++;
+        return of(null);
+      },
+      dedupeKey: 'k',
+    });
     expect(requestCount).toBe(1); // second run() was NOT blocked — key was freed
   });
 
@@ -309,8 +507,18 @@ describe('OptimisticService', () => {
     const sig = makeSignal<string[]>([]);
     const subjectA = new Subject<void>();
     const subjectB = new Subject<void>();
-    svc.run({ signal: sig, apply: (list) => [...list, 'A'], request: () => subjectA.asObservable(), dedupeKey: 'create:salon1:foo' });
-    svc.run({ signal: sig, apply: (list) => [...list, 'B'], request: () => subjectB.asObservable(), dedupeKey: 'create:salon1:bar' });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'A'],
+      request: () => subjectA.asObservable(),
+      dedupeKey: 'create:salon1:foo',
+    });
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'B'],
+      request: () => subjectB.asObservable(),
+      dedupeKey: 'create:salon1:bar',
+    });
     expect(sig()).toEqual(['A', 'B']); // both painted — distinct keys, no gating between them
   });
 
@@ -340,7 +548,9 @@ describe('OptimisticService', () => {
     // 2. A concurrent load() re-mounts and hits that same tainted cache while
     // the create is still pending (simulates navigating back to the list page).
     const loadToken = svc.beginRead(sig, undefined);
-    const accepted = svc.commitRead(sig, cache.get('salon1')!, loadToken, (v) => cache.set('salon1', v));
+    const accepted = svc.commitRead(sig, cache.get('salon1')!, loadToken, (v) =>
+      cache.set('salon1', v),
+    );
     expect(accepted).toBe(false); // deferred — must NOT bake the tainted cache into baseline
     expect(sig()).toEqual(['new-row']); // still just the optimistic paint, unchanged
 
@@ -351,5 +561,168 @@ describe('OptimisticService', () => {
     // the fix, the tainted cache-hit in step 2 would have welded 'new-row'
     // into baseline, and this would incorrectly still show ['new-row'].
     expect(sig()).toEqual([]);
+  });
+
+  // 18. run() returns boolean — false when dropped by the dedupeKey gate, true
+  // when accepted. This is what a manual-companion-signal caller (Part 3h,
+  // e.g. FavoritesService._list) must gate its own write on — see Part 7.1.
+  it('run() returns true when accepted, false when dropped by dedupeKey gate', () => {
+    const sig = makeSignal<string[]>([]);
+    const subject = new Subject<void>();
+    const first = svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'a'],
+      request: () => subject.asObservable(),
+      dedupeKey: 'test-18',
+    });
+    expect(first).toBe(true);
+    const second = svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'a'],
+      request: () => subject.asObservable(),
+      dedupeKey: 'test-18',
+    });
+    expect(second).toBe(false);
+  });
+
+  // 19. The exact FavoritesService.toggle double-tap bug (Part 7.1): toggle()
+  // reads `wasFavorited` from the engine signal to decide which way to splice
+  // a manual companion signal (_list). If the companion splice runs
+  // unconditionally (the old code), a double-tap produces: tap 1 removes from
+  // companion (accepted); tap 2 reads the now-optimistic "unfavorited" state,
+  // so wasFavorited=false, and RE-ADDS to companion — then run() is silently
+  // dropped by the dedupeKey gate. End state: engine signal says unfavorited,
+  // but companion has the row back — a real desync, not a no-op. Gating the
+  // splice on run()'s return value fixes it: the dropped second call touches
+  // nothing.
+  it('regression: FavoritesService-style double-tap desyncs an unconditionally-mutated companion signal; gating on run()s return value fixes it', () => {
+    const favoritedIds = makeSignal<Set<string>>(new Set(['salon-1']));
+    const companionList = signal<string[]>(['salon-1']);
+    const isFavorited = (): boolean => favoritedIds().has('salon-1');
+    const subject = new Subject<void>();
+
+    function toggleBuggy(): void {
+      const wasFavorited = isFavorited();
+      // Unconditional splice BEFORE run() — the pre-fix pattern.
+      if (wasFavorited) {
+        companionList.update((items) => items.filter((s) => s !== 'salon-1'));
+      } else {
+        companionList.update((items) =>
+          items.includes('salon-1') ? items : [...items, 'salon-1'],
+        );
+      }
+      svc.run({
+        signal: favoritedIds,
+        apply: (ids) => {
+          const n = new Set(ids);
+          wasFavorited ? n.delete('salon-1') : n.add('salon-1');
+          return n;
+        },
+        request: () => subject.asObservable(),
+        dedupeKey: 'FavoritesService.toggle:salon-1',
+      });
+    }
+
+    toggleBuggy(); // tap 1: unfavorite — accepted, companion spliced out
+    expect(companionList()).toEqual([]);
+    expect(isFavorited()).toBe(false);
+    toggleBuggy(); // tap 2 (double-tap, still in flight): reads wasFavorited=false → RE-ADDS to
+    // companion, then run() is dropped by dedupeKey — nothing left to ever undo the re-add.
+    expect(companionList()).toEqual(['salon-1']); // BUG: desynced — engine still says unfavorited
+    expect(isFavorited()).toBe(false);
+
+    // Now the fixed pattern: gate the companion mutation on run()'s return value.
+    favoritedIds.set(new Set(['salon-1']));
+    companionList.set(['salon-1']);
+    function toggleFixed(): void {
+      const wasFavorited = isFavorited();
+      const accepted = svc.run({
+        signal: favoritedIds,
+        apply: (ids) => {
+          const n = new Set(ids);
+          wasFavorited ? n.delete('salon-1') : n.add('salon-1');
+          return n;
+        },
+        request: () => subject.asObservable(),
+        dedupeKey: 'FavoritesService.toggle:salon-1:fixed',
+      });
+      if (!accepted) return;
+      if (wasFavorited) {
+        companionList.update((items) => items.filter((s) => s !== 'salon-1'));
+      } else {
+        companionList.update((items) =>
+          items.includes('salon-1') ? items : [...items, 'salon-1'],
+        );
+      }
+    }
+
+    toggleFixed(); // tap 1: accepted, companion spliced out
+    expect(companionList()).toEqual([]);
+    toggleFixed(); // tap 2 (double-tap): run() dropped by dedupeKey → accepted=false → companion untouched
+    expect(companionList()).toEqual([]); // FIXED: stays in sync
+  });
+
+  // 20. reset() — the legal way for clear() to wipe an engine-managed signal.
+  // Direct .set() on an engine-managed signal is rule #3's violation (the ledger
+  // survives with a stale baseline); reset() deletes the ledger so the next
+  // beginRead/run gets a fresh incarnation with a fresh epoch.
+
+  it('reset: sets the signal to the provided value', () => {
+    const sig = makeSignal<string[]>(['existing']);
+    const token = svc.beginRead(sig);
+    svc.commitRead(sig, ['server'], token);
+    svc.reset(sig, []);
+    expect(sig()).toEqual([]);
+  });
+
+  it('reset: pending op settles superseded — signal untouched after reset', () => {
+    const sig = makeSignal<string[]>([]);
+    const subject = new Subject<void>();
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'op'],
+      request: () => subject.asObservable(),
+      dedupeKey: 'test-20b',
+    });
+    expect(sig()).toEqual(['op']);
+    svc.reset(sig, []);
+    expect(sig()).toEqual([]); // reset wiped the optimistic state
+    subject.next();
+    subject.complete(); // op confirms — ledger is gone (superseded path)
+    expect(sig()).toEqual([]); // signal must not move — the op's context is gone
+  });
+
+  it('reset: next beginRead with same contextKey gets a fresh ledger and epoch', () => {
+    const sig = makeSignal<string[]>(['initial']);
+    const tokenBefore = svc.beginRead(sig, 'salon-a');
+    svc.reset(sig, []);
+    // A new beginRead with the same contextKey must produce a fresh epoch —
+    // the old token must not match.
+    svc.beginRead(sig, 'salon-a');
+    const accepted = svc.commitRead(sig, ['stale'], tokenBefore);
+    expect(accepted).toBe(false); // epoch mismatch — fresh incarnation
+    expect(sig()).toEqual([]); // still the reset value
+  });
+
+  it('reset: logout→login window closed — same salonId after login gets fresh ledger', () => {
+    // Simulates: user logs in to salon A, we have a pending op (e.g. toggle),
+    // logout/reset wipes the signal, user logs back in to the same salon A.
+    // A mutation issued before the first load of the new session must NOT
+    // recompute from the previous session's baseline.
+    const sig = makeSignal<string[]>(['session-1-data']);
+    const token1 = svc.beginRead(sig, 'salon-a'); // session 1
+    svc.commitRead(sig, ['session-1-data'], token1);
+
+    svc.reset(sig, []); // logout
+    // After reset, login to same salon — same contextKey
+    svc.run({
+      signal: sig,
+      apply: (list) => [...list, 'new-op'],
+      request: () => of(null),
+      contextKey: 'salon-a',
+      dedupeKey: 'test-20d',
+    });
+    // The new op's baseline should be [] (the reset value), NOT ['session-1-data'].
+    expect(sig()).toEqual(['new-op']); // baseline was [], apply added 'new-op'
   });
 });

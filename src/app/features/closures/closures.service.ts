@@ -1,6 +1,6 @@
 import { CacheRegistry } from '../../core/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
-import { retry } from 'rxjs';
+import { map } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { ApiConfiguration } from '../../api/api-configuration';
 import { Closure } from '../../api/models/closure';
@@ -11,7 +11,8 @@ import { salonClosuresControllerDelete } from '../../api/fn/schedules/salon-clos
 import { staffClosuresControllerFindAll } from '../../api/fn/schedules/staff-closures-controller-find-all';
 import { staffClosuresControllerCreate } from '../../api/fn/schedules/staff-closures-controller-create';
 import { staffClosuresControllerDelete } from '../../api/fn/schedules/staff-closures-controller-delete';
-import { OptimisticService, ReadToken } from '../../core/optimistic/optimistic.service';
+import { OptimisticService } from '../../core/optimistic/optimistic.service';
+import { CachedLoader } from '../../core/optimistic/cached-loader';
 
 @Injectable({ providedIn: 'root' })
 export class ClosuresService {
@@ -29,53 +30,53 @@ export class ClosuresService {
 
   private readonly _salonClosures = signal<Closure[]>([]);
   private readonly _staffClosures = signal<Closure[]>([]);
-  private readonly _loading = signal(false);
-  private readonly _error = signal(false);
-  private _inflight = new Set<string>();
+
+  private readonly _salonLoader = new CachedLoader({
+    signal: this._salonClosures,
+    optimistic: this._optimistic,
+    cache: this._salonCache,
+    fetch: (salonId) =>
+      salonClosuresControllerFindAll(this._http, this._apiConfig.rootUrl, { salonId }).pipe(
+        map((r) => r.body),
+      ),
+  });
+
+  private readonly _staffLoader = new CachedLoader({
+    signal: this._staffClosures,
+    optimistic: this._optimistic,
+    cache: this._staffCache,
+    fetch: (ctx) => {
+      const colonIdx = ctx.indexOf(':');
+      const salonId = ctx.slice(0, colonIdx);
+      const staffId = ctx.slice(colonIdx + 1);
+      return staffClosuresControllerFindAll(this._http, this._apiConfig.rootUrl, {
+        salonId,
+        staffId,
+      }).pipe(map((r) => r.body));
+    },
+  });
 
   readonly salonClosures = this._salonClosures.asReadonly();
   readonly staffClosures = this._staffClosures.asReadonly();
-  readonly loading = this._loading.asReadonly();
-  readonly error = this._error.asReadonly();
+  readonly salonLoading = this._salonLoader.loading;
+  readonly salonError = this._salonLoader.error;
+  readonly staffLoading = this._staffLoader.loading;
+  readonly staffError = this._staffLoader.error;
 
   loadSalon(salonId: string): void {
-    const token = this._optimistic.beginRead(this._salonClosures, salonId);
-    const cached = this._salonCache.get(salonId);
-    if (cached) {
-      this._optimistic.commitRead(this._salonClosures, cached, token, (v) =>
-        this._salonCache.set(salonId, v),
-      );
-      return;
-    }
-    if (this._inflight.has(salonId)) return;
-    this._fetchSalon(salonId, token);
+    this._salonLoader.load(salonId);
   }
 
   loadStaff(salonId: string, staffId: string): void {
-    const ctx = `${salonId}:${staffId}`;
-    const token = this._optimistic.beginRead(this._staffClosures, ctx);
-    const cached = this._staffCache.get(ctx);
-    if (cached) {
-      this._optimistic.commitRead(this._staffClosures, cached, token, (v) =>
-        this._staffCache.set(ctx, v),
-      );
-      return;
-    }
-    if (this._inflight.has(ctx)) return;
-    this._fetchStaff(salonId, staffId, token);
+    this._staffLoader.load(`${salonId}:${staffId}`);
   }
 
   refreshSalon(salonId: string): void {
-    const token = this._optimistic.beginRead(this._salonClosures, salonId);
-    this._salonCache.delete(salonId);
-    this._fetchSalon(salonId, token);
+    this._salonLoader.refresh(salonId);
   }
 
   refreshStaff(salonId: string, staffId: string): void {
-    const ctx = `${salonId}:${staffId}`;
-    const token = this._optimistic.beginRead(this._staffClosures, ctx);
-    this._staffCache.delete(ctx);
-    this._fetchStaff(salonId, staffId, token);
+    this._staffLoader.refresh(`${salonId}:${staffId}`);
   }
 
   createSalon(salonId: string, body: CreateClosureDto, onSuccess?: () => void): void {
@@ -83,14 +84,11 @@ export class ClosuresService {
     const optimisticRow = { id: tempId, date: body.date, reason: body.reason ?? null } as Closure;
     this._optimistic.run({
       signal: this._salonClosures,
-      // apply is REPLAYED on every recompute (e.g. a concurrent load()'s
-      // commitRead landing while this create is still pending) — must be
-      // idempotent or a replay duplicates the row. Guard by tempId.
       apply: (list) => (list.some((c) => c.id === tempId) ? list : [...list, optimisticRow]),
       reconcile: (list, res) => list.map((c) => (c.id === tempId ? res.body : c)),
       tempId,
-      dedupeKey: `create-closure:${salonId}:${body.date}`,
-      mirror: (v) => this._salonCache.set(salonId, v),
+      dedupeKey: `ClosuresService.createSalon:${salonId}:${body.date}`,
+      mirror: this._salonLoader.mirrorFn(salonId),
       contextKey: salonId,
       request: () =>
         salonClosuresControllerCreate(this._http, this._apiConfig.rootUrl, { salonId, body }),
@@ -110,14 +108,11 @@ export class ClosuresService {
     const optimisticRow = { id: tempId, date: body.date, reason: body.reason ?? null } as Closure;
     this._optimistic.run({
       signal: this._staffClosures,
-      // apply is REPLAYED on every recompute (e.g. a concurrent load()'s
-      // commitRead landing while this create is still pending) — must be
-      // idempotent or a replay duplicates the row. Guard by tempId.
       apply: (list) => (list.some((c) => c.id === tempId) ? list : [...list, optimisticRow]),
       reconcile: (list, res) => list.map((c) => (c.id === tempId ? res.body : c)),
       tempId,
-      dedupeKey: `create-closure:${ctx}:${body.date}`,
-      mirror: (v) => this._staffCache.set(ctx, v),
+      dedupeKey: `ClosuresService.createStaff:${ctx}:${body.date}`,
+      mirror: this._staffLoader.mirrorFn(ctx),
       contextKey: ctx,
       request: () =>
         staffClosuresControllerCreate(this._http, this._apiConfig.rootUrl, {
@@ -136,7 +131,7 @@ export class ClosuresService {
       signal: this._salonClosures,
       dedupeKey: `ClosuresService.deleteSalon:${closureId}`,
       apply: (list) => list.filter((c) => c.id !== closureId),
-      mirror: (v) => this._salonCache.set(salonId, v),
+      mirror: this._salonLoader.mirrorFn(salonId),
       contextKey: salonId,
       request: () =>
         salonClosuresControllerDelete(this._http, this._apiConfig.rootUrl, { salonId, closureId }),
@@ -152,7 +147,7 @@ export class ClosuresService {
       signal: this._staffClosures,
       dedupeKey: `ClosuresService.deleteStaff:${closureId}`,
       apply: (list) => list.filter((c) => c.id !== closureId),
-      mirror: (v) => this._staffCache.set(ctx, v),
+      mirror: this._staffLoader.mirrorFn(ctx),
       contextKey: ctx,
       request: () =>
         staffClosuresControllerDelete(this._http, this._apiConfig.rootUrl, {
@@ -168,57 +163,7 @@ export class ClosuresService {
   clear(): void {
     this._salonCache.clear();
     this._staffCache.clear();
-    this._salonClosures.set([]);
-    this._staffClosures.set([]);
-  }
-
-  private _fetchSalon(salonId: string, token: ReadToken): void {
-    this._inflight.add(salonId);
-    this._loading.set(true);
-    this._error.set(false);
-    salonClosuresControllerFindAll(this._http, this._apiConfig.rootUrl, { salonId })
-      .pipe(retry(1))
-      .subscribe({
-        next: (res) => {
-          this._inflight.delete(salonId);
-          this._salonCache.set(salonId, res.body);
-          this._optimistic.commitRead(this._salonClosures, res.body, token, (v) =>
-            this._salonCache.set(salonId, v),
-          );
-          this._loading.set(false);
-        },
-        error: () => {
-          this._inflight.delete(salonId);
-          this._error.set(true);
-          this._loading.set(false);
-        },
-      });
-  }
-
-  private _fetchStaff(salonId: string, staffId: string, token: ReadToken): void {
-    const ctx = `${salonId}:${staffId}`;
-    this._inflight.add(ctx);
-    this._loading.set(true);
-    this._error.set(false);
-    staffClosuresControllerFindAll(this._http, this._apiConfig.rootUrl, {
-      salonId,
-      staffId,
-    })
-      .pipe(retry(1))
-      .subscribe({
-        next: (res) => {
-          this._inflight.delete(ctx);
-          this._staffCache.set(ctx, res.body);
-          this._optimistic.commitRead(this._staffClosures, res.body, token, (v) =>
-            this._staffCache.set(ctx, v),
-          );
-          this._loading.set(false);
-        },
-        error: () => {
-          this._inflight.delete(ctx);
-          this._error.set(true);
-          this._loading.set(false);
-        },
-      });
+    this._optimistic.reset(this._salonClosures, []);
+    this._optimistic.reset(this._staffClosures, []);
   }
 }

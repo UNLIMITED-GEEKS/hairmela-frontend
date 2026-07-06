@@ -123,6 +123,9 @@ export class JoinQueueComponent implements OnInit {
     const slug = this._slug;
     const prefix = this._shellPrefix;
     if (!salon || !queueId) return;
+    // Belt-and-suspenders: a join is already in flight (pendingJoin is set) means
+    // the dialog is closed and the component is navigating away — drop any re-entrant call.
+    if (this.visit.pendingJoin() !== null) return;
 
     // Navigate to /joining FIRST (navigation-is-feedback).
     // The JoiningQueueComponent reads visit.pendingJoin() and routes to position or back.

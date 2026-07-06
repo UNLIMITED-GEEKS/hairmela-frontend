@@ -82,12 +82,38 @@ export class OptimisticService {
     return { epoch: this._ledgerFor(sig, undefined, contextKey).epoch };
   }
 
-  run<T, R>(config: OptimisticConfig<T, R>, destroyRef?: DestroyRef): void {
+  /**
+   * Wipe an engine-managed signal on logout (or any context teardown).
+   * Deletes the ledger — the next `beginRead`/`run` creates a fresh incarnation
+   * with a fresh globally-monotonic epoch, so tokens from the previous session
+   * can never match. Sets the signal to `value` so it visibly reflects the
+   * cleared state.
+   *
+   * In-flight ops on the deleted ledger will settle through the existing
+   * superseded path (`_isSuperseded` returns true when the ledger is gone).
+   *
+   * MUST replace every `signal.set(emptyValue)` in `clear()` methods — direct
+   * `.set()` on an engine-managed signal is the rule #3 violation this fixes.
+   */
+  reset<T>(sig: WritableSignal<T>, value: T): void {
+    this._ledgers.delete(sig as WritableSignal<unknown>);
+    sig.set(value);
+  }
+
+  /**
+   * Returns `true` if the op was accepted (painted + request fired), `false`
+   * if dropped by the dedupeKey gate (a re-entrant call while the same key is
+   * still in flight). Callers that also mutate a second, manually-kept-in-sync
+   * signal (Part 3h's named-exception pattern) MUST gate that companion write
+   * on this return value — otherwise a dropped run() still lets the companion
+   * mutation through with nothing to ever revert it.
+   */
+  run<T, R>(config: OptimisticConfig<T, R>, destroyRef?: DestroyRef): boolean {
     // Idempotency gate: a re-entrant run() with a dedupeKey already in flight
     // is dropped entirely — no op, no optimistic paint, no request. This is
     // what stops a double-tapped "Create" from producing two rows + two POSTs
     // (creates can't self-guard on isPending — every call mints a fresh tempId).
-    if (this._inflightKeys.has(config.dedupeKey)) return;
+    if (this._inflightKeys.has(config.dedupeKey)) return false;
     this._inflightKeys.add(config.dedupeKey);
 
     const ledger = this._ledgerFor(config.signal, config.mirror, config.contextKey);
@@ -141,6 +167,7 @@ export class OptimisticService {
         config.onSettled?.();
       },
     });
+    return true;
   }
 
   /**

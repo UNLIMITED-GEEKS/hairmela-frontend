@@ -1,6 +1,6 @@
 import { CacheRegistry } from '../../core/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
-import { retry } from 'rxjs';
+import { map } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { ApiConfiguration } from '../../api/api-configuration';
 import { Service } from '../../api/models/service';
@@ -17,7 +17,8 @@ import { staffServicesControllerAssignService } from '../../api/fn/services/staf
 import { staffServicesControllerRemoveService } from '../../api/fn/services/staff-services-controller-remove-service';
 import { staffServicesControllerSetDefaultService } from '../../api/fn/services/staff-services-controller-set-default-service';
 import { ToastService } from '../../core/toast/toast.service';
-import { OptimisticService, ReadToken } from '../../core/optimistic/optimistic.service';
+import { OptimisticService } from '../../core/optimistic/optimistic.service';
+import { CachedLoader } from '../../core/optimistic/cached-loader';
 
 @Injectable({ providedIn: 'root' })
 export class ServicesService {
@@ -36,53 +37,54 @@ export class ServicesService {
 
   private readonly _services = signal<Service[]>([]);
   private readonly _staffServices = signal<StaffServiceModel[]>([]);
-  private readonly _loading = signal(false);
-  private readonly _error = signal(false);
-  private _inflight = new Set<string>();
+
+  // Two independent loaders — salon services and staff services are separate
+  // fetch families and can load concurrently without sharing loading/error state.
+  private readonly _servicesLoader = new CachedLoader({
+    signal: this._services,
+    optimistic: this._optimistic,
+    cache: this._cache,
+    fetch: (salonId) =>
+      publicServicesControllerFindBySalon(this._http, this._apiConfig.rootUrl, { salonId }).pipe(
+        map((r) => r.body),
+      ),
+  });
+  private readonly _staffServicesLoader = new CachedLoader({
+    signal: this._staffServices,
+    optimistic: this._optimistic,
+    cache: this._staffServicesCache,
+    fetch: (ctx) => {
+      const colonIdx = ctx.indexOf(':');
+      const salonId = ctx.slice(0, colonIdx);
+      const staffId = ctx.slice(colonIdx + 1);
+      return staffServicesControllerGetStaffServices(this._http, this._apiConfig.rootUrl, {
+        salonId,
+        staffId,
+      }).pipe(map((r) => r.body));
+    },
+  });
 
   readonly services = this._services.asReadonly();
   readonly staffServices = this._staffServices.asReadonly();
-  readonly loading = this._loading.asReadonly();
-  readonly error = this._error.asReadonly();
+  readonly loading = this._servicesLoader.loading;
+  readonly staffServicesLoading = this._staffServicesLoader.loading;
+  readonly error = this._servicesLoader.error;
+  readonly staffServicesError = this._staffServicesLoader.error;
 
   load(salonId: string): void {
-    const token = this._optimistic.beginRead(this._services, salonId);
-    const cached = this._cache.get(salonId);
-    if (cached) {
-      this._optimistic.commitRead(this._services, cached, token, (v) =>
-        this._cache.set(salonId, v),
-      );
-      return;
-    }
-    if (this._inflight.has(salonId)) return;
-    this._fetchServices(salonId, token);
+    this._servicesLoader.load(salonId);
   }
 
   loadStaffServices(salonId: string, staffId: string): void {
-    const ctx = `${salonId}:${staffId}`;
-    const token = this._optimistic.beginRead(this._staffServices, ctx);
-    const cached = this._staffServicesCache.get(ctx);
-    if (cached) {
-      this._optimistic.commitRead(this._staffServices, cached, token, (v) =>
-        this._staffServicesCache.set(ctx, v),
-      );
-      return;
-    }
-    if (this._inflight.has(ctx)) return;
-    this._fetchStaffServices(salonId, staffId, token);
+    this._staffServicesLoader.load(`${salonId}:${staffId}`);
   }
 
   refresh(salonId: string): void {
-    const token = this._optimistic.beginRead(this._services, salonId);
-    this._cache.delete(salonId);
-    this._fetchServices(salonId, token);
+    this._servicesLoader.refresh(salonId);
   }
 
   refreshStaffServices(salonId: string, staffId: string): void {
-    const ctx = `${salonId}:${staffId}`;
-    const token = this._optimistic.beginRead(this._staffServices, ctx);
-    this._staffServicesCache.delete(ctx);
-    this._fetchStaffServices(salonId, staffId, token);
+    this._staffServicesLoader.refresh(`${salonId}:${staffId}`);
   }
 
   create(salonId: string, body: CreateServiceDto, onSuccess?: () => void): void {
@@ -99,8 +101,8 @@ export class ServicesService {
       apply: (list) => (list.some((s) => s.id === tempId) ? list : [...list, optimisticRow]),
       reconcile: (list, res) => list.map((s) => (s.id === tempId ? res.body : s)),
       tempId,
-      dedupeKey: `create-service:${salonId}:${body.name}`,
-      mirror: (v) => this._cache.set(salonId, v),
+      dedupeKey: `ServicesService.create:${salonId}:${body.name}`,
+      mirror: this._servicesLoader.mirrorFn(salonId),
       contextKey: salonId,
       request: () =>
         servicesControllerCreate(this._http, this._apiConfig.rootUrl, { salonId, body }),
@@ -115,9 +117,9 @@ export class ServicesService {
       signal: this._services,
       apply: (list) => list.map((s) => (s.id === serviceId ? { ...s, ...body } : s)),
       reconcile: (list, res) => list.map((s) => (s.id === serviceId ? res.body : s)),
-      mirror: (v) => this._cache.set(salonId, v),
+      mirror: this._servicesLoader.mirrorFn(salonId),
       contextKey: salonId,
-      dedupeKey: `update-service:${salonId}:${serviceId}`,
+      dedupeKey: `ServicesService.update:${salonId}:${serviceId}`,
       request: () =>
         servicesControllerUpdate(this._http, this._apiConfig.rootUrl, { salonId, serviceId, body }),
       errorMessage: 'Could not update service. Reverted.',
@@ -130,9 +132,9 @@ export class ServicesService {
     this._optimistic.run({
       signal: this._services,
       apply: (list) => list.filter((s) => s.id !== serviceId),
-      mirror: (v) => this._cache.set(salonId, v),
+      mirror: this._servicesLoader.mirrorFn(salonId),
       contextKey: salonId,
-      dedupeKey: `deactivate-service:${salonId}:${serviceId}`,
+      dedupeKey: `ServicesService.deactivate:${salonId}:${serviceId}`,
       request: () =>
         servicesControllerDeactivate(this._http, this._apiConfig.rootUrl, { salonId, serviceId }),
       errorMessage: 'Could not remove service. Restored.',
@@ -155,9 +157,9 @@ export class ServicesService {
           : [...list, placeholderRow as StaffServiceModel],
       // The backend returns the full authoritative list — replace, don't patch.
       reconcile: (_, res) => res.body,
-      mirror: (v) => this._staffServicesCache.set(ctx, v),
+      mirror: this._staffServicesLoader.mirrorFn(ctx),
       contextKey: ctx,
-      dedupeKey: `assign-service:${salonId}:${staffId}:${serviceId}`,
+      dedupeKey: `ServicesService.assignService:${salonId}:${staffId}:${serviceId}`,
       request: () =>
         staffServicesControllerAssignService(this._http, this._apiConfig.rootUrl, {
           salonId,
@@ -175,9 +177,9 @@ export class ServicesService {
       signal: this._staffServices,
       apply: (list) => list.filter((s) => s.serviceId !== serviceId),
       reconcile: (_, res) => res.body,
-      mirror: (v) => this._staffServicesCache.set(ctx, v),
+      mirror: this._staffServicesLoader.mirrorFn(ctx),
       contextKey: ctx,
-      dedupeKey: `remove-service:${salonId}:${staffId}:${serviceId}`,
+      dedupeKey: `ServicesService.removeService:${salonId}:${staffId}:${serviceId}`,
       request: () =>
         staffServicesControllerRemoveService(this._http, this._apiConfig.rootUrl, {
           salonId,
@@ -198,9 +200,9 @@ export class ServicesService {
     this._optimistic.run({
       signal: this._staffServices,
       apply: (list) => list.map((s) => ({ ...s, isDefault: s.serviceId === body.serviceId })),
-      mirror: (v) => this._staffServicesCache.set(ctx, v),
+      mirror: this._staffServicesLoader.mirrorFn(ctx),
       contextKey: ctx,
-      dedupeKey: `set-default-service:${salonId}:${staffId}:${body.serviceId}`,
+      dedupeKey: `ServicesService.setDefaultService:${salonId}:${staffId}:${body.serviceId}`,
       request: () =>
         staffServicesControllerSetDefaultService(this._http, this._apiConfig.rootUrl, {
           salonId,
@@ -216,57 +218,7 @@ export class ServicesService {
   clear(): void {
     this._cache.clear();
     this._staffServicesCache.clear();
-    this._services.set([]);
-    this._staffServices.set([]);
-  }
-
-  private _fetchServices(salonId: string, token: ReadToken): void {
-    this._inflight.add(salonId);
-    this._loading.set(true);
-    this._error.set(false);
-    publicServicesControllerFindBySalon(this._http, this._apiConfig.rootUrl, { salonId })
-      .pipe(retry(1))
-      .subscribe({
-        next: (res) => {
-          this._inflight.delete(salonId);
-          this._cache.set(salonId, res.body);
-          this._optimistic.commitRead(this._services, res.body, token, (v) =>
-            this._cache.set(salonId, v),
-          );
-          this._loading.set(false);
-        },
-        error: () => {
-          this._inflight.delete(salonId);
-          this._error.set(true);
-          this._loading.set(false);
-        },
-      });
-  }
-
-  private _fetchStaffServices(salonId: string, staffId: string, token: ReadToken): void {
-    const ctx = `${salonId}:${staffId}`;
-    this._inflight.add(ctx);
-    this._loading.set(true);
-    this._error.set(false);
-    staffServicesControllerGetStaffServices(this._http, this._apiConfig.rootUrl, {
-      salonId,
-      staffId,
-    })
-      .pipe(retry(1))
-      .subscribe({
-        next: (res) => {
-          this._inflight.delete(ctx);
-          this._staffServicesCache.set(ctx, res.body);
-          this._optimistic.commitRead(this._staffServices, res.body, token, (v) =>
-            this._staffServicesCache.set(ctx, v),
-          );
-          this._loading.set(false);
-        },
-        error: () => {
-          this._inflight.delete(ctx);
-          this._error.set(true);
-          this._loading.set(false);
-        },
-      });
+    this._optimistic.reset(this._services, []);
+    this._optimistic.reset(this._staffServices, []);
   }
 }
