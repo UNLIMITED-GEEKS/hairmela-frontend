@@ -94,9 +94,8 @@
             View queue
           </a>
           <button (click)="leaveQueue()"
-            [disabled]="visit.leaving()"
             class="flex-1 min-h-[52px] rounded-2xl border-2 border-primary text-primary font-bold text-sm disabled:opacity-50 hover:bg-primary-light transition-colors">
-            {{ visit.leaving() ? 'Leaving…' : 'Leave queue' }}
+            Leave queue
           </button>
         </div>
       }

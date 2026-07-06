@@ -71,25 +71,40 @@ export class StaffService {
   }
 
   invite(salonId: string, body: InviteStaffDto, onSuccess?: () => void): void {
-    if (this._acting()) return;
-    this._acting.set(true);
-    staffControllerInvite(this._http, this._apiConfig.rootUrl, { salonId, body }).subscribe({
-      next: () => {
-        this._acting.set(false);
+    const tempId = `temp_${crypto.randomUUID()}`;
+    // Predict: append a temp invite row instantly; reconcile via loadInvites
+    // on success since the endpoint returns void (no body to reconcile from).
+    const optimisticInvite: PendingInviteDto = {
+      staffId: tempId,
+      email: body.email,
+      role: body.role,
+      hasAccount: false,
+      invitedAt: new Date().toISOString(),
+    };
+    this._optimistic.run({
+      signal: this._invites,
+      apply: (list) => [...list, optimisticInvite],
+      contextKey: salonId,
+      tempId,
+      request: () => staffControllerInvite(this._http, this._apiConfig.rootUrl, { salonId, body }),
+      errorMessage: 'Could not send invite. Reverted.',
+      onSuccess: () => {
         this._toast.success('Invite sent');
-        this.refresh(salonId);
+        // Response is void — reload to get real invite data with server IDs
         this.loadInvites(salonId);
+        this.refresh(salonId);
         onSuccess?.();
       },
-      error: () => this._acting.set(false),
     });
   }
 
   loadInvites(salonId: string): void {
+    // Route reads through the engine so optimistic predictions survive in-flight loads
+    const token = this._optimistic.beginRead(this._invites, salonId);
     this._invitesLoading.set(true);
     staffControllerFindInvites(this._http, this._apiConfig.rootUrl, { salonId }).subscribe({
       next: (res) => {
-        this._invites.set(res.body);
+        this._optimistic.commitRead(this._invites, res.body, token);
         this._invitesLoading.set(false);
       },
       error: () => this._invitesLoading.set(false),
@@ -101,6 +116,7 @@ export class StaffService {
     this._optimistic.run({
       signal: this._invites,
       apply: (list) => list.filter((i) => i.staffId !== staffId),
+      contextKey: salonId,
       request: () =>
         staffControllerCancelInvite(this._http, this._apiConfig.rootUrl, { salonId, staffId }),
       errorMessage: 'Could not cancel invite. Restored.',

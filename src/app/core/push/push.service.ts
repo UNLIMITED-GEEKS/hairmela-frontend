@@ -109,11 +109,15 @@ export class PushService {
     }
   }
 
-  // Unsubscribe. ORDER MATTERS: tell the backend first (the DELETE needs the
-  // still-valid Bearer token), then drop the local browser subscription. Used
-  // by the account toggle and — critically — by logout, before tokens clear.
+  // Unsubscribe. Flip the UI state immediately so the toggle feels instant.
+  // ORDER MATTERS for the server call: the DELETE needs the still-valid Bearer
+  // token, so this runs before logout clears tokens. The HTTP request captures
+  // the token when initiated, so the early signal flip is safe.
   async disable(): Promise<void> {
     if (!this._swPush.isEnabled) return;
+
+    // Predict: flip immediately so the toggle reflects the new state
+    this._subscribed.set(false);
 
     try {
       const sub = await firstValueFrom(this._swPush.subscription);
@@ -128,8 +132,9 @@ export class PushService {
     } catch {
       // Best-effort: a failed server delete or local unsubscribe must not block
       // logout. The backend prunes dead subscriptions when a send fails anyway.
-    } finally {
-      this._subscribed.set(false);
+      // Revert only if the call was from a user toggle (not logout).
+      // Since disable is best-effort, leave _subscribed false — the user can
+      // re-enable if needed.
     }
   }
 

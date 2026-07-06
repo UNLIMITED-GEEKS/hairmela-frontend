@@ -1,7 +1,7 @@
 import { Injectable, DestroyRef, inject, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
-import { filter, map, switchMap, tap } from 'rxjs';
+import { filter, map } from 'rxjs';
 import { Router } from '@angular/router';
 import { ApiConfiguration } from '../../api/api-configuration';
 import { QueueSocketService } from '../../core/socket/queue-socket.service';
@@ -24,6 +24,7 @@ import { publicQueueControllerGetTimeline } from '../../api/fn/queues/public-que
 import { publicQueueControllerGetQueue } from '../../api/fn/queues/public-queue-controller-get-queue';
 import { walkInControllerJoinQueue } from '../../api/fn/queues/walk-in-controller-join-queue';
 import { walkInControllerLeaveQueue } from '../../api/fn/queues/walk-in-controller-leave-queue';
+import { SocketPredictService } from '../../core/socket/socket-predict.service';
 import { myEntriesControllerGetMyEntries } from '../../api/fn/queues/my-entries-controller-get-my-entries';
 import { guestEntriesControllerGetGuestEntries } from '../../api/fn/queues/guest-entries-controller-get-guest-entries';
 
@@ -50,6 +51,7 @@ export class SalonVisitService {
   private readonly _guestStore = inject(GuestStore);
   private readonly _activeEntryStore = inject(ActiveEntryStore);
   private readonly _confirmDialog = inject(ConfirmDialogService);
+  private readonly _socketPredict = inject(SocketPredictService);
   private readonly _toast = inject(ToastService);
   private readonly _destroyRef = inject(DestroyRef);
 
@@ -267,7 +269,7 @@ export class SalonVisitService {
 
   leaveQueue(entryId: string, onSuccess: () => void): void {
     const entry = this._activeEntryStore.getByEntryId(entryId);
-    if (!entry || this.leaving()) return;
+    if (!entry) return;
     this._confirmDialog
       .open({
         title: 'Leave queue?',
@@ -277,26 +279,33 @@ export class SalonVisitService {
       })
       .pipe(
         filter((ok) => ok),
-        tap(() => this.leaving.set(true)),
-        // The interceptor attaches the guest token, so one path serves both.
-        switchMap(() =>
-          walkInControllerLeaveQueue(this._http, this._apiConfig.rootUrl, {
-            salonId: entry.salonId,
-            queueId: entry.queueId,
-            entryId: entry.entryId,
-          }),
-        ),
         takeUntilDestroyed(this._destroyRef),
       )
-      .subscribe({
-        next: () => {
-          this.leaving.set(false);
-          this._activeEntryStore.remove(entry.entryId);
-          this.activeEntries.update((list) => list.filter((e) => e.entryId !== entry.entryId));
-          this._toast.success('You have left the queue.');
-          onSuccess();
-        },
-        error: () => this.leaving.set(false),
+      .subscribe(() => {
+        // Extra side effects before timeline predict
+        this._activeEntryStore.remove(entry.entryId);
+        this.activeEntries.update((list) => list.filter((e) => e.entryId !== entry.entryId));
+        this._toast.success('You have left the queue.');
+        onSuccess();
+
+        this._socketPredict.run({
+          signal: this.timeline,
+          apply: (t) => t.filter((e) => e.entryId !== entry.entryId),
+          request: () =>
+            walkInControllerLeaveQueue(this._http, this._apiConfig.rootUrl, {
+              salonId: entry.salonId,
+              queueId: entry.queueId,
+              entryId: entry.entryId,
+            }),
+          onError: () => {
+            // Revert: re-add the active entry + refetch timeline
+            this._activeEntryStore.save(entry);
+            this.activeEntries.update((list) => [...list, entry]);
+            this._loadInitialTimeline(entry.queueId);
+            this._toast.error('Failed to leave queue — your spot has been restored.');
+          },
+          destroyRef: this._destroyRef,
+        });
       });
   }
 

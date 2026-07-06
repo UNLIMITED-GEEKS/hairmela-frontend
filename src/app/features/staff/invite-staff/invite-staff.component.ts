@@ -19,8 +19,6 @@ export class InviteStaffComponent {
   private readonly _salonContext = inject(SalonContextService);
   private readonly _orgContext = inject(OrgContextService);
 
-  protected readonly saving = this._staffService.acting;
-
   // Pre-block (handoff §3): Tier 1 allows only the owner (staff limit = 1), so
   // any invite exceeds it — block on tier === 1. Tier 2/3 are unlimited.
   // A frozen salon rejects all writes. The backend still enforces both; this is
@@ -44,11 +42,12 @@ export class InviteStaffComponent {
   }
 
   protected invite(): void {
-    if (this.form.invalid || this.saving() || this.blocked()) return;
-    this._staffService.invite(
-      this._salonId,
-      { email: this.form.value.email!, role: this.form.value.role! },
-      () => this._location.back(),
-    );
+    if (this.form.invalid || this.blocked()) return;
+    this._staffService.invite(this._salonId, {
+      email: this.form.value.email!,
+      role: this.form.value.role!,
+    });
+    // Navigate back immediately — temp invite is already in the list
+    this._location.back();
   }
 }

@@ -79,10 +79,10 @@
           </textarea>
         </div>
 
-        <button type="submit" [disabled]="form.invalid || saving()"
+        <button type="submit" [disabled]="form.invalid"
           class="w-full min-h-11 bg-primary text-white text-sm font-medium rounded-lg
                  hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
-          {{ saving() ? 'Saving…' : (isEdit() ? 'Save changes' : 'Create service') }}
+          {{ isEdit() ? 'Save changes' : 'Create service' }}
         </button>
 
       </form>
