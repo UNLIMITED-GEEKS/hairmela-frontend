@@ -45,6 +45,15 @@ export class QueueListComponent {
     this.console.cancelEntry(this._salonId, this._queueId, entryId);
   }
 
+  // A freshly staffAddToQueue()'d entry paints with a client-generated temp_
+  // id (SocketPredictService has no reconcile/quarantine — the real entry
+  // arrives moments later via the socket and replaces it entirely). Sending
+  // that fake id to no-show/cancel would 404, so block actions on it until
+  // the socket's next push swaps in the real, server-assigned entryId.
+  protected isTempEntry(entryId: string): boolean {
+    return entryId.startsWith('temp_');
+  }
+
   protected copyPhone(phone: string): void {
     navigator.clipboard.writeText(phone).then(() => this._toast.success('Phone copied.'));
   }

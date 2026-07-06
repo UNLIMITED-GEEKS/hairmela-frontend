@@ -69,7 +69,11 @@ export class InvitesService {
       errorMessage: 'Failed to accept invite.',
       onSuccess: () => {
         this._membershipStore.invalidate(invite.salonId);
-        this._dashboardService.refresh();
+        // Silent: the dashboard is very likely on screen right now (this is
+        // its own pending-invites widget) — refresh() would flip `loading`
+        // and blank the whole dashboard behind an action that already
+        // succeeded. The new salon appears once this resolves in the background.
+        this._dashboardService.refreshSilent();
         this._toast.success(`Joined ${invite.salonName}`);
       },
     });

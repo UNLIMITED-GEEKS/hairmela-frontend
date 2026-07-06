@@ -8,6 +8,7 @@ import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
 import { CreateServiceDto } from '../../models/create-service-dto';
+import { Service } from '../../models/service';
 
 export interface ServicesControllerCreate$Params {
 
@@ -18,7 +19,7 @@ export interface ServicesControllerCreate$Params {
       body: CreateServiceDto
 }
 
-export function servicesControllerCreate(http: HttpClient, rootUrl: string, params: ServicesControllerCreate$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
+export function servicesControllerCreate(http: HttpClient, rootUrl: string, params: ServicesControllerCreate$Params, context?: HttpContext): Observable<StrictHttpResponse<Service>> {
   const rb = new RequestBuilder(rootUrl, servicesControllerCreate.PATH, 'post');
   if (params) {
     rb.path('salonId', params.salonId, {});
@@ -26,11 +27,11 @@ export function servicesControllerCreate(http: HttpClient, rootUrl: string, para
   }
 
   return http.request(
-    rb.build({ responseType: 'text', accept: '*/*', context })
+    rb.build({ responseType: 'json', accept: 'application/json', context })
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return (r as HttpResponse<any>).clone({ body: undefined }) as StrictHttpResponse<void>;
+      return r as StrictHttpResponse<Service>;
     })
   );
 }

@@ -88,28 +88,29 @@ export class ServicesService {
   create(salonId: string, body: CreateServiceDto, onSuccess?: () => void): void {
     const tempId = `temp_${crypto.randomUUID()}`;
     const optimisticRow = { id: tempId, ...body, isActive: true } as Service;
-    // create returns void — refresh after confirm to get the real id/row
+    // The backend returns the real Service (201 body) — swap the temp row for
+    // it so the row's real id is in place before the user can act on it again
+    // (delete/edit/assign would otherwise send the fake temp_ id to the server).
     this._optimistic.run({
       signal: this._services,
       apply: (list) => [...list, optimisticRow],
+      reconcile: (list, res) => list.map((s) => (s.id === tempId ? res.body : s)),
+      tempId,
       mirror: (v) => this._cache.set(salonId, v),
       contextKey: salonId,
       request: () =>
         servicesControllerCreate(this._http, this._apiConfig.rootUrl, { salonId, body }),
       errorMessage: 'Could not create service. Reverted.',
-      onSuccess: () => {
-        this.refresh(salonId);
-        onSuccess?.();
-      },
+      onSuccess: () => onSuccess?.(),
     });
   }
 
   update(salonId: string, serviceId: string, body: UpdateServiceDto, onSuccess?: () => void): void {
     if (this._optimistic.isPending(serviceId)) return;
-    // update returns void — optimistic apply is the truth; no reconcile needed
     this._optimistic.run({
       signal: this._services,
       apply: (list) => list.map((s) => (s.id === serviceId ? { ...s, ...body } : s)),
+      reconcile: (list, res) => list.map((s) => (s.id === serviceId ? res.body : s)),
       mirror: (v) => this._cache.set(salonId, v),
       contextKey: salonId,
       request: () =>
@@ -136,13 +137,18 @@ export class ServicesService {
   assignService(salonId: string, staffId: string, serviceId: string): void {
     const ctx = `${salonId}:${staffId}`;
     if (this._optimistic.isPending(serviceId)) return;
-    // optimistic: append — if already present treat as no-op
+    // Placeholder row: only serviceId is real (it's the only field any consumer
+    // reads before reconcile below swaps in the server's full authoritative
+    // list). Typed honestly as a partial rather than cast to the full model.
+    const placeholderRow: Pick<StaffServiceModel, 'serviceId'> = { serviceId };
     this._optimistic.run({
       signal: this._staffServices,
       apply: (list) =>
         list.some((s) => s.serviceId === serviceId)
           ? list
-          : [...list, { serviceId, isDefault: false } as unknown as StaffServiceModel],
+          : [...list, placeholderRow as StaffServiceModel],
+      // The backend returns the full authoritative list — replace, don't patch.
+      reconcile: (_, res) => res.body,
       mirror: (v) => this._staffServicesCache.set(ctx, v),
       contextKey: ctx,
       request: () =>
@@ -161,6 +167,7 @@ export class ServicesService {
     this._optimistic.run({
       signal: this._staffServices,
       apply: (list) => list.filter((s) => s.serviceId !== serviceId),
+      reconcile: (_, res) => res.body,
       mirror: (v) => this._staffServicesCache.set(ctx, v),
       contextKey: ctx,
       request: () =>

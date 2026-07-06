@@ -72,8 +72,6 @@ export class StaffService {
 
   invite(salonId: string, body: InviteStaffDto, onSuccess?: () => void): void {
     const tempId = `temp_${crypto.randomUUID()}`;
-    // Predict: append a temp invite row instantly; reconcile via loadInvites
-    // on success since the endpoint returns void (no body to reconcile from).
     const optimisticInvite: PendingInviteDto = {
       staffId: tempId,
       email: body.email,
@@ -84,15 +82,36 @@ export class StaffService {
     this._optimistic.run({
       signal: this._invites,
       apply: (list) => [...list, optimisticInvite],
+      // The backend returns the created SalonStaff — map its fields onto the
+      // PendingInviteDto shape so the temp row gets the real staffId/invitedAt
+      // without a refetch (SalonStaff.userId set means the invitee already has
+      // an account, i.e. hasAccount).
+      reconcile: (list, res) =>
+        list.map((i) =>
+          i.staffId === tempId
+            ? {
+                staffId: res.body.id,
+                email: res.body.email,
+                role: res.body.role,
+                invitedAt: res.body.invitedAt,
+                hasAccount: res.body.userId !== null,
+              }
+            : i,
+        ),
       contextKey: salonId,
       tempId,
       request: () => staffControllerInvite(this._http, this._apiConfig.rootUrl, { salonId, body }),
       errorMessage: 'Could not send invite. Reverted.',
       onSuccess: () => {
         this._toast.success('Invite sent');
-        // Response is void — reload to get real invite data with server IDs
-        this.loadInvites(salonId);
-        this.refresh(salonId);
+        // Invalidate (don't eagerly refetch) the staff list: the invite adds a
+        // PENDING row there too, but a real StaffWithQueueDto needs the queueId
+        // pairing this response doesn't carry, and an eager refresh() would
+        // flip `loading` true and flash a skeleton on the staff list page for a
+        // mutation that already succeeded — even if nobody's currently looking
+        // at that page (invite-staff navigates away immediately). The next
+        // visit to the staff list does a real fetch (cache miss) instead.
+        this._cache.delete(salonId);
         onSuccess?.();
       },
     });
@@ -153,6 +172,10 @@ export class StaffService {
             ? { ...entry, staff: { ...entry.staff, role: body.role } }
             : entry,
         ),
+      // The backend returns the full updated SalonStaff — fold it in so any
+      // other server-side change lands too, not just the role we predicted.
+      reconcile: (list, res) =>
+        list.map((entry) => (entry.staff.id === staffId ? { ...entry, staff: res.body } : entry)),
       mirror: (v) => this._cache.set(salonId, v),
       contextKey: salonId,
       request: () =>

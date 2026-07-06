@@ -31,12 +31,22 @@ export class DashboardService {
   load(): void {
     if (this._loaded) return;
     if (this._inflight) return;
-    this._fetch();
+    this._fetch(true);
   }
 
   refresh(): void {
     this._loaded = false;
-    this._fetch();
+    this._fetch(true);
+  }
+
+  // Re-fetch without touching `loading` — for callers whose mutation already
+  // painted its own optimistic result (e.g. accepting an invite) and where the
+  // dashboard is very likely still on screen. Flipping `loading` here would
+  // blank the whole dashboard behind an already-successful action; the new
+  // salon simply appears in `salons` once the background fetch resolves.
+  refreshSilent(): void {
+    this._loaded = false;
+    this._fetch(false);
   }
 
   clear(): void {
@@ -44,9 +54,9 @@ export class DashboardService {
     this._loaded = false;
   }
 
-  private _fetch(): void {
+  private _fetch(showLoading: boolean): void {
     this._inflight = true;
-    this._loading.set(true);
+    if (showLoading) this._loading.set(true);
     this._error.set(false);
     userSalonsControllerFindMine(this._http, this._apiConfig.rootUrl)
       .pipe(retry(1))
@@ -56,21 +66,20 @@ export class DashboardService {
           if (res.body.length === 0) {
             this._inflight = false;
             this._loaded = true;
-            this._loading.set(false);
+            if (showLoading) this._loading.set(false);
             return;
           }
           forkJoin(res.body.map((s) => this._membershipStore.getMembership(s.salon.id))).subscribe(
             () => {
               this._inflight = false;
               this._loaded = true;
-              this._loading.set(false);
+              if (showLoading) this._loading.set(false);
             },
           );
         },
         error: () => {
           this._inflight = false;
-          this._error.set(true);
-          this._loading.set(false);
+          if (showLoading) this._error.set(true);
         },
       });
   }

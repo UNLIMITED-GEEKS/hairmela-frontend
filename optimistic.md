@@ -1,8 +1,10 @@
 # optimistic.md — Optimistic Updates Framework (v2)
 
+**Status: built and shipped** (commits `3623bf4`, `ea1968c`, `f45c023`, `12f30ad`). This document is now both the design record and the reference for extending the pattern to any future mutation — read Part 6 for what landed where, and Part 3f–3h for the conventions and named exceptions that emerged during the actual migration and weren't part of the original design.
+
 ## Purpose
 
-Every mutation in the app currently waits for the server round-trip before the UI changes: `acting.set(true)` → request → `refresh()` (a second round-trip) → paint. The app feels sluggish because the network latency is visible on every action.
+Before this framework, every mutation in the app waited for the server round-trip before the UI changed: `acting.set(true)` → request → `refresh()` (a second round-trip) → paint. The app felt sluggish because the network latency was visible on every action.
 
 This framework makes predictable mutations paint instantly, fire the request in the background, and roll back + toast on failure. Truth comes from the mutation's own response (reconcile), not a second GET.
 
@@ -423,9 +425,77 @@ upload(salonId: string, file: File, onSuccess?: () => void): void {
 
 The gallery template renders pending tiles dimmed with a spinner; `pending` is a view-only augment on the temp tile and never touches the real Media model. Tile actions are disabled via `isPending`.
 
-### 3e. Settings/slug moved into a service (decision #4)
+### 3e. Settings/slug — `SalonSettingsService` (shipped)
 
-`salon-settings.component.ts` and `salon-slug.component.ts` currently call the generated client directly (violating "no HttpClient in components"). Create `SalonSettingsService` (`providedIn: 'root'`, registered with CacheRegistry) holding a salon signal + Map cache; move `salonsControllerUpdate` / `salonsControllerUpdateSettings` / `salonsControllerUpdateSlug` into it and run each through the engine. Components then call `this._settingsService.updateSlug(...)` and read signals.
+Extracted per decision #4 — `salon-settings.component.ts` / `salon-slug.component.ts` no longer touch `HttpClient` or the generated client directly. `SalonSettingsService` (`providedIn: 'root'`, registered with `CacheRegistry`) holds the `salon` signal + Map cache and runs `update`/`updateSlug` through the engine. Two real-world details the earlier plan didn't anticipate:
+
+- **A single mutation can be two API calls.** `update()` needs both `salonsControllerUpdate` (name/timezone/hours) and `salonsControllerUpdateSettings` (the settings JSON) to apply as one optimistic bet — `request: () => forkJoin({ salon: ..., settings: ... })`, `reconcile: (_, { salon }) => salon.body`. The engine doesn't care how many HTTP calls `request()` makes; it only cares that it's one `Observable` that settles once.
+- **Wrapping `request()` with `catchError` to intercept one error code before the engine's generic revert.** `updateSlug()` needs `SALON_SLUG_TAKEN` handled as an inline form error, not the engine's generic toast-and-revert. Rather than adding a slug-specific branch to the engine, the request itself is piped through `catchError` to fire `onSlugTaken?.()` and then re-throw — the engine still reverts and (since the interceptor already toasted the known `ApiError`) stays silent. This is the general pattern for any migrated mutation that needs one specific error code handled locally: wrap `request()`, don't fork the engine.
+
+### 3f. Conventions every migrated `load()` follows (not in v1, now standard)
+
+Every service migrated onto the engine (`ServicesService`, `StaffService`, `SalonMediaService`, `StaffMediaService`, `OrgService`, `SalonSettingsService`) converged on the same three additions around `beginRead`/`commitRead` that the original engine design didn't specify, because they're service-level hygiene, not engine-internal:
+
+1. **An `_inflight` guard** (`Set<string>` keyed by context, or a single `string | null` for single-entity services like `OrgService`) — prevents a second `load()` for the same context from firing a duplicate GET while one is already in flight. This is orthogonal to the epoch (which handles *ordering* once two GETs exist); the guard's job is not to create the second GET at all when the cache is empty and a fetch is already running.
+2. **`.pipe(retry(1))`** on every `_fetch*` GET — one automatic retry before surfacing an error, since a transient network blip shouldn't cost the user a manual reload.
+3. **An `error` signal** (`readonly error = this._error.asReadonly()`) alongside `loading`, set on the terminal failure path so list views can render a real error state instead of silently staying empty.
+
+The canonical shape:
+
+```ts
+load(salonId: string): void {
+  const token = this._optimistic.beginRead(this._services, salonId);
+  const cached = this._cache.get(salonId);
+  if (cached) {
+    this._optimistic.commitRead(this._services, cached, token, (v) => this._cache.set(salonId, v));
+    return;
+  }
+  if (this._inflight.has(salonId)) return;              // duplicate-fetch guard
+  this._fetchServices(salonId, token);
+}
+
+private _fetchServices(salonId: string, token: ReadToken): void {
+  this._inflight.add(salonId);
+  this._loading.set(true);
+  this._error.set(false);
+  publicServicesControllerFindBySalon(this._http, this._apiConfig.rootUrl, { salonId })
+    .pipe(retry(1))
+    .subscribe({
+      next: (res) => {
+        this._inflight.delete(salonId);
+        this._cache.set(salonId, res.body);
+        this._optimistic.commitRead(this._services, res.body, token, (v) => this._cache.set(salonId, v));
+        this._loading.set(false);
+      },
+      error: () => { this._inflight.delete(salonId); this._error.set(true); this._loading.set(false); },
+    });
+}
+```
+
+### 3g. `patchMedia` — folding an already-completed API call through the ledger
+
+`SalonMediaService` added an escape hatch not in the original engine design: a way to apply a local patch to an engine-managed signal *without* the engine making its own API call, for when the real API call already happened somewhere else (a child component that owns its own upload flow) and the parent just needs its cache-mirrored signal updated in step.
+
+```ts
+/** Apply a client-side patch without an API call (API already completed in a child component). */
+patchMedia(salonId: string, updater: (list: Media[]) => Media[]): void {
+  this._optimistic.run({
+    signal: this._media,
+    apply: updater,
+    mirror: (v) => this._cache.set(salonId, v),
+    contextKey: salonId,
+    request: () => of(null),               // no-op request — there's nothing left to confirm
+  });
+}
+```
+
+This works because the engine has no special case for "no real request" — `of(null)` is a valid `Observable` that emits synchronously, so the patch instant-paints and is confirmed into the baseline in the same tick, through the exact same ledger machinery as every other mutation. Use this only when the server-side effect is already guaranteed to have happened (or is being tracked elsewhere); it is not a way to skip error handling for a real mutation.
+
+### 3h. Two deliberate non-migrations — named exceptions, not gaps
+
+**`FavoritesService._list`** stays outside the engine even though `_favoritedIds` (the `Set<string>` of favorited ids) is migrated. `_list` is the favourites-page's own paginated card data — a *different* signal from `_favoritedIds`, not a cache slice of the same one, so it's not what `mirror` is for. `toggle()` splices `_list` by hand before calling `run()`, and un-splices it by hand in `onRevert`. This is correct: `mirror` exists to keep one signal's Map-cache in sync with itself, not to propagate a change across two independently-shaped signals. If a future case needs to keep two *unrelated* signals in lockstep under one optimistic bet, this is the pattern — inline patch plus a matching manual undo in `onRevert`, not a engine feature.
+
+**`EditProfileService.update()`** is hand-rolled snapshot-revert (`const prev = user(); set(predicted); on error: set(prev)`) and does **not** use the engine. This is the exact v1 pattern the engine was built to replace everywhere else — but it's a deliberate, narrow exception, not a missed migration: `CurrentUserStore.user` is a single global signal with exactly one writer path (the profile form), no per-context concerns (`contextKey` would be meaningless — there's only ever one "current user"), and no realistic concurrent-mutation risk (a user cannot submit the profile form twice at once in any reasonable UI). Snapshot-revert's actual failure mode — a second concurrent op's state getting clobbered by the first op's revert — cannot occur here because there is only ever at most one in-flight profile edit. If profile editing ever grows a second concurrent mutation path (e.g. avatar upload racing a name change on the same signal), this should move onto the engine at that point, not before.
 
 ## Part 4 — Category B: Join Queue (navigation-is-feedback)
 
@@ -444,45 +514,71 @@ The full design for this — plus the console's call-next button, a second non-e
 
 Two more non-engine patterns, each a deliberate exception to a documented rule, worked out in full because each has a real failure mode that a naive version gets wrong.
 
-### 4a.1 — Call-Next: optimistic, but NOT the engine
+### 4a.1 — Call-Next (and the whole console): optimistic, but NOT the engine
 
-**Why not the engine, precisely:** Category B (queue console) stays socket-driven because most console actions recompute the *whole* timeline server-side and another operator could act concurrently — optimistically reordering the full queue risks showing a state that's flatly wrong. Call-next is the one console action where the local prediction is small, almost-always-correct, and cheap to fix if wrong: the head `WAITING` entry becomes `SERVING`. That's a single-entry status flip, not a full-timeline guess — a materially smaller bet, and it's the button barbers press dozens of times an hour, so latency there is felt more than anywhere else in the app.
+**Why not the engine, precisely:** Category B (queue console) stays socket-driven because most console actions recompute the *whole* timeline server-side and another operator could act concurrently — optimistically reordering the full queue risks showing a state that's flatly wrong. Call-next is the console action where the local prediction is smallest and almost-always-correct: the head `WAITING` entry becomes `SERVING`. That's a single-entry status flip, not a full-timeline guess.
 
-**Contained in `QueueConsoleService.callNext()`** (queue-console.service.ts:153–170) + the call-next button's `[disabled]` in `queue-shell.component.html`.
+**Shipped broader than planned: `SocketPredictService` (`core/socket/socket-predict.service.ts`).** The original plan scoped this pattern to call-next alone, leaving every other console action on the plain `acting`-guard/wait-for-socket path. In the actual build, the predict→fire→socket-reconciles-or-refetch shape turned out to generalize cleanly to *every* console mutation — `setStatus`, `callNext`, `endSession`/`completeMember`, `endAllMembers`, `noShow`, `cancelEntry`, `serveMember`, `extendMember`, `staffAddToQueue` — so it was extracted into its own root-provided service rather than repeated inline nine times:
 
-```
-callNext(salonId, queueId, onResolveNeeded):
-  1. PREDICT
-     const waiting = this.waitingEntries()
-     if waiting.length === 0 → return              // nothing to call
-     const head = waiting[0]
-     const predicted = timeline().map(e =>
-       e.entryId !== head.entryId ? e :
-       { ...e, members: e.members.map(m =>
-           m.isLeader && m.status === 'WAITING'
-             ? { ...m, status: 'SERVING', servedAt: new Date().toISOString() }
-             : m) })
-     timeline.set(predicted)                        // instant paint
-
-  2. FIRE (acting guard REMOVED from this path only)
-     callNext(...).subscribe({
-       next: () => {}                               // socket delivers truth; nothing to do
-       error: (err) => {
-         // 3. REVERT = re-assert authority, never hand-undo
-         publicQueueControllerGetTimeline({ queueId })
-           .subscribe(res => timeline.set(res.body))
-         // then the existing resolve/toast branch:
-         if (ENTRY_ALREADY_SERVING || ENTRY_NOT_WAITING) onResolveNeeded()
-         else toast.info('Resolve the current client first…')
-       }
-     })
+```ts
+@Injectable({ providedIn: 'root' })
+export class SocketPredictService {
+  run<T, R = unknown>(config: {
+    signal: WritableSignal<T>;
+    apply: (current: T) => T;
+    request: () => Observable<R>;
+    onSuccess?: (response: R) => void;
+    onError?: (error: unknown) => void;
+    destroyRef?: DestroyRef;
+  }): void {
+    config.signal.update((v) => config.apply(v));          // 1. predict — paint instantly
+    const req$ = config.destroyRef
+      ? config.request().pipe(takeUntilDestroyed(config.destroyRef))
+      : config.request();
+    req$.subscribe({                                       // 2. fire
+      next: (res) => config.onSuccess?.(res),               // socket delivers truth; often a no-op here
+      error: (err) => config.onError?.(err),                // 3. caller decides how to revert
+    });
+  }
+}
 ```
 
-**Why the revert re-fetches instead of restoring a snapshot:** the socket may push a new timeline between `set(predicted)` and the error landing. Restoring a captured snapshot would stomp that newer socket state — the exact `read-current-to-undo` bug the whole engine (Part 2) was built to eliminate. On failure the server changed nothing, so its authoritative timeline is already correct; the GET (the same call `init()` already uses) pulls it and the overlay vanishes cleanly. **The socket is authority — the revert comes from authority, not from a hand-merge.**
+This is deliberately **thinner than `OptimisticService`** — no ledger, no epoch, no `contextKey`, no `tempId` quarantine — because there is nothing to reconcile against on success (the socket does that) and no concurrent-read problem to solve (there's no `load()`/`commitRead` for a live timeline; the socket subscription is the only writer of confirmed state). It is a shared *shape*, not a shared *safety mechanism* — each call site still owns its own revert logic in `onError`, because "what does reverting mean" differs per action (see below).
 
-**Concurrency:** `acting` is removed only from the call-next path. Two rapid taps each layer a prediction; whichever fails re-fetches authority, which corrects both. A double-tap's second POST 409s (`ENTRY_ALREADY_SERVING`) → `onResolveNeeded()` fires → correct. No new guard needed.
+**The flagship example, `QueueConsoleService.callNext()`** (queue-console.service.ts:178–219):
 
-**Does NOT change:** the socket subscription (still the source of truth), `acting` on every other console action (setStatus, endSession, noShow, cancel), the engine itself.
+```ts
+callNext(salonId, queueId, onResolveNeeded): void {
+  const waiting = this.waitingEntries();
+  if (waiting.length === 0) return;
+  const head = waiting[0];
+  this._socketPredict.run({
+    signal: this.timeline,
+    apply: (t) => t.map((e) => e.entryId !== head.entryId ? e : {
+      ...e, members: e.members.map((m) =>
+        m.isLeader && m.status === 'WAITING'
+          ? { ...m, status: 'SERVING', servedAt: new Date().toISOString() } : m),
+    }),
+    request: () => queueManagementControllerCallNext(this._http, this._apiConfig.rootUrl, { salonId, queueId }),
+    onError: (err) => {
+      this._refetchTimeline(queueId);                       // REVERT = re-assert authority, never hand-undo
+      const body = (err as { error?: unknown })?.error;
+      if (isApiError(body) && (body.code === ErrorCodes.ENTRY_ALREADY_SERVING || body.code === ErrorCodes.ENTRY_NOT_WAITING)) {
+        onResolveNeeded();
+      } else {
+        this._toast.info('Resolve the current client first before calling the next one.');
+      }
+    },
+    destroyRef: this._destroyRef,
+  });
+}
+```
+
+**Why the revert re-fetches instead of restoring a snapshot:** the socket may push a new timeline between `apply` painting and the error landing. Restoring a captured snapshot would stomp that newer socket state — the exact `read-current-to-undo` bug the whole `OptimisticService` ledger (Part 2) was built to eliminate. On failure the server changed nothing, so its authoritative timeline is already correct; `_refetchTimeline` (the same GET `init()` uses) pulls it and the overlay vanishes cleanly. **The socket is authority — the revert comes from authority, not from a hand-merge.** Every other console action's `onError` follows the identical `_refetchTimeline(queueId)` idiom — it's the one revert strategy that's always correct for socket-owned state, so there was no reason to hand-roll a different one per action.
+
+**Concurrency:** the `acting` guard was removed from every action migrated onto `SocketPredictService` (not just call-next, as originally scoped) — each is an independent bet, and a failure's refetch corrects whatever the prediction got wrong regardless of how many other predictions landed on top of it in the meantime. A double-tap's second `callNext` POST 409s (`ENTRY_ALREADY_SERVING`) → `onResolveNeeded()` fires → correct.
+
+**Does NOT change:** the socket subscription (still the sole source of confirmed truth), the `OptimisticService` engine (this is explicitly a separate, thinner mechanism for a different problem shape).
 
 ### 4a.2 — Join-Queue: navigation-is-feedback, with the two failure modes pinned down
 
@@ -491,11 +587,12 @@ The mechanism (navigate instantly, let the socket fill in the position) is right
 **Crux #1 — result delivery must survive either arrival order.** Navigation and the POST response are now decoupled: the POST can resolve *before* the lazy-loaded joining page finishes mounting and subscribing. A plain `Subject` drops that emission — the page hangs on "Finding your spot…" forever. Fix: a **signal**, not a Subject, so the component reads current state on init regardless of timing (a signal read-on-mount can't miss what already happened; a Subject can).
 
 ```ts
-// SalonVisitService — new state
-type PendingJoin =
+// SalonVisitService — shipped as-designed (types kept exactly as planned, one refinement:
+// 'party-too-large' split out from 'generic' so the joining page can show the specific toast)
+export type PendingJoin =
   | { status: 'pending' }
   | { status: 'joined'; entryId: string; queueId: string; slug: string; shellPrefix: string }
-  | { status: 'failed'; reason: 'closed' | 'generic' };
+  | { status: 'failed'; reason: 'closed' | 'party-too-large' | 'generic' };
 
 readonly pendingJoin = signal<PendingJoin | null>(null);
 ```
@@ -504,10 +601,10 @@ readonly pendingJoin = signal<PendingJoin | null>(null);
 
 **Crux #2 — not every failure should let the user leave the page.** Split by whether the failure is knowable before confirming or only from the server:
 
-- **Block BEFORE navigation** (no bounce): frozen salon (already checked, join-queue.component.ts:61,83) and already-in-queue (`alreadyInQueue()`, line 51) — both checkable at confirm time. `confirmJoin` returns early, never navigates.
-- **Bounce AFTER navigation** (genuinely server-only): `QUEUE_NOT_OPEN` (queue closed between page-load and confirm), `PARTY_TOO_LARGE` (server-enforced cap), network/generic. `pendingJoin → failed(reason)`; the joining page navigates back to the salon page + the reason's toast.
+- **Block BEFORE navigation** (no bounce): frozen salon and already-in-queue (`frozen()`, `alreadyInQueue()` in `join-queue.component.ts`) — both checkable at confirm time. `confirmJoin` returns early, never navigates.
+- **Bounce AFTER navigation** (genuinely server-only): `QUEUE_NOT_OPEN` (queue closed between page-load and confirm) → `reason: 'closed'`, `PARTY_TOO_LARGE` (server-enforced cap) → `reason: 'party-too-large'`, network/generic → `reason: 'generic'`. `pendingJoin → failed(reason)`; the joining page navigates back to the salon page + the reason's specific toast.
 
-This keeps predictable failures on the form (no flash) and only bounces for the rare, unknowable-until-server ones.
+This keeps predictable failures on the form (no flash) and only bounces for the rare, unknowable-until-server ones. **Bonus, unplanned:** `leaveQueue()` was also migrated onto `SocketPredictService` (Part 4a.1) — predict the entry's removal from `timeline`, fire the DELETE, and on failure re-add the `ActiveEntry` + refetch the timeline. Not in the original plan, but the same reasoning applies: `timeline` is socket-owned state, so it gets the socket-reconciled pattern rather than the ledger.
 
 **File-by-file:**
 1. **visit.routes.ts** (after the `join` route): add `q/:queueId/joining` → lazy-loads `JoiningQueueComponent`. Needs no `entryId` param — which is why guests work (their `guestToken` only exists post-response).
@@ -534,6 +631,8 @@ This keeps predictable failures on the form (no flash) and only bounces for the 
 
 ## Part 6 — Build order
 
+**Status: shipped.** All ten steps below are implemented and in the codebase (commits `3623bf4`, `ea1968c`, `f45c023`, `12f30ad`). Kept as a build order for reference and for anyone extending the pattern to a new service — each step's rationale still applies to future migrations. The tests in step 1 run under Vitest (`optimistic.service.spec.ts`), not Karma.
+
 1. **OptimisticService engine (ledger) + `beginRead`/`commitRead` + quarantine.** Unit tests, in order of what they protect:
    - apply → reject → signal recomputed without the op, `onRevert` fired (basic revert);
    - **two overlapping ops, first rejects, second confirms → second's state survives throughout** (the v1 clobber case — this test is the reason v2 exists);
@@ -542,7 +641,7 @@ This keeps predictable failures on the form (no flash) and only bounces for the 
    - **two `beginRead` tokens → the second commits first (accepted, epoch bumps) → the first commits late → first DROPPED, newer read's data intact** (read-clobbers-read — the last hole the epoch-on-read bump closes; without the bump the older response would win);
    - `tempId` present in `isPending` during flight, absent after both settle paths;
    - mirror called with the recomputed value on every transition;
-   - **`_ledgers` is a `WeakMap`** — a structural assertion (the store's type, and that `run`'s subscription is the only transient strong ref, released by `takeUntilDestroyed`). Not a behavioral GC test: forcing collection needs `FinalizationRegistry` + `--expose-gc` and is nondeterministic under Karma — a flaky GC probe must never gate the suite;
+   - **`_ledgers` is a `WeakMap`** — a structural assertion (the store's type, and that `run`'s subscription is the only transient strong ref, released by `takeUntilDestroyed`). Not a behavioral GC test: forcing collection needs `FinalizationRegistry` + `--expose-gc` and is nondeterministic under any runner (Vitest included) — a flaky GC probe must never gate the suite;
    - **context switch → mirror follows new context** — run with contextKey A, switch to B, run with B → mirror writes to B's cache slice, not A's. The old ledger is replaced; the new one starts with a fresh baseline from `sig()`;
    - **old-context pending op settles without touching new context** — run with contextKey A (op pending), switch to B (ledger replaced), A's op confirms → signal unchanged, B's cache untouched, no recompute. Error path still toasts;
    - `commitRead` returns `true` when accepted, `false` when dropped (stale epoch);
@@ -550,14 +649,16 @@ This keeps predictable failures on the form (no flash) and only bounces for the 
    - **ABA epoch-reuse: old read from incarnation 1 can't match incarnation 2** — `beginRead(A)` (slow read₁ in flight, token captures epoch N) → delete confirms (epoch stamps to N+1) → `beginRead(B)` (ledger replaced, epoch N+2) → `beginRead(A)` (ledger reborn, epoch N+3) → read₁'s `commitRead` lands with epoch N → N ≠ N+3 → **dropped**, `false` returned, deleted row stays gone. Without the global epoch stamp this test fails (reborn ledger would start at 0 and match the old token). The ABA proof;
    - **load-first mirror adoption** — `beginRead(B)` creates ledger with no mirror, `commitRead(B)` supplies mirror → mirror adopted within matching context, subsequent mutation via `run(B)` mirrors to B's cache slice. Proves Bug 2 fix;
    - **`onSettled` fires exactly once on all four terminal paths** — confirm, revert, superseded-confirm, superseded-revert. Verify with a counter incremented in `onSettled`; assert count === 1 after each settle.
-2. **`toggleAcceptingClients`** — fixes a bug and demos the pattern (clearest win).
-3. **Migrate every `load()` in engine-adjacent services to `commitRead`** — must land before the mutation migrations widen, or read races reappear service by service.
-4. **Deletes/toggles across services** (no reconcile — lowest risk).
-5. **Updates + creates** (temp-id + reconcile).
-6. **Media upload** (blob preview — highest complexity; do it once the pattern is proven).
-7. **Extract `SalonSettingsService`;** migrate settings/slug off the components.
-8. **Call-next optimistic** (Part 4a.1) — self-contained in `QueueConsoleService` + one template binding; no new files; ships independently of the engine migration. ~30 min.
-9. **Join-queue navigation-is-feedback** (Part 4a.2) — new route + `JoiningQueueComponent` + `SalonVisitService.pendingJoin` + `JoinQueueComponent` changes; ships independently of the engine migration. ~1 hr.
-10. **Delete the orphaned code** — the `acting`/`refresh()`-after-mutate paths the migration makes dead.
+2. **`toggleAcceptingClients`** — fixes a bug and demos the pattern (clearest win). ✅ `SalonOverviewService.toggleAcceptingClients`.
+3. **Migrate every `load()` in engine-adjacent services to `commitRead`** — must land before the mutation migrations widen, or read races reappear service by service. ✅ Every migrated service's `load()`/`refresh()` goes through `beginRead`/`commitRead`, converged on the shared conventions in Part 3f (`_inflight` guard, `retry(1)`, `error` signal).
+4. **Deletes/toggles across services** (no reconcile — lowest risk). ✅ `ServicesService`, `StaffService`, `ClosuresService`, `SchedulesService`, `SalonMediaService`/`StaffMediaService`.
+5. **Updates + creates** (temp-id + reconcile). ✅ Including the two-request-in-one-op case (`SalonSettingsService.update`, Part 3e) and the invite-list temp-row case (`StaffService.invite`, `InvitesService`).
+6. **Media upload** (blob preview — highest complexity; do it once the pattern is proven). ✅ `SalonMediaService.upload` / `StaffMediaService.upload`, using `onSettled` for the blob-URL revoke.
+7. **Extract `SalonSettingsService`;** migrate settings/slug off the components. ✅ Also picked up the `catchError`-wrapped-request pattern for `SALON_SLUG_TAKEN` (Part 3e).
+8. **Call-next optimistic** (Part 4a.1) — self-contained in `QueueConsoleService` + one template binding; no new files; ships independently of the engine migration. ✅ Generalized further than planned: extracted as a reusable `SocketPredictService` (Part 4a.1) and applied to every console action (call-next, serve, complete-member, complete-all, no-show, cancel, extend, staff-add-to-queue), not just call-next.
+9. **Join-queue navigation-is-feedback** (Part 4a.2) — new route + `JoiningQueueComponent` + `SalonVisitService.pendingJoin` + `JoinQueueComponent` changes; ships independently of the engine migration. ✅ Built to the documented design (signal-based `PendingJoin`, block-before/bounce-after error split); `leaveQueue` also picked up `SocketPredictService` (Part 4a.1) as a bonus, unplanned but consistent with the pattern.
+10. **Delete the orphaned code** — the `acting`/`refresh()`-after-mutate paths the migration makes dead. ✅ No leftover `refresh()`-after-`run()` calls remain in the migrated services.
 
-No open design questions remain deferred: the myStaff cache shape is solved by `mirror` being an arbitrary function (3b), temp-row quarantining is engine-owned (Part 2), and the signal-identity-vs-entity-identity problem is solved by `contextKey` (change #7).
+**Named, deliberate exceptions (not gaps — see Part 3h):** `FavoritesService._list` (a second signal kept in sync by hand, not via `mirror`) and `EditProfileService.update` (single-writer signal, snapshot-revert is safe here because no concurrent mutation path exists).
+
+No open design questions remain deferred: the myStaff cache shape is solved by `mirror` being an arbitrary function (3b), temp-row quarantining is engine-owned (Part 2), and the signal-identity-vs-entity-identity problem is solved by `contextKey` (change #7). As of commit `12f30ad`, the plan and the codebase agree: every Category A service is on the engine, both Category B exceptions (console + join-queue) are built, and the only signals *not* on the engine are the two named exceptions in Part 3h, each with a stated reason that will stop applying only if its stated precondition changes.

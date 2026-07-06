@@ -83,12 +83,11 @@ export class OptimisticService {
 
     guarded$.subscribe({
       next: (response) => {                          // CONFIRM
-        // Superseded ledger — context switched while this op was in flight.
-        // The mutation succeeded server-side; the next load() of that context
-        // will reflect it. Nothing to do to the current signal.
-        if (this._ledgers.get(config.signal as WritableSignal<unknown>) !== ledger) {
-          if (config.tempId) this._markPending(config.tempId, false);
-          config.onSettled?.();
+        if (this._isSuperseded(config.signal, ledger)) {
+          // Context switched while this op was in flight. The mutation
+          // succeeded server-side; the next load() of that context will
+          // reflect it. Nothing to do to the current signal.
+          this._settleSuperseded(config.tempId, config);
           return;
         }
         // Fold this op into confirmed truth: apply it to baseline, then let
@@ -103,28 +102,17 @@ export class OptimisticService {
         config.onSettled?.();
       },
       error: (err) => {                              // REVERT (surgical)
-        // Superseded ledger — still toast (the user should know it failed)
-        // but don't touch the current signal/baseline.
-        if (this._ledgers.get(config.signal as WritableSignal<unknown>) !== ledger) {
-          if (config.tempId) this._markPending(config.tempId, false);
-          const body = (err as { error?: unknown })?.error;
-          if (!isApiError(body)) {
-            this._toast.error(config.errorMessage ?? 'Something went wrong. Changes reverted.');
-          }
-          config.onRevert?.();
-          config.onSettled?.();
+        if (this._isSuperseded(config.signal, ledger)) {
+          // Still toast (the user should know it failed) but don't touch the
+          // current signal/baseline — it belongs to a newer context now.
+          this._settleSuperseded(config.tempId, config, err);
           return;
         }
         // Remove ONLY this op; every other pending op survives the replay.
         // No epoch bump — a failed op changed no confirmed state.
         this._settle(config.signal, ledger, op, config.tempId);
         config.onRevert?.();
-        // Suppress our toast when the interceptor already spoke about a known
-        // ApiError (avoids double-toast). Only speak for network/unknown.
-        const body = (err as { error?: unknown })?.error;
-        if (!isApiError(body)) {
-          this._toast.error(config.errorMessage ?? 'Something went wrong. Changes reverted.');
-        }
+        this._toastUnlessKnownError(err, config.errorMessage);
         config.onSettled?.();
       },
     });
@@ -161,6 +149,38 @@ export class OptimisticService {
   }
 
   // ── internals ──────────────────────────────────────────────────────────
+
+  /** True once a context switch has replaced this op's ledger out from under it. */
+  private _isSuperseded<T>(sig: WritableSignal<T>, ledger: Ledger<T>): boolean {
+    return this._ledgers.get(sig as WritableSignal<unknown>) !== ledger;
+  }
+
+  /**
+   * Shared tail for both terminal paths (confirm/revert) once a ledger has
+   * been superseded: clear the tempId quarantine, optionally toast on error,
+   * and fire onSettled. Never touches the signal — it belongs to a newer
+   * context now, and the current ledger already reflects that context.
+   */
+  private _settleSuperseded<T, R>(
+    tempId: string | undefined,
+    config: Pick<OptimisticConfig<T, R>, 'onRevert' | 'onSettled' | 'errorMessage'>,
+    err?: unknown,
+  ): void {
+    if (tempId) this._markPending(tempId, false);
+    if (err !== undefined) {
+      this._toastUnlessKnownError(err, config.errorMessage);
+      config.onRevert?.();
+    }
+    config.onSettled?.();
+  }
+
+  /** Suppress our toast when the interceptor already spoke about a known ApiError. */
+  private _toastUnlessKnownError(err: unknown, errorMessage?: string): void {
+    const body = (err as { error?: unknown })?.error;
+    if (!isApiError(body)) {
+      this._toast.error(errorMessage ?? 'Something went wrong. Changes reverted.');
+    }
+  }
 
   private _ledgerFor<T>(sig: WritableSignal<T>, mirror?: (v: T) => void, contextKey?: string): Ledger<T> {
     let ledger = this._ledgers.get(sig as WritableSignal<unknown>) as Ledger<T> | undefined;

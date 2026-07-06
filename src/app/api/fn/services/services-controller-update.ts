@@ -7,6 +7,7 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
+import { Service } from '../../models/service';
 import { UpdateServiceDto } from '../../models/update-service-dto';
 
 export interface ServicesControllerUpdate$Params {
@@ -19,7 +20,7 @@ export interface ServicesControllerUpdate$Params {
       body: UpdateServiceDto
 }
 
-export function servicesControllerUpdate(http: HttpClient, rootUrl: string, params: ServicesControllerUpdate$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
+export function servicesControllerUpdate(http: HttpClient, rootUrl: string, params: ServicesControllerUpdate$Params, context?: HttpContext): Observable<StrictHttpResponse<Service>> {
   const rb = new RequestBuilder(rootUrl, servicesControllerUpdate.PATH, 'patch');
   if (params) {
     rb.path('salonId', params.salonId, {});
@@ -28,11 +29,11 @@ export function servicesControllerUpdate(http: HttpClient, rootUrl: string, para
   }
 
   return http.request(
-    rb.build({ responseType: 'text', accept: '*/*', context })
+    rb.build({ responseType: 'json', accept: 'application/json', context })
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return (r as HttpResponse<any>).clone({ body: undefined }) as StrictHttpResponse<void>;
+      return r as StrictHttpResponse<Service>;
     })
   );
 }

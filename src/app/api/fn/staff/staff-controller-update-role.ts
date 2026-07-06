@@ -7,6 +7,7 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
+import { SalonStaff } from '../../models/salon-staff';
 import { UpdateStaffRoleDto } from '../../models/update-staff-role-dto';
 
 export interface StaffControllerUpdateRole$Params {
@@ -19,7 +20,7 @@ export interface StaffControllerUpdateRole$Params {
       body: UpdateStaffRoleDto
 }
 
-export function staffControllerUpdateRole(http: HttpClient, rootUrl: string, params: StaffControllerUpdateRole$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
+export function staffControllerUpdateRole(http: HttpClient, rootUrl: string, params: StaffControllerUpdateRole$Params, context?: HttpContext): Observable<StrictHttpResponse<SalonStaff>> {
   const rb = new RequestBuilder(rootUrl, staffControllerUpdateRole.PATH, 'patch');
   if (params) {
     rb.path('salonId', params.salonId, {});
@@ -28,11 +29,11 @@ export function staffControllerUpdateRole(http: HttpClient, rootUrl: string, par
   }
 
   return http.request(
-    rb.build({ responseType: 'text', accept: '*/*', context })
+    rb.build({ responseType: 'json', accept: 'application/json', context })
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return (r as HttpResponse<any>).clone({ body: undefined }) as StrictHttpResponse<void>;
+      return r as StrictHttpResponse<SalonStaff>;
     })
   );
 }
