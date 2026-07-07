@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { salonRoleGuard } from '../../core/guards/salon-role.guard';
 import { tierGuard } from '../../core/guards/tier.guard';
 import { SalonRole } from '../../core/salon-context/membership.types';
@@ -51,6 +52,9 @@ export const salonRoutes: Routes = [
     path: 'analytics',
     canActivate: [salonRoleGuard, tierGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN], requiredTier: 2 },
+    // Chart.js (via ng2-charts) is only ever used here — registering it at the
+    // route level keeps it out of the initial main.js bundle for everyone else.
+    providers: [provideCharts(withDefaultRegisterables())],
     loadComponent: () =>
       import('./analytics/analytics.component').then((m) => m.AnalyticsComponent),
   },

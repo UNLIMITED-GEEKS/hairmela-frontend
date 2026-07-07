@@ -1,11 +1,10 @@
-import { inject } from '@angular/core';
+import { EnvironmentInjector, inject, runInInjectionContext } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { TokenStore } from './token.store';
 import { CurrentUserStore } from './current-user.store';
 import { ApiConfiguration } from '../../api/api-configuration';
-import { QueueSocketService } from '../socket/queue-socket.service';
 import { GuestStore } from '../guest/guest-store';
 import { authenticatedAuthControllerGetMe } from '../../api/fn/auth/authenticated-auth-controller-get-me';
 
@@ -35,9 +34,12 @@ export function sessionInit(): () => Promise<void> {
     const tokenStore = inject(TokenStore);
     const currentUserStore = inject(CurrentUserStore);
     const apiConfig = inject(ApiConfiguration);
-    const socketService = inject(QueueSocketService);
     const guestStore = inject(GuestStore);
     const router = inject(Router);
+    // Captured here (in the initializer's injection context) so we can resolve
+    // QueueSocketService later, after lazy-loading it below — this keeps
+    // socket.io-client out of the initial main.js bundle entirely.
+    const injector = inject(EnvironmentInjector);
 
     const atRoot = window.location.pathname === '/';
     const shouldRedirect = atRoot && isFreshNavigation();
@@ -64,7 +66,14 @@ export function sessionInit(): () => Promise<void> {
         authenticatedAuthControllerGetMe(http, apiConfig.rootUrl, {})
       );
       currentUserStore.set(userResponse.body);
-      socketService.connect();
+
+      // Lazy-load socket.io only now that we have a signed-in user — it's in
+      // its own chunk, so the marketing/auth pages never download it. Not
+      // awaited: connect() is fire-and-forget and must not delay the redirect
+      // below or block the initializer from resolving.
+      void import('../socket/queue-socket.service').then(({ QueueSocketService }) => {
+        runInInjectionContext(injector, () => inject(QueueSocketService)).connect();
+      });
 
       // Fresh load at root as a logged-in user → dashboard. NOT on a refresh.
       if (shouldRedirect) {

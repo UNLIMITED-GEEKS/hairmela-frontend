@@ -53,7 +53,7 @@
   </div>
 }
 
-@if (showScanner()) {
+@defer (when showScanner()) {
   <app-qr-scanner
     (scanned)="onQrScanned($event)"
     (closed)="showScanner.set(false)" />
