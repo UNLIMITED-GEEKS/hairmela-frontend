@@ -1,6 +1,7 @@
-import { Injectable, WritableSignal, DestroyRef } from '@angular/core';
+import { Injectable, WritableSignal, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize, Observable } from 'rxjs';
+import { ToastService } from '../toast/toast.service';
 
 /**
  * Shared service for socket-driven optimistic mutations.
@@ -13,6 +14,8 @@ import { finalize, Observable } from 'rxjs';
  */
 @Injectable({ providedIn: 'root' })
 export class SocketPredictService {
+  private readonly _toast = inject(ToastService);
+
   // In-flight dedupe keys (optional — see config.dedupeKey). Same shape as
   // OptimisticService._inflightKeys: a re-entrant run() with a key already in
   // flight is dropped entirely (no paint, no request), which is what stops a
@@ -39,7 +42,18 @@ export class SocketPredictService {
     onSettled?: () => void;
     destroyRef?: DestroyRef;
     dedupeKey?: string;
+    // Id(s) this op acts on. If any of them is still a temp_-prefixed row (the
+    // socket hasn't yet replaced it with the real server-assigned id), the op
+    // is rejected outright — no paint, no request — with a toast explaining
+    // why. Replaces the old pattern of every call site hand-rolling
+    // `if (entryId.startsWith('temp_')) return;` with no feedback to the user.
+    targetIds?: string[];
   }): boolean {
+    if (config.targetIds?.some((id) => id.startsWith('temp_'))) {
+      this._toast.error('Still saving — try again in a moment.');
+      return false;
+    }
+
     if (config.dedupeKey !== undefined && this._inflightKeys.has(config.dedupeKey)) return false;
     if (config.dedupeKey !== undefined) this._inflightKeys.add(config.dedupeKey);
 

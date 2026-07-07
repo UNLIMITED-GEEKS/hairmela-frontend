@@ -126,13 +126,13 @@ export class ClosuresService {
   }
 
   deleteSalon(salonId: string, closureId: string, onSuccess?: () => void): void {
-    if (this._optimistic.isPending(closureId)) return;
     this._optimistic.run({
       signal: this._salonClosures,
       dedupeKey: `ClosuresService.deleteSalon:${closureId}`,
       apply: (list) => list.filter((c) => c.id !== closureId),
       mirror: this._salonLoader.mirrorFn(salonId),
       contextKey: salonId,
+      targetId: closureId,
       request: () =>
         salonClosuresControllerDelete(this._http, this._apiConfig.rootUrl, { salonId, closureId }),
       errorMessage: 'Could not delete closure. Restored.',
@@ -142,13 +142,13 @@ export class ClosuresService {
 
   deleteStaff(salonId: string, staffId: string, closureId: string, onSuccess?: () => void): void {
     const ctx = `${salonId}:${staffId}`;
-    if (this._optimistic.isPending(closureId)) return;
     this._optimistic.run({
       signal: this._staffClosures,
       dedupeKey: `ClosuresService.deleteStaff:${closureId}`,
       apply: (list) => list.filter((c) => c.id !== closureId),
       mirror: this._staffLoader.mirrorFn(ctx),
       contextKey: ctx,
+      targetId: closureId,
       request: () =>
         staffClosuresControllerDelete(this._http, this._apiConfig.rootUrl, {
           salonId,

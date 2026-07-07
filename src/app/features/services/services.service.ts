@@ -112,13 +112,13 @@ export class ServicesService {
   }
 
   update(salonId: string, serviceId: string, body: UpdateServiceDto, onSuccess?: () => void): void {
-    if (this._optimistic.isPending(serviceId)) return;
     this._optimistic.run({
       signal: this._services,
       apply: (list) => list.map((s) => (s.id === serviceId ? { ...s, ...body } : s)),
       reconcile: (list, res) => list.map((s) => (s.id === serviceId ? res.body : s)),
       mirror: this._servicesLoader.mirrorFn(salonId),
       contextKey: salonId,
+      targetId: serviceId,
       dedupeKey: `ServicesService.update:${salonId}:${serviceId}`,
       request: () =>
         servicesControllerUpdate(this._http, this._apiConfig.rootUrl, { salonId, serviceId, body }),
@@ -128,12 +128,12 @@ export class ServicesService {
   }
 
   deactivate(salonId: string, serviceId: string, onSuccess?: () => void): void {
-    if (this._optimistic.isPending(serviceId)) return;
     this._optimistic.run({
       signal: this._services,
       apply: (list) => list.filter((s) => s.id !== serviceId),
       mirror: this._servicesLoader.mirrorFn(salonId),
       contextKey: salonId,
+      targetId: serviceId,
       dedupeKey: `ServicesService.deactivate:${salonId}:${serviceId}`,
       request: () =>
         servicesControllerDeactivate(this._http, this._apiConfig.rootUrl, { salonId, serviceId }),
@@ -144,7 +144,6 @@ export class ServicesService {
 
   assignService(salonId: string, staffId: string, serviceId: string): void {
     const ctx = `${salonId}:${staffId}`;
-    if (this._optimistic.isPending(serviceId)) return;
     // Placeholder row: only serviceId is real (it's the only field any consumer
     // reads before reconcile below swaps in the server's full authoritative
     // list). Typed honestly as a partial rather than cast to the full model.
@@ -159,6 +158,7 @@ export class ServicesService {
       reconcile: (_, res) => res.body,
       mirror: this._staffServicesLoader.mirrorFn(ctx),
       contextKey: ctx,
+      targetId: serviceId,
       dedupeKey: `ServicesService.assignService:${salonId}:${staffId}:${serviceId}`,
       request: () =>
         staffServicesControllerAssignService(this._http, this._apiConfig.rootUrl, {
@@ -172,13 +172,13 @@ export class ServicesService {
 
   removeService(salonId: string, staffId: string, serviceId: string): void {
     const ctx = `${salonId}:${staffId}`;
-    if (this._optimistic.isPending(serviceId)) return;
     this._optimistic.run({
       signal: this._staffServices,
       apply: (list) => list.filter((s) => s.serviceId !== serviceId),
       reconcile: (_, res) => res.body,
       mirror: this._staffServicesLoader.mirrorFn(ctx),
       contextKey: ctx,
+      targetId: serviceId,
       dedupeKey: `ServicesService.removeService:${salonId}:${staffId}:${serviceId}`,
       request: () =>
         staffServicesControllerRemoveService(this._http, this._apiConfig.rootUrl, {
@@ -197,11 +197,12 @@ export class ServicesService {
     onRevert?: () => void,
   ): void {
     const ctx = `${salonId}:${staffId}`;
-    this._optimistic.run({
+    const accepted = this._optimistic.run({
       signal: this._staffServices,
       apply: (list) => list.map((s) => ({ ...s, isDefault: s.serviceId === body.serviceId })),
       mirror: this._staffServicesLoader.mirrorFn(ctx),
       contextKey: ctx,
+      targetId: body.serviceId,
       dedupeKey: `ServicesService.setDefaultService:${salonId}:${staffId}:${body.serviceId}`,
       request: () =>
         staffServicesControllerSetDefaultService(this._http, this._apiConfig.rootUrl, {
@@ -210,9 +211,11 @@ export class ServicesService {
           body,
         }),
       errorMessage: 'Could not set default service. Reverted.',
-      onSuccess: () => this._toast.success('Default service updated'),
       onRevert,
     });
+    // Optimistic: the flag already flipped, so tell the user now rather than
+    // waiting on the network round-trip.
+    if (accepted) this._toast.success('Default service updated');
   }
 
   clear(): void {

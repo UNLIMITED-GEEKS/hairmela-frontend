@@ -78,13 +78,13 @@ export class SalonMediaService {
   }
 
   delete(salonId: string, mediaId: string, onSuccess?: () => void): void {
-    if (this._optimistic.isPending(mediaId)) return;
     this._optimistic.run({
       signal: this._media,
       dedupeKey: `SalonMediaService.delete:${mediaId}`,
       apply: (list) => list.filter((m) => m.id !== mediaId),
       mirror: this._loader.mirrorFn(salonId),
       contextKey: salonId,
+      targetId: mediaId,
       request: () => mediaControllerDelete(this._http, this._apiConfig.rootUrl, { id: mediaId }),
       errorMessage: 'Could not delete image. Restored.',
       onSuccess: () => onSuccess?.(),

@@ -5,6 +5,7 @@ import { filter, map } from 'rxjs';
 import { Router } from '@angular/router';
 import { ApiConfiguration } from '../../api/api-configuration';
 import { QueueSocketService } from '../../core/socket/queue-socket.service';
+import { ServerClockService } from '../../core/clock/server-clock.service';
 import { CurrentUserStore } from '../../core/auth/current-user.store';
 import { GuestStore } from '../../core/guest/guest-store';
 import { ActiveEntryStore } from '../../core/queue/active-entry.store';
@@ -46,6 +47,7 @@ export class SalonVisitService {
   private readonly _http = inject(HttpClient);
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _socket = inject(QueueSocketService);
+  private readonly _clock = inject(ServerClockService);
   private readonly _router = inject(Router);
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _guestStore = inject(GuestStore);
@@ -55,8 +57,6 @@ export class SalonVisitService {
   private readonly _toast = inject(ToastService);
   private readonly _destroyRef = inject(DestroyRef);
 
-  private readonly _tick = signal(0);
-  private _tickInterval: ReturnType<typeof setInterval> | null = null;
   private _watchedQueueIds = new Set<string>();
   private _shellPrefix = '';
   private _socketInitialReceived = new Set<string>();
@@ -117,14 +117,13 @@ export class SalonVisitService {
   });
 
   private readonly _elapsedSeconds = computed(() => {
-    this._tick();
+    this._clock.tick();
     const servedAt = this._servingMember()?.servedAt;
     if (!servedAt) return 0;
-    return Math.floor((Date.now() - new Date(servedAt).getTime()) / 1000);
+    return Math.floor((this._clock.now() - new Date(servedAt).getTime()) / 1000);
   });
 
   readonly liveWaitMinutes = computed((): Map<string, number> => {
-    this._tick();
     const elapsedMinutes = Math.floor(this._elapsedSeconds() / 60);
     const map = new Map<string, number>();
     for (const entry of this.timeline()) {
@@ -134,7 +133,6 @@ export class SalonVisitService {
   });
 
   readonly memberWaitMinutes = computed((): Map<string, number> => {
-    this._tick();
     const elapsedMinutes = Math.floor(this._elapsedSeconds() / 60);
     const map = new Map<string, number>();
     for (const entry of this.timeline()) {
@@ -164,7 +162,7 @@ export class SalonVisitService {
     this._shellPrefix = shellPrefix;
     const storedEntries = this._activeEntryStore.getAll();
     this._loadSalon(slug, storedEntries);
-    this._startTick();
+    this._clock.start();
   }
 
   destroy(): void {
@@ -173,7 +171,7 @@ export class SalonVisitService {
     }
     this._watchedQueueIds.clear();
     this._socketInitialReceived.clear();
-    this._stopTick();
+    this._clock.stop();
     this._shellPrefix = '';
     this.salonData.set(null);
     this.services.set([]);
@@ -208,6 +206,11 @@ export class SalonVisitService {
         this.timeline.set(entries);
         this.timelineLoaded.set(true);
       });
+
+    this._socket
+      .serverTime$(queueId)
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe((serverTime) => this._clock.sync(serverTime));
   }
 
   selectBarber(staff: SalonPublicStaffDto, slug: string): void {
@@ -448,7 +451,8 @@ export class SalonVisitService {
           // the authoritative source. The _socketInitialReceived Set is populated
           // in watchQueue()'s socket subscription.
           if (this._socketInitialReceived.has(queueId)) return;
-          const entries = res.body;
+          const { timeline: entries, serverTime } = res.body;
+          this._clock.sync(serverTime);
           const stored = this._activeEntryStore.getAllForQueue(queueId);
           if (stored.length > 0) {
             this._reconcileEntries(queueId, entries, true);
@@ -537,14 +541,4 @@ export class SalonVisitService {
     });
   }
 
-  private _startTick(): void {
-    this._tickInterval = setInterval(() => this._tick.update((n) => n + 1), 1000);
-  }
-
-  private _stopTick(): void {
-    if (this._tickInterval) {
-      clearInterval(this._tickInterval);
-      this._tickInterval = null;
-    }
-  }
 }

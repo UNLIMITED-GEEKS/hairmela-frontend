@@ -88,13 +88,13 @@ export class SchedulesService {
     onSuccess?: () => void,
   ): void {
     const ctx = this._key(salonId, staffId);
-    if (this._optimistic.isPending(scheduleId)) return;
     this._optimistic.run({
       signal: this._schedules,
       dedupeKey: `SchedulesService.update:${scheduleId}`,
       apply: (list) => list.map((s) => (s.id === scheduleId ? { ...s, ...body } : s)),
       mirror: this._loader.mirrorFn(ctx),
       contextKey: ctx,
+      targetId: scheduleId,
       request: () =>
         schedulesControllerUpdate(this._http, this._apiConfig.rootUrl, {
           salonId,
@@ -109,13 +109,13 @@ export class SchedulesService {
 
   remove(salonId: string, staffId: string, scheduleId: string, onSuccess?: () => void): void {
     const ctx = this._key(salonId, staffId);
-    if (this._optimistic.isPending(scheduleId)) return;
     this._optimistic.run({
       signal: this._schedules,
       apply: (list) => list.filter((s) => s.id !== scheduleId),
       mirror: this._loader.mirrorFn(ctx),
       dedupeKey: `SchedulesService.remove:${scheduleId}`,
       contextKey: ctx,
+      targetId: scheduleId,
       request: () =>
         schedulesControllerDelete(this._http, this._apiConfig.rootUrl, {
           salonId,

@@ -55,41 +55,48 @@ export class InvitesService {
   }
 
   accept(invite: MyInviteDto): void {
-    if (this._optimistic.isPending(invite.staffId)) return;
-    this._optimistic.run({
+    const accepted = this._optimistic.run({
       signal: this._invites,
       dedupeKey: `InvitesService.accept:${invite.staffId}`,
       apply: (list) => list.filter((i) => i.staffId !== invite.staffId),
+      targetId: invite.staffId,
       request: () =>
         staffInviteControllerAccept(this._http, this._apiConfig.rootUrl, {
           salonId: invite.salonId,
         }),
       errorMessage: 'Failed to accept invite.',
       onSuccess: () => {
+        // These genuinely need server confirmation — invalidating the
+        // membership cache or refreshing the dashboard before the salon
+        // membership actually exists server-side would be wrong.
         this._membershipStore.invalidate(invite.salonId);
         // Silent: the dashboard is very likely on screen right now (this is
         // its own pending-invites widget) — refresh() would flip `loading`
         // and blank the whole dashboard behind an action that already
         // succeeded. The new salon appears once this resolves in the background.
         this._dashboardService.refreshSilent();
-        this._toast.success(`Joined ${invite.salonName}`);
       },
     });
+    // Optimistic: the invite row already disappeared, so tell the user now
+    // rather than waiting on the network round-trip.
+    if (accepted) this._toast.success(`Joined ${invite.salonName}`);
   }
 
   decline(invite: MyInviteDto): void {
-    if (this._optimistic.isPending(invite.staffId)) return;
-    this._optimistic.run({
+    const accepted = this._optimistic.run({
       signal: this._invites,
       dedupeKey: `InvitesService.decline:${invite.staffId}`,
       apply: (list) => list.filter((i) => i.staffId !== invite.staffId),
+      targetId: invite.staffId,
       request: () =>
         staffInviteControllerDecline(this._http, this._apiConfig.rootUrl, {
           salonId: invite.salonId,
         }),
       errorMessage: 'Failed to decline invite.',
-      onSuccess: () => this._toast.info(`Declined invite from ${invite.salonName}`),
     });
+    // Optimistic: the invite row already disappeared, so tell the user now
+    // rather than waiting on the network round-trip.
+    if (accepted) this._toast.info(`Declined invite from ${invite.salonName}`);
   }
 
   private _fetch(token: ReadToken): void {

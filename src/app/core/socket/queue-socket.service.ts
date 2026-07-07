@@ -16,6 +16,7 @@ export class QueueSocketService implements OnDestroy {
   private readonly _watchedStaffQueues = new Set<string>();
 
   private readonly _timelines = new Map<string, ReplaySubject<TimelineEntryDto[]>>();
+  private readonly _serverTimes = new Map<string, ReplaySubject<string>>();
   private readonly _called = new Map<string, Subject<CustomerCalledPayload>>();
   private readonly _connectionState$ = new BehaviorSubject<ConnectionState>('disconnected');
 
@@ -43,12 +44,14 @@ export class QueueSocketService implements OnDestroy {
       this._connectionState$.next('reconnecting');
     });
 
-    this._socket.on('queueTimeline', (data: { queueId: string; timeline: TimelineEntryDto[] }) => {
+    this._socket.on('queueTimeline', (data: { queueId: string; timeline: TimelineEntryDto[]; serverTime?: string }) => {
       this._timelines.get(data.queueId)?.next(data.timeline);
+      if (data.serverTime) this._serverTimes.get(data.queueId)?.next(data.serverTime);
     });
 
-    this._socket.on('queue.updated', (data: { queueId: string; timeline: TimelineEntryDto[] }) => {
+    this._socket.on('queue.updated', (data: { queueId: string; timeline: TimelineEntryDto[]; serverTime?: string }) => {
       this._timelines.get(data.queueId)?.next(data.timeline);
+      if (data.serverTime) this._serverTimes.get(data.queueId)?.next(data.serverTime);
     });
 
     this._socket.on('customer.called', (payload: CustomerCalledPayload) => {
@@ -91,6 +94,13 @@ export class QueueSocketService implements OnDestroy {
     return this._timelines.get(queueId)!.asObservable();
   }
 
+  // Server's clock at the moment the timeline was generated — used to correct
+  // for client clock drift in elapsed-time displays (wait estimates, timers).
+  serverTime$(queueId: string): Observable<string> {
+    this._ensureTimelineSubject(queueId);
+    return this._serverTimes.get(queueId)!.asObservable();
+  }
+
   customerCalled$(queueId: string): Observable<CustomerCalledPayload> {
     if (!this._called.has(queueId)) {
       this._called.set(queueId, new Subject<CustomerCalledPayload>());
@@ -101,6 +111,9 @@ export class QueueSocketService implements OnDestroy {
   private _ensureTimelineSubject(queueId: string): void {
     if (!this._timelines.has(queueId)) {
       this._timelines.set(queueId, new ReplaySubject<TimelineEntryDto[]>(1));
+    }
+    if (!this._serverTimes.has(queueId)) {
+      this._serverTimes.set(queueId, new ReplaySubject<string>(1));
     }
   }
 

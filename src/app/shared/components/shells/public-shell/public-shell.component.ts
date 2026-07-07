@@ -3,13 +3,14 @@ import { RouterOutlet } from '@angular/router';
 import { NavItem } from '../nav-item.types';
 import { PublicNavComponent } from '../public-nav/public-nav.component';
 import { PublicFooterComponent } from '../public-footer/public-footer.component';
+import { InstallBannerComponent } from '../../install-banner/install-banner.component';
 import { CurrentUserStore } from '../../../../core/auth/current-user.store';
 import { GuestStore } from '../../../../core/guest/guest-store';
 
 @Component({
   selector: 'app-public-shell',
   templateUrl: './public-shell.component.html',
-  imports: [RouterOutlet, PublicNavComponent, PublicFooterComponent],
+  imports: [RouterOutlet, PublicNavComponent, PublicFooterComponent, InstallBannerComponent],
 })
 export class PublicShellComponent {
   private readonly _currentUser = inject(CurrentUserStore);
@@ -22,9 +23,10 @@ export class PublicShellComponent {
     const isGuest = this._guestStore.hasToken();
 
     const base: NavItem[] = [
-      { label: 'Pricing', icon: 'info', url: '/pricing', sheet: true },
-      { label: 'About',   icon: 'info', url: '/about',   sheet: true },
-      { label: 'Contact', icon: 'mail', url: '/contact', sheet: true },
+      { label: 'About',        icon: 'info', url: '/about',           sheet: true },
+      { label: 'Get the app',  icon: 'info', url: '/how-to-install',  sheet: true },
+      { label: 'Contact',      icon: 'mail', url: '/contact',         sheet: true },
+      { label: 'Pricing',      icon: 'info', url: '/pricing',         sheet: true },
     ];
 
     if (isLoggedIn) {

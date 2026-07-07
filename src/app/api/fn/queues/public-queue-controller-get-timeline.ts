@@ -7,13 +7,13 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { TimelineEntryDto } from '../../models/timeline-entry-dto';
+import { TimelineResponseDto } from '../../models/timeline-response-dto';
 
 export interface PublicQueueControllerGetTimeline$Params {
   queueId: string;
 }
 
-export function publicQueueControllerGetTimeline(http: HttpClient, rootUrl: string, params: PublicQueueControllerGetTimeline$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<TimelineEntryDto>>> {
+export function publicQueueControllerGetTimeline(http: HttpClient, rootUrl: string, params: PublicQueueControllerGetTimeline$Params, context?: HttpContext): Observable<StrictHttpResponse<TimelineResponseDto>> {
   const rb = new RequestBuilder(rootUrl, publicQueueControllerGetTimeline.PATH, 'get');
   if (params) {
     rb.path('queueId', params.queueId, {});
@@ -24,7 +24,7 @@ export function publicQueueControllerGetTimeline(http: HttpClient, rootUrl: stri
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<Array<TimelineEntryDto>>;
+      return r as StrictHttpResponse<TimelineResponseDto>;
     })
   );
 }

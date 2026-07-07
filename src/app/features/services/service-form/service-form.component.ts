@@ -1,6 +1,6 @@
 import { Component, effect, inject, OnInit, computed, signal } from '@angular/core';
 import { Location } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ServicesService } from '../services.service';
@@ -17,6 +17,7 @@ import { FieldErrorComponent } from '../../../shared/components/field-error/fiel
 export class ServiceFormComponent implements OnInit {
   protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
+  private readonly _router = inject(Router);
   private readonly _fb = inject(FormBuilder);
   private readonly _servicesService = inject(ServicesService);
   protected readonly salonContext = inject(SalonContextService);
@@ -83,6 +84,8 @@ export class ServiceFormComponent implements OnInit {
     }
     // Navigate immediately — signal is already updated optimistically.
     // If the request fails, OptimisticService reverts the list + toasts the error.
-    this._location.back();
+    // replaceUrl swaps out this form's history entry instead of stacking on top
+    // of it, so a later browser-back doesn't bounce through the stale form.
+    this._router.navigate(['/salons', this._salonId, 'services'], { replaceUrl: true });
   }
 }

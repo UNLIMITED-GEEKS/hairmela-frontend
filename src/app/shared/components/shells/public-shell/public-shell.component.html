@@ -1,11 +1,16 @@
-<app-public-nav
-  [navItems]="navItems()"
-  [sheetOpen]="sheetOpen()"
-  (sheetToggle)="sheetOpen.update(v => !v)" />
+<div class="print:hidden">
+  <app-public-nav
+    [navItems]="navItems()"
+    [sheetOpen]="sheetOpen()"
+    (sheetToggle)="sheetOpen.update(v => !v)" />
+</div>
 
 <main class="min-h-screen">
   <router-outlet />
 </main>
 
-<app-public-footer />
+<div class="print:hidden">
+  <app-install-banner />
+  <app-public-footer />
+</div>
 

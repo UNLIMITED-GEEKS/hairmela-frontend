@@ -152,7 +152,7 @@ export class QueueConsoleService {
           // Skip if the socket already delivered a fresher frame — the socket is
           // the authoritative source and always contains the latest server state.
           if (this._socketInitialReceived) return;
-          this.timeline.set(res.body);
+          this.timeline.set(res.body.timeline);
           this.loading.set(false);
         },
         error: () => {
@@ -196,10 +196,6 @@ export class QueueConsoleService {
     const waiting = this.waitingEntries();
     if (waiting.length === 0) return;
     const head = waiting[0];
-    // Quarantine backstop: the head entry might be a temp row from staffAddToQueue
-    // while the POST is still in flight. Sending a temp_ id to the server is a
-    // guaranteed 404 — skip until the socket replaces it with the real id.
-    if (head.entryId.startsWith('temp_')) return;
 
     this._socketPredict.run({
       signal: this.timeline,
@@ -216,6 +212,7 @@ export class QueueConsoleService {
                 ),
               },
         ),
+      targetIds: [head.entryId],
       request: () =>
         queueManagementControllerCallNext(this._http, this._apiConfig.rootUrl, {
           salonId,
@@ -304,7 +301,6 @@ export class QueueConsoleService {
   }
 
   completeMember(salonId: string, queueId: string, entryId: string, memberId: string): void {
-    if (entryId.startsWith('temp_') || memberId.startsWith('temp_')) return; // quarantine backstop
     this._socketPredict.run({
       signal: this.timeline,
       apply: (t) =>
@@ -318,6 +314,7 @@ export class QueueConsoleService {
                 ),
               },
         ),
+      targetIds: [entryId, memberId],
       request: () =>
         queueManagementControllerCompleteMember(this._http, this._apiConfig.rootUrl, {
           salonId,
@@ -331,7 +328,10 @@ export class QueueConsoleService {
   }
 
   noShow(salonId: string, queueId: string, entryId: string): void {
-    if (entryId.startsWith('temp_')) return; // quarantine backstop
+    if (entryId.startsWith('temp_')) {
+      this._toast.error('Still saving — try again in a moment.');
+      return;
+    }
     this._confirmDialog
       .open({
         title: 'Mark as no-show?',
@@ -347,6 +347,7 @@ export class QueueConsoleService {
         this._socketPredict.run({
           signal: this.timeline,
           apply: (t) => t.filter((e) => e.entryId !== entryId),
+          targetIds: [entryId],
           request: () =>
             queueManagementControllerMarkNoShow(this._http, this._apiConfig.rootUrl, {
               salonId,
@@ -360,7 +361,10 @@ export class QueueConsoleService {
   }
 
   cancelEntry(salonId: string, queueId: string, entryId: string): void {
-    if (entryId.startsWith('temp_')) return; // quarantine backstop
+    if (entryId.startsWith('temp_')) {
+      this._toast.error('Still saving — try again in a moment.');
+      return;
+    }
     this._confirmDialog
       .open({
         title: 'Cancel entry?',
@@ -376,6 +380,7 @@ export class QueueConsoleService {
         this._socketPredict.run({
           signal: this.timeline,
           apply: (t) => t.filter((e) => e.entryId !== entryId),
+          targetIds: [entryId],
           request: () =>
             queueManagementControllerCancelEntry(this._http, this._apiConfig.rootUrl, {
               salonId,
@@ -389,7 +394,6 @@ export class QueueConsoleService {
   }
 
   serveMember(salonId: string, queueId: string, entryId: string, memberId: string): void {
-    if (entryId.startsWith('temp_') || memberId.startsWith('temp_')) return; // quarantine backstop
     this._socketPredict.run({
       signal: this.timeline,
       apply: (t) =>
@@ -405,6 +409,7 @@ export class QueueConsoleService {
                 ),
               },
         ),
+      targetIds: [entryId, memberId],
       request: () =>
         queueManagementControllerServeMember(this._http, this._apiConfig.rootUrl, {
           salonId,
@@ -424,7 +429,6 @@ export class QueueConsoleService {
     memberId: string,
     body: ExtendMemberDto,
   ): void {
-    if (entryId.startsWith('temp_') || memberId.startsWith('temp_')) return; // quarantine backstop
     this._socketPredict.run({
       signal: this.timeline,
       apply: (t) =>
@@ -440,6 +444,7 @@ export class QueueConsoleService {
                 ),
               },
         ),
+      targetIds: [entryId, memberId],
       request: () =>
         queueManagementControllerExtendMember(this._http, this._apiConfig.rootUrl, {
           salonId,
@@ -526,7 +531,7 @@ export class QueueConsoleService {
     this._toast.error('Action failed — refreshing queue');
     publicQueueControllerGetTimeline(this._http, this._apiConfig.rootUrl, { queueId })
       .pipe(retry(1), takeUntilDestroyed(this._destroyRef))
-      .subscribe({ next: (res) => this.timeline.set(res.body) });
+      .subscribe({ next: (res) => this.timeline.set(res.body.timeline) });
   }
 
   private _loadQueueStatus(salonId: string, queueId: string): void {

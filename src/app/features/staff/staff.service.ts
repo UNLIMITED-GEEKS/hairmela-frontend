@@ -79,7 +79,7 @@ export class StaffService {
       hasAccount: false,
       invitedAt: new Date().toISOString(),
     };
-    this._optimistic.run({
+    const accepted = this._optimistic.run({
       signal: this._invites,
       // apply is REPLAYED on every recompute (e.g. a concurrent loadInvites()
       // commitRead landing while this invite is still pending) — must be
@@ -108,7 +108,6 @@ export class StaffService {
       request: () => staffControllerInvite(this._http, this._apiConfig.rootUrl, { salonId, body }),
       errorMessage: 'Could not send invite. Reverted.',
       onSuccess: () => {
-        this._toast.success('Invite sent');
         // Invalidate (don't eagerly refetch) the staff list: the invite adds a
         // PENDING row there too, but a real StaffWithQueueDto needs the queueId
         // pairing this response doesn't carry, and an eager refresh() would
@@ -120,6 +119,12 @@ export class StaffService {
         onSuccess?.();
       },
     });
+    // Optimistic: the temp invite row already painted, so tell the user now
+    // rather than waiting on the network round-trip. If the invite actually
+    // fails, the revert path above shows its own error toast. Only toast if
+    // run() actually accepted the op — a dedupeKey-dropped re-entrant call
+    // did nothing and shouldn't claim otherwise.
+    if (accepted) this._toast.success('Invite sent');
   }
 
   loadInvites(salonId: string): void {
@@ -146,17 +151,19 @@ export class StaffService {
   }
 
   cancelInvite(salonId: string, staffId: string): void {
-    if (this._optimistic.isPending(staffId)) return;
-    this._optimistic.run({
+    const accepted = this._optimistic.run({
       signal: this._invites,
       apply: (list) => list.filter((i) => i.staffId !== staffId),
       contextKey: salonId,
+      targetId: staffId,
       dedupeKey: `StaffService.cancelInvite:${salonId}:${staffId}`,
       request: () =>
         staffControllerCancelInvite(this._http, this._apiConfig.rootUrl, { salonId, staffId }),
       errorMessage: 'Could not cancel invite. Restored.',
-      onSuccess: () => this._toast.info('Invite cancelled'),
     });
+    // Optimistic: the row already disappeared, so tell the user now rather
+    // than waiting on the network round-trip.
+    if (accepted) this._toast.info('Invite cancelled');
   }
 
   leaveSalon(salonId: string, onSuccess?: () => void): void {
@@ -179,8 +186,7 @@ export class StaffService {
     body: UpdateStaffRoleDto,
     onSuccess?: () => void,
   ): void {
-    if (this._optimistic.isPending(staffId)) return;
-    this._optimistic.run({
+    const accepted = this._optimistic.run({
       signal: this._staffList,
       apply: (list) =>
         list.map((entry) =>
@@ -194,15 +200,16 @@ export class StaffService {
         list.map((entry) => (entry.staff.id === staffId ? { ...entry, staff: res.body } : entry)),
       mirror: this._loader.mirrorFn(salonId),
       contextKey: salonId,
+      targetId: staffId,
       dedupeKey: `StaffService.updateRole:${salonId}:${staffId}`,
       request: () =>
         staffControllerUpdateRole(this._http, this._apiConfig.rootUrl, { salonId, staffId, body }),
       errorMessage: 'Could not update role. Reverted.',
-      onSuccess: () => {
-        this._toast.success('Role updated');
-        onSuccess?.();
-      },
+      onSuccess: () => onSuccess?.(),
     });
+    // Optimistic: the row already changed, so tell the user now rather than
+    // waiting on the network round-trip.
+    if (accepted) this._toast.success('Role updated');
   }
 
   transferOwnership(salonId: string, body: TransferOwnershipDto, onSuccess?: () => void): void {
@@ -224,21 +231,21 @@ export class StaffService {
   }
 
   remove(salonId: string, staffId: string, onSuccess?: () => void): void {
-    if (this._optimistic.isPending(staffId)) return;
-    this._optimistic.run({
+    const accepted = this._optimistic.run({
       signal: this._staffList,
       apply: (list) => list.filter((entry) => entry.staff.id !== staffId),
       mirror: this._loader.mirrorFn(salonId),
       contextKey: salonId,
+      targetId: staffId,
       dedupeKey: `StaffService.remove:${salonId}:${staffId}`,
       request: () =>
         staffControllerRemove(this._http, this._apiConfig.rootUrl, { salonId, staffId }),
       errorMessage: 'Could not remove staff member. Restored.',
-      onSuccess: () => {
-        this._toast.success('Staff member removed');
-        onSuccess?.();
-      },
+      onSuccess: () => onSuccess?.(),
     });
+    // Optimistic: the row already disappeared, so tell the user now rather
+    // than waiting on the network round-trip.
+    if (accepted) this._toast.success('Staff member removed');
   }
 
   clear(): void {

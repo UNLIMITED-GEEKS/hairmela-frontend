@@ -6,6 +6,7 @@ import { SalonSettingsService } from './salon-settings.service';
 import { SalonOverviewService } from '../salon-overview/salon-overview.service';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
+import { ToastService } from '../../../core/toast/toast.service';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/frozen-banner.component';
 import { TierFreezeDirective } from '../../../shared/directives/tier-freeze.directive';
@@ -40,6 +41,7 @@ export class SalonSettingsComponent implements OnInit {
   private readonly _overview = inject(SalonOverviewService);
   protected readonly salonContext = inject(SalonContextService);
   private readonly _currentUser = inject(CurrentUserStore);
+  private readonly _toast = inject(ToastService);
 
   protected readonly loading = signal(true);
   protected readonly days = DAYS;
@@ -139,7 +141,10 @@ export class SalonSettingsComponent implements OnInit {
         maxPartySize: v.maxPartySize!,
         noShowWindow: v.noShowWindow!,
       },
-      () => this._location.back(),
     );
+    // Optimistic: the UI already reflects the change, so tell the user now
+    // rather than waiting on the network round-trip. If the save actually
+    // fails, the service's revert path shows its own error toast.
+    this._toast.success('Settings saved');
   }
 }

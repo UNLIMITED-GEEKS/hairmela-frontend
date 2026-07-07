@@ -1,43 +1,51 @@
-<div class="flex h-screen w-full overflow-hidden bg-surface-raised">
+<div class="flex h-screen w-full overflow-hidden bg-surface-raised print:h-auto print:overflow-visible print:bg-white">
 
   <!-- Desktop sidebar -->
-  <app-sidebar
-    [navItems]="navItems"
-    [activeSalonId]="activeSalonId()"
-    [membership]="membership()"
-    (logoutClick)="logout()" />
+  <div class="print:hidden contents">
+    <app-sidebar
+      [navItems]="navItems"
+      [activeSalonId]="activeSalonId()"
+      [membership]="membership()"
+      (logoutClick)="logout()" />
+  </div>
 
-  <div class="flex flex-col flex-1 min-w-0 overflow-hidden">
+  <div class="flex flex-col flex-1 min-w-0 overflow-hidden print:overflow-visible">
 
     <!-- Desktop top bar -->
-    <app-top-bar
-      [showUserAvatar]="true"
-      [salons]="salons()"
-      [activeSalonId]="activeSalonId()" />
+    <div class="print:hidden">
+      <app-top-bar
+        [showUserAvatar]="true"
+        [salons]="salons()"
+        [activeSalonId]="activeSalonId()" />
+    </div>
 
     <!-- Mobile top bar + expandable sheet -->
-    <app-mobile-top-bar
-      [sheetOpen]="sheetOpen()"
-      [salons]="salons()"
-      [activeSalonId]="activeSalonId()"
-      (sheetToggle)="sheetOpen.update(v => !v)">
-      <app-mobile-sheet
-        [navItems]="navItems"
-        [open]="sheetOpen()"
+    <div class="print:hidden">
+      <app-mobile-top-bar
+        [sheetOpen]="sheetOpen()"
+        [salons]="salons()"
         [activeSalonId]="activeSalonId()"
-        [membership]="membership()"
-        (closed)="sheetOpen.set(false)" />
-    </app-mobile-top-bar>
+        (sheetToggle)="sheetOpen.update(v => !v)">
+        <app-mobile-sheet
+          [navItems]="navItems"
+          [open]="sheetOpen()"
+          [activeSalonId]="activeSalonId()"
+          [membership]="membership()"
+          (closed)="sheetOpen.set(false)" />
+      </app-mobile-top-bar>
+    </div>
 
     <!-- Content -->
-    <main class="flex-1 overflow-y-auto pt-8 md:pt-0 pb-bottom-nav">
-      <div class="w-[95%] mx-auto py-6">
+    <main class="flex-1 overflow-y-auto pt-8 md:pt-0 pb-bottom-nav print:overflow-visible print:pt-0 print:pb-0">
+      <div class="w-[95%] mx-auto py-6 print:w-full print:p-0 print:m-0">
         <router-outlet />
       </div>
     </main>
 
     <!-- Mobile bottom nav -->
-    <app-bottom-nav [navItems]="navItems" />
+    <div class="print:hidden">
+      <app-bottom-nav [navItems]="navItems" />
+    </div>
   </div>
 
 </div>

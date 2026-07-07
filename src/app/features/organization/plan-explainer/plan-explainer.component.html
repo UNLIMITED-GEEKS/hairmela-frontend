@@ -11,6 +11,7 @@
     @for (plan of plans; track plan.tier) {
       <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
         <h2 class="text-base font-semibold text-gray-900">{{ plan.name }}</h2>
+        <p class="text-lg font-bold text-gray-900">{{ formatPlanPrice(plan.price) }}</p>
         <ul class="space-y-2 text-sm text-gray-600">
           @for (line of [plan.salons, plan.staff].concat(plan.features); track line) {
             <li class="flex items-center gap-2">

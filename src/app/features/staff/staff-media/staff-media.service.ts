@@ -76,12 +76,12 @@ export class StaffMediaService {
   }
 
   delete(staffId: string, mediaId: string, onSuccess?: () => void): void {
-    if (this._optimistic.isPending(mediaId)) return;
     this._optimistic.run({
       signal: this._media,
       apply: (list) => list.filter((m) => m.id !== mediaId),
       mirror: this._loader.mirrorFn(staffId),
       contextKey: staffId,
+      targetId: mediaId,
       dedupeKey: `StaffMediaService.delete:${staffId}:${mediaId}`,
       request: () => mediaControllerDelete(this._http, this._apiConfig.rootUrl, { id: mediaId }),
       errorMessage: 'Could not delete image. Restored.',

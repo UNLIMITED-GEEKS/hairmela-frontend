@@ -1,6 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { Location } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { StaffService } from '../staff.service';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
@@ -15,6 +15,7 @@ import { FieldErrorComponent } from '../../../shared/components/field-error/fiel
 export class InviteStaffComponent {
   protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
+  private readonly _router = inject(Router);
   private readonly _fb = inject(FormBuilder);
   private readonly _staffService = inject(StaffService);
   private readonly _salonContext = inject(SalonContextService);
@@ -48,7 +49,9 @@ export class InviteStaffComponent {
       email: this.form.value.email!,
       role: this.form.value.role!,
     });
-    // Navigate back immediately — temp invite is already in the list
-    this._location.back();
+    // Navigate immediately — temp invite is already in the list. replaceUrl
+    // swaps out this form's history entry so a later browser-back doesn't
+    // bounce through the stale form.
+    this._router.navigate(['/salons', this._salonId, 'staff'], { replaceUrl: true });
   }
 }

@@ -32,6 +32,13 @@ export const routes: Routes = [
           import('./marketing/pricing/pricing.component').then((m) => m.PricingComponent),
       },
       {
+        path: 'how-to-install',
+        loadComponent: () =>
+          import('./marketing/how-to-install/how-to-install.component').then(
+            (m) => m.HowToInstallComponent,
+          ),
+      },
+      {
         path: 'terms',
         loadComponent: () =>
           import('./marketing/terms/terms.component').then((m) => m.TermsComponent),

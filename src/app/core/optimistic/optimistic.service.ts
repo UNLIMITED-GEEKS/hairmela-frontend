@@ -12,6 +12,14 @@ export interface OptimisticConfig<T, R = unknown> {
   mirror?: (value: T) => void; // write-through to the Map cache slice
   contextKey?: string; // scope key (e.g. salonId); context change replaces the ledger
   tempId?: string; // quarantined id for temp rows (creates/uploads)
+  // The id of the row this op acts on (update/delete/etc.), when that row
+  // might itself still be a pending temp row (e.g. update/delete fired against
+  // something the user just created, whose create hasn't confirmed yet). If
+  // isPending(targetId) is true when run() is called, the op is rejected
+  // outright — no paint, no request — and a generic toast explains why.
+  // Replaces the old pattern of every call site hand-rolling
+  // `if (this._optimistic.isPending(id)) return;` with no feedback to the user.
+  targetId?: string;
   // In-flight idempotency key — REQUIRED on every run(). A second run() with
   // the same key while the first is unsettled is DROPPED entirely (no paint,
   // no request). This is what stops a double-tap from producing two rows and
@@ -109,6 +117,16 @@ export class OptimisticService {
    * mutation through with nothing to ever revert it.
    */
   run<T, R>(config: OptimisticConfig<T, R>, destroyRef?: DestroyRef): boolean {
+    // Target-pending gate: the row this op acts on is itself still an
+    // unconfirmed temp row (e.g. delete fired against something just
+    // created, before its own create request has settled) — its real id
+    // isn't known yet, so any request built from it would be wrong. Reject
+    // outright, with a toast, rather than silently no-op.
+    if (config.targetId && this.isPending(config.targetId)) {
+      this._toast.error('Still saving — try again in a moment.');
+      return false;
+    }
+
     // Idempotency gate: a re-entrant run() with a dedupeKey already in flight
     // is dropped entirely — no op, no optimistic paint, no request. This is
     // what stops a double-tapped "Create" from producing two rows + two POSTs

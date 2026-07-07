@@ -4,7 +4,7 @@ import { DatePipe } from '@angular/common';
 import { BillingService } from './billing.service';
 import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/confirm-dialog.service';
 import { Tier, TIER_NAMES, displayLimit } from '../../../core/tier/tier-limits';
-import { PLAN_CARDS } from '../../../core/tier/tier-plans';
+import { PLAN_CARDS, formatPlanPrice } from '../../../core/tier/tier-plans';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 @Component({
@@ -22,6 +22,7 @@ export class BillingComponent implements OnInit {
   // when the floor flips to Free.
   protected readonly plans = PLAN_CARDS.filter((p) => p.tier >= 2);
   protected readonly tierNames = TIER_NAMES;
+  protected readonly formatPlanPrice = formatPlanPrice;
 
   protected readonly access = this._billing.access;
   protected readonly loading = this._billing.loading;

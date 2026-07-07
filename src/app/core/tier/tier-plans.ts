@@ -15,6 +15,11 @@ export interface PlanCard {
   readonly features: readonly string[];
 }
 
+/** ₦3,000/month — thousands-separated, matches every price display. */
+export function formatPlanPrice(price: number): string {
+  return `₦${price.toLocaleString('en-NG')}/month`;
+}
+
 export const PLAN_CARDS: readonly PlanCard[] = [
   {
     tier: 1,

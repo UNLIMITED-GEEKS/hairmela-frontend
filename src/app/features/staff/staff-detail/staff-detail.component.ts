@@ -90,7 +90,7 @@ export class StaffDetailComponent implements OnInit {
       this._staffService.transferOwnership(
         this._salonId,
         { newOwnerId: this._staffId },
-        () => this._location.back(),
+        () => this._router.navigate(['/salons', this._salonId, 'staff'], { replaceUrl: true }),
       );
     });
   }
@@ -107,7 +107,7 @@ export class StaffDetailComponent implements OnInit {
       this._staffService.remove(
         this._salonId,
         this._staffId,
-        () => this._location.back(),
+        () => this._router.navigate(['/salons', this._salonId, 'staff'], { replaceUrl: true }),
       );
     });
   }

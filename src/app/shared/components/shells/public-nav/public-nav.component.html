@@ -68,7 +68,7 @@
     </div>
 
     <!-- Expandable links — always in DOM, animated via max-height -->
-    <div class="mobile-nav-links" [class.open]="sheetOpen()">
+    <div class="mobile-nav-links public-mobile-nav" [class.open]="sheetOpen()">
       <nav class="border-t border-border px-3 pb-3 pt-1 flex flex-col gap-1" aria-label="Mobile navigation">
         @for (item of centerItems(); track item.label) {
           @if (item.url) {

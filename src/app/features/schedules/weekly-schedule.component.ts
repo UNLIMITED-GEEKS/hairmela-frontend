@@ -74,13 +74,13 @@ export class WeeklyScheduleComponent implements OnInit {
   protected saveEdit(schedule: StaffSchedule): void {
     if (this.editForm.invalid) return;
     const { startTime, endTime } = this.editForm.getRawValue();
-    this._schedulesService.update(
-      this._salonId,
-      this._staffId,
-      schedule.id,
-      { startTime: startTime!, endTime: endTime! },
-      () => this.editingId.set(null),
-    );
+    this._schedulesService.update(this._salonId, this._staffId, schedule.id, {
+      startTime: startTime!,
+      endTime: endTime!,
+    });
+    // Optimistic: the row already updated, so collapse the form now rather
+    // than waiting on the network round-trip.
+    this.editingId.set(null);
   }
 
   protected startAdd(day: number): void {
@@ -95,15 +95,15 @@ export class WeeklyScheduleComponent implements OnInit {
   protected saveAdd(day: number): void {
     if (this.addForm.invalid) return;
     const { startTime, endTime } = this.addForm.getRawValue();
-    this._schedulesService.create(
-      this._salonId,
-      this._staffId,
-      { dayOfWeek: day, startTime: startTime!, endTime: endTime! },
-      () => {
-        this.addingDay.set(null);
-        this.addForm.reset();
-      },
-    );
+    this._schedulesService.create(this._salonId, this._staffId, {
+      dayOfWeek: day,
+      startTime: startTime!,
+      endTime: endTime!,
+    });
+    // Optimistic: the row already painted, so collapse the form now rather
+    // than waiting on the network round-trip.
+    this.addingDay.set(null);
+    this.addForm.reset();
   }
 
   protected deleteSchedule(schedule: StaffSchedule): void {

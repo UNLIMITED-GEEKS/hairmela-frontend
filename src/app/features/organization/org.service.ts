@@ -50,7 +50,7 @@ export class OrgService {
   }
 
   update(orgId: string, body: UpdateOrganizationDto, onSuccess?: () => void): void {
-    this._optimistic.run({
+    const accepted = this._optimistic.run({
       signal: this._org,
       dedupeKey: `OrgService.update:${orgId}`,
       apply: (org) => (org ? { ...org, name: body.name ?? org.name } : org),
@@ -59,11 +59,11 @@ export class OrgService {
       request: () =>
         organizationsControllerUpdate(this._http, this._apiConfig.rootUrl, { orgId, body }),
       errorMessage: 'Could not rename organisation. Reverted.',
-      onSuccess: () => {
-        this._toast.success('Organisation renamed');
-        onSuccess?.();
-      },
+      onSuccess: () => onSuccess?.(),
     });
+    // Optimistic: the name already changed, so tell the user now rather than
+    // waiting on the network round-trip.
+    if (accepted) this._toast.success('Organisation renamed');
   }
 
   clear(): void {

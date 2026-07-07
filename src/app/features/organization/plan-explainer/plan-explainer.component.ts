@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { PLAN_CARDS } from '../../../core/tier/tier-plans';
+import { PLAN_CARDS, formatPlanPrice } from '../../../core/tier/tier-plans';
 
 // Static plan-comparison teaser. The transactional flow (upgrade/downgrade/
 // cancel) lives on the billing page; this just links into it. Renders from
@@ -15,4 +15,5 @@ export class PlanExplainerComponent {
 
   protected readonly orgId = this._route.snapshot.paramMap.get('orgId') ?? '';
   protected readonly plans = PLAN_CARDS.filter((p) => p.tier >= 2);
+  protected readonly formatPlanPrice = formatPlanPrice;
 }

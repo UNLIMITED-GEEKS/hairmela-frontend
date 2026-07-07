@@ -1,0 +1,7 @@
+// Tailwind's print: variant covers hiding elements; this covers what it
+// can't — keeping each platform card intact across a page break when printed.
+@media print {
+  .install-card {
+    break-inside: avoid;
+  }
+}

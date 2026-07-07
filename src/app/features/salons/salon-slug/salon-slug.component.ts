@@ -1,6 +1,5 @@
 import { Component, inject, OnInit, effect } from '@angular/core';
-import { Location } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SalonSettingsService } from '../salon-settings/salon-settings.service';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
@@ -12,8 +11,8 @@ import { FieldErrorComponent } from '../../../shared/components/field-error/fiel
   imports: [ReactiveFormsModule, SkeletonComponent, FieldErrorComponent],
 })
 export class SalonSlugComponent implements OnInit {
-  private readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
+  private readonly _router = inject(Router);
   private readonly _fb = inject(FormBuilder);
   private readonly _settings = inject(SalonSettingsService);
 
@@ -43,7 +42,7 @@ export class SalonSlugComponent implements OnInit {
     this._settings.updateSlug(
       this._salonId,
       { slug: this.form.value.slug! },
-      () => this._location.back(),
+      () => this._router.navigate(['/salons', this._salonId, 'settings'], { replaceUrl: true }),
       () => this.form.get('slug')?.setErrors({ taken: true }),
     );
   }

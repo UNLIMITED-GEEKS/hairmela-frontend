@@ -62,6 +62,7 @@ export type { StaffWithQueueDto } from './models/staff-with-queue-dto';
 export type { Subscription } from './models/subscription';
 export type { TimelineEntryDto } from './models/timeline-entry-dto';
 export type { TimelineMemberDto } from './models/timeline-member-dto';
+export type { TimelineResponseDto } from './models/timeline-response-dto';
 export type { ToggleAcceptingClientsDto } from './models/toggle-accepting-clients-dto';
 export type { TransferOwnershipDto } from './models/transfer-ownership-dto';
 export type { TrendDataPointDto } from './models/trend-data-point-dto';

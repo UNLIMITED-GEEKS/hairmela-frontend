@@ -1,5 +1,4 @@
 import { Component, OnInit, inject, effect } from '@angular/core';
-import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { OrgService } from '../org.service';
@@ -12,7 +11,6 @@ import { FieldErrorComponent } from '../../../shared/components/field-error/fiel
   imports: [ReactiveFormsModule, SkeletonComponent, FieldErrorComponent],
 })
 export class OrgSettingsComponent implements OnInit {
-  private readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
   private readonly _fb = inject(FormBuilder);
@@ -43,7 +41,7 @@ export class OrgSettingsComponent implements OnInit {
   protected save(): void {
     if (this.form.invalid) return;
     this._orgService.update(this._orgId, { name: this.form.value.name! }, () =>
-      this._location.back(),
+      this._router.navigate(['/org', this._orgId], { replaceUrl: true }),
     );
   }
 }

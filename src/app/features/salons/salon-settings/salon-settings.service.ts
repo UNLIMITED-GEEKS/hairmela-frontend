@@ -85,9 +85,10 @@ export class SalonSettingsService {
           }),
         }),
       errorMessage: 'Could not save settings. Reverted.',
+      // Success toast fires optimistically in the component, at save() time —
+      // not here, so the user sees it instantly rather than after the round-trip.
       onSuccess: () => {
         this._overview.invalidate(salonId);
-        this._toast.success('Settings saved');
         onSuccess?.();
       },
     });

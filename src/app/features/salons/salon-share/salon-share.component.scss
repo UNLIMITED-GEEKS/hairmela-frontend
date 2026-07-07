@@ -1,0 +1,21 @@
+// The salon name is set in Poppins (loaded via Google Fonts in index.html)
+// so it visually stands out from the rest of the poster, which uses the
+// app's default Inter/system sans-serif.
+.poster-name {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 800;
+}
+
+@media print {
+  .poster {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+}

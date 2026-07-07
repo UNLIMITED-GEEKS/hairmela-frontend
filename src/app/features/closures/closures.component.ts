@@ -77,16 +77,17 @@ export class ClosuresComponent implements OnInit {
     if (this.addForm.invalid) return;
     const { date, reason } = this.addForm.getRawValue();
     const body = { date: date!, reason: reason || undefined };
-    const onSuccess = () => {
-      this.showAddForm.set(false);
-      this.addForm.reset();
-      this._toast.success('Closure added');
-    };
     if (this.activeTab() === 'staff') {
-      this._closuresService.createStaff(this._salonId, this._staffId, body, onSuccess);
+      this._closuresService.createStaff(this._salonId, this._staffId, body);
     } else {
-      this._closuresService.createSalon(this._salonId, body, onSuccess);
+      this._closuresService.createSalon(this._salonId, body);
     }
+    // Optimistic: the closure row already painted, so close the form and tell
+    // the user now rather than waiting on the network round-trip. If the
+    // create actually fails, the service's revert path shows its own error toast.
+    this.showAddForm.set(false);
+    this.addForm.reset();
+    this._toast.success('Closure added');
   }
 
   protected delete(closure: Closure): void {
