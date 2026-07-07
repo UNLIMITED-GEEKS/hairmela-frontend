@@ -93,7 +93,7 @@ export class ServicesService {
     // The backend returns the real Service (201 body) — swap the temp row for
     // it so the row's real id is in place before the user can act on it again
     // (delete/edit/assign would otherwise send the fake temp_ id to the server).
-    this._optimistic.run({
+    const accepted = this._optimistic.run({
       signal: this._services,
       // apply is REPLAYED on every recompute (e.g. a concurrent load()'s
       // commitRead landing while this create is still pending) — must be
@@ -109,10 +109,13 @@ export class ServicesService {
       errorMessage: 'Could not create service. Reverted.',
       onSuccess: () => onSuccess?.(),
     });
+    // Optimistic: the row already painted, so tell the user now rather than
+    // waiting on the network round-trip.
+    if (accepted) this._toast.success('Service created');
   }
 
   update(salonId: string, serviceId: string, body: UpdateServiceDto, onSuccess?: () => void): void {
-    this._optimistic.run({
+    const accepted = this._optimistic.run({
       signal: this._services,
       apply: (list) => list.map((s) => (s.id === serviceId ? { ...s, ...body } : s)),
       reconcile: (list, res) => list.map((s) => (s.id === serviceId ? res.body : s)),
@@ -125,10 +128,13 @@ export class ServicesService {
       errorMessage: 'Could not update service. Reverted.',
       onSuccess: () => onSuccess?.(),
     });
+    // Optimistic: the row already updated, so tell the user now rather than
+    // waiting on the network round-trip.
+    if (accepted) this._toast.success('Service updated');
   }
 
   deactivate(salonId: string, serviceId: string, onSuccess?: () => void): void {
-    this._optimistic.run({
+    const accepted = this._optimistic.run({
       signal: this._services,
       apply: (list) => list.filter((s) => s.id !== serviceId),
       mirror: this._servicesLoader.mirrorFn(salonId),
@@ -140,6 +146,9 @@ export class ServicesService {
       errorMessage: 'Could not remove service. Restored.',
       onSuccess: () => onSuccess?.(),
     });
+    // Optimistic: the row already disappeared, so tell the user now rather
+    // than waiting on the network round-trip.
+    if (accepted) this._toast.success('Service deactivated');
   }
 
   assignService(salonId: string, staffId: string, serviceId: string): void {

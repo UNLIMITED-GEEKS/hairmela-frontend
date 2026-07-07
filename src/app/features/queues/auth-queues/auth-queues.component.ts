@@ -20,7 +20,7 @@ export class AuthQueuesComponent implements OnInit {
   }
 
   protected retry(): void {
-    this._service.load();
+    this._service.refresh();
   }
 
   protected goToPosition(entry: QueueEntry): void {

@@ -4,6 +4,7 @@ import { retry } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { QueueEntry } from '../../../api/models/queue-entry';
 import { guestEntriesControllerGetGuestEntries } from '../../../api/fn/queues/guest-entries-controller-get-guest-entries';
+import { TtlGate } from '../../../core/optimistic/ttl-gate';
 
 @Injectable({ providedIn: 'root' })
 export class GuestQueuesService {
@@ -15,12 +16,15 @@ export class GuestQueuesService {
   private readonly _error = signal(false);
   private _inflight = false;
 
+  // Short TTL, not an indefinite cache — see ActiveQueuesService for why.
+  private readonly _ttl = new TtlGate(15_000);
+
   readonly entries = this._entries.asReadonly();
   readonly loading = this._loading.asReadonly();
   readonly error = this._error.asReadonly();
 
   load(): void {
-    if (this._inflight) return;
+    if (this._inflight || this._ttl.isFresh()) return;
     this._inflight = true;
     this._loading.set(true);
     this._error.set(false);
@@ -31,6 +35,7 @@ export class GuestQueuesService {
           this._inflight = false;
           this._entries.set(res.body);
           this._loading.set(false);
+          this._ttl.markFetched();
         },
         error: () => {
           this._inflight = false;
@@ -38,5 +43,11 @@ export class GuestQueuesService {
           this._loading.set(false);
         },
       });
+  }
+
+  /** Bypasses the TTL — call after an action that changes this list (e.g. leaving a queue). */
+  refresh(): void {
+    this._ttl.invalidate();
+    this.load();
   }
 }

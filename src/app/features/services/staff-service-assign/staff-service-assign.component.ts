@@ -64,10 +64,10 @@ export class StaffServiceAssignComponent implements OnInit {
 
   protected setDefault(serviceId: string): void {
     const prev = this.defaultServiceId();
-    this._assignService.setDefaultServiceId(serviceId);
+    this._assignService.setDefaultServiceId(this._salonId, this._staffId, serviceId);
     this._servicesService.setDefaultService(this._salonId, this._staffId, { serviceId }, () => {
       // Revert the local defaultServiceId if the engine rolled back
-      this._assignService.setDefaultServiceId(prev);
+      this._assignService.setDefaultServiceId(this._salonId, this._staffId, prev);
     });
   }
 }

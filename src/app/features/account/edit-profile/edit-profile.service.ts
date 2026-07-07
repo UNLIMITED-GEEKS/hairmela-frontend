@@ -25,12 +25,15 @@ export class EditProfileService {
       nickname: dto.nickname ?? null,
       phone: dto.phone ?? null,
     });
+    // Optimistic: the store already reflects the change, so tell the user now
+    // rather than waiting on the network round-trip. If the save actually
+    // fails, the revert path below shows its own error toast.
+    this._toast.success('Profile updated');
 
     // Fire HTTP in background — reconcile with server truth on success
     usersControllerUpdateProfile(this._http, this._apiConfig.rootUrl, { body: dto }).subscribe({
       next: (res) => {
         this._currentUser.set(res.body);
-        this._toast.success('Profile updated');
       },
       error: () => {
         // Revert to the previous user state
