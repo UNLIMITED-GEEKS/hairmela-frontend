@@ -37,11 +37,7 @@
                    focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary
                    disabled:bg-gray-50"
             [class.border-red-400]="form.get('name')?.invalid && form.get('name')?.touched" />
-          @if (form.get('name')?.errors?.['nameTaken']) {
-            <p class="text-xs text-red-500">A service with this name already exists</p>
-          } @else if (form.get('name')?.errors?.['required'] && form.get('name')?.touched) {
-            <p class="text-xs text-red-500">Name is required</p>
-          }
+          <app-field-error [control]="form.get('name')" />
         </div>
 
         <!-- Duration -->
@@ -51,9 +47,9 @@
             class="w-full min-h-11 px-3 rounded-lg border border-gray-300 text-sm
                    focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             [class.border-red-400]="form.get('duration')?.invalid && form.get('duration')?.touched" />
-          @if (form.get('duration')?.errors?.['min'] && form.get('duration')?.touched) {
-            <p class="text-xs text-red-500">Duration must be at least 1 minute</p>
-          }
+          <app-field-error
+            [control]="form.get('duration')"
+            [messages]="{ min: 'Duration must be at least 1 minute' }" />
         </div>
 
         <!-- Price -->
@@ -63,11 +59,9 @@
             class="w-full min-h-11 px-3 rounded-lg border border-gray-300 text-sm
                    focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             [class.border-red-400]="form.get('price')?.invalid && form.get('price')?.touched" />
-          @if (form.get('price')?.errors?.['required'] && form.get('price')?.touched) {
-            <p class="text-xs text-red-500">Price is required</p>
-          } @else if (form.get('price')?.errors?.['min'] && form.get('price')?.touched) {
-            <p class="text-xs text-red-500">Price cannot be negative</p>
-          }
+          <app-field-error
+            [control]="form.get('price')"
+            [messages]="{ min: 'Price cannot be negative' }" />
         </div>
 
         <!-- Description -->

@@ -9,6 +9,7 @@ import { ResolveInviteDto } from '../../../api/models/resolve-invite-dto';
 import { ErrorCodes } from '../../../core/errors/error-codes';
 import { isApiError } from '../../../core/errors/api-error.types';
 import { PasswordToggleDirective } from '../../../shared/directives/password-toggle.directive';
+import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { InviteResolveService } from './invite-resolve.service';
 
 // The view is a state machine over the resolve result + session + auth mode.
@@ -25,7 +26,7 @@ type View =
 
 @Component({
   selector: 'app-accept-invite',
-  imports: [ReactiveFormsModule, RouterLink, PasswordToggleDirective],
+  imports: [ReactiveFormsModule, RouterLink, PasswordToggleDirective, FieldErrorComponent],
   templateUrl: './accept-invite.component.html',
 })
 export class AcceptInviteComponent implements OnInit {

@@ -5,11 +5,12 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { StaffService } from '../staff.service';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { OrgContextService } from '../../../core/salon-context/org-context.service';
+import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 
 @Component({
   selector: 'app-invite-staff',
   templateUrl: './invite-staff.component.html',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, FieldErrorComponent],
 })
 export class InviteStaffComponent {
   protected readonly _location = inject(Location);

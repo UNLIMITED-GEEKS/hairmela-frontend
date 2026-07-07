@@ -10,6 +10,7 @@ import { ConfirmDialogService } from '../../shared/components/confirm-dialog/con
 import { Closure } from '../../api/models/closure';
 import { FrozenBannerComponent } from '../../shared/components/frozen-banner/frozen-banner.component';
 import { TierFreezeDirective } from '../../shared/directives/tier-freeze.directive';
+import { FieldErrorComponent } from '../../shared/components/field-error/field-error.component';
 import { filter } from 'rxjs';
 
 type ClosureScope = 'salon' | 'staff';
@@ -17,7 +18,7 @@ type ClosureScope = 'salon' | 'staff';
 @Component({
   selector: 'app-closures',
   templateUrl: './closures.component.html',
-  imports: [ReactiveFormsModule, SkeletonComponent, FrozenBannerComponent, TierFreezeDirective],
+  imports: [ReactiveFormsModule, SkeletonComponent, FrozenBannerComponent, TierFreezeDirective, FieldErrorComponent],
 })
 export class ClosuresComponent implements OnInit {
   protected readonly _location = inject(Location);

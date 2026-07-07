@@ -20,15 +20,9 @@
         <input id="firstName" formControlName="firstName" type="text" autocomplete="given-name"
           class="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
           placeholder="First name" />
-        @if (form.controls.firstName.touched && form.controls.firstName.errors) {
-          <p class="mt-1 text-xs text-red-500">
-            @if (form.controls.firstName.errors['required']) {
-              First name is required
-            } @else if (form.controls.firstName.errors['server']) {
-              {{ form.controls.firstName.errors['server'] }}
-            }
-          </p>
-        }
+        <app-field-error
+          [control]="form.controls.firstName"
+          [messages]="{ required: 'First name is required' }" />
       </div>
 
       <!-- Last Name -->
@@ -37,15 +31,9 @@
         <input id="lastName" formControlName="lastName" type="text" autocomplete="family-name"
           class="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
           placeholder="Last name" />
-        @if (form.controls.lastName.touched && form.controls.lastName.errors) {
-          <p class="mt-1 text-xs text-red-500">
-            @if (form.controls.lastName.errors['required']) {
-              Last name is required
-            } @else if (form.controls.lastName.errors['server']) {
-              {{ form.controls.lastName.errors['server'] }}
-            }
-          </p>
-        }
+        <app-field-error
+          [control]="form.controls.lastName"
+          [messages]="{ required: 'Last name is required' }" />
       </div>
 
       <!-- Nickname -->
@@ -55,9 +43,7 @@
           class="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
           placeholder="e.g. J-Money" />
         <p class="mt-1 text-xs text-gray-400">Shown in brackets next to your name where applicable</p>
-        @if (form.controls.nickname.touched && form.controls.nickname.errors) {
-          <p class="mt-1 text-xs text-red-500">{{ form.controls.nickname.errors['server'] }}</p>
-        }
+        <app-field-error [control]="form.controls.nickname" />
       </div>
 
       <!-- Phone -->
@@ -66,11 +52,7 @@
         <input id="phone" formControlName="phone" type="tel" autocomplete="tel"
           class="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
           placeholder="+234 800 000 0000" />
-        @if (form.controls.phone.touched && form.controls.phone.errors) {
-          <p class="mt-1 text-xs text-red-500">
-            {{ form.controls.phone.errors['server'] }}
-          </p>
-        }
+        <app-field-error [control]="form.controls.phone" />
       </div>
 
       <!-- Email (read-only) -->

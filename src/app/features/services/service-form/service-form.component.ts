@@ -7,11 +7,12 @@ import { ServicesService } from '../services.service';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/frozen-banner.component';
 import { TierFreezeDirective } from '../../../shared/directives/tier-freeze.directive';
+import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 
 @Component({
   selector: 'app-service-form',
   templateUrl: './service-form.component.html',
-  imports: [ReactiveFormsModule, SkeletonComponent, FrozenBannerComponent, TierFreezeDirective],
+  imports: [ReactiveFormsModule, SkeletonComponent, FrozenBannerComponent, TierFreezeDirective, FieldErrorComponent],
 })
 export class ServiceFormComponent implements OnInit {
   protected readonly _location = inject(Location);

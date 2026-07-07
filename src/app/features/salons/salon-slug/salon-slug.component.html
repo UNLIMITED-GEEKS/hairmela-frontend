@@ -26,15 +26,9 @@
             <input id="slug" type="text" formControlName="slug"
               class="flex-1 min-h-11 px-3 py-2.5 text-sm focus:outline-none" />
           </div>
-          @if (form.get('slug')?.errors?.['taken']) {
-            <p class="mt-1.5 text-xs text-red-600">This slug is already taken. Try another.</p>
-          }
-          @if (form.get('slug')?.errors?.['pattern'] && form.get('slug')?.touched) {
-            <p class="mt-1.5 text-xs text-red-600">Only lowercase letters, numbers, and hyphens allowed.</p>
-          }
-          @if (form.get('slug')?.errors?.['minlength'] && form.get('slug')?.touched) {
-            <p class="mt-1.5 text-xs text-red-600">Must be at least 3 characters.</p>
-          }
+          <app-field-error
+            [control]="form.controls.slug"
+            [messages]="{ taken: 'This slug is already taken. Try another.', pattern: 'Only lowercase letters, numbers, and hyphens allowed.' }" />
         </div>
 
         <button type="submit" [disabled]="form.invalid"

@@ -67,9 +67,9 @@
               class="w-full min-h-11 px-3 rounded-lg border border-gray-300 text-sm
                      focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               [class.border-red-400]="addForm.get('date')?.invalid && addForm.get('date')?.touched" />
-            @if (addForm.get('date')?.invalid && addForm.get('date')?.touched) {
-              <p class="text-xs text-red-600">Date is required.</p>
-            }
+            <app-field-error
+              [control]="addForm.get('date')"
+              [messages]="{ required: 'Date is required.' }" />
           </div>
           <div class="space-y-1.5">
             <label class="text-sm font-medium text-gray-700">

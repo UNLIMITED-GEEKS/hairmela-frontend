@@ -36,9 +36,7 @@
           [class.border-red-400]="form.controls.email.invalid && form.controls.email.touched"
           placeholder="you@example.com"
         />
-        @if (form.controls.email.invalid && form.controls.email.touched) {
-          <p class="mt-1 text-xs text-red-600">Enter a valid email address.</p>
-        }
+        <app-field-error [control]="form.controls.email" />
       </div>
 
       <div>
@@ -56,9 +54,7 @@
           [class.border-red-400]="form.controls.password.invalid && form.controls.password.touched"
           placeholder="••••••••"
         />
-        @if (form.controls.password.invalid && form.controls.password.touched) {
-          <p class="mt-1 text-xs text-red-600">Password is required.</p>
-        }
+        <app-field-error [control]="form.controls.password" />
       </div>
 
       <button

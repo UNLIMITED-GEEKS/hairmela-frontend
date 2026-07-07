@@ -6,11 +6,12 @@ import { SalonVisitService } from '../salon-visit.service';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { GuestStore } from '../../../core/guest/guest-store';
 import { JoinMemberDto } from '../../../api/models/join-member-dto';
+import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 
 @Component({
   selector: 'app-join-queue',
   templateUrl: './join-queue.component.html',
-  imports: [RouterLink, ReactiveFormsModule],
+  imports: [RouterLink, ReactiveFormsModule, FieldErrorComponent],
 })
 export class JoinQueueComponent implements OnInit {
   protected readonly visit = inject(SalonVisitService);
@@ -26,6 +27,8 @@ export class JoinQueueComponent implements OnInit {
   protected readonly showJoinDialog = signal(false);
   protected readonly guestName = signal('');
   protected readonly guestPhone = signal('');
+  protected readonly guestNameTouched = signal(false);
+  protected readonly guestPhoneTouched = signal(false);
 
   // Optional party members (kids) added at join time — one entry for the whole party.
   protected readonly kidsForm = this._fb.group({

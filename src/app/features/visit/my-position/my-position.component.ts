@@ -5,11 +5,12 @@ import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { SalonVisitService } from '../salon-visit.service';
 import { PushPromptComponent } from '../../../shared/components/push-prompt/push-prompt.component';
 import { PushService } from '../../../core/push/push.service';
+import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 
 @Component({
   selector: 'app-my-position',
   templateUrl: './my-position.component.html',
-  imports: [ReactiveFormsModule, RouterLink, PushPromptComponent],
+  imports: [ReactiveFormsModule, RouterLink, PushPromptComponent, FieldErrorComponent],
 })
 export class MyPositionComponent implements OnInit {
   protected readonly visit = inject(SalonVisitService);

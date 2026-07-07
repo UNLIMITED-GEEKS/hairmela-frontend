@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { FormBuilder, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DashboardService } from '../../dashboard/dashboard.service';
 import { SalonService } from '../salon.service';
+import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -25,7 +26,7 @@ const TIMEZONES = [
 @Component({
   selector: 'app-create-salon',
   templateUrl: './create-salon.component.html',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, FieldErrorComponent],
 })
 export class CreateSalonComponent {
   private readonly _location = inject(Location);
@@ -60,7 +61,7 @@ export class CreateSalonComponent {
     service: this._fb.group({
       name: ['', [Validators.required, Validators.minLength(2)]],
       duration: [30, [Validators.required, Validators.min(5), Validators.max(480)]],
-      price: ['0', Validators.required],
+      price: [0, [Validators.required, Validators.min(0)]],
       description: [''],
     }),
   });

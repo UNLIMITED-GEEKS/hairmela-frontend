@@ -26,12 +26,7 @@
                    focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary
                    disabled:bg-gray-50 disabled:text-gray-400 transition-colors"
             placeholder="My Organisation" />
-          @if (form.get('name')?.invalid && form.get('name')?.touched) {
-            <p class="mt-1.5 text-xs text-red-600">Name must be at least 2 characters.</p>
-          }
-          @if (form.get('name')?.errors?.['server']) {
-            <p class="mt-1.5 text-xs text-red-600">{{ form.get('name')?.errors?.['server'] }}</p>
-          }
+          <app-field-error [control]="form.controls.name" />
         </div>
 
         <button

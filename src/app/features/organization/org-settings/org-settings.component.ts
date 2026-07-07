@@ -4,11 +4,12 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { OrgService } from '../org.service';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 
 @Component({
   selector: 'app-org-settings',
   templateUrl: './org-settings.component.html',
-  imports: [ReactiveFormsModule, SkeletonComponent],
+  imports: [ReactiveFormsModule, SkeletonComponent, FieldErrorComponent],
 })
 export class OrgSettingsComponent implements OnInit {
   private readonly _location = inject(Location);

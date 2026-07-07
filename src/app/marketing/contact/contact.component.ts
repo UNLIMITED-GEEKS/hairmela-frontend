@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ToastService } from '../../core/toast/toast.service';
+import { FieldErrorComponent } from '../../shared/components/field-error/field-error.component';
 
 // Public contact form. For now it validates and logs the payload; the backend
 // endpoint isn't built yet, so submit() is the single seam to swap a real API
@@ -8,7 +9,7 @@ import { ToastService } from '../../core/toast/toast.service';
 @Component({
   selector: 'app-contact',
   templateUrl: './contact.component.html',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, FieldErrorComponent],
 })
 export class ContactComponent {
   private readonly _fb = inject(FormBuilder);

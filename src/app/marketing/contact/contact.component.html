@@ -42,9 +42,9 @@
               class="w-full min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg
                      focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
               [class.border-red-400]="form.get('name')?.invalid && form.get('name')?.touched" />
-            @if (form.get('name')?.errors?.['required'] && form.get('name')?.touched) {
-              <p class="mt-1.5 text-xs text-red-600">Please enter your name.</p>
-            }
+            <app-field-error
+              [control]="form.get('name')"
+              [messages]="{ required: 'Please enter your name.' }" />
           </div>
 
           <!-- Email -->
@@ -59,12 +59,7 @@
               class="w-full min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg
                      focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
               [class.border-red-400]="form.get('email')?.invalid && form.get('email')?.touched" />
-            @if (form.get('email')?.errors?.['required'] && form.get('email')?.touched) {
-              <p class="mt-1.5 text-xs text-red-600">Email is required.</p>
-            }
-            @if (form.get('email')?.errors?.['email'] && form.get('email')?.touched) {
-              <p class="mt-1.5 text-xs text-red-600">Enter a valid email address.</p>
-            }
+            <app-field-error [control]="form.get('email')" />
           </div>
 
           <!-- Message -->
@@ -78,12 +73,9 @@
               class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg resize-none
                      focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
               [class.border-red-400]="form.get('message')?.invalid && form.get('message')?.touched"></textarea>
-            @if (form.get('message')?.errors?.['required'] && form.get('message')?.touched) {
-              <p class="mt-1.5 text-xs text-red-600">Please write a message.</p>
-            }
-            @if (form.get('message')?.errors?.['minlength'] && form.get('message')?.touched) {
-              <p class="mt-1.5 text-xs text-red-600">Message is a little short — add a few more details.</p>
-            }
+            <app-field-error
+              [control]="form.get('message')"
+              [messages]="{ required: 'Please write a message.', minlength: 'Message is a little short — add a few more details.' }" />
           </div>
 
           <button type="submit" [disabled]="submitting()"

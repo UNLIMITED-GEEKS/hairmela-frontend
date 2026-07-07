@@ -9,6 +9,7 @@ import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/frozen-banner.component';
 import { TierFreezeDirective } from '../../../shared/directives/tier-freeze.directive';
+import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const TIMEZONES = [
@@ -29,7 +30,7 @@ const TIMEZONES = [
 @Component({
   selector: 'app-salon-settings',
   templateUrl: './salon-settings.component.html',
-  imports: [ReactiveFormsModule, SkeletonComponent, FrozenBannerComponent, TierFreezeDirective],
+  imports: [ReactiveFormsModule, SkeletonComponent, FrozenBannerComponent, TierFreezeDirective, FieldErrorComponent],
 })
 export class SalonSettingsComponent implements OnInit {
   protected readonly _location = inject(Location);

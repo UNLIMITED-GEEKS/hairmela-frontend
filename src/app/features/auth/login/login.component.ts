@@ -5,10 +5,11 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { ErrorCodes } from '../../../core/errors/error-codes';
 import { isApiError } from '../../../core/errors/api-error.types';
 import { PasswordToggleDirective } from '../../../shared/directives/password-toggle.directive';
+import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, RouterLink, PasswordToggleDirective],
+  imports: [ReactiveFormsModule, RouterLink, PasswordToggleDirective, FieldErrorComponent],
   templateUrl: './login.component.html',
 })
 export class LoginComponent {

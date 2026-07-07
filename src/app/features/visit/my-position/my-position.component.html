@@ -135,6 +135,7 @@
               <div class="flex-1 space-y-2">
                 <input formControlName="name" type="text" [placeholder]="'Kid ' + (i + 1) + ' name'"
                   class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 focus:outline-none focus:ring-2 focus:ring-primary/30">
+                <app-field-error [control]="ctrl.get('name')" [messages]="{ required: 'Enter a name.' }" />
                 <select formControlName="serviceId"
                   class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30">
                   @if (visit.staffForQueue(_queueId); as staff) {

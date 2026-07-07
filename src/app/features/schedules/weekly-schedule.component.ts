@@ -7,13 +7,14 @@ import { filter } from 'rxjs';
 import { StaffSchedule } from '../../api/models/staff-schedule';
 import { ConfirmDialogService } from '../../shared/components/confirm-dialog/confirm-dialog.service';
 import { SchedulesService } from './schedules.service';
+import { FieldErrorComponent } from '../../shared/components/field-error/field-error.component';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 @Component({
   selector: 'app-weekly-schedule',
   templateUrl: './weekly-schedule.component.html',
-  imports: [ReactiveFormsModule, SkeletonComponent],
+  imports: [ReactiveFormsModule, SkeletonComponent, FieldErrorComponent],
 })
 export class WeeklyScheduleComponent implements OnInit {
   protected readonly _location = inject(Location);

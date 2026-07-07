@@ -27,6 +27,7 @@
             <input id="s-name" type="text" formControlName="name"
               class="w-full min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg
                      focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors" />
+            <app-field-error [control]="form.controls.name" />
           </div>
 
           <div>
@@ -38,6 +39,7 @@
                 <option [value]="tz">{{ tz }}</option>
               }
             </select>
+            <app-field-error [control]="form.controls.timezone" />
           </div>
 
           <div>
@@ -45,6 +47,7 @@
             <input id="s-slot" type="number" formControlName="defaultSlotDuration" min="5" max="240"
               class="w-full min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg
                      focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors" />
+            <app-field-error [control]="form.controls.defaultSlotDuration" />
           </div>
         </div>
 
@@ -63,6 +66,7 @@
             <input id="s-party" type="number" formControlName="maxPartySize" min="1" max="20"
               class="w-full min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg
                      focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors" />
+            <app-field-error [control]="form.controls.maxPartySize" />
           </div>
 
           <div>
@@ -70,6 +74,7 @@
             <input id="s-noshow" type="number" formControlName="noShowWindow" min="1"
               class="w-full min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg
                      focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors" />
+            <app-field-error [control]="form.controls.noShowWindow" />
           </div>
         </div>
 

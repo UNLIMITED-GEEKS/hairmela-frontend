@@ -3,11 +3,12 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { EditProfileService } from './edit-profile.service';
+import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 
 @Component({
   selector: 'app-edit-profile',
   templateUrl: './edit-profile.component.html',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, FieldErrorComponent],
 })
 export class EditProfileComponent implements OnInit {
   private readonly _fb = inject(FormBuilder);
