@@ -136,6 +136,9 @@ export class QueueConsoleService {
   init(salonId: string, queueId: string): void {
     this._socketInitialReceived = false;
     this._loadQueueStatus(salonId, queueId);
+    // connect() is idempotent (no-op if already connected) — this console must
+    // not depend on something else having opened the socket first.
+    this._socket.connect();
     this._socket
       .queueTimeline$(queueId)
       .pipe(takeUntilDestroyed(this._destroyRef))

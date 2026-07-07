@@ -1,4 +1,4 @@
-import { EnvironmentInjector, inject, runInInjectionContext } from '@angular/core';
+import { inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -36,10 +36,6 @@ export function sessionInit(): () => Promise<void> {
     const apiConfig = inject(ApiConfiguration);
     const guestStore = inject(GuestStore);
     const router = inject(Router);
-    // Captured here (in the initializer's injection context) so we can resolve
-    // QueueSocketService later, after lazy-loading it below — this keeps
-    // socket.io-client out of the initial main.js bundle entirely.
-    const injector = inject(EnvironmentInjector);
 
     const atRoot = window.location.pathname === '/';
     const shouldRedirect = atRoot && isFreshNavigation();
@@ -67,13 +63,11 @@ export function sessionInit(): () => Promise<void> {
       );
       currentUserStore.set(userResponse.body);
 
-      // Lazy-load socket.io only now that we have a signed-in user — it's in
-      // its own chunk, so the marketing/auth pages never download it. Not
-      // awaited: connect() is fire-and-forget and must not delay the redirect
-      // below or block the initializer from resolving.
-      void import('../socket/queue-socket.service').then(({ QueueSocketService }) => {
-        runInInjectionContext(injector, () => inject(QueueSocketService)).connect();
-      });
+      // No socket connect here — QueueConsoleService and SalonVisitService
+      // each connect() themselves (idempotent) right before they actually
+      // watch a queue, so nothing needs a socket opened speculatively on
+      // every boot. Keeps socket.io-client out of this bundle entirely for
+      // sessions that restore but never touch a queue page.
 
       // Fresh load at root as a logged-in user → dashboard. NOT on a refresh.
       if (shouldRedirect) {
