@@ -78,29 +78,43 @@
 }
 
 /* ── dvh fallbacks ────────────────────────────────────────────────────────────
-   dvh (dynamic viewport height) requires Chrome 108+, Firefox 101+.
-   Older Android 12 devices ship with Chrome ~95-100, so we always emit a
-   100vh fallback first; browsers that understand dvh pick up the second rule. */
+   dvh (dynamic viewport height) requires Chrome 108+, Firefox 101+, and even
+   within supporting browsers there are known dvh miscalculation bugs on
+   Chrome builds before ~120 on some Android WebViews. We always define the
+   100vh fallback as the base rule, then override under @supports so dvh-
+   correct browsers get it — NOT by redeclaring the same property twice in one
+   rule. Angular's production build (Lightning CSS) treats two same-property
+   declarations in one block as redundant during minification and silently
+   drops the first (the fallback), which is what broke this the first time.
+   @supports is a separate rule block, so it can't be collapsed that way. */
 @utility h-dvh {
   height: 100vh;
-  height: 100dvh;
+  @supports (height: 100dvh) {
+    height: 100dvh;
+  }
 }
 
 /* h-screen-minus-topbar: full viewport minus the 3rem top bar (queue console) */
 @utility h-screen-minus-topbar {
   height: calc(100vh - 3rem);
-  height: calc(100dvh - 3rem);
+  @supports (height: 100dvh) {
+    height: calc(100dvh - 3rem);
+  }
 }
 
 /* Modal max-height guards so dialogs never overflow the viewport */
 @utility max-h-80dvh {
   max-height: 80vh;
-  max-height: 80dvh;
+  @supports (height: 100dvh) {
+    max-height: 80dvh;
+  }
 }
 
 @utility max-h-85dvh {
   max-height: 85vh;
-  max-height: 85dvh;
+  @supports (height: 100dvh) {
+    max-height: 85dvh;
+  }
 }
 
 /* ── Mobile chrome (single source of truth) ──────────────────────────────────
@@ -128,11 +142,19 @@
    panel's footer doesn't butt against the nav. md+ has no bottom nav. */
 .h-mobile-content {
   height: calc(100vh - 3rem - var(--bottom-nav-height) - 2rem);
-  height: calc(100dvh - 3rem - var(--bottom-nav-height) - 2rem);
+}
+@supports (height: 100dvh) {
+  .h-mobile-content {
+    height: calc(100dvh - 3rem - var(--bottom-nav-height) - 2rem);
+  }
 }
 @media (min-width: 768px) {
   .h-mobile-content {
     height: calc(100vh - 3rem);
-    height: calc(100dvh - 3rem);
+  }
+  @supports (height: 100dvh) {
+    .h-mobile-content {
+      height: calc(100dvh - 3rem);
+    }
   }
 }
