@@ -53,6 +53,7 @@ export class QueueConsoleService {
   // Global lock — for actions with no single entry/member target (status change).
   readonly acting = signal(false);
 
+  //. This file is doing too much. QueueConsoleService is now ~730 lines holding: socket lifecycle, REST fallback, the optimistic-overlay engine (_optimisticAdds/_addRealIds/_addBaselineCounts/_pruneConfirmedAdds/_removePendingAdd), the pending-lock engine (_pendingIds/_runLocked), the timer/tick machinery, wait-time computation, and the eight business actions. The overlay+lock machinery is a genuinely reusable, testable unit — it's conceptually the same job SocketPredictService does, just at a higher level. A principal engineer would likely have noticed that the "temp overlay that reconciles against authoritative server state" is a second general primitive hiding inside a feature service, and either extracted it or consciously decided not to. We never had that conversation — it grew there incrementally across a long debugging session. That's the tell: the architecture is locally correct but was arrived at by accretion, not design. It works, but nobody stepped back and asked "what's the actual shape of this."
   // ── Two sources, one view #FIXME ────────────────────────────────────────────────
   // NOTE (possible future extraction): the machinery below — the two-source
   // signals, the merge computed, _pruneConfirmedAdds/_removePendingAdd, and the
