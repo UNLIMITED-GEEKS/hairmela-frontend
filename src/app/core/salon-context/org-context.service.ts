@@ -7,7 +7,7 @@ import { organizationsControllerFindMine } from '../../api/fn/organizations/orga
 import { subscriptionsControllerGetMine } from '../../api/fn/subscriptions/subscriptions-controller-get-mine';
 import { Organization } from '../../api/models/organization';
 import { EffectiveAccessDto } from '../../api/models/effective-access-dto';
-import { CacheRegistry } from '../cache-registry.service';
+import { CacheRegistry } from '../caching/cache-registry/cache-registry.service';
 
 // A user owns at most one org (FRONTEND-TIER-HANDOFF §4a). This resolves and
 // caches it once so the tier banner, the billing page, and orgOwnerGuard all

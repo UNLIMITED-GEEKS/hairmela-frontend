@@ -1,7 +1,7 @@
 import { Injectable, DestroyRef, inject, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
-import { filter, retry, switchMap, tap } from 'rxjs';
+import { Observable, filter, retry, switchMap, tap } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { QueueSocketService } from '../../../core/socket/queue-socket.service';
 import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/confirm-dialog.service';
@@ -24,7 +24,7 @@ import { queueManagementControllerCancelEntry } from '../../../api/fn/queues/que
 import { walkInControllerStaffAddToQueue } from '../../../api/fn/queues/walk-in-controller-staff-add-to-queue';
 import { staffServicesControllerGetStaffServices } from '../../../api/fn/services/staff-services-controller-get-staff-services';
 import { StaffService } from '../../../api/models/staff-service';
-import { SocketPredictService } from '../../../core/socket/socket-predict.service';
+import { SocketPredictService } from '../../../core/caching/socket-predict/socket-predict.service';
 
 @Injectable()
 export class QueueConsoleService {
@@ -42,13 +42,172 @@ export class QueueConsoleService {
   // The REST GET in init() is a fallback for a slow socket; if a socket frame
   // lands first, a later REST response must not stomp it.
   private _socketInitialReceived = false;
+  // The console is scoped to a single queue; stored in init() so the shared
+  // _runLocked() helper can refetch on error without every action passing it.
+  private _activeQueueId = '';
 
   readonly queue = signal<Queue | null>(null);
-  readonly timeline = signal<TimelineEntryDto[]>([]);
   readonly staffServices = signal<StaffService[]>([]);
   readonly loading = signal(true);
   readonly error = signal(false);
+  // Global lock — for actions with no single entry/member target (status change).
   readonly acting = signal(false);
+
+  // ── Two sources, one view #FIXME ────────────────────────────────────────────────
+  // NOTE (possible future extraction): the machinery below — the two-source
+  // signals, the merge computed, _pruneConfirmedAdds/_removePendingAdd, and the
+  // _pendingIds/_runLocked lock lifecycle — is a general "optimistic overlay
+  // reconciled against authoritative socket state" engine, conceptually a
+  // higher-level sibling of SocketPredictService. It grew inline here while
+  // debugging and has NOT had a deliberate extract-vs-keep pass. If a second
+  // feature needs the same pattern, extract it into core/caching before
+  // copy-pasting. Kept inline for now (single consumer — YAGNI).
+  //
+  // _serverTimeline is the ONLY writer of authoritative state: socket frames
+  // and the REST fallback set it wholesale, no reconciliation, no temp logic.
+  // The socket is the source of truth (no client-vs-server timestamp compare,
+  // which mixed two clocks and caused the prod flash-back bug).
+  //
+  // _optimisticAdds is a separate overlay of client-painted temp entries that
+  // don't exist server-side yet, giving the barber instant feedback. It never
+  // mixes into _serverTimeline — the two sources are merged only in the
+  // `timeline` computed below, which drops a temp the instant its confirmed
+  // real entry appears in the server timeline. Because that's a computed, the
+  // swap is synchronous with either source changing: no window where both a
+  // temp and its real entry render (double), and none where neither does
+  // (vanish), regardless of whether the frame or the HTTP response lands first.
+  private readonly _serverTimeline = signal<TimelineEntryDto[]>([]);
+  private readonly _optimisticAdds = signal<TimelineEntryDto[]>([]);
+  // temp entry id -> real entry id once the add's POST returns it (null while
+  // in flight). A temp drops from the view once its real id is in the server
+  // timeline; while the real id is unknown, the temp always shows.
+  private readonly _addRealIds = signal<ReadonlyMap<string, string | null>>(new Map());
+  // FIXME: heuristic, not a rigorous fix. temp entry id -> server entry count
+  // at the moment the add started. While the real id is still unknown (POST
+  // in flight), a frame that grows the server count past this baseline is
+  // treated as carrying this add's entry even before the id can be confirmed —
+  // closing the "both temp and real render" double-entry window when the
+  // frame beats the HTTP response.
+  //
+  // This was removed once (reasoning: the backend fixed the read-after-write
+  // race that used to make queue.updated omit the new entry, so this seemed
+  // no longer needed) and reinstated after the double-entry bug reproduced
+  // again in testing WITH the backend fix in place — so the frame-vs-response
+  // ordering race is real on its own, independent of that backend bug.
+  //
+  // Known false-positive: can't distinguish this add's frame from a DIFFERENT
+  // concurrent add growing the count first, which would hide the wrong temp
+  // for one frame. Correct fix is a backend-echoed idempotency key so the
+  // frontend can match the frame's new entry to this add with certainty
+  // instead of guessing from count growth.
+  private readonly _addBaselineCounts = new Map<string, number>();
+
+  readonly timeline = computed<TimelineEntryDto[]>(() => {
+    const server = this._serverTimeline();
+    const serverIds = new Set(server.map((e) => e.entryId));
+    const realIds = this._addRealIds();
+    const visibleTemps = this._optimisticAdds().filter((temp) => {
+      const realId = realIds.get(temp.entryId);
+      if (realId) return !serverIds.has(realId);
+      // Real id not resolved yet — fall back to the count heuristic so the
+      // temp doesn't double up with a frame that already carries it.
+      const baseline = this._addBaselineCounts.get(temp.entryId);
+      if (baseline !== undefined && server.length > baseline) return false;
+      return true;
+    });
+    return [...server, ...visibleTemps];
+  });
+
+  // Once a temp's real entry has landed in _serverTimeline, it's permanently
+  // hidden by the `timeline` computed above — this just reclaims the now-dead
+  // overlay/map/lock state so it doesn't grow across many adds in a session.
+  // Called by _setServerTimeline (every frame/REST write) and by an add's own
+  // onSuccess (fast-network path). Plain imperative cleanup — deliberately NOT
+  // an effect, since it writes the very signals an effect would be reading.
+  private _pruneConfirmedAdds(): void {
+    const serverIds = new Set(this._serverTimeline().map((e) => e.entryId));
+    const realIds = this._addRealIds();
+    const confirmed = this._optimisticAdds().filter((temp) => {
+      const realId = realIds.get(temp.entryId);
+      return !!realId && serverIds.has(realId);
+    });
+    confirmed.forEach((temp) => this._removePendingAdd(temp.entryId));
+  }
+
+  // Removes one temp add from the overlay + real-id map + pending lock.
+  // Used both for confirmed adds (see above) and for a failed/deduped add
+  // that never got, or no longer needs, a place in the overlay.
+  private _removePendingAdd(tempEntryId: string): void {
+    const temp = this._optimisticAdds().find((e) => e.entryId === tempEntryId);
+    this._optimisticAdds.update((t) => t.filter((e) => e.entryId !== tempEntryId));
+    this._addRealIds.update((m) => {
+      const next = new Map(m);
+      next.delete(tempEntryId);
+      return next;
+    });
+    this._addBaselineCounts.delete(tempEntryId);
+    const memberIds = temp ? temp.members.map((m) => m.memberId) : [];
+    this._clearPending(tempEntryId, ...memberIds);
+  }
+
+  // Writes the authoritative server timeline, then prunes any temp add the new
+  // frame has now confirmed. The single funnel for every server write (socket
+  // frame, REST fallback, _runLocked's paint, _refetchTimeline) — so pruning
+  // happens exactly where new truth lands, imperatively (NOT in an effect,
+  // which cannot write the signals prune touches).
+  private _setServerTimeline(entries: TimelineEntryDto[]): void {
+    this._serverTimeline.set(entries);
+    this._pruneConfirmedAdds();
+  }
+
+  // ── Paint + lock ─────────────────────────────────────────────────────────
+  // An entry/member id is "pending" from the moment the barber acts on it
+  // until the action's own HTTP response settles (the response is the one
+  // signal guaranteed to fire exactly once; a "wait for next frame" rule can
+  // hang forever on a quiet queue). While pending the row's buttons disable
+  // and a spinner shows — the barber never acts on unconfirmed data.
+  private readonly _pendingIds = signal<ReadonlySet<string>>(new Set());
+
+  isPending(id: string | undefined | null): boolean {
+    return !!id && this._pendingIds().has(id);
+  }
+
+  private _beginPending(...ids: string[]): void {
+    this._pendingIds.update((s) => new Set([...s, ...ids]));
+  }
+
+  private _clearPending(...ids: string[]): void {
+    this._pendingIds.update((s) => {
+      const next = new Set(s);
+      ids.forEach((id) => next.delete(id));
+      return next;
+    });
+  }
+
+  // Runs one optimistic, socket-confirmed mutation on an EXISTING entry with
+  // the full paint+lock lifecycle: lock the target ids, paint optimistically
+  // onto the server timeline, fire the request, and unlock when the HTTP
+  // response settles — on error a re-fetch re-asserts authoritative state.
+  // (Adds don't use this — they paint to the _optimisticAdds overlay instead.)
+  private _runLocked(config: {
+    ids: string[];
+    apply: (t: TimelineEntryDto[]) => TimelineEntryDto[];
+    request: () => Observable<unknown>;
+    onError?: (err: unknown) => void;
+  }): void {
+    this._beginPending(...config.ids);
+    this._socketPredict.run({
+      signal: this._serverTimeline,
+      apply: config.apply,
+      request: config.request,
+      onError: (err) => {
+        this._refetchTimeline(this._activeQueueId);
+        config.onError?.(err);
+      },
+      destroyRef: this._destroyRef,
+      onSettled: () => this._clearPending(...config.ids),
+    });
+  }
 
   readonly queueStatus = computed(() => this.queue()?.status ?? 'CLOSED');
 
@@ -69,6 +228,30 @@ export class QueueConsoleService {
     if (!entry) return [];
     return entry.members.filter((m) => m.status === 'WAITING' || m.status === 'SERVING');
   });
+
+  // A freshly staffAddToQueue()'d entry paints with a client-generated temp_
+  // id; it is unconfirmed data by definition (the backend has never seen it),
+  // so it counts as locked until the socket replaces it with the real entry.
+  // Folding temp_ into isLocked() means every button only ever asks one
+  // question — "is this row waiting on the server?" — instead of also
+  // hand-checking temp_ ids separately.
+  private _isTempId(id: string): boolean {
+    return id.startsWith('temp_');
+  }
+
+  // The single gate every optimistic-row button reads. True while the row is
+  // locked: either an action on it is in flight (pending), or it's a temp_
+  // row not yet confirmed by the server.
+  isLocked(id: string | undefined | null): boolean {
+    return !!id && (this._isTempId(id) || this.isPending(id));
+  }
+
+  // Call-next promotes whoever is head-of-line. Disabled if the head row is
+  // locked (temp_ or mid-action) or if anyone is already serving — the backend
+  // enforces one serving entry at a time (a 409 otherwise).
+  readonly hasServingEntry = computed(() => !!this.servingEntry());
+
+  readonly nextIsLocked = computed(() => this.isLocked(this.waitingEntries()[0]?.entryId));
 
   readonly queueListEntries = computed(() => {
     const serving = this.servingEntry();
@@ -135,6 +318,7 @@ export class QueueConsoleService {
 
   init(salonId: string, queueId: string): void {
     this._socketInitialReceived = false;
+    this._activeQueueId = queueId;
     this._loadQueueStatus(salonId, queueId);
     // connect() is idempotent (no-op if already connected) — this console must
     // not depend on something else having opened the socket first.
@@ -144,7 +328,10 @@ export class QueueConsoleService {
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe((entries) => {
         this._socketInitialReceived = true;
-        this.timeline.set(entries);
+        // Authoritative — no reconciliation, no timestamp comparison. The
+        // `timeline` computed merges this with any still-unconfirmed local
+        // temp add and drops confirmed temps (via _setServerTimeline's prune).
+        this._setServerTimeline(entries);
         this.loading.set(false);
       });
     this._socket.watchQueueAsStaff(queueId);
@@ -155,7 +342,7 @@ export class QueueConsoleService {
           // Skip if the socket already delivered a fresher frame — the socket is
           // the authoritative source and always contains the latest server state.
           if (this._socketInitialReceived) return;
-          this.timeline.set(res.body.timeline);
+          this._setServerTimeline(res.body.timeline);
           this.loading.set(false);
         },
         error: () => {
@@ -199,9 +386,10 @@ export class QueueConsoleService {
     const waiting = this.waitingEntries();
     if (waiting.length === 0) return;
     const head = waiting[0];
+    if (this.isLocked(head.entryId)) return;
 
-    this._socketPredict.run({
-      signal: this.timeline,
+    this._runLocked({
+      ids: [head.entryId],
       apply: (t) =>
         t.map((e) =>
           e.entryId !== head.entryId
@@ -215,15 +403,12 @@ export class QueueConsoleService {
                 ),
               },
         ),
-      targetIds: [head.entryId],
       request: () =>
         queueManagementControllerCallNext(this._http, this._apiConfig.rootUrl, {
           salonId,
           queueId,
         }),
       onError: (err) => {
-        // Revert by re-asserting authority
-        this._refetchTimeline(queueId);
         const body = (err as { error?: unknown })?.error;
         if (
           isApiError(body) &&
@@ -235,7 +420,6 @@ export class QueueConsoleService {
           this._toast.info('Resolve the current client first before calling the next one.');
         }
       },
-      destroyRef: this._destroyRef,
     });
   }
 
@@ -243,6 +427,7 @@ export class QueueConsoleService {
     const member = this.servingMember();
     const entry = this.servingEntry();
     if (!member || !entry) return;
+    if (this.isLocked(entry.entryId) || this.isLocked(member.memberId)) return;
     this._confirmDialog
       .open({
         title: 'End session?',
@@ -255,8 +440,8 @@ export class QueueConsoleService {
         takeUntilDestroyed(this._destroyRef),
       )
       .subscribe(() => {
-        this._socketPredict.run({
-          signal: this.timeline,
+        this._runLocked({
+          ids: [entry.entryId, member.memberId],
           apply: (t) =>
             t.map((e) =>
               e.entryId !== entry.entryId
@@ -275,8 +460,6 @@ export class QueueConsoleService {
               entryId: entry.entryId,
               memberId: member.memberId,
             }),
-          onError: () => this._refetchTimeline(queueId),
-          destroyRef: this._destroyRef,
         });
       });
   }
@@ -284,8 +467,9 @@ export class QueueConsoleService {
   endAllMembers(salonId: string, queueId: string): void {
     const entry = this.servingEntry();
     if (!entry) return;
-    this._socketPredict.run({
-      signal: this.timeline,
+    if (this.isLocked(entry.entryId)) return;
+    this._runLocked({
+      ids: [entry.entryId],
       apply: (t) =>
         t.map((e) =>
           e.entryId !== entry.entryId
@@ -298,14 +482,13 @@ export class QueueConsoleService {
           queueId,
           entryId: entry.entryId,
         }),
-      onError: () => this._refetchTimeline(queueId),
-      destroyRef: this._destroyRef,
     });
   }
 
   completeMember(salonId: string, queueId: string, entryId: string, memberId: string): void {
-    this._socketPredict.run({
-      signal: this.timeline,
+    if (this.isLocked(entryId) || this.isLocked(memberId)) return;
+    this._runLocked({
+      ids: [entryId, memberId],
       apply: (t) =>
         t.map((e) =>
           e.entryId !== entryId
@@ -317,7 +500,6 @@ export class QueueConsoleService {
                 ),
               },
         ),
-      targetIds: [entryId, memberId],
       request: () =>
         queueManagementControllerCompleteMember(this._http, this._apiConfig.rootUrl, {
           salonId,
@@ -325,16 +507,11 @@ export class QueueConsoleService {
           entryId,
           memberId,
         }),
-      onError: () => this._refetchTimeline(queueId),
-      destroyRef: this._destroyRef,
     });
   }
 
   noShow(salonId: string, queueId: string, entryId: string): void {
-    if (entryId.startsWith('temp_')) {
-      this._toast.error('Still saving — try again in a moment.');
-      return;
-    }
+    if (this.isLocked(entryId)) return;
     this._confirmDialog
       .open({
         title: 'Mark as no-show?',
@@ -347,27 +524,21 @@ export class QueueConsoleService {
         takeUntilDestroyed(this._destroyRef),
       )
       .subscribe(() => {
-        this._socketPredict.run({
-          signal: this.timeline,
+        this._runLocked({
+          ids: [entryId],
           apply: (t) => t.filter((e) => e.entryId !== entryId),
-          targetIds: [entryId],
           request: () =>
             queueManagementControllerMarkNoShow(this._http, this._apiConfig.rootUrl, {
               salonId,
               queueId,
               entryId,
             }),
-          onError: () => this._refetchTimeline(queueId),
-          destroyRef: this._destroyRef,
         });
       });
   }
 
   cancelEntry(salonId: string, queueId: string, entryId: string): void {
-    if (entryId.startsWith('temp_')) {
-      this._toast.error('Still saving — try again in a moment.');
-      return;
-    }
+    if (this.isLocked(entryId)) return;
     this._confirmDialog
       .open({
         title: 'Cancel entry?',
@@ -380,25 +551,23 @@ export class QueueConsoleService {
         takeUntilDestroyed(this._destroyRef),
       )
       .subscribe(() => {
-        this._socketPredict.run({
-          signal: this.timeline,
+        this._runLocked({
+          ids: [entryId],
           apply: (t) => t.filter((e) => e.entryId !== entryId),
-          targetIds: [entryId],
           request: () =>
             queueManagementControllerCancelEntry(this._http, this._apiConfig.rootUrl, {
               salonId,
               queueId,
               entryId,
             }),
-          onError: () => this._refetchTimeline(queueId),
-          destroyRef: this._destroyRef,
         });
       });
   }
 
   serveMember(salonId: string, queueId: string, entryId: string, memberId: string): void {
-    this._socketPredict.run({
-      signal: this.timeline,
+    if (this.isLocked(entryId) || this.isLocked(memberId)) return;
+    this._runLocked({
+      ids: [entryId, memberId],
       apply: (t) =>
         t.map((e) =>
           e.entryId !== entryId
@@ -412,7 +581,6 @@ export class QueueConsoleService {
                 ),
               },
         ),
-      targetIds: [entryId, memberId],
       request: () =>
         queueManagementControllerServeMember(this._http, this._apiConfig.rootUrl, {
           salonId,
@@ -420,8 +588,6 @@ export class QueueConsoleService {
           entryId,
           memberId,
         }),
-      onError: () => this._refetchTimeline(queueId),
-      destroyRef: this._destroyRef,
     });
   }
 
@@ -432,8 +598,9 @@ export class QueueConsoleService {
     memberId: string,
     body: ExtendMemberDto,
   ): void {
-    this._socketPredict.run({
-      signal: this.timeline,
+    if (this.isLocked(entryId) || this.isLocked(memberId)) return;
+    this._runLocked({
+      ids: [entryId, memberId],
       apply: (t) =>
         t.map((e) =>
           e.entryId !== entryId
@@ -447,7 +614,6 @@ export class QueueConsoleService {
                 ),
               },
         ),
-      targetIds: [entryId, memberId],
       request: () =>
         queueManagementControllerExtendMember(this._http, this._apiConfig.rootUrl, {
           salonId,
@@ -456,8 +622,6 @@ export class QueueConsoleService {
           memberId,
           body,
         }),
-      onError: () => this._refetchTimeline(queueId),
-      destroyRef: this._destroyRef,
     });
   }
 
@@ -473,10 +637,12 @@ export class QueueConsoleService {
     const lastPosition = current.length > 0 ? Math.max(...current.map((e) => e.position)) : 0;
     const lastWait =
       current.length > 0 ? Math.max(...current.map((e) => e.estimatedWaitMinutes)) : 0;
+    const now = new Date().toISOString();
     const tempEntry: TimelineEntryDto = {
       entryId: `temp_${crypto.randomUUID()}`,
       position: lastPosition + 1,
       estimatedWaitMinutes: lastWait,
+      updatedAt: now,
       members: members.map((m, i) => {
         const svc = services.find((s) => s.serviceId === m.serviceId);
         return {
@@ -489,15 +655,28 @@ export class QueueConsoleService {
           serviceName: svc?.service.name ?? null,
           serviceDuration: svc?.service.duration ?? 30,
           phone: null,
+          updatedAt: now,
         };
       }),
     };
 
-    // dedupeKey keyed on the payload (no existing entity id yet, same reasoning
-    // as OptimisticService creates) — stops a double-tap from painting two temp
-    // entries and firing two POSTs (two real queue entries created server-side).
-    this._socketPredict.run({
-      signal: this.timeline,
+    // The temp entry paints into the _optimisticAdds OVERLAY, never into
+    // _serverTimeline — so it can never be clobbered by, or race, an incoming
+    // socket frame. isLocked() blocks every action on it (temp_ ids are always
+    // locked). The `timeline` computed shows it until its real id (recorded
+    // from the POST response in _addRealIds) appears in the server timeline —
+    // at that point it drops out of the merge on its own, synchronously, with
+    // no window where both or neither render.
+    //
+    // dedupeKey (keyed on the payload, since there's no entity id yet) stops a
+    // double-tap from painting two temp entries and firing two POSTs.
+    const tempEntryId = tempEntry.entryId;
+    const tempMemberIds = tempEntry.members.map((m) => m.memberId);
+    this._beginPending(tempEntryId, ...tempMemberIds);
+    this._addRealIds.update((m) => new Map(m).set(tempEntryId, null));
+    this._addBaselineCounts.set(tempEntryId, this._serverTimeline().length);
+    const accepted = this._socketPredict.run({
+      signal: this._optimisticAdds,
       apply: (t) => [...t, tempEntry],
       request: () =>
         walkInControllerStaffAddToQueue(this._http, this._apiConfig.rootUrl, {
@@ -505,14 +684,36 @@ export class QueueConsoleService {
           queueId,
           body: { members },
         }),
-      onSuccess: () => {
-        this._toast.success('Client added to queue.');
-        onSuccess?.();
+      onSuccess: (res) => {
+        // Record the real id — the `timeline` computed hides the temp from the
+        // rendered view the instant this changes. The prune here reclaims the
+        // dead overlay state for the fast-network case (frame already landed
+        // before this resolved, so no later server write would prune it);
+        // otherwise _setServerTimeline prunes when the confirming frame lands.
+        this._addRealIds.update((m) => new Map(m).set(tempEntryId, res.body.id));
+        this._pruneConfirmedAdds();
       },
-      onError: () => this._refetchTimeline(queueId),
+      onError: () => {
+        this._refetchTimeline(queueId);
+        this._removePendingAdd(tempEntryId);
+      },
       destroyRef: this._destroyRef,
       dedupeKey: `QueueConsoleService.staffAddToQueue:${queueId}:${members.map((m) => `${m.memberName}:${m.serviceId ?? ''}`).join(',')}`,
+      onSettled: () => this._clearPending(tempEntryId, ...tempMemberIds),
     });
+    // dedupeKey dropped this call (double-tap) — nothing painted; undo tracking.
+    if (!accepted) this._removePendingAdd(tempEntryId);
+    // Optimistic: the temp entry already painted onto the timeline, so close
+    // the modal and toast now rather than waiting on the network round-trip.
+    // If the request actually fails, onError above refetches the authoritative
+    // timeline and the entry disappears — the modal has already closed by
+    // then, matching every other optimistic mutation in the app. Only fire if
+    // run() actually accepted the op — a dedupeKey-dropped re-entrant call
+    // (double-tap) did nothing and shouldn't claim success.
+    if (accepted) {
+      this._toast.success('Client added to queue.');
+      onSuccess?.();
+    }
   }
 
   formatWait(minutes: number): string {
@@ -532,9 +733,16 @@ export class QueueConsoleService {
 
   private _refetchTimeline(queueId: string): void {
     this._toast.error('Action failed — refreshing queue');
+    this._silentRefetchTimeline(queueId);
+  }
+
+  // Same REST refetch, no "failed" toast — for recovering from a missing
+  // confirming socket frame rather than an actual request error (e.g. the
+  // add-fallback in staffAddToQueue).
+  private _silentRefetchTimeline(queueId: string): void {
     publicQueueControllerGetTimeline(this._http, this._apiConfig.rootUrl, { queueId })
       .pipe(retry(1), takeUntilDestroyed(this._destroyRef))
-      .subscribe({ next: (res) => this.timeline.set(res.body.timeline) });
+      .subscribe({ next: (res) => this._setServerTimeline(res.body.timeline) });
   }
 
   private _loadQueueStatus(salonId: string, queueId: string): void {

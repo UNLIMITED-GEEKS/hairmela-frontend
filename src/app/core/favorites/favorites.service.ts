@@ -7,9 +7,9 @@ import { userSalonsControllerAddFavorite } from '../../api/fn/salons/user-salons
 import { userSalonsControllerRemoveFavorite } from '../../api/fn/salons/user-salons-controller-remove-favorite';
 import { SalonListingItemDto } from '../../api/models/salon-listing-item-dto';
 import { PaginatedMetaDto } from '../../api/models/paginated-meta-dto';
-import { CacheRegistry } from '../cache-registry.service';
+import { CacheRegistry } from '../caching/cache-registry/cache-registry.service';
 import { ToastService } from '../toast/toast.service';
-import { OptimisticService } from '../optimistic/optimistic.service';
+import { OptimisticService } from '../caching/optimistic/optimistic.service';
 
 // Root-scoped, cached favourites state. The listing card DTO carries no
 // isFavorited flag, so heart state on ANY card (homepage, detail page,

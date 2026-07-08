@@ -1,4 +1,4 @@
-import { CacheRegistry } from '../../core/cache-registry.service';
+import { CacheRegistry } from '../../core/caching/cache-registry/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ApiConfiguration } from '../../api/api-configuration';

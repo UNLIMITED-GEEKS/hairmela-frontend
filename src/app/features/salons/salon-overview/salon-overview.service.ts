@@ -1,4 +1,4 @@
-import { CacheRegistry } from '../../../core/cache-registry.service';
+import { CacheRegistry } from '../../../core/caching/cache-registry/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
 import { retry } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
@@ -11,7 +11,7 @@ import { staffControllerFindAll } from '../../../api/fn/staff/staff-controller-f
 import { staffControllerToggleAcceptingClients } from '../../../api/fn/staff/staff-controller-toggle-accepting-clients';
 import { MembershipStore } from '../../../core/salon-context/membership.store';
 import { ToastService } from '../../../core/toast/toast.service';
-import { OptimisticService, ReadToken } from '../../../core/optimistic/optimistic.service';
+import { OptimisticService, ReadToken } from '../../../core/caching/optimistic/optimistic.service';
 
 interface MyStaff {
   id: string;

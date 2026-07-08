@@ -1,4 +1,4 @@
-import { CacheRegistry } from '../../../core/cache-registry.service';
+import { CacheRegistry } from '../../../core/caching/cache-registry/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { catchError, forkJoin, map, throwError } from 'rxjs';
@@ -12,8 +12,8 @@ import { salonsControllerUpdate } from '../../../api/fn/salons/salons-controller
 import { salonsControllerUpdateSettings } from '../../../api/fn/salons/salons-controller-update-settings';
 import { salonsControllerUpdateSlug } from '../../../api/fn/salons/salons-controller-update-slug';
 import { ToastService } from '../../../core/toast/toast.service';
-import { OptimisticService } from '../../../core/optimistic/optimistic.service';
-import { CachedLoader } from '../../../core/optimistic/cached-loader';
+import { OptimisticService } from '../../../core/caching/optimistic/optimistic.service';
+import { CachedLoader } from '../../../core/caching/optimistic/cached-loader';
 import { isApiError } from '../../../core/errors/api-error.types';
 import { ErrorCodes } from '../../../core/errors/error-codes';
 import { SalonOverviewService } from '../salon-overview/salon-overview.service';

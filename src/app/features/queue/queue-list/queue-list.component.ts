@@ -5,11 +5,12 @@ import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { QueueConsoleService } from '../queue-console/queue-console.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 
 @Component({
   selector: 'app-queue-list',
   templateUrl: './queue-list.component.html',
-  imports: [ReactiveFormsModule, FieldErrorComponent],
+  imports: [ReactiveFormsModule, FieldErrorComponent, InlineSpinnerComponent],
 })
 export class QueueListComponent {
   protected readonly console = inject(QueueConsoleService);
@@ -46,15 +47,6 @@ export class QueueListComponent {
     this.console.cancelEntry(this._salonId, this._queueId, entryId);
   }
 
-  // A freshly staffAddToQueue()'d entry paints with a client-generated temp_
-  // id (SocketPredictService has no reconcile/quarantine — the real entry
-  // arrives moments later via the socket and replaces it entirely). Sending
-  // that fake id to no-show/cancel would 404, so block actions on it until
-  // the socket's next push swaps in the real, server-assigned entryId.
-  protected isTempEntry(entryId: string): boolean {
-    return entryId.startsWith('temp_');
-  }
-
   protected copyPhone(phone: string): void {
     navigator.clipboard.writeText(phone).then(() => this._toast.success('Phone copied.'));
   }
@@ -68,7 +60,10 @@ export class QueueListComponent {
   protected staffAddToQueue(): void {
     const rows = this.addQueueMembers.value as { name: string; serviceId: string; phone: string }[];
     const valid = rows.filter((r) => r.name?.trim());
-    if (valid.length === 0) { this._toast.error('Enter at least one name.'); return; }
+    if (valid.length === 0) {
+      this._toast.error('Enter at least one name.');
+      return;
+    }
     this.console.staffAddToQueue(
       this._salonId,
       this._queueId,

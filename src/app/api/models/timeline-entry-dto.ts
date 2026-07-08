@@ -7,4 +7,5 @@ export interface TimelineEntryDto {
   estimatedWaitMinutes: number;
   members: Array<TimelineMemberDto>;
   position: number;
+  updatedAt: string;
 }

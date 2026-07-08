@@ -14,6 +14,9 @@
         <span class="text-4xl font-bold text-warning leading-none">
           {{ member.memberName.split(' ')[0] }}
         </span>
+        @if (member.serviceName) {
+          <span class="text-xs font-medium text-warning/70">{{ member.serviceName }}</span>
+        }
         <span class="text-xl font-semibold text-warning mt-1" aria-live="polite">
           {{ console.timerFromServedAt() }}
         </span>
@@ -34,7 +37,12 @@
     <div class="flex-1 overflow-y-auto space-y-2 mt-3">
       @for (member of console.servingPartyMembers(); track member.memberId) {
         <div class="flex items-center gap-2 bg-warning-light border border-warning/20 rounded-2xl px-3 py-2.5 min-h-12">
-          <span class="flex-1 text-sm font-medium text-warning truncate">{{ member.memberName }}</span>
+          <span class="flex-1 min-w-0">
+            <span class="block text-sm font-medium text-warning truncate">{{ member.memberName }}</span>
+            @if (member.serviceName) {
+              <span class="block text-xs text-warning/70 truncate">{{ member.serviceName }}</span>
+            }
+          </span>
           <span [class]="'text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ' +
             (member.status === 'SERVING' ? 'bg-success-light text-success' : 'bg-gray-100 text-gray-500')">
             {{ member.status === 'SERVING' ? 'Serving' : 'Waiting' }}
@@ -43,13 +51,16 @@
             <span class="text-xs text-gray-400 shrink-0" aria-live="polite">{{ console.memberWait(member.memberId) }}</span>
           }
           @if (member.status === 'SERVING') {
+            @if (console.isLocked(member.memberId)) {
+              <app-inline-spinner class="text-warning" />
+            }
             <button (click)="openExtendModal(console.servingEntry()!.entryId, member.memberId)"
-              [disabled]="console.acting()"
+              [disabled]="console.isLocked(member.memberId)"
               class="min-w-9 min-h-9 px-2 rounded-xl border border-warning text-warning text-xs font-bold disabled:opacity-40 shrink-0">
               +mins
             </button>
             <button (click)="completeMember(console.servingEntry()!.entryId, member.memberId)"
-              [disabled]="console.acting()"
+              [disabled]="console.isLocked(member.memberId)"
               class="min-w-9 min-h-9 px-2 rounded-xl bg-success-light text-success text-xs font-bold disabled:opacity-40 shrink-0">
               Done
             </button>
@@ -69,8 +80,11 @@
     </a>
     <button
       (click)="endSession()"
-      [disabled]="!console.servingEntry() || console.acting()"
-      class="flex-1 min-h-[52px] rounded-2xl border-2 border-primary text-primary font-bold text-sm disabled:opacity-40 transition-opacity">
+      [disabled]="!console.servingEntry() || console.isLocked(console.servingEntry()!.entryId)"
+      class="flex-1 min-h-[52px] rounded-2xl border-2 border-primary text-primary font-bold text-sm disabled:opacity-40 transition-opacity flex items-center justify-center gap-2">
+      @if (console.servingEntry() && console.isLocked(console.servingEntry()!.entryId)) {
+        <app-inline-spinner />
+      }
       End Session
     </button>
   </div>
@@ -93,7 +107,8 @@
           class="flex-1 min-h-12 rounded-2xl border-2 border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-colors">
           Go back
         </button>
-        <button (click)="endAllMembers()" [disabled]="console.acting()"
+        <button (click)="endAllMembers()"
+          [disabled]="!!console.servingEntry() && console.isLocked(console.servingEntry()!.entryId)"
           class="flex-1 min-h-12 rounded-2xl bg-primary text-white font-bold text-sm disabled:opacity-40 hover:bg-primary/90 transition-colors">
           End all
         </button>
@@ -138,9 +153,12 @@
         }
       </div>
       <button (click)="confirmExtend()"
-        [disabled]="!extendMinutes() || console.acting()"
-        class="w-full min-h-12 rounded-2xl bg-warning-light border-2 border-warning/30 text-warning font-bold text-sm disabled:opacity-40 hover:bg-warning/20 transition-colors">
-        {{ console.acting() ? 'Extending...' : 'Confirm' }}
+        [disabled]="!extendMinutes() || console.isLocked(extendTargetMemberId())"
+        class="w-full min-h-12 rounded-2xl bg-warning-light border-2 border-warning/30 text-warning font-bold text-sm disabled:opacity-40 hover:bg-warning/20 transition-colors flex items-center justify-center gap-2">
+        @if (console.isLocked(extendTargetMemberId())) {
+          <app-inline-spinner />
+        }
+        {{ console.isLocked(extendTargetMemberId()) ? 'Extending...' : 'Confirm' }}
       </button>
     </div>
   </div>

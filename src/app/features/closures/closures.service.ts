@@ -1,4 +1,4 @@
-import { CacheRegistry } from '../../core/cache-registry.service';
+import { CacheRegistry } from '../../core/caching/cache-registry/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
 import { map } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
@@ -11,8 +11,8 @@ import { salonClosuresControllerDelete } from '../../api/fn/schedules/salon-clos
 import { staffClosuresControllerFindAll } from '../../api/fn/schedules/staff-closures-controller-find-all';
 import { staffClosuresControllerCreate } from '../../api/fn/schedules/staff-closures-controller-create';
 import { staffClosuresControllerDelete } from '../../api/fn/schedules/staff-closures-controller-delete';
-import { OptimisticService } from '../../core/optimistic/optimistic.service';
-import { CachedLoader } from '../../core/optimistic/cached-loader';
+import { OptimisticService } from '../../core/caching/optimistic/optimistic.service';
+import { CachedLoader } from '../../core/caching/optimistic/cached-loader';
 
 @Injectable({ providedIn: 'root' })
 export class ClosuresService {

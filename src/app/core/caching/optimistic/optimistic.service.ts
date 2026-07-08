@@ -1,8 +1,8 @@
 import { Injectable, WritableSignal, DestroyRef, signal, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable, finalize } from 'rxjs';
-import { ToastService } from '../toast/toast.service';
-import { isApiError } from '../errors/api-error.types';
+import { ToastService } from '../../toast/toast.service';
+import { isApiError } from '../../errors/api-error.types';
 
 export interface OptimisticConfig<T, R = unknown> {
   signal: WritableSignal<T>; // view state to mutate

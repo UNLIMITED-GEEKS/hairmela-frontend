@@ -1,4 +1,4 @@
-import { CacheRegistry } from '../../core/cache-registry.service';
+import { CacheRegistry } from '../../core/caching/cache-registry/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
 import { map, retry } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
@@ -18,8 +18,8 @@ import { staffControllerRemove } from '../../api/fn/staff/staff-controller-remov
 import { staffControllerLeaveSalon } from '../../api/fn/staff/staff-controller-leave-salon';
 import { MembershipStore } from '../../core/salon-context/membership.store';
 import { ToastService } from '../../core/toast/toast.service';
-import { OptimisticService, ReadToken } from '../../core/optimistic/optimistic.service';
-import { CachedLoader } from '../../core/optimistic/cached-loader';
+import { OptimisticService, ReadToken } from '../../core/caching/optimistic/optimistic.service';
+import { CachedLoader } from '../../core/caching/optimistic/cached-loader';
 
 @Injectable({ providedIn: 'root' })
 export class StaffService {

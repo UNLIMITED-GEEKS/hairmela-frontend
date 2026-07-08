@@ -11,4 +11,5 @@ export interface TimelineMemberDto {
   serviceId: string | null;
   serviceName: string | null;
   status: 'WAITING' | 'SERVING' | 'SERVED' | 'NO_SHOW' | 'CANCELLED';
+  updatedAt: string;
 }

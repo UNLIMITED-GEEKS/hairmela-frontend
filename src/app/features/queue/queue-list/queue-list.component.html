@@ -30,6 +30,9 @@
               <span class="text-xs text-gray-500"> +{{ entry.members.length - 1 }} {{ entry.members.length - 1 === 1 ? 'kid' : 'kids' }}</span>
             }
           </span>
+          @if (entry.members[0].serviceName) {
+            <span class="text-xs text-gray-500 block truncate">{{ entry.members[0].serviceName }}</span>
+          }
           @if (entry.members[0].phone) {
             <span class="flex items-center gap-1 mt-0.5">
               <a [href]="'tel:' + entry.members[0].phone" class="text-xs text-primary hover:underline truncate">
@@ -51,11 +54,14 @@
           }
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
-          <button (click)="noShow(entry.entryId)" [disabled]="console.acting() || isTempEntry(entry.entryId)"
+          @if (console.isLocked(entry.entryId)) {
+            <app-inline-spinner class="text-warning" />
+          }
+          <button (click)="noShow(entry.entryId)" [disabled]="console.isLocked(entry.entryId)"
             class="min-h-8 px-2.5 rounded-xl text-xs font-semibold border border-warning/40 text-warning bg-warning-light hover:bg-warning/20 disabled:opacity-40 transition-colors">
             No-show
           </button>
-          <button (click)="cancelEntry(entry.entryId)" [disabled]="console.acting() || isTempEntry(entry.entryId)"
+          <button (click)="cancelEntry(entry.entryId)" [disabled]="console.isLocked(entry.entryId)"
             class="min-h-8 px-2.5 rounded-xl text-xs font-semibold border border-primary/30 text-primary bg-primary-light hover:bg-primary/10 disabled:opacity-40 transition-colors">
             Cancel
           </button>

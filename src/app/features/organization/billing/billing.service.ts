@@ -1,4 +1,4 @@
-import { CacheRegistry } from '../../../core/cache-registry.service';
+import { CacheRegistry } from '../../../core/caching/cache-registry/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, switchMap, tap, map } from 'rxjs';
@@ -14,8 +14,8 @@ import { Subscription } from '../../../api/models/subscription';
 import { Tier } from '../../../core/tier/tier-limits';
 import { MembershipStore } from '../../../core/salon-context/membership.store';
 import { ToastService } from '../../../core/toast/toast.service';
-import { OptimisticService } from '../../../core/optimistic/optimistic.service';
-import { CachedLoader } from '../../../core/optimistic/cached-loader';
+import { OptimisticService } from '../../../core/caching/optimistic/optimistic.service';
+import { CachedLoader } from '../../../core/caching/optimistic/cached-loader';
 
 @Injectable({ providedIn: 'root' })
 export class BillingService {

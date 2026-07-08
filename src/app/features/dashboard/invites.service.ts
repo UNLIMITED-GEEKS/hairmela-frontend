@@ -1,4 +1,4 @@
-import { CacheRegistry } from '../../core/cache-registry.service';
+import { CacheRegistry } from '../../core/caching/cache-registry/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
 import { retry } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
@@ -10,7 +10,7 @@ import { staffInviteControllerDecline } from '../../api/fn/staff/staff-invite-co
 import { MembershipStore } from '../../core/salon-context/membership.store';
 import { ToastService } from '../../core/toast/toast.service';
 import { DashboardService } from './dashboard.service';
-import { OptimisticService, ReadToken } from '../../core/optimistic/optimistic.service';
+import { OptimisticService, ReadToken } from '../../core/caching/optimistic/optimistic.service';
 
 @Injectable({ providedIn: 'root' })
 export class InvitesService {

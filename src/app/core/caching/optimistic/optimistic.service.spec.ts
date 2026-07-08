@@ -3,7 +3,7 @@ import { DestroyRef, signal, WritableSignal } from '@angular/core';
 import { of, throwError, Subject } from 'rxjs';
 import { vi } from 'vitest';
 import { OptimisticService } from './optimistic.service';
-import { ToastService } from '../toast/toast.service';
+import { ToastService } from '../../toast/toast.service';
 
 type MockToast = { success: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn>; info: ReturnType<typeof vi.fn> };
 function fakeToast(): MockToast { return { success: vi.fn(), error: vi.fn(), info: vi.fn() }; }

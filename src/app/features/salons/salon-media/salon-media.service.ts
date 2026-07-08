@@ -1,4 +1,4 @@
-import { CacheRegistry } from '../../../core/cache-registry.service';
+import { CacheRegistry } from '../../../core/caching/cache-registry/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
 import { map, of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
@@ -10,8 +10,8 @@ import { mediaControllerUpload } from '../../../api/fn/media/media-controller-up
 import { mediaControllerDelete } from '../../../api/fn/media/media-controller-delete';
 import { mediaReorderControllerReorderSalonGallery } from '../../../api/fn/media/media-reorder-controller-reorder-salon-gallery';
 import { ToastService } from '../../../core/toast/toast.service';
-import { OptimisticService } from '../../../core/optimistic/optimistic.service';
-import { CachedLoader } from '../../../core/optimistic/cached-loader';
+import { OptimisticService } from '../../../core/caching/optimistic/optimistic.service';
+import { CachedLoader } from '../../../core/caching/optimistic/cached-loader';
 
 @Injectable({ providedIn: 'root' })
 export class SalonMediaService {

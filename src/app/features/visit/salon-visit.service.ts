@@ -25,7 +25,7 @@ import { publicQueueControllerGetTimeline } from '../../api/fn/queues/public-que
 import { publicQueueControllerGetQueue } from '../../api/fn/queues/public-queue-controller-get-queue';
 import { walkInControllerJoinQueue } from '../../api/fn/queues/walk-in-controller-join-queue';
 import { walkInControllerLeaveQueue } from '../../api/fn/queues/walk-in-controller-leave-queue';
-import { SocketPredictService } from '../../core/socket/socket-predict.service';
+import { SocketPredictService } from '../../core/caching/socket-predict/socket-predict.service';
 import { myEntriesControllerGetMyEntries } from '../../api/fn/queues/my-entries-controller-get-my-entries';
 import { guestEntriesControllerGetGuestEntries } from '../../api/fn/queues/guest-entries-controller-get-guest-entries';
 
@@ -60,6 +60,7 @@ export class SalonVisitService {
   private _watchedQueueIds = new Set<string>();
   private _shellPrefix = '';
   private _socketInitialReceived = new Set<string>();
+  private _loadedSlug: string | null = null;
 
   readonly salonData = signal<SalonPublicDto | null>(null);
   readonly services = signal<Service[]>([]);
@@ -160,19 +161,28 @@ export class SalonVisitService {
 
   init(slug: string, shellPrefix = ''): void {
     this._shellPrefix = shellPrefix;
+    this._clock.start();
+    // Re-entering the same salon (e.g. position page -> back -> position page)
+    // needs no reset: salonData/services are still correct and watchQueue()
+    // already no-ops for queues it's still watching. Only a genuine salon
+    // change (different slug) tears down and refetches.
+    if (this._loadedSlug === slug && this.salonData()) return;
+    this._loadedSlug = slug;
+    this._resetForNewSalon();
     const storedEntries = this._activeEntryStore.getAll();
     this._loadSalon(slug, storedEntries);
-    this._clock.start();
   }
 
   destroy(): void {
+    this._clock.stop();
+  }
+
+  private _resetForNewSalon(): void {
     for (const queueId of this._watchedQueueIds) {
       this._socket.unwatchQueue(queueId);
     }
     this._watchedQueueIds.clear();
     this._socketInitialReceived.clear();
-    this._clock.stop();
-    this._shellPrefix = '';
     this.salonData.set(null);
     this.services.set([]);
     this.timeline.set([]);

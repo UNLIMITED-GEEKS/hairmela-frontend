@@ -4,7 +4,7 @@ import { Observable, of, throwError, Subject } from 'rxjs';
 import { vi } from 'vitest';
 import { CachedLoader } from './cached-loader';
 import { OptimisticService } from './optimistic.service';
-import { ToastService } from '../toast/toast.service';
+import { ToastService } from '../../toast/toast.service';
 
 function fakeToast() { return { success: vi.fn(), error: vi.fn(), info: vi.fn() }; }
 

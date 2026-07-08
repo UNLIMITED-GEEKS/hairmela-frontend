@@ -7,7 +7,7 @@ import { TokenStore } from './token.store';
 import { CurrentUserStore } from './current-user.store';
 import { MembershipStore } from '../salon-context/membership.store';
 import { QueueSocketService } from '../socket/queue-socket.service';
-import { CacheRegistry } from '../cache-registry.service';
+import { CacheRegistry } from '../caching/cache-registry/cache-registry.service';
 import { GuestStore } from '../guest/guest-store';
 import { ActiveEntryStore } from '../queue/active-entry.store';
 import { PushService } from '../push/push.service';

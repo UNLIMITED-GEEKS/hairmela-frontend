@@ -4,11 +4,12 @@ import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { QueueConsoleService } from '../queue-console/queue-console.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 
 @Component({
   selector: 'app-current-client',
   templateUrl: './current-client.component.html',
-  imports: [RouterLink, ReactiveFormsModule, FieldErrorComponent],
+  imports: [RouterLink, ReactiveFormsModule, FieldErrorComponent, InlineSpinnerComponent],
 })
 export class CurrentClientComponent {
   protected readonly console = inject(QueueConsoleService);
