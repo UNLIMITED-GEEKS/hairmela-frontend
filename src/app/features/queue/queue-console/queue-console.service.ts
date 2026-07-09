@@ -48,6 +48,10 @@ export class QueueConsoleService {
   // The entry id callNext() last targeted — see displayServingMember's hold
   // logic below for why this can't be re-derived from waitingEntries()[0].
   private _callNextTargetEntryId: string | null = null;
+  // The entry/member ids a serving-clearing action (End Session / End All /
+  // completeMember on the serving entry) last targeted — see
+  // hasServingOrResolving's comment for why Call Next needs this.
+  private _resolvingServingIds: string[] = [];
 
   readonly queue = signal<Queue | null>(null);
   readonly staffServices = signal<StaffService[]>([]);
@@ -310,6 +314,21 @@ export class QueueConsoleService {
   // enforces one serving entry at a time (a 409 otherwise).
   readonly hasServingEntry = computed(() => !!this.servingEntry());
 
+  // True while a serving-clearing action (End Session / End All / complete on
+  // the serving entry) is still in flight, even though its optimistic paint
+  // has already emptied servingEntry(). Without this, End Session -> Call
+  // Next raced: the optimistic paint clears the serving member instantly, so
+  // hasServingEntry() goes false and un-disables Call Next before End
+  // Session's own request has actually committed on the backend — firing
+  // Call Next then races it server-side and 409s ("already serving"), which
+  // reverts the optimistic Call Next paint. Call Next must stay blocked until
+  // the action that vacated the slot has itself settled (isPending clears in
+  // _runLocked's onSettled), same "trust the in-flight request, not just the
+  // optimistic paint" rule isLocked() already applies per-row.
+  readonly hasServingOrResolving = computed(
+    () => this.hasServingEntry() || this._resolvingServingIds.some((id) => this.isPending(id)),
+  );
+
   readonly nextIsLocked = computed(() => this.isLocked(this.waitingEntries()[0]?.entryId));
 
   readonly queueListEntries = computed(() => {
@@ -444,6 +463,7 @@ export class QueueConsoleService {
   callNext(salonId: string, queueId: string, onResolveNeeded: () => void): void {
     const waiting = this.waitingEntries();
     if (waiting.length === 0) return;
+    if (this.hasServingOrResolving()) return;
     const head = waiting[0];
     if (this.isLocked(head.entryId)) return;
 
@@ -455,8 +475,14 @@ export class QueueConsoleService {
     // currently at the head of the list. No separate clear needed —
     // isPending(id) naturally goes false once _runLocked's onSettled fires.
     this._callNextTargetEntryId = head.entryId;
+    // Lock the leader's member id too, not just the entry — isLocked(id) on
+    // the current-client row checks the MEMBER id (Done/+mins buttons), and
+    // the promotion to SERVING here is an unconfirmed optimistic paint until
+    // this request settles. Without this, Done/+mins on the freshly-promoted
+    // member were clickable immediately, one optimistic write racing another.
+    const leaderId = head.members.find((m) => m.isLeader)?.memberId;
     this._runLocked({
-      ids: [head.entryId],
+      ids: leaderId ? [head.entryId, leaderId] : [head.entryId],
       apply: (t) =>
         t.map((e) =>
           e.entryId !== head.entryId
@@ -507,6 +533,10 @@ export class QueueConsoleService {
         takeUntilDestroyed(this._destroyRef),
       )
       .subscribe(() => {
+        // Captured before the optimistic paint clears servingEntry() — see
+        // hasServingOrResolving's comment. Only the serving entry's own
+        // resolve blocks Call Next; unrelated concurrent actions must not.
+        this._resolvingServingIds = [entry.entryId, member.memberId];
         this._runLocked({
           ids: [entry.entryId, member.memberId],
           apply: (t) =>
@@ -528,6 +558,7 @@ export class QueueConsoleService {
     const entry = this.servingEntry();
     if (!entry) return;
     if (this.isLocked(entry.entryId)) return;
+    this._resolvingServingIds = [entry.entryId];
     this._runLocked({
       ids: [entry.entryId],
       apply: (t) =>
@@ -547,6 +578,13 @@ export class QueueConsoleService {
 
   completeMember(salonId: string, queueId: string, entryId: string, memberId: string): void {
     if (this.isLocked(entryId) || this.isLocked(memberId)) return;
+    // Only relevant when completing the currently-serving member — this is
+    // what can empty servingEntry() and open the Call Next race. Completing a
+    // WAITING member (shouldn't normally happen from the UI, but the guard
+    // costs nothing) doesn't affect servingEntry(), so don't block Call Next.
+    if (this.servingEntry()?.entryId === entryId) {
+      this._resolvingServingIds = [entryId, memberId];
+    }
     this._runLocked({
       ids: [entryId, memberId],
       apply: (t) =>
