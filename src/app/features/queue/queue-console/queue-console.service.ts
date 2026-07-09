@@ -1,7 +1,7 @@
-import { Injectable, DestroyRef, inject, signal, computed, linkedSignal } from '@angular/core';
+import { Injectable, DestroyRef, inject, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
-import { Observable, filter, retry, switchMap, tap } from 'rxjs';
+import { Observable, Subject, catchError, concatMap, filter, of, retry, switchMap, tap } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { QueueSocketService } from '../../../core/socket/queue-socket.service';
 import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/confirm-dialog.service';
@@ -45,13 +45,38 @@ export class QueueConsoleService {
   // The console is scoped to a single queue; stored in init() so the shared
   // _runLocked() helper can refetch on error without every action passing it.
   private _activeQueueId = '';
-  // The entry id callNext() last targeted — see displayServingMember's hold
-  // logic below for why this can't be re-derived from waitingEntries()[0].
-  private _callNextTargetEntryId: string | null = null;
-  // The entry/member ids a serving-clearing action (End Session / End All /
-  // completeMember on the serving entry) last targeted — see
-  // hasServingOrResolving's comment for why Call Next needs this.
-  private _resolvingServingIds: string[] = [];
+  // The entry id callNext() last targeted, while callNextWaiting() is true —
+  // read by the frame subscriber in init() to know which entry's confirming
+  // frame should clear the spinner. Can't be re-derived from
+  // waitingEntries()[0]: the optimistic paint in callNext() immediately
+  // promotes this entry out of "waiting", so waitingEntries()[0] would
+  // already point at a different entry by the time a frame arrives.
+  private readonly _callNextTargetEntryId = signal<string | null>(null);
+  // Serial queue for every _runLocked mutation's actual HTTP dispatch on this
+  // queue — concatMap runs each request only after the previous one has
+  // settled, so the backend always processes this queue's actions in the
+  // order the barber issued them. See _runLocked's comment for why this
+  // exists instead of a per-action-pair guard. Subscribed once, for the
+  // service's lifetime (providedIn the queue console, so this dies with it).
+  private readonly _actionQueue$ = new Subject<() => Observable<unknown>>();
+  // True while _actionQueue$ has a request actually in flight on the network
+  // (dispatched, not yet settled) — read by callNext() at click time to
+  // decide whether it's safe to paint the new client's name immediately.
+  // Plain field, not a signal: written/read synchronously within the same
+  // click handler, never by a computed().
+  private _actionInFlight = false;
+  private readonly _actionQueueSub = this._actionQueue$
+    .pipe(
+      concatMap((run) => {
+        this._actionInFlight = true;
+        return run().pipe(
+          catchError(() => of(null)),
+          tap(() => (this._actionInFlight = false)),
+        );
+      }),
+      takeUntilDestroyed(this._destroyRef),
+    )
+    .subscribe();
 
   readonly queue = signal<Queue | null>(null);
   readonly staffServices = signal<StaffService[]>([]);
@@ -218,9 +243,26 @@ export class QueueConsoleService {
 
   // Runs one optimistic, socket-confirmed mutation on an EXISTING entry with
   // the full paint+lock lifecycle: lock the target ids, paint optimistically
-  // onto the server timeline, fire the request, and unlock when the HTTP
-  // response settles — on error a re-fetch re-asserts authoritative state.
-  // (Adds don't use this — they paint to the _optimisticAdds overlay instead.)
+  // onto the server timeline immediately, then dispatch the HTTP request —
+  // and unlock when it settles — on error a re-fetch re-asserts authoritative
+  // state. (Adds don't use this — they paint to the _optimisticAdds overlay
+  // instead.)
+  //
+  // The request is dispatched via _actionQueue$ rather than fired immediately:
+  // two mutating actions on this queue (e.g. End Session then Call Next,
+  // fired back-to-back by the barber) are independent HTTP calls that can
+  // reach the backend out of order or overlapping, and the backend enforces
+  // ordering invariants across them (only one SERVING entry at a time) — so
+  // firing Call Next's request before End Session's has actually committed
+  // 409s and reverts the optimistic paint. Routing every request through the
+  // one serial queue guarantees the backend always processes this queue's
+  // actions in the same order the barber issued them, without the UI ever
+  // waiting: the optimistic paint + lock above still happen synchronously, so
+  // the barber sees instant feedback regardless of when the request actually
+  // goes out. This replaces an earlier, narrower attempt that only
+  // special-cased "block Call Next while End Session is pending" — that made
+  // Call Next unusable for the whole window instead of just reordering the
+  // network calls.
   private _runLocked(config: {
     ids: string[];
     apply: (t: TimelineEntryDto[]) => TimelineEntryDto[];
@@ -228,17 +270,19 @@ export class QueueConsoleService {
     onError?: (err: unknown) => void;
   }): void {
     this._beginPending(...config.ids);
-    this._socketPredict.run({
-      signal: this._serverTimeline,
-      apply: config.apply,
-      request: config.request,
-      onError: (err) => {
-        this._refetchTimeline(this._activeQueueId);
-        config.onError?.(err);
-      },
-      destroyRef: this._destroyRef,
-      onSettled: () => this._clearPending(...config.ids),
-    });
+    this._serverTimeline.update((t) => config.apply(t));
+    this._actionQueue$.next(() =>
+      config.request().pipe(
+        tap({
+          error: (err) => {
+            this._refetchTimeline(this._activeQueueId);
+            config.onError?.(err);
+          },
+        }),
+        catchError(() => of(null)),
+        tap(() => this._clearPending(...config.ids)),
+      ),
+    );
   }
 
   readonly queueStatus = computed(() => this.queue()?.status ?? 'CLOSED');
@@ -251,36 +295,30 @@ export class QueueConsoleService {
     this.servingEntry()?.members.find((m) => m.status === 'SERVING'),
   );
 
-  // Display-only. End Session -> immediate Call Next is two independent
-  // mutations (different entries), each confirmed by its own socket frame,
-  // and those frames can land in either order. A frame reflecting the moment
-  // between the two — server-side, genuinely no one SERVING yet — is not
-  // stale data (verified: frames arrive in order, timestamps monotonic), so
-  // it must not be "fixed" by distrusting frames.
+  // True from the moment Call Next is clicked WHILE another action (e.g. End
+  // Session) was still in flight ahead of it in _actionQueue$, until the
+  // genuine confirming socket frame shows someone SERVING (or the request
+  // errors). Only set in that specific case — see callNext() — because that's
+  // the one window where an intermediate frame (reflecting the moment right
+  // after the queued-ahead action committed, before Call Next's own request
+  // has even reached the backend) can land and show "nobody serving", which
+  // is honest, authoritative data, not staleness to paper over. Painting the
+  // new client's name immediately in that window and then having it revert
+  // when that frame lands is what actually flashed in prod — repeatedly, even
+  // after several attempts to patch around it with a "hold the previous
+  // value" trick. So instead of predicting, we simply don't display anything
+  // uncertain: the circle shows a "Calling next person…" spinner for that
+  // window and only ever shows a name once it's confirmed by a real frame.
   //
-  // The hold is scoped narrowly to "Call Next is pending on the head waiting
-  // entry" — the ONLY action that can produce a NEW serving member — not to
-  // "anything is pending". So: End Session alone clears the circle right
-  // away (honest — nobody's being served, and holding the old name here
-  // would be actively wrong, not just a smoothing tradeoff). End Session
-  // immediately followed by Call Next holds/shows the NEW client (painted
-  // the instant Call Next fires) through any momentarily-empty frame, never
-  // the old one — the old client was already cleared before Call Next ran.
-  //
-  // NEVER use this for action targeting (isLocked/endSession/etc. must keep
-  // reading the real, un-held servingEntry/servingMember) — only the display.
-  private readonly _callNextPending = computed(() => this.isPending(this._callNextTargetEntryId));
+  // When nothing was queued ahead of Call Next (the common case — no recent
+  // End Session), this stays false and the circle updates immediately from
+  // the optimistic paint as normal; there's no intermediate frame to race in
+  // that case, so instant painting was never actually the problem.
+  readonly callNextWaiting = signal(false);
 
-  readonly displayServingMember = linkedSignal<
-    TimelineEntryDto['members'][number] | undefined,
-    TimelineEntryDto['members'][number] | null
-  >({
-    source: this.servingMember,
-    computation: (current, previous) => {
-      if (current) return current;
-      return this._callNextPending() ? (previous?.value ?? null) : null;
-    },
-  });
+  readonly displayServingMember = computed(() =>
+    this.callNextWaiting() ? null : (this.servingMember() ?? null),
+  );
 
   readonly waitingEntries = computed(() =>
     this.timeline().filter((e) => e.members.every((m) => m.status === 'WAITING')),
@@ -311,23 +349,14 @@ export class QueueConsoleService {
 
   // Call-next promotes whoever is head-of-line. Disabled if the head row is
   // locked (temp_ or mid-action) or if anyone is already serving — the backend
-  // enforces one serving entry at a time (a 409 otherwise).
+  // enforces one serving entry at a time (a 409 otherwise). The optimistic
+  // paint for an End-Session-style action clears servingEntry() right away,
+  // so this can read false before that action has committed backend-side —
+  // that's fine: _runLocked's serial action queue (see its comment) is what
+  // guarantees Call Next's request won't actually reach the backend until
+  // End Session's has settled, so the button doesn't need to stay disabled
+  // for that window too.
   readonly hasServingEntry = computed(() => !!this.servingEntry());
-
-  // True while a serving-clearing action (End Session / End All / complete on
-  // the serving entry) is still in flight, even though its optimistic paint
-  // has already emptied servingEntry(). Without this, End Session -> Call
-  // Next raced: the optimistic paint clears the serving member instantly, so
-  // hasServingEntry() goes false and un-disables Call Next before End
-  // Session's own request has actually committed on the backend — firing
-  // Call Next then races it server-side and 409s ("already serving"), which
-  // reverts the optimistic Call Next paint. Call Next must stay blocked until
-  // the action that vacated the slot has itself settled (isPending clears in
-  // _runLocked's onSettled), same "trust the in-flight request, not just the
-  // optimistic paint" rule isLocked() already applies per-row.
-  readonly hasServingOrResolving = computed(
-    () => this.hasServingEntry() || this._resolvingServingIds.some((id) => this.isPending(id)),
-  );
 
   readonly nextIsLocked = computed(() => this.isLocked(this.waitingEntries()[0]?.entryId));
 
@@ -406,6 +435,20 @@ export class QueueConsoleService {
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe((entries) => {
         this._socketInitialReceived = true;
+        // Clears the Call Next spinner once a genuine frame — not the
+        // optimistic paint — shows the targeted entry's leader SERVING. See
+        // callNextWaiting's comment for why this can't just watch
+        // servingMember(), which the optimistic paint also satisfies.
+        if (this.callNextWaiting()) {
+          const targetId = this._callNextTargetEntryId();
+          const confirmed = entries
+            .find((e) => e.entryId === targetId)
+            ?.members.some((m) => m.status === 'SERVING');
+          if (confirmed) {
+            this.callNextWaiting.set(false);
+            this._callNextTargetEntryId.set(null);
+          }
+        }
         // Authoritative — no reconciliation, no timestamp comparison. The
         // `timeline` computed merges this with any still-unconfirmed local
         // temp add and drops confirmed temps (via _setServerTimeline's prune).
@@ -463,18 +506,24 @@ export class QueueConsoleService {
   callNext(salonId: string, queueId: string, onResolveNeeded: () => void): void {
     const waiting = this.waitingEntries();
     if (waiting.length === 0) return;
-    if (this.hasServingOrResolving()) return;
+    if (this.hasServingEntry()) return;
     const head = waiting[0];
     if (this.isLocked(head.entryId)) return;
 
     // Captured once here rather than re-derived from waitingEntries()[0] —
     // the optimistic paint below immediately promotes this entry out of
     // "waiting" (it becomes SERVING), so waitingEntries()[0] would already
-    // point at a DIFFERENT entry by the next read. displayServingMember's
-    // hold logic needs the id this call actually targeted, not whatever's
-    // currently at the head of the list. No separate clear needed —
-    // isPending(id) naturally goes false once _runLocked's onSettled fires.
-    this._callNextTargetEntryId = head.entryId;
+    // point at a DIFFERENT entry by the next read. Used only by the frame
+    // subscriber in init() to know which entry's confirming frame clears
+    // callNextWaiting — see that subscriber's comment.
+    this._callNextTargetEntryId.set(head.entryId);
+    // See callNextWaiting's comment: only wait-and-spin when something (e.g.
+    // End Session) was already in flight ahead of this in _actionQueue$ — an
+    // intermediate frame reflecting that action's commit, but not yet this
+    // one's, can land in that window. With nothing queued ahead, there's no
+    // such frame to race and painting immediately (below) is safe, as it
+    // always was before this whole investigation started.
+    if (this._actionInFlight) this.callNextWaiting.set(true);
     // Lock the leader's member id too, not just the entry — isLocked(id) on
     // the current-client row checks the MEMBER id (Done/+mins buttons), and
     // the promotion to SERVING here is an unconfirmed optimistic paint until
@@ -502,6 +551,9 @@ export class QueueConsoleService {
           queueId,
         }),
       onError: (err) => {
+        // Nothing will ever confirm this target now — stop waiting/spinning.
+        this.callNextWaiting.set(false);
+        this._callNextTargetEntryId.set(null);
         const body = (err as { error?: unknown })?.error;
         if (
           isApiError(body) &&
@@ -533,10 +585,6 @@ export class QueueConsoleService {
         takeUntilDestroyed(this._destroyRef),
       )
       .subscribe(() => {
-        // Captured before the optimistic paint clears servingEntry() — see
-        // hasServingOrResolving's comment. Only the serving entry's own
-        // resolve blocks Call Next; unrelated concurrent actions must not.
-        this._resolvingServingIds = [entry.entryId, member.memberId];
         this._runLocked({
           ids: [entry.entryId, member.memberId],
           apply: (t) =>
@@ -558,7 +606,6 @@ export class QueueConsoleService {
     const entry = this.servingEntry();
     if (!entry) return;
     if (this.isLocked(entry.entryId)) return;
-    this._resolvingServingIds = [entry.entryId];
     this._runLocked({
       ids: [entry.entryId],
       apply: (t) =>
@@ -578,13 +625,6 @@ export class QueueConsoleService {
 
   completeMember(salonId: string, queueId: string, entryId: string, memberId: string): void {
     if (this.isLocked(entryId) || this.isLocked(memberId)) return;
-    // Only relevant when completing the currently-serving member — this is
-    // what can empty servingEntry() and open the Call Next race. Completing a
-    // WAITING member (shouldn't normally happen from the UI, but the guard
-    // costs nothing) doesn't affect servingEntry(), so don't block Call Next.
-    if (this.servingEntry()?.entryId === entryId) {
-      this._resolvingServingIds = [entryId, memberId];
-    }
     this._runLocked({
       ids: [entryId, memberId],
       apply: (t) =>
