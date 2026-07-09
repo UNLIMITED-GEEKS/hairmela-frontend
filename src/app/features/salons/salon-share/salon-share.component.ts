@@ -19,11 +19,17 @@ export class SalonShareComponent implements OnInit {
   private readonly _currentUser = inject(CurrentUserStore);
 
   protected readonly loading = signal(true);
-  protected readonly shareUrl = signal('');
   protected readonly qrDataUrl = signal('');
   protected readonly posterQrDataUrl = signal('');
 
   protected readonly salonName = computed(() => this._overview.salon()?.name ?? '');
+
+  // Pure derivation from the loaded salon — no side effect, so computed (not
+  // effect) is the right primitive.
+  protected readonly shareUrl = computed(() => {
+    const slug = this._overview.salon()?.slug;
+    return slug ? `${environment.appBaseUrl}/s/${slug}` : '';
+  });
 
   private get _salonId(): string {
     return this._route.snapshot.paramMap.get('salonId') ?? '';
@@ -31,10 +37,8 @@ export class SalonShareComponent implements OnInit {
 
   constructor() {
     effect(() => {
-      const salon = this._overview.salon();
-      if (!salon?.slug) return;
-      const url = `${environment.appBaseUrl}/s/${salon.slug}`;
-      this.shareUrl.set(url);
+      const url = this.shareUrl();
+      if (!url) return;
       this._generateQr(url);
       this._generatePosterQr(url);
       this.loading.set(false);

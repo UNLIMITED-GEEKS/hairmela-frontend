@@ -22,11 +22,6 @@ export const visitRoutes: Routes = [
           import('./joining-queue/joining-queue.component').then((m) => m.JoiningQueueComponent),
       },
       {
-        path: 'q/:queueId/join',
-        loadComponent: () =>
-          import('./join-queue/join-queue.component').then((m) => m.JoinQueueComponent),
-      },
-      {
         path: 'q/:queueId/e/:entryId/position',
         loadComponent: () =>
           import('./my-position/my-position.component').then((m) => m.MyPositionComponent),

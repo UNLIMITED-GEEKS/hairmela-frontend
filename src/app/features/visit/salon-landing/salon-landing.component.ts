@@ -1,9 +1,10 @@
-import { Component, OnInit, computed, inject } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { SalonVisitService } from '../salon-visit.service';
 import { SalonPublicStaffDto } from '../../../api/models/salon-public-staff-dto';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { FavoritesService } from '../../../core/favorites/favorites.service';
+import { JoinDialogComponent } from '../join-dialog/join-dialog.component';
 
 interface BarberAvailability {
   readonly label: string;
@@ -20,6 +21,7 @@ interface SalonStatusBadge {
 @Component({
   selector: 'app-salon-landing',
   templateUrl: './salon-landing.component.html',
+  imports: [JoinDialogComponent],
 })
 export class SalonLandingComponent implements OnInit {
   protected readonly visit = inject(SalonVisitService);
@@ -52,8 +54,12 @@ export class SalonLandingComponent implements OnInit {
     if (id) this._favorites.toggle({ id });
   }
 
-  private get _slug(): string {
+  protected get _slug(): string {
     return this._route.snapshot.paramMap.get('slug') ?? '';
+  }
+
+  protected get _shellPrefix(): string {
+    return this._route.snapshot.data['shellPrefix'] ?? '';
   }
 
   // Salon open/closed badge — computed server-side in the salon's own timezone
@@ -76,6 +82,32 @@ export class SalonLandingComponent implements OnInit {
         };
     }
   });
+
+  // Services-first landing: null = showing the services list; set = showing
+  // the barbers who offer that service. A local view toggle only — no
+  // navigation, no request, since visit.services()/staffList() are already
+  // loaded (same instant, client-side-filter pattern as staffServices() on
+  // the join screen).
+  protected readonly selectedServiceId = signal<string | null>(null);
+
+  protected readonly staffForSelectedService = computed(() => {
+    const serviceId = this.selectedServiceId();
+    if (!serviceId) return [];
+    return this.visit.staffList().filter((s) => s.serviceIds.includes(serviceId));
+  });
+
+  protected readonly selectedService = computed(() => {
+    const serviceId = this.selectedServiceId();
+    return serviceId ? (this.visit.services().find((s) => s.id === serviceId) ?? null) : null;
+  });
+
+  protected selectService(serviceId: string): void {
+    this.selectedServiceId.set(serviceId);
+  }
+
+  protected backToServices(): void {
+    this.selectedServiceId.set(null);
+  }
 
   // Real availability from the barber's live queue status. CLOSED or PAUSED
   // queues are not joinable from the landing page. When the salon itself is
@@ -109,7 +141,19 @@ export class SalonLandingComponent implements OnInit {
     }
   }
 
+  // Dialog target — the barber the join dialog is open for. null = closed.
+  protected readonly dialogStaff = signal<SalonPublicStaffDto | null>(null);
+
   protected selectBarber(staff: SalonPublicStaffDto): void {
-    this.visit.selectBarber(staff, this._slug);
+    // selectBarber() itself navigates for every other outcome (register
+    // redirect, existing entry -> position page); it only returns true when
+    // this is a genuine fresh join, which is the one case the dialog handles.
+    if (this.visit.selectBarber(staff, this._slug)) {
+      this.dialogStaff.set(staff);
+    }
+  }
+
+  protected closeDialog(): void {
+    this.dialogStaff.set(null);
   }
 }

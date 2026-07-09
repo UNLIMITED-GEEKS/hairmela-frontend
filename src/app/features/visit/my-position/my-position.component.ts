@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, effect } from '@angular/core';
+import { Component, OnInit, inject, signal, linkedSignal } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -21,18 +21,21 @@ export class MyPositionComponent implements OnInit {
   private readonly _push = inject(PushService);
 
   protected readonly showAddKidsModal = signal(false);
-  protected readonly serviceComplete = signal(false);
 
-  constructor() {
-    effect(() => {
-      if (!this.visit.timelineLoaded()) return;
-      if (this.visit.myEntry(this._entryId)) {
-        this.serviceComplete.set(false);
-      } else if (!this.visit.isMine(this._entryId)) {
-        this.serviceComplete.set(true);
-      }
-    });
-  }
+  // Pure derivation from visit's signals — no side effect, so linkedSignal
+  // (not effect) is the right primitive. previous.value covers the one
+  // "leave unchanged" branch: timeline loaded, entry not found yet, but
+  // still ours (isMine) — a transient state while the socket catches up,
+  // not a real completion.
+  protected readonly serviceComplete = linkedSignal<boolean, boolean>({
+    source: () => this.visit.timelineLoaded(),
+    computation: (timelineLoaded, previous) => {
+      if (!timelineLoaded) return false;
+      if (this.visit.myEntry(this._entryId)) return false;
+      if (!this.visit.isMine(this._entryId)) return true;
+      return previous?.value ?? false;
+    },
+  });
 
   protected readonly addKidsForm = this._fb.group({
     members: this._fb.array<ReturnType<typeof this._buildMemberGroup>>([]),

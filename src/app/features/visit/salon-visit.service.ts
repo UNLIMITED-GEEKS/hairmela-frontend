@@ -223,12 +223,19 @@ export class SalonVisitService {
       .subscribe((serverTime) => this._clock.sync(serverTime));
   }
 
-  selectBarber(staff: SalonPublicStaffDto, slug: string): void {
-    if (!staff.queueId) return;
+  // Returns true when the caller should open the join dialog for this staff
+  // member (services-first landing flow) — false whenever selectBarber()
+  // already handled the click itself (redirected to register, or navigated
+  // to an existing position). Every branch below except the final one still
+  // navigates directly; only "no existing entry, salon open" hands control
+  // back to the caller instead of navigating to a Choose Service screen that
+  // no longer exists.
+  selectBarber(staff: SalonPublicStaffDto, slug: string): boolean {
+    if (!staff.queueId) return false;
     const isGuest = !!this._shellPrefix;
     if (!isGuest && !this._currentUser.user() && !this._guestStore.hasToken()) {
       this._router.navigate(['/register'], { queryParams: { returnUrl: `/s/${slug}` } });
-      return;
+      return false;
     }
     const myEntries = this._activeEntryStore.getAllForQueue(staff.queueId!);
     const base = this._shellPrefix ? [this._shellPrefix, 's', slug] : ['s', slug];
@@ -236,11 +243,11 @@ export class SalonVisitService {
       // Already in this queue — open the position page for the (earliest) entry,
       // even if the salon is now closed (they may still be waiting).
       this._router.navigate([...base, 'q', staff.queueId, 'e', myEntries[0].entryId, 'position']);
-      return;
+      return false;
     }
     // No existing entry — a fresh join is only allowed while the salon is open.
-    if (!this.salonData()?.isOpen) return;
-    this._router.navigate([...base, 'q', staff.queueId, 'join']);
+    if (!this.salonData()?.isOpen) return false;
+    return true;
   }
 
   joinQueue(salonId: string, queueId: string, salonSlug: string, body: JoinQueueDto): void {
