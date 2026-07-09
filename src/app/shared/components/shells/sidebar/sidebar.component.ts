@@ -35,7 +35,7 @@ export const CONTROL_ITEMS: ControlItem[] = [
     requiresTier: 2,
   },
   {
-    label: 'Share / QR code',
+    label: 'Share / QR',
     url: 'share',
     roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF],
   },

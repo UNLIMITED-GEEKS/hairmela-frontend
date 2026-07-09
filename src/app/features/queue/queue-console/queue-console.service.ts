@@ -1,4 +1,4 @@
-import { Injectable, DestroyRef, inject, signal, computed } from '@angular/core';
+import { Injectable, DestroyRef, inject, signal, computed, linkedSignal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { Observable, filter, retry, switchMap, tap } from 'rxjs';
@@ -45,6 +45,9 @@ export class QueueConsoleService {
   // The console is scoped to a single queue; stored in init() so the shared
   // _runLocked() helper can refetch on error without every action passing it.
   private _activeQueueId = '';
+  // The entry id callNext() last targeted — see displayServingMember's hold
+  // logic below for why this can't be re-derived from waitingEntries()[0].
+  private _callNextTargetEntryId: string | null = null;
 
   readonly queue = signal<Queue | null>(null);
   readonly staffServices = signal<StaffService[]>([]);
@@ -185,6 +188,30 @@ export class QueueConsoleService {
     });
   }
 
+  // Marks one member SERVED and, mirroring the backend's own auto-promotion,
+  // marks the next WAITING member in the same entry (array order — the
+  // backend never reorders or skips) as SERVING locally too. Without this,
+  // completing the only SERVING member in a multi-member party makes
+  // servingMember() briefly return nothing until the confirming frame
+  // arrives with the real promotion — a flash in the "Current Client" circle
+  // even though the outcome was never actually in doubt.
+  private _completeAndPromoteNext(entry: TimelineEntryDto, memberId: string): TimelineEntryDto {
+    const completedIndex = entry.members.findIndex((m) => m.memberId === memberId);
+    const nextIndex = entry.members.findIndex(
+      (m, i) => i > completedIndex && m.status === 'WAITING',
+    );
+    return {
+      ...entry,
+      members: entry.members.map((m, i) => {
+        if (m.memberId === memberId) return { ...m, status: 'SERVED' as const };
+        if (i === nextIndex) {
+          return { ...m, status: 'SERVING' as const, servedAt: new Date().toISOString() };
+        }
+        return m;
+      }),
+    };
+  }
+
   // Runs one optimistic, socket-confirmed mutation on an EXISTING entry with
   // the full paint+lock lifecycle: lock the target ids, paint optimistically
   // onto the server timeline, fire the request, and unlock when the HTTP
@@ -219,6 +246,37 @@ export class QueueConsoleService {
   readonly servingMember = computed(() =>
     this.servingEntry()?.members.find((m) => m.status === 'SERVING'),
   );
+
+  // Display-only. End Session -> immediate Call Next is two independent
+  // mutations (different entries), each confirmed by its own socket frame,
+  // and those frames can land in either order. A frame reflecting the moment
+  // between the two — server-side, genuinely no one SERVING yet — is not
+  // stale data (verified: frames arrive in order, timestamps monotonic), so
+  // it must not be "fixed" by distrusting frames.
+  //
+  // The hold is scoped narrowly to "Call Next is pending on the head waiting
+  // entry" — the ONLY action that can produce a NEW serving member — not to
+  // "anything is pending". So: End Session alone clears the circle right
+  // away (honest — nobody's being served, and holding the old name here
+  // would be actively wrong, not just a smoothing tradeoff). End Session
+  // immediately followed by Call Next holds/shows the NEW client (painted
+  // the instant Call Next fires) through any momentarily-empty frame, never
+  // the old one — the old client was already cleared before Call Next ran.
+  //
+  // NEVER use this for action targeting (isLocked/endSession/etc. must keep
+  // reading the real, un-held servingEntry/servingMember) — only the display.
+  private readonly _callNextPending = computed(() => this.isPending(this._callNextTargetEntryId));
+
+  readonly displayServingMember = linkedSignal<
+    TimelineEntryDto['members'][number] | undefined,
+    TimelineEntryDto['members'][number] | null
+  >({
+    source: this.servingMember,
+    computation: (current, previous) => {
+      if (current) return current;
+      return this._callNextPending() ? (previous?.value ?? null) : null;
+    },
+  });
 
   readonly waitingEntries = computed(() =>
     this.timeline().filter((e) => e.members.every((m) => m.status === 'WAITING')),
@@ -262,7 +320,7 @@ export class QueueConsoleService {
 
   private readonly _elapsedSeconds = computed(() => {
     this._tick();
-    const servedAt = this.servingMember()?.servedAt;
+    const servedAt = this.displayServingMember()?.servedAt;
     if (!servedAt) return 0;
     return Math.floor((Date.now() - new Date(servedAt).getTime()) / 1000);
   });
@@ -273,7 +331,7 @@ export class QueueConsoleService {
   });
 
   readonly estimatedFinishTime = computed(() => {
-    const member = this.servingMember();
+    const member = this.displayServingMember();
     if (!member?.servedAt) return null;
     const finishMs = new Date(member.servedAt).getTime() + member.serviceDuration * 60 * 1000;
     return new Date(finishMs).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -389,6 +447,14 @@ export class QueueConsoleService {
     const head = waiting[0];
     if (this.isLocked(head.entryId)) return;
 
+    // Captured once here rather than re-derived from waitingEntries()[0] —
+    // the optimistic paint below immediately promotes this entry out of
+    // "waiting" (it becomes SERVING), so waitingEntries()[0] would already
+    // point at a DIFFERENT entry by the next read. displayServingMember's
+    // hold logic needs the id this call actually targeted, not whatever's
+    // currently at the head of the list. No separate clear needed —
+    // isPending(id) naturally goes false once _runLocked's onSettled fires.
+    this._callNextTargetEntryId = head.entryId;
     this._runLocked({
       ids: [head.entryId],
       apply: (t) =>
@@ -445,14 +511,7 @@ export class QueueConsoleService {
           ids: [entry.entryId, member.memberId],
           apply: (t) =>
             t.map((e) =>
-              e.entryId !== entry.entryId
-                ? e
-                : {
-                    ...e,
-                    members: e.members.map((m) =>
-                      m.memberId === member.memberId ? { ...m, status: 'SERVED' as const } : m,
-                    ),
-                  },
+              e.entryId !== entry.entryId ? e : this._completeAndPromoteNext(e, member.memberId),
             ),
           request: () =>
             queueManagementControllerCompleteMember(this._http, this._apiConfig.rootUrl, {
@@ -491,16 +550,7 @@ export class QueueConsoleService {
     this._runLocked({
       ids: [entryId, memberId],
       apply: (t) =>
-        t.map((e) =>
-          e.entryId !== entryId
-            ? e
-            : {
-                ...e,
-                members: e.members.map((m) =>
-                  m.memberId === memberId ? { ...m, status: 'SERVED' as const } : m,
-                ),
-              },
-        ),
+        t.map((e) => (e.entryId !== entryId ? e : this._completeAndPromoteNext(e, memberId))),
       request: () =>
         queueManagementControllerCompleteMember(this._http, this._apiConfig.rootUrl, {
           salonId,

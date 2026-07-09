@@ -14,6 +14,13 @@ Before implementing:
 - If a simpler approach exists, say so. Push back when warranted.
 - If something is unclear, stop. Name what's confusing. Ask.
 
+**Mandatory for every bug report or feature request:** before investigating or
+implementing, restate back in plain terms what you understand the bug or
+feature to be — what's happening, what's being asked for, and any assumptions
+you're making. Do this every time, not just when confused. Let the user
+correct your understanding before you spend time or make changes based on a
+wrong read. This is a standing requirement, not a judgment call.
+
 ## 2. Simplicity First
 
 **Minimum code that solves the problem. Nothing speculative.**

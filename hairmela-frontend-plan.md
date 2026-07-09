@@ -779,6 +779,9 @@ All password fields use the `appPasswordToggle` directive (eye icon show/hide).
 ### Configuration discipline
 - `environment.ts` owns `apiBaseUrl` (with `/v1`), `socketUrl`, `appBaseUrl`. No URL literals in source.
 
+### Working with Claude
+- Before investigating or implementing any bug report or feature request, Claude must restate its understanding back to the user first (see `.claude/CLAUDE.md` §1) — every time, not just when uncertain.
+
 ---
 
 ## Build Status
