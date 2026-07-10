@@ -45,21 +45,23 @@ Two-panel layout side by side:
 
 ### Customer POV — Visit + Join flow (`/s/:slug` → `/s/:slug/q/:queueId`)
 
-Available in both the auth shell (`/s/:slug`) and guest shell (`/g/s/:slug`). Same four screens.
+Available in both the auth shell (`/s/:slug`) and guest shell (`/g/s/:slug`). **Services-first** — there is no separate "Choose Service" route/screen; picking a service and picking a barber both happen in place on the landing page, and joining opens an in-place dialog rather than navigating anywhere. This inverted an earlier barbers-first design (barber card → services list) — see `SalonLandingComponent`/`JoinDialogComponent` below.
 
 **Screen 1 — Salon landing page**
 - Salon avatar/photo at top left + salon name prominently below
 - Short description line
-- Barber cards in a row, each showing: barber name + availability badge (green "Available" / red "Unavailable")
-- Tapping a barber card navigates to that barber's queue flow
+- **Default view: services list.** Scrollable list of services (name + duration); tapping one switches the same screen to show only the barbers who offer that service (`staffForSelectedService` — client-side filter over the already-loaded slug payload, no request). A "← Services" link returns to the services list.
+- Barber cards show: barber name + availability badge (green "Available" / red "Unavailable" / amber "On break"). Tapping a joinable barber card either opens the join dialog in place (fresh join), navigates straight to the position page (an active entry already exists for that queue), or redirects to `/register` (unauthenticated, no guest token) — `SalonVisitService.selectBarber()` decides which; the component only opens the dialog when it returns `true`.
 
-**Screen 2 — Choose Service**
-- Title: "Choose Service"
-- Scrollable list of services, each row: service name + duration
-- Selected service highlighted in blue
-- Two buttons at the bottom: "Join queue" | "Back"
+**Join dialog (`JoinDialogComponent`, opened in place — no route)**
+- Guest name/phone fields (guests only); authenticated users join as their account name
+- "Add Kids" rows — name + service picker per extra party member, capped at `settings.maxPartySize`
+- Cancel closes the dialog back to the barber list (no navigation). Confirm submits the whole party in one batch, then navigates to `/joining` (see below).
 
-**Screen 3 — Position in line (MyPositionComponent)**
+**Transient: `/joining` (`JoiningQueueComponent`)**
+- "Finding your spot…" spinner shown immediately on submit (navigation-is-feedback — the app navigates before the POST resolves). A constructor `effect()` watches `SalonVisitService.pendingJoin()`; on success it replaces this route with the entry-scoped position page, on failure it toasts and navigates back.
+
+**Position in line (`MyPositionComponent`, `q/:queueId/e/:entryId/position`)**
 - Large circle center-screen showing:
   - "Position in line" label
   - Position number large
@@ -72,7 +74,7 @@ Available in both the auth shell (`/s/:slug`) and guest shell (`/g/s/:slug`). Sa
 - Two buttons at the bottom: "View queue" | "Leave queue"
 - **Service complete state:** when all members are done and the entry leaves the timeline, circle turns green with a checkmark and "Service complete" text; bottom bar shows a single "Back to salon" button
 
-**Screen 4 — Live queue view (`/s/:slug/q/:queueId`)**
+**Live queue view (`q/:queueId`, `LiveQueueComponent`)**
 - Barber photo/avatar + name + availability badge
 - Two column headers: "Waiting" | "Estimated time"
 - Scrollable queue list, each row: client label (anonymized) + live countdown wait
@@ -242,6 +244,16 @@ src/app/
 │   │   └── favorites.service.ts     ← root-cached favoritedIds Set + favourites list; optimistic toggle; CacheRegistry registered
 │   ├── push/
 │   │   └── push.service.ts          ← SwPush wrapper: enable()/disable(), notification-click deep-link; guarded on isEnabled (prod build only)
+│   ├── pwa/
+│   │   └── install-prompt.service.ts ← cross-platform (android/ios/desktop) install-prompt detection/state for the how-to-install page
+│   ├── clock/
+│   │   └── server-clock.service.ts  ← server-skew-corrected clock; used by SalonVisitService for live countdowns
+│   ├── caching/
+│   │   ├── cache-registry/
+│   │   │   └── cache-registry.service.ts ← Clearable interface + registry; AuthService calls clearAll() on logout
+│   │   ├── optimistic/              ← optimistic.service.ts + cached-loader.ts — optimistic update engine (specs included)
+│   │   ├── socket-predict/          ← socket-predict.service.ts — predict-then-confirm engine for socket-backed signals (spec included); used by QueueConsoleService
+│   │   └── ttl/                     ← ttl-gate.ts + socket-invalidated-ttl.ts — TTL cache invalidated by socket events
 │   ├── storage/
 │   │   └── persistent-store.ts      ← single localStorage gateway (JSON + raw), try/catch'd
 │   ├── guards/
@@ -262,10 +274,9 @@ src/app/
 │   ├── socket/
 │   │   ├── queue-socket.service.ts  ← connect() uses TokenStore.getAccessToken() ?? GuestStore.getToken()
 │   │   └── socket.types.ts
-│   ├── toast/
-│   │   ├── toast.service.ts
-│   │   └── toast.component.ts
-│   └── cache-registry.service.ts    ← Clearable interface + registry; AuthService calls clearAll() on logout
+│   └── toast/
+│       ├── toast.service.ts
+│       └── toast.component.ts
 │
 ├── shared/
 │   ├── directives/
@@ -296,12 +307,14 @@ src/app/
 │       ├── push-prompt/            ← contextual "notify me when it's your turn" after joining
 │       ├── verify-email-banner/    ← unverified nudge + resend (account page)
 │       ├── cookie-consent/         ← accept-all / reject-all, once per browser; in root app.ts
+│       ├── install-banner/         ← site-wide PWA install nudge, driven by InstallPromptService, hides once installed; rendered in the public shell above the footer
+│       ├── qr-scanner/             ← QrScannerComponent — camera-based QR scan (html5-qrcode) to jump to a salon by slug; used from the dashboard. Complements SalonShareComponent's QR *generation* (client-side, qrcode npm)
 │       ├── confirm-dialog/
-│       ├── connection-banner/
+│       ├── connection-banner/      ← reads QueueSocketService.connectionState$ — reconnecting/disconnected banner on live queue views
 │       ├── image-uploader/
-│       ├── gallery/
+│       ├── gallery/                ← reorder via @angular/cdk/drag-drop (CdkDragDrop/moveItemInArray)
 │       ├── avatar/
-│       ├── screen-layout/
+│       ├── screen-layout/          ← reusable full-height shell: sticky header slot, scrollable body, fixed bottom action bar
 │       └── skeleton/
 │
 ├── marketing/                       ← public marketing pages (NOT under features/)
@@ -310,7 +323,8 @@ src/app/
 │   ├── about/                       ← AboutComponent — /about
 │   ├── contact/                     ← ContactComponent — /contact (logs values; API TODO)
 │   ├── privacy/                     ← PrivacyComponent — /privacy
-│   └── terms/                       ← TermsComponent — /terms
+│   ├── terms/                       ← TermsComponent — /terms
+│   └── how-to-install/              ← HowToInstallComponent — /how-to-install (PWA install instructions, uses InstallPromptService)
 │
 ├── utils/
 │   └── string.utils.ts              ← deslugify(slug): split on '-', capitalise each word
@@ -326,7 +340,9 @@ src/app/
     │   ├── staff/
     │   │   └── staff-dashboard.component.ts/.html
     │   ├── customer/
-    │   │   └── customer-dashboard.component.ts/.html
+    │   │   └── customer-dashboard.component.ts/.html    ← renders MyVisitsComponent with active entries
+    │   ├── my-visits/
+    │   │   └── my-visits.component.ts/.html ← MyVisitsComponent — presentational, takes `entries` input; not a route, used by CustomerDashboardComponent
     │   ├── salon/                           ← exists on disk but not rendered by DashboardComponent
     │   │   ├── salon-dashboard.component.ts/.html
     │   │   ├── my-salons-list/
@@ -334,19 +350,21 @@ src/app/
     │   └── shared/
     │       └── no-salons-empty-state/
     ├── queues/
-    │   ├── auth-queues/             ← AuthQueuesComponent at /queues — reads ActiveEntryStore (auth key); navigates to /s/:salonSlug/q/:queueId/position
-    │   └── guest-queues/            ← GuestQueuesComponent at /g/queues — reads ActiveEntryStore (guest key); navigates to /g/s/:salonSlug/q/:queueId/position
+    │   ├── auth-queues/             ← AuthQueuesComponent at /queues — reads ActiveEntryStore (auth key); navigates to /s/:salonSlug/q/:queueId/e/:entryId/position
+    │   └── guest-queues/            ← GuestQueuesComponent at /g/queues — reads ActiveEntryStore (guest key); navigates to /g/s/:salonSlug/q/:queueId/e/:entryId/position
     ├── notifications/               ← NotificationsComponent at /notifications — wraps PendingInvitesComponent
     ├── favorites/                   ← FavoritesPageComponent at /favorites — shared card grid + pagination over FavoritesService
     ├── organization/                (org-overview, org-settings, plan-explainer, billing/ — BillingComponent + DummySuccessComponent + billing.service.ts)
-    ├── salons/                      (+ analytics/ — tier-gated Tier 2 scaffold)
+    ├── salons/                      (+ analytics/ — tier-gated Tier 2 scaffold; + leave-salon/ — LeaveSalonComponent at .../leave)
     ├── staff/                       (+ accept-invite/ — public invite landing)
     ├── services/
     ├── schedules/
     ├── closures/
-    ├── queue/           (staff console — QueueShellComponent + CurrentClientComponent + QueueListComponent)
-    ├── visit/           (SalonShellComponent provides SalonVisitService; child routes shared by auth + guest shells via visitRoutes)
-    └── account/         (+ reset-password/ + notifications-toggle/)
+    ├── queue/           (staff console — QueueShellComponent + CurrentClientComponent + QueueListComponent + QueueConsoleService)
+    ├── visit/           (SalonShellComponent provides SalonVisitService; child routes shared by auth + guest shells via visitRoutes;
+    │                      salon-landing/ services-first + in-place JoinDialogComponent, joining-queue/ transient spinner,
+    │                      my-position/ entry-scoped position page, live-queue/ — no separate "Choose Service" route)
+    └── account/         (+ reset-password/ + notifications-toggle/ + edit-profile/ — EditProfileComponent, PATCH /users/profile)
 ```
 
 ---
@@ -371,7 +389,7 @@ Factory function, not a class. On boot:
 - `verifyEmail(token)` → `POST /auth/verify-email` then re-fetches `/auth/me`.
 - `resendVerification()` → `POST /auth/resend-verification`.
 
-### CacheRegistry (`core/cache-registry.service.ts`)
+### CacheRegistry (`core/caching/cache-registry/cache-registry.service.ts`)
 Singleton registry for services that hold in-memory cache needing to be cleared on logout. Services call `cacheRegistry.register(this)` in their constructor; `AuthService.logout()` calls `cacheRegistry.clearAll()`. Currently registered: `DashboardService`, `InvitesService`.
 
 ### InvitesService (`features/dashboard/invites.service.ts`)
@@ -486,7 +504,7 @@ Manual `HttpClient` wrapper for the backend's `FlexAuthGuard` routes (those that
 
 **How it works:**
 - `TimelineMemberDto.servedAt: string | null` — ISO timestamp stamped by the backend when a member starts SERVING
-- Every live view (console + customer visit) runs a single `setInterval` ticking a `_tick` signal every second
+- Every live view runs a `setInterval` ticking a signal every second. The staff console (`QueueConsoleService`) uses a plain local `_tick` signal. The customer visit (`SalonVisitService`) instead uses root-scoped `ServerClockService`: `sync(serverTimeIso)` records the client/server clock offset whenever a fresh server timestamp arrives (e.g. on a timeline payload), and `now()` returns drift-corrected time in its place — protecting the customer-facing countdown from a skewed client clock, which the console's simpler tick doesn't bother with (staff are trusted to have roughly-correct clocks; customers on arbitrary devices are not).
 - `liveWaitMinutes` — `computed()` Map of `entryId → number` subtracting elapsed minutes from each entry's `estimatedWaitMinutes`
 - `memberWaitMinutes` — `computed()` Map of `memberId → number`: SERVED → 0, SERVING → 0, WAITING → accumulated remaining duration of preceding active members minus elapsed
 - The barber's stopwatch (`timerFromServedAt`) derives from the same `servedAt` — accurate on console reload
@@ -504,9 +522,9 @@ Key responsibilities:
 - `watchQueue(queueId)` — joins socket room + calls `connect()` (so guest socket connects if not already). Uses `_socketInitialReceived` Set to suppress "You're up!" banner on the initial timeline reply.
 - `timelineLoaded` signal — set to `true` only after `activeEntry` is reconciled from the store. Guards in `MyPositionComponent` wait for this before evaluating "Service complete" state, preventing false positives on page reload.
 - `_loadInitialTimeline(queueId)` — for auth users with no stored entry, falls back to `GET /queues/my-entries` to recover `entryId` (handles the case where guest store was cleared on registration but the backend entry persists).
-- `joinQueue()` — on success stores `res.body.guestToken` in `GuestStore` (if present) and the entry in `ActiveEntryStore`. Immediately re-fetches timeline before navigating.
+- `joinQueue()` — sets `pendingJoin` and posts the whole party in one batch; the caller (`JoinDialogComponent`) navigates to `/joining` immediately, before the response lands (navigation-is-feedback). On success stores `res.body.guestToken` in `GuestStore` (if present) and the entry in `ActiveEntryStore`; `JoiningQueueComponent`'s effect reacts to `pendingJoin` resolving and completes the navigation to the entry-scoped position page.
 - `leaveQueue()` / `addMembers()` — route to `GuestHttpService` when `GuestStore.hasToken()`, otherwise to the generated client. Both paths call `_loadInitialTimeline` on success to immediately refresh the party list.
-- `selectBarber()` — checks `ActiveEntryStore` for an existing entry; navigates to `/position` if already in queue, otherwise to `/join`. Unauthenticated + no guest token → `/register` with returnUrl.
+- `selectBarber()` — checks `ActiveEntryStore` for an existing entry on that queue; if found, navigates straight to the entry-scoped position page and returns `false`. Unauthenticated + no guest token → redirects to `/register` with returnUrl, returns `false`. Otherwise returns `true`, and the landing page opens `JoinDialogComponent` in place — there is no `/join` route or "Choose Service" screen; the service being joined for is already known (selected on the landing page itself) and carried into the dialog as an input.
 
 ---
 
@@ -516,8 +534,8 @@ Two components sharing the same visual design but different navigation targets:
 
 | Component | Route | Data source | Navigate to |
 |---|---|---|---|
-| `AuthQueuesComponent` | `/queues` | `myEntriesControllerGetMyEntries` (REST) — live list from backend; `ActiveEntryStore.getForQueue()` for `salonSlug` | `/s/:salonSlug/q/:queueId/position` |
-| `GuestQueuesComponent` | `/g/queues` | `GuestHttpService.getGuestEntries()` (REST with guest token) — live list from backend; `ActiveEntryStore.getForQueue()` for `salonSlug` | `/g/s/:salonSlug/q/:queueId/position` |
+| `AuthQueuesComponent` | `/queues` | `myEntriesControllerGetMyEntries` (REST) — live list from backend; `ActiveEntryStore.getForQueue()` for `salonSlug` | `/s/:salonSlug/q/:queueId/e/:entryId/position` |
+| `GuestQueuesComponent` | `/g/queues` | `GuestHttpService.getGuestEntries()` (REST with guest token) — live list from backend; `ActiveEntryStore.getForQueue()` for `salonSlug` | `/g/s/:salonSlug/q/:queueId/e/:entryId/position` |
 
 Both use `deslugify(salonSlug)` from `src/app/utils/string.utils.ts` to display the salon name. Navigation is blocked (`return`) if `salonSlug` is not in `ActiveEntryStore` for that queue.
 
@@ -620,20 +638,28 @@ All password fields use the `appPasswordToggle` directive (eye icon show/hide).
 
 `QueueShellComponent` provides `QueueConsoleService` via `providers: [QueueConsoleService]` (scoped to the shell — NOT `providedIn: 'root'`). Two child routes: `''` → `CurrentClientComponent`, `'queue'` → `QueueListComponent`. `QueueShellComponent.ngOnInit()` calls `console.init(salonId, queueId)`; `ngOnDestroy` calls `console.destroy(queueId)`.
 
+`QueueConsoleService` (~900 lines) grew substantially past its original simple socket-plus-REST design while chasing a production race-condition bug (client name flashing away and reappearing in the current-client circle). The engine it ended up with:
+
+- **Two-source timeline:** `_serverTimeline` (authoritative, written only by socket frames + REST fallback, no reconciliation/timestamp comparison) and `_optimisticAdds` (an overlay of client-painted temp entries for `staffAddToQueue`, keyed by `temp_`-prefixed ids). The `timeline` computed merges them, dropping a temp the instant its confirmed real entry appears server-side — so there's never a frame where both or neither render, regardless of which lands first.
+- **Lock lifecycle:** `_pendingIds` + `isLocked(id)` — a row is locked while its own mutation is in flight (unlocked when that mutation's HTTP response settles, not when the next socket frame arrives — waiting on a frame can hang forever on a quiet queue) or while it's still a `temp_` id (unconfirmed by definition). Every button's `[disabled]` reads this one gate.
+- **Serialized action queue (`_actionQueue$`, `concatMap`):** every mutation's *paint* happens synchronously on click (instant feedback), but the actual HTTP dispatch is queued one-at-a-time per console session. This exists because two independent mutations fired back-to-back (e.g. End Session immediately followed by Call Next) can otherwise reach the backend out of order and 409 against the backend's "one SERVING entry" invariant — serializing dispatch order removes the race without making the UI wait.
+- **Call Next spinner (`callNextWaiting`):** Call Next's promoted client name is normally painted immediately (safe — nothing else was in flight to race). But if Call Next was queued behind another still-in-flight action, painting immediately risks a stale intermediate socket frame (reflecting the moment right after the queued-ahead action committed, before Call Next's own commit) clobbering the paint and flashing the name away — repeated attempts to "hold" the predicted name through that window still flashed in production. So in that specific case the circle shows a spinner + "Calling next person…" instead of a name, and only paints once a genuine confirming socket frame (not the optimistic paint) shows that entry's leader SERVING.
+
 | Responsibility | Endpoint / Socket |
 |---|---|
 | Initial timeline | GET /queues/:queueId/timeline |
 | Queue status + staff services | GET /queues/:queueId → `switchMap` → GET /salons/:salonId/staff/:staffId/services (chained in `_loadQueueStatus`) |
 | Live timeline | `watchQueueAsStaff` + `queueTimeline$` |
-| Live stopwatch | `timerFromServedAt` computed from `servedAt` |
+| Live stopwatch | `timerFromServedAt` computed from `servedAt` (via `displayServingMember`, which is `null` while `callNextWaiting`) |
 | Live wait times | `liveWait(entryId)` / `memberWait(memberId)` from computed maps |
 | Set status | PATCH .../status |
 | Call next | POST .../call-next (409 → resolve-flow toast) |
-| Complete member | PATCH .../members/:memberId/complete |
+| Complete member | PATCH .../members/:memberId/complete — mirrors the backend's auto-promotion of the next WAITING party member locally, so multi-member parties don't flash empty between Done and the confirming frame |
 | Complete all | POST .../entries/:entryId/complete-all |
 | No-show | PATCH .../entries/:entryId/no-show |
 | Cancel entry | DELETE .../entries/:entryId |
 | Extend member | PATCH .../members/:memberId/extend |
+| Staff manual add | POST .../walk-in (staff-initiated) — paints a `temp_` entry into `_optimisticAdds`, locked until the real entry is confirmed |
 
 **Guards:** `salonRoleGuard(OWNER, ADMIN, STAFF)`.
 
@@ -641,10 +667,10 @@ All password fields use the `appPasswordToggle` directive (eye icon show/hide).
 
 **Routes** — mounted under BOTH auth shell (`/s/:slug`) and guest shell (`/g/s/:slug`). Same `visitRoutes` lazy module, distinguished by `data: { shellPrefix }`.
 
-- `/s/:slug` / `/g/s/:slug` → `SalonLandingComponent`
+- `/s/:slug` / `/g/s/:slug` → `SalonLandingComponent` — services-first: services list by default, tap a service to see the barbers offering it, tap a joinable barber to open `JoinDialogComponent` in place. No separate route for service selection or joining.
 - `q/:queueId` → `LiveQueueComponent`
-- `q/:queueId/join` → `JoinQueueComponent`
-- `q/:queueId/position` → `MyPositionComponent`
+- `q/:queueId/joining` → `JoiningQueueComponent` — transient "Finding your spot…" screen, navigated to immediately on submit (navigation-is-feedback); resolves via `SalonVisitService.pendingJoin()`
+- `q/:queueId/e/:entryId/position` → `MyPositionComponent` — entry-scoped, not a flat `/position` path
 
 `SalonShellComponent` injects `SalonVisitService` (which is `providedIn: 'root'`) and on `ngOnInit` calls `visit.init(slug, shellPrefix)` where `shellPrefix` is read from `route.snapshot.data['shellPrefix']`. On `ngOnDestroy` calls `visit.destroy()` to reset all signals and clear watched queues.
 
@@ -655,7 +681,7 @@ All password fields use the `appPasswordToggle` directive (eye icon show/hide).
 | Queue status | GET /queues/:queueId |
 | Initial timeline | GET /queues/:queueId/timeline (+ re-fetch after join) |
 | Live timeline | `watchQueue` + `queueTimeline$` |
-| Join queue | POST .../walk-in — response includes `{ entry, guestToken? }` |
+| Join queue | POST .../walk-in — single batch call for the whole party (leader + kids); response includes `{ entry, guestToken? }` |
 | Leave queue | `GuestHttpService.leaveQueue` (guest) or generated client (auth) |
 | Add members | `GuestHttpService.addMembers` (guest) or generated client (auth) — re-fetches timeline on success |
 | My active entry | `ActiveEntryStore` (unified over guest/auth localStorage) |
@@ -685,6 +711,7 @@ All password fields use the `appPasswordToggle` directive (eye icon show/hide).
 /contact                            public shell — contact form (logs values; API TODO)
 /privacy                            public shell
 /terms                              public shell
+/how-to-install                     public shell — PWA install instructions
 /verify-email                       public shell (also /auth/verify-email — emailed-link convention)
 /login                              public shell + guestGuard
 /register                           public shell + guestGuard
@@ -696,19 +723,20 @@ All password fields use the `appPasswordToggle` directive (eye icon show/hide).
   /g/queues                         GuestQueuesComponent
   /g/s/:slug                        visitRoutes (shellPrefix = '/g')
     /g/s/:slug/q/:queueId
-    /g/s/:slug/q/:queueId/join
-    /g/s/:slug/q/:queueId/position
+    /g/s/:slug/q/:queueId/joining
+    /g/s/:slug/q/:queueId/e/:entryId/position
 
 /                                   auth shell (AuthShellComponent) + authGuard
   /dashboard                        DashboardComponent
   /account                          AccountComponent (+ verify-email banner + notifications toggle)
+  /account/edit-profile             EditProfileComponent — PATCH /users/profile
   /notifications                    NotificationsComponent
   /queues                           AuthQueuesComponent
   /favorites                        FavoritesPageComponent
   /s/:slug                          visitRoutes (shellPrefix = '')
     /s/:slug/q/:queueId
-    /s/:slug/q/:queueId/join
-    /s/:slug/q/:queueId/position
+    /s/:slug/q/:queueId/joining
+    /s/:slug/q/:queueId/e/:entryId/position
   /org/:orgId                       + orgOwnerGuard
   /org/:orgId/settings              + orgOwnerGuard
   /org/:orgId/plan                  + orgOwnerGuard — static plan teaser → links to billing
@@ -720,12 +748,13 @@ All password fields use the `appPasswordToggle` directive (eye icon show/hide).
   /salons/:salonId/slug             + salonRoleGuard(OWNER)
   /salons/:salonId/share            + salonRoleGuard(OWNER,ADMIN)
   /salons/:salonId/delete           + salonRoleGuard(OWNER)
+  /salons/:salonId/leave            + salonRoleGuard(OWNER,ADMIN,STAFF)
   /salons/:salonId/analytics        + salonRoleGuard(OWNER,ADMIN) + tierGuard(requiredTier 2)
   /salons/:salonId/media            + salonRoleGuard(OWNER,ADMIN,STAFF)
   /salons/:salonId/closures         + salonRoleGuard(OWNER,ADMIN)
   /salons/:salonId/services         + salonRoleGuard(OWNER,ADMIN,STAFF)
   /salons/:salonId/services/new     + salonRoleGuard(OWNER,ADMIN)
-  /salons/:salonId/services/:id/edit+ salonRoleGuard(OWNER,ADMIN)
+  /salons/:salonId/services/:serviceId/edit + salonRoleGuard(OWNER,ADMIN)
   /salons/:salonId/staff            + salonRoleGuard(OWNER,ADMIN,STAFF)
   /salons/:salonId/staff/invite     + salonRoleGuard(OWNER,ADMIN)
   /salons/:salonId/staff/:staffId   + salonRoleGuard(OWNER,ADMIN,STAFF)
@@ -777,7 +806,8 @@ All password fields use the `appPasswordToggle` directive (eye icon show/hide).
 - `src/app/utils/string.utils.ts` — `deslugify(slug)`: splits on `-`, capitalises each word. Use instead of asking the backend to join relations when a human-readable name is needed from a slug.
 
 ### Configuration discipline
-- `environment.ts` owns `apiBaseUrl` (with `/v1`), `socketUrl`, `appBaseUrl`. No URL literals in source.
+- `environment.ts` owns `apiBaseUrl` (with `/v1`), `socketUrl`, `appBaseUrl`, `cloudinaryCloudName`. No URL literals in source.
+- `app.config.ts` registers `provideCloudinaryLoader(\`https://res.cloudinary.com/${environment.cloudinaryCloudName}\`)` — every `NgOptimizedImage` in the app is rewritten through Cloudinary's CDN/transform pipeline app-wide, not per-component.
 
 ### Working with Claude
 - Before investigating or implementing any bug report or feature request, Claude must restate its understanding back to the user first (see `.claude/CLAUDE.md` §1) — every time, not just when uncertain.
@@ -811,12 +841,12 @@ Push subscribe/unsubscribe (Phase 9) and forgot/reset password (Phase 11) shippe
 
 1. **Notifications inbox polish:** full inbox page beyond the current invite-surfacing, unread badge, mark read / mark all, live socket `notification$` toasts. (Push *delivery* is done; this is the in-app inbox UX.)
 2. **Booking & appointments:** availability slot picker, book/cancel flows, my-appointments page (needs the backend's customer-appointments listing route).
-3. **Analytics dashboard (Tier 2):** summary cards, trends chart, service breakdown, staff performance — `analytics-component` scaffold exists and is tier-gated (`tierGuard` requiredTier 2 → billing); the data views are the remaining work.
+3. ~~**Analytics dashboard (Tier 2)**~~ — **shipped**, not a scaffold: `AnalyticsComponent` (`/salons/:salonId/analytics`, tier-gated) renders real `ng2-charts`/`chart.js` visualizations — a bar chart (daily served/no-shows/cancelled trends) and a pie chart (service breakdown) — plus a 7d/30d/90d date-range selector and staff sort options, all backed by `AnalyticsService`. Removed from this list.
 4. **Full anonymous public access:** remove guards from `/s/:slug` for truly anonymous (no guest token) browsing; the routes and card links are already slug-stable, so this removes guards rather than moving pages.
 5. **Billing polish:** real payment provider (current provider is a dummy — `checkout` returns a fake reference, `verify` always succeeds; the flow is provider-ready), and surfacing a scheduled downgrade/cancel on billing-page *reload* (needs `pendingTier`/`endsAt` — now on `EffectiveAccessDto` and wired, verify end-to-end).
 6. **Contact form API:** `ContactComponent.submit()` currently logs the payload (single TODO seam) — wire the real endpoint when it exists.
 7. **Geolocation location-default:** built (`GeoLocationService`, BigDataCloud reverse-geocode) but **disabled** — IP-based accuracy resolves to the nearest ISP hub, not the visitor's city. Re-enable behind a real GPS/permission story or a better provider.
-8. **Smaller deferrals:** profile editing (`PATCH /users/profile` doesn't exist), visit history, staff self-editing of schedules, i18n, e2e suite, full AXE pass on all public flows.
+8. **Smaller deferrals:** staff self-editing of schedules, i18n, e2e suite, full AXE pass on all public flows. (Profile editing and active-visit surfacing shipped — `EditProfileComponent` at `/account/edit-profile`, `MyVisitsComponent` on the customer dashboard — so both are gone from this list; a dedicated past-visit-history page is not yet built.)
 
 ### Known FIXMEs in code
 - `session-init.ts` — cold-start redirect (guest→queue / user→dashboard) fires only on a fresh navigation, gated via the Navigation Timing API (`nav.type !== 'reload'`) so a refresh at `/` doesn't bounce. Documented tradeoff: redirecting from the app initializer is timing-sensitive; a post-bootstrap approach (guard/ngOnInit) wipes `sessionStorage` via trivial-history `pushState→replaceState`.
