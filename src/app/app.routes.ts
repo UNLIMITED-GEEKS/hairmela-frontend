@@ -6,6 +6,7 @@ import { salonRoleGuard } from './core/guards/salon-role.guard';
 import { orgOwnerGuard } from './core/guards/org-owner.guard';
 import { canCreateSalonGuard } from './core/guards/can-create-salon.guard';
 import { SalonRole } from './core/salon-context/membership.types';
+import { RouteParam, RouteSegment } from './core/routing/route-paths';
 
 export const routes: Routes = [
   // ── Public shell — landing, privacy, verify-email, login, register ───────
@@ -22,39 +23,39 @@ export const routes: Routes = [
           import('./marketing/landing/landing.component').then((m) => m.LandingComponent),
       },
       {
-        path: 'privacy',
+        path: RouteSegment.PRIVACY,
         loadComponent: () =>
           import('./marketing/privacy/privacy.component').then((m) => m.PrivacyComponent),
       },
       {
-        path: 'pricing',
+        path: RouteSegment.PRICING,
         loadComponent: () =>
           import('./marketing/pricing/pricing.component').then((m) => m.PricingComponent),
       },
       {
-        path: 'how-to-install',
+        path: RouteSegment.HOW_TO_INSTALL,
         loadComponent: () =>
           import('./marketing/how-to-install/how-to-install.component').then(
             (m) => m.HowToInstallComponent,
           ),
       },
       {
-        path: 'terms',
+        path: RouteSegment.TERMS,
         loadComponent: () =>
           import('./marketing/terms/terms.component').then((m) => m.TermsComponent),
       },
       {
-        path: 'contact',
+        path: RouteSegment.CONTACT,
         loadComponent: () =>
           import('./marketing/contact/contact.component').then((m) => m.ContactComponent),
       },
       {
-        path: 'about',
+        path: RouteSegment.ABOUT,
         loadComponent: () =>
           import('./marketing/about/about.component').then((m) => m.AboutComponent),
       },
       {
-        path: 'verify-email',
+        path: RouteSegment.VERIFY_EMAIL,
         loadComponent: () =>
           import('./features/auth/verify-email/verify-email.component').then(
             (m) => m.VerifyEmailComponent,
@@ -63,26 +64,26 @@ export const routes: Routes = [
       {
         // The emailed link uses {FRONTEND_URL}/auth/verify-email?token= (same
         // convention as reset-password). Public — clickable while logged out.
-        path: 'auth/verify-email',
+        path: RouteSegment.AUTH_VERIFY_EMAIL,
         loadComponent: () =>
           import('./features/auth/verify-email/verify-email.component').then(
             (m) => m.VerifyEmailComponent,
           ),
       },
       {
-        path: 'login',
+        path: RouteSegment.LOGIN,
         canActivate: [guestGuard],
         loadComponent: () =>
           import('./features/auth/login/login.component').then((m) => m.LoginComponent),
       },
       {
-        path: 'register',
+        path: RouteSegment.REGISTER,
         canActivate: [guestGuard],
         loadComponent: () =>
           import('./features/auth/register/register.component').then((m) => m.RegisterComponent),
       },
       {
-        path: 'forgot-password',
+        path: RouteSegment.FORGOT_PASSWORD,
         canActivate: [guestGuard],
         loadComponent: () =>
           import('./features/auth/forgot-password/forgot-password.component').then(
@@ -92,7 +93,7 @@ export const routes: Routes = [
       {
         // Public — the emailed token is the authorization, reachable even if
         // a stale session exists, so no guestGuard.
-        path: 'auth/reset-password',
+        path: RouteSegment.AUTH_RESET_PASSWORD,
         loadComponent: () =>
           import('./features/auth/reset-password/reset-password.component').then(
             (m) => m.ResetPasswordPageComponent,
@@ -101,7 +102,7 @@ export const routes: Routes = [
       {
         // Public — resolves the invite token (no auth); handles logged-in and
         // logged-out invitees inline, so no guard.
-        path: 'staff/accept-invite',
+        path: RouteSegment.ACCEPT_INVITE,
         loadComponent: () =>
           import('./features/staff/accept-invite/accept-invite.component').then(
             (m) => m.AcceptInviteComponent,
@@ -112,7 +113,7 @@ export const routes: Routes = [
 
   // ── Guest shell (path: 'g') ─────────────────────────────────────────────
   {
-    path: 'g',
+    path: RouteSegment.G,
     canActivate: [guestShellGuard],
     loadComponent: () =>
       import('./shared/components/shells/guest-shell/guest-shell.component').then(
@@ -120,14 +121,14 @@ export const routes: Routes = [
       ),
     children: [
       {
-        path: 'queues',
+        path: RouteSegment.QUEUES,
         loadComponent: () =>
           import('./features/queues/guest-queues/guest-queues.component').then(
             (m) => m.GuestQueuesComponent,
           ),
       },
       {
-        path: 's/:slug',
+        path: `${RouteSegment.S}/:${RouteParam.SLUG}`,
         data: { shellPrefix: '/g' },
         loadChildren: () => import('./features/visit/visit.routes').then((m) => m.visitRoutes),
       },
@@ -144,56 +145,56 @@ export const routes: Routes = [
       ),
     children: [
       {
-        path: 'dashboard',
+        path: RouteSegment.DASHBOARD,
         loadComponent: () =>
           import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
       },
       {
-        path: 'account',
+        path: RouteSegment.ACCOUNT,
         loadComponent: () =>
           import('./features/account/account.component').then((m) => m.AccountComponent),
       },
       {
-        path: 'account/edit-profile',
+        path: `${RouteSegment.ACCOUNT}/${RouteSegment.EDIT_PROFILE}`,
         loadComponent: () =>
           import('./features/account/edit-profile/edit-profile.component').then(
             (m) => m.EditProfileComponent,
           ),
       },
       {
-        path: 'notifications',
+        path: RouteSegment.NOTIFICATIONS,
         loadComponent: () =>
           import('./features/notifications/notifications.component').then(
             (m) => m.NotificationsComponent,
           ),
       },
       {
-        path: 'queues',
+        path: RouteSegment.QUEUES,
         loadComponent: () =>
           import('./features/queues/auth-queues/auth-queues.component').then(
             (m) => m.AuthQueuesComponent,
           ),
       },
       {
-        path: 'favorites',
+        path: RouteSegment.FAVORITES,
         loadComponent: () =>
           import('./features/favorites/favorites-page.component').then(
             (m) => m.FavoritesPageComponent,
           ),
       },
       {
-        path: 's/:slug',
+        path: `${RouteSegment.S}/:${RouteParam.SLUG}`,
         data: { shellPrefix: '' },
         loadChildren: () => import('./features/visit/visit.routes').then((m) => m.visitRoutes),
       },
       {
-        path: 'org/:orgId',
+        path: `${RouteSegment.ORG}/:${RouteParam.ORG_ID}`,
         canActivate: [orgOwnerGuard],
         loadChildren: () =>
           import('./features/organization/organization.routes').then((m) => m.organizationRoutes),
       },
       {
-        path: 'salons/new',
+        path: `${RouteSegment.SALONS}/${RouteSegment.NEW}`,
         canActivate: [canCreateSalonGuard],
         loadComponent: () =>
           import('./features/salons/create-salon/create-salon.component').then(
@@ -201,13 +202,13 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'salons/:salonId',
+        path: `${RouteSegment.SALONS}/:${RouteParam.SALON_ID}`,
         canActivate: [salonRoleGuard],
         data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
         loadChildren: () => import('./features/salons/salon.routes').then((m) => m.salonRoutes),
       },
       {
-        path: 'salons/:salonId/queues/:queueId/console',
+        path: `${RouteSegment.SALONS}/:${RouteParam.SALON_ID}/${RouteSegment.QUEUES}/:${RouteParam.QUEUE_ID}/${RouteSegment.CONSOLE}`,
         canActivate: [salonRoleGuard],
         data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
         loadComponent: () =>
@@ -223,7 +224,7 @@ export const routes: Routes = [
               ),
           },
           {
-            path: 'queue',
+            path: RouteSegment.QUEUE,
             loadComponent: () =>
               import('./features/queue/queue-list/queue-list.component').then(
                 (m) => m.QueueListComponent,

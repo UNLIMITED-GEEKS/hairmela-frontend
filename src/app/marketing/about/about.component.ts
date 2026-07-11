@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { RoutePath } from '../../core/routing/route-paths';
 
 interface CoreValue {
   readonly number: string;
@@ -15,6 +16,9 @@ interface CoreValue {
   imports: [RouterLink],
 })
 export class AboutComponent {
+  protected readonly registerLink = RoutePath.register();
+  protected readonly contactLink = RoutePath.contact();
+
   protected readonly values: readonly CoreValue[] = [
     {
       number: '01.',

@@ -3,6 +3,7 @@ import { RouterLink, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { ToastService } from '../../../core/toast/toast.service';
+import { RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 
 type VerifyState = 'verifying' | 'success' | 'failed' | 'no-token';
 
@@ -25,8 +26,11 @@ export class VerifyEmailComponent implements OnInit {
   // user who hit an expired link must sign in first.
   protected readonly isLoggedIn = this._currentUser.user;
 
+  protected readonly dashboardLink = RoutePath.dashboard();
+  protected readonly loginLink = RoutePath.login();
+
   ngOnInit(): void {
-    const token = this._route.snapshot.queryParamMap.get('token');
+    const token = this._route.snapshot.queryParamMap.get(RouteQueryParam.TOKEN);
 
     if (!token) {
       this.state.set('no-token');

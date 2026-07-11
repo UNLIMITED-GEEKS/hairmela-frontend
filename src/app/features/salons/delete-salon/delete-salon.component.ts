@@ -1,6 +1,7 @@
 import { Component, DestroyRef, inject, signal, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SalonService } from '../salon.service';
+import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-delete-salon',
@@ -16,7 +17,7 @@ export class DeleteSalonComponent implements OnInit {
   protected readonly deleting = signal(false);
 
   private get _salonId(): string {
-    return this._route.snapshot.paramMap.get('salonId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
   }
 
   ngOnInit(): void {
@@ -24,7 +25,7 @@ export class DeleteSalonComponent implements OnInit {
       this._salonId,
       this._destroyRef,
       (name) => this.salonName.set(name),
-      () => this._router.navigate(['/dashboard']),
+      () => this._router.navigate(RoutePath.dashboard()),
     );
   }
 
@@ -36,7 +37,7 @@ export class DeleteSalonComponent implements OnInit {
       this._destroyRef,
       () => {
         this.deleting.set(false);
-        this._router.navigate(['/dashboard']);
+        this._router.navigate(RoutePath.dashboard());
       },
     );
   }

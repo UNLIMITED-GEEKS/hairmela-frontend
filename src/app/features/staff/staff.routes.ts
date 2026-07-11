@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { salonRoleGuard } from '../../core/guards/salon-role.guard';
 import { SalonRole } from '../../core/salon-context/membership.types';
+import { RouteParam, RouteSegment } from '../../core/routing/route-paths';
 
 export const staffRoutes: Routes = [
   {
@@ -16,26 +17,26 @@ export const staffRoutes: Routes = [
       import('./staff-list/staff-list.component').then((m) => m.StaffListComponent),
   },
   {
-    path: 'invite',
+    path: RouteSegment.INVITE,
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
     loadComponent: () =>
       import('./invite-staff/invite-staff.component').then((m) => m.InviteStaffComponent),
   },
   {
-    path: ':staffId',
+    path: `:${RouteParam.STAFF_ID}`,
     loadComponent: () =>
       import('./staff-detail/staff-detail.component').then((m) => m.StaffDetailComponent),
   },
   {
-    path: ':staffId/media',
+    path: `:${RouteParam.STAFF_ID}/${RouteSegment.MEDIA}`,
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
     loadComponent: () =>
       import('./staff-media/staff-media.component').then((m) => m.StaffMediaComponent),
   },
   {
-    path: ':staffId/services',
+    path: `:${RouteParam.STAFF_ID}/${RouteSegment.SERVICES}`,
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     loadComponent: () =>
@@ -44,7 +45,7 @@ export const staffRoutes: Routes = [
       ),
   },
   {
-    path: ':staffId/schedules',
+    path: `:${RouteParam.STAFF_ID}/${RouteSegment.SCHEDULES}`,
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
     loadComponent: () =>
@@ -53,7 +54,7 @@ export const staffRoutes: Routes = [
       ),
   },
   {
-    path: ':staffId/closures',
+    path: `:${RouteParam.STAFF_ID}/${RouteSegment.CLOSURES}`,
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
     loadComponent: () =>

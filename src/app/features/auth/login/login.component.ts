@@ -6,6 +6,7 @@ import { ErrorCodes } from '../../../core/errors/error-codes';
 import { isApiError } from '../../../core/errors/api-error.types';
 import { PasswordToggleDirective } from '../../../shared/directives/password-toggle.directive';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-login',
@@ -19,14 +20,21 @@ export class LoginComponent {
   private readonly _fb = inject(FormBuilder);
 
   protected readonly justRegistered = signal(
-    this._route.snapshot.queryParamMap.get('registered') === '1',
+    this._route.snapshot.queryParamMap.get(RouteQueryParam.REGISTERED) === '1',
   );
 
   protected readonly justReset = signal(
-    this._route.snapshot.queryParamMap.get('reset') === '1',
+    this._route.snapshot.queryParamMap.get(RouteQueryParam.RESET) === '1',
   );
 
-  protected readonly returnUrl = this._route.snapshot.queryParamMap.get('returnUrl');
+  protected readonly returnUrl = this._route.snapshot.queryParamMap.get(RouteQueryParam.RETURN_URL);
+
+  protected readonly forgotPasswordLink = RoutePath.forgotPassword();
+  protected readonly registerLink = RoutePath.register();
+
+  protected get registerQueryParams(): Record<string, string> {
+    return this.returnUrl ? { [RouteQueryParam.RETURN_URL]: this.returnUrl } : {};
+  }
 
   protected readonly form = this._fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -44,8 +52,8 @@ export class LoginComponent {
 
     this._auth.login(this.form.getRawValue()).subscribe({
       next: () => {
-        const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
-        this._router.navigateByUrl(returnUrl ?? '/dashboard');
+        const returnUrl = new URLSearchParams(window.location.search).get(RouteQueryParam.RETURN_URL);
+        this._router.navigateByUrl(returnUrl ?? RoutePath.dashboard()[0]);
       },
       error: (err) => {
         this.loading.set(false);

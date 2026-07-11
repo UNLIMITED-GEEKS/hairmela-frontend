@@ -3,6 +3,7 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-forgot-password',
@@ -12,6 +13,8 @@ import { FieldErrorComponent } from '../../../shared/components/field-error/fiel
 export class ForgotPasswordComponent {
   private readonly _auth = inject(AuthService);
   private readonly _fb = inject(FormBuilder);
+
+  protected readonly loginLink = RoutePath.login();
 
   protected readonly loading = signal(false);
   // True once the request has been made — we then show the neutral message

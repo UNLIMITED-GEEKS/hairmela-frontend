@@ -5,6 +5,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../../core/auth/auth.service';
 import { PasswordToggleDirective } from '../../../shared/directives/password-toggle.directive';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 
 // newPassword must match the backend's 8–72 char rule.
 const PASSWORD_MIN = 8;
@@ -32,6 +33,8 @@ export class ResetPasswordPageComponent implements OnInit {
   // No token in the URL → the link is invalid; never call the API.
   protected readonly hasToken = signal(true);
 
+  protected readonly forgotPasswordLink = RoutePath.forgotPassword();
+
   private _token = '';
 
   protected readonly form = this._fb.nonNullable.group({
@@ -54,7 +57,7 @@ export class ResetPasswordPageComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this._token = this._route.snapshot.queryParamMap.get('token') ?? '';
+    this._token = this._route.snapshot.queryParamMap.get(RouteQueryParam.TOKEN) ?? '';
     this.hasToken.set(this._token.length > 0);
   }
 
@@ -67,7 +70,7 @@ export class ResetPasswordPageComponent implements OnInit {
       newPassword: this.form.controls.newPassword.value,
     }).subscribe({
       // No tokens returned — the reset does not log the user in; send to login.
-      next: () => this._router.navigate(['/login'], { queryParams: { reset: '1' } }),
+      next: () => this._router.navigate(RoutePath.login(), { queryParams: { [RouteQueryParam.RESET]: '1' } }),
       error: (err) => {
         this.loading.set(false);
         // 400 "Invalid or expired reset token" — wrong, used, or past 1-hour window.

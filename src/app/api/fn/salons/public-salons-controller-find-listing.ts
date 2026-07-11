@@ -14,6 +14,7 @@ export interface PublicSalonsControllerFindListing$Params {
   state?: string;
   city?: string;
   search?: string;
+  category?: string;
   page?: number;
   limit?: number;
 }
@@ -27,6 +28,7 @@ export function publicSalonsControllerFindListing(http: HttpClient, rootUrl: str
     rb.query('state', params.state, {});
     rb.query('city', params.city, {});
     rb.query('search', params.search, {});
+    rb.query('category', params.category, {});
     rb.query('page', params.page, {});
     rb.query('limit', params.limit, {});
   }

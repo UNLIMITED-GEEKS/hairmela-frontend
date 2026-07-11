@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { PersistentStore } from '../../../core/storage/persistent-store';
+import { RoutePath } from '../../../core/routing/route-paths';
 
 export type CookieChoice = 'accepted' | 'rejected';
 
@@ -28,6 +29,8 @@ export class CookieConsentComponent {
 
   // Visible only when no prior choice is stored.
   protected readonly visible = signal(this._store.get<CookieChoice>(CONSENT_KEY) === null);
+
+  protected readonly privacyLink = RoutePath.privacy();
 
   protected readonly categories: readonly CookieCategory[] = [
     {

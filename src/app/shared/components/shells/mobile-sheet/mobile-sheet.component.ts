@@ -4,6 +4,7 @@ import { NavItem } from '../nav-item.types';
 import { NavIconComponent } from '../nav-icon/nav-icon.component';
 import { Membership, SalonRole } from '../../../../core/salon-context/membership.types';
 import { CONTROL_ITEMS, VisibleControl } from '../sidebar/sidebar.component';
+import { RouteSegment, RoutePath } from '../../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-mobile-sheet',
@@ -12,6 +13,9 @@ import { CONTROL_ITEMS, VisibleControl } from '../sidebar/sidebar.component';
   imports: [RouterLink, RouterLinkActive, NavIconComponent],
 })
 export class MobileSheetComponent {
+  protected readonly RouteSegment = RouteSegment;
+  protected readonly RoutePath = RoutePath;
+
   readonly navItems = input<NavItem[]>([]);
   readonly open = input(false);
   readonly activeSalonId = input<string | null>(null);

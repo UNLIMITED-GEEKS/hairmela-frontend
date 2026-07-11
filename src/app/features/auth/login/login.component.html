@@ -42,7 +42,7 @@
       <div>
         <div class="flex items-center justify-between mb-1">
           <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-          <a routerLink="/forgot-password" class="text-xs font-medium text-primary hover:underline">Forgot password?</a>
+          <a [routerLink]="forgotPasswordLink" class="text-xs font-medium text-primary hover:underline">Forgot password?</a>
         </div>
         <input
           id="password"
@@ -69,7 +69,7 @@
 
     <p class="mt-6 text-center text-sm text-gray-500">
       Don't have an account?
-      <a routerLink="/register" [queryParams]="returnUrl ? { returnUrl: returnUrl } : {}" class="font-medium text-primary hover:underline">Sign up</a>
+      <a [routerLink]="registerLink" [queryParams]="registerQueryParams" class="font-medium text-primary hover:underline">Sign up</a>
     </p>
   </div>
 </div>

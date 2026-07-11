@@ -15,24 +15,17 @@
     <!-- Greeting -->
     <div>
       <h1 class="text-2xl font-bold text-text-primary">Hi, {{ user()?.firstName ?? '' }} 👋</h1>
-      <p class="text-sm text-text-secondary mt-0.5">{{ greetingSubtitle() }}</p>
+      <p class="text-sm text-text-secondary mt-0.5">Welcome back to HairMela</p>
     </div>
 
-    
     <app-pending-invites />
-    @if (isCustomer()) {
-      <app-customer-dashboard />
-    } @else if (activeSalon(); as salon) {
-      @if (isOwnerOrAdmin()) {
-        <app-owner-admin-dashboard
-          [salon]="salon"
-          [myQueueId]="myQueueId()" />
-      } @else if (isStaff()) {
-        <app-staff-dashboard
-          [salon]="salon"
-          [myQueueId]="myQueueId()" />
-      }
-    }
+
+    <!-- CTA -->
+    <div class="rounded-2xl border border-dashed border-border bg-white px-6 py-10 text-center">
+      <p class="text-sm font-semibold text-text-primary mb-1">Find a salon</p>
+      <p class="text-xs text-text-secondary">Use a salon's link or QR code to join their queue</p>
+    </div>
+
     @if (activeEntries().length > 0) {
       <app-my-visits [entries]="activeEntries()" />
     }

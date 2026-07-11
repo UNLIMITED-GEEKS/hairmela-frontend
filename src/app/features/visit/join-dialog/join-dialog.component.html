@@ -20,6 +20,23 @@
       </div>
 
       <div class="flex-1 overflow-y-auto space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Service</label>
+          <select
+            [value]="leaderServiceId()"
+            (change)="leaderServiceId.set($any($event.target).value)"
+            (blur)="leaderServiceTouched.set(true)"
+            class="w-full min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors">
+            <option value="" disabled>Select a service</option>
+            @for (s of staffServices(); track s.id) {
+              <option [value]="s.id">{{ s.name }}</option>
+            }
+          </select>
+          @if (leaderServiceTouched() && !leaderServiceId()) {
+            <p class="mt-1.5 text-xs text-red-600">Please select a service.</p>
+          }
+        </div>
+
         @if (isGuest) {
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">Name</label>
@@ -92,7 +109,7 @@
         </button>
         <button
           (click)="confirmJoin()"
-          [disabled]="(isGuest && (!guestName().trim() || !guestPhone().trim())) || visit.joining()"
+          [disabled]="!leaderServiceId() || (isGuest && (!guestName().trim() || !guestPhone().trim())) || visit.joining()"
           class="flex-1 min-h-12 rounded-2xl bg-warning text-white font-semibold text-sm disabled:opacity-50 hover:bg-warning/90 transition-colors">
           {{ visit.joining() ? 'Joining...' : 'Join queue' }}
         </button>

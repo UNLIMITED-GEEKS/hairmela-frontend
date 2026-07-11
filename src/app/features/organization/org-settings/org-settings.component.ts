@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { OrgService } from '../org.service';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-org-settings',
@@ -31,7 +32,7 @@ export class OrgSettingsComponent implements OnInit {
   }
 
   private get _orgId(): string {
-    return this._route.snapshot.paramMap.get('orgId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.ORG_ID) ?? '';
   }
 
   ngOnInit(): void {
@@ -41,7 +42,7 @@ export class OrgSettingsComponent implements OnInit {
   protected save(): void {
     if (this.form.invalid) return;
     this._orgService.update(this._orgId, { name: this.form.value.name! }, () =>
-      this._router.navigate(['/org', this._orgId], { replaceUrl: true }),
+      this._router.navigate(RoutePath.org(this._orgId), { replaceUrl: true }),
     );
   }
 }

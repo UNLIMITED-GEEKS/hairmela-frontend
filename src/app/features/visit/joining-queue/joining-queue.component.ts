@@ -2,6 +2,7 @@ import { Component, inject, effect } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { SalonVisitService } from '../salon-visit.service';
 import { ToastService } from '../../../core/toast/toast.service';
+import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 
 /**
  * Transient "Finding your spot…" screen shown between the join form and the
@@ -34,14 +35,13 @@ export class JoiningQueueComponent {
       if (pending.status === 'joined') {
         const { entryId, queueId, slug, shellPrefix } = pending;
         this._visit.pendingJoin.set(null);
-        const tail = ['q', queueId, 'e', entryId, 'position'];
-        const segments = shellPrefix ? [shellPrefix, 's', slug, ...tail] : ['s', slug, ...tail];
+        const segments = RoutePath.visitPosition(shellPrefix, slug, queueId, entryId);
         this._router.navigate(segments, { replaceUrl: true });
       } else {
         // failed — navigate back to salon landing
-        const slug = this._route.snapshot.paramMap.get('slug') ?? '';
+        const slug = this._route.snapshot.paramMap.get(RouteParam.SLUG) ?? '';
         const prefix = (this._route.snapshot.data['shellPrefix'] as string | undefined) ?? '';
-        const base = prefix ? [prefix, 's', slug] : ['s', slug];
+        const base = RoutePath.visitSalon(prefix, slug);
         this._visit.pendingJoin.set(null);
 
         if (pending.reason === 'closed') {

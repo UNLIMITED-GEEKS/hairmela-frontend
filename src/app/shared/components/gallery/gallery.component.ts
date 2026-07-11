@@ -7,12 +7,13 @@ import { mediaControllerDelete } from '../../../api/fn/media/media-controller-de
 import { mediaReorderControllerReorderSalonGallery } from '../../../api/fn/media/media-reorder-controller-reorder-salon-gallery';
 import { Media } from '../../../api/models/media';
 import { ConfirmDialogService } from '../confirm-dialog/confirm-dialog.service';
+import { MediaUrlPipe } from '../../pipes/media-url.pipe';
 import { filter, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-gallery',
   templateUrl: './gallery.component.html',
-  imports: [DragDropModule],
+  imports: [DragDropModule, MediaUrlPipe],
 })
 export class GalleryComponent {
   private readonly _http = inject(HttpClient);
@@ -28,11 +29,6 @@ export class GalleryComponent {
   readonly deleted = output<string>();
 
   protected readonly saving = signal(false);
-
-  protected resolveUrl(url: string): string {
-    if (url.startsWith('http')) return url;
-    return `${this._apiConfig.rootUrl}${url}`;
-  }
 
   protected drop(event: CdkDragDrop<Media[]>): void {
     const list = [...this.items()];

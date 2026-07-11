@@ -15,7 +15,7 @@
         <a
           [routerLink]="item.url"
           routerLinkActive="bg-primary/10 text-primary"
-          [routerLinkActiveOptions]="{ exact: item.url === '/dashboard' }"
+          [routerLinkActiveOptions]="{ exact: item.url === RoutePath.dashboard()[0] }"
           (click)="closed.emit()"
           class="flex items-center gap-3 px-3 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors">
           <app-nav-icon [icon]="item.icon" size="w-5 h-5" />
@@ -45,7 +45,7 @@
 
         <!-- Salon overview -->
         <a
-          [routerLink]="['/salons', activeSalonId()]"
+          [routerLink]="['/' + RouteSegment.SALONS, activeSalonId()]"
           routerLinkActive="bg-primary/10 text-primary"
           [routerLinkActiveOptions]="{ exact: true }"
           (click)="closed.emit()"
@@ -56,7 +56,7 @@
 
         @for (item of visibleControls(); track item.label) {
           <a
-            [routerLink]="['/salons', activeSalonId(), item.url]"
+            [routerLink]="['/' + RouteSegment.SALONS, activeSalonId(), item.url]"
             routerLinkActive="bg-primary/10 text-primary"
             (click)="closed.emit()"
             class="flex items-center gap-3 px-3 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors"
@@ -80,7 +80,7 @@
 
         @if (activeSalonId()) {
           <a
-            [routerLink]="['/salons', activeSalonId(), 'leave']"
+            [routerLink]="['/' + RouteSegment.SALONS, activeSalonId(), RouteSegment.LEAVE]"
             routerLinkActive="bg-red-50 text-red-600"
             (click)="closed.emit()"
             class="flex items-center gap-3 px-3 min-h-11 rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors">
@@ -93,7 +93,7 @@
 
         @if (isOwner() && activeSalonId()) {
           <a
-            [routerLink]="['/salons', activeSalonId(), 'delete']"
+            [routerLink]="['/' + RouteSegment.SALONS, activeSalonId(), RouteSegment.DELETE]"
             routerLinkActive="bg-red-50 text-red-600"
             (click)="closed.emit()"
             class="flex items-center gap-3 px-3 min-h-11 rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors">

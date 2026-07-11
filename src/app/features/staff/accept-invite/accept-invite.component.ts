@@ -11,6 +11,7 @@ import { isApiError } from '../../../core/errors/api-error.types';
 import { PasswordToggleDirective } from '../../../shared/directives/password-toggle.directive';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { InviteResolveService } from './invite-resolve.service';
+import { RouteQueryParam, RoutePath } from '../../../core/routing/route-paths';
 
 // The view is a state machine over the resolve result + session + auth mode.
 type View =
@@ -38,6 +39,8 @@ export class AcceptInviteComponent implements OnInit {
   private readonly _fb = inject(FormBuilder);
   private readonly _destroyRef = inject(DestroyRef);
 
+  protected readonly loginLink = RoutePath.login();
+
   protected readonly view = signal<View>('loading');
   protected readonly invite = signal<ResolveInviteDto | null>(null);
   protected readonly submitting = signal(false);
@@ -61,7 +64,7 @@ export class AcceptInviteComponent implements OnInit {
   });
 
   private get _token(): string {
-    return this._route.snapshot.queryParamMap.get('token') ?? '';
+    return this._route.snapshot.queryParamMap.get(RouteQueryParam.TOKEN) ?? '';
   }
 
   ngOnInit(): void {
@@ -158,8 +161,8 @@ export class AcceptInviteComponent implements OnInit {
     if (!dto || this.submitting()) return;
     this.submitting.set(true);
     this._inviteResolve.decline(dto.salonId).subscribe({
-      next: () => this._router.navigate(['/dashboard']),
-      error: () => this._router.navigate(['/dashboard']),
+      next: () => this._router.navigate(RoutePath.dashboard()),
+      error: () => this._router.navigate(RoutePath.dashboard()),
     });
   }
 
@@ -183,6 +186,6 @@ export class AcceptInviteComponent implements OnInit {
   }
 
   protected goToDashboard(): void {
-    this._router.navigate(['/dashboard']);
+    this._router.navigate(RoutePath.dashboard());
   }
 }

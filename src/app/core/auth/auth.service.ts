@@ -23,6 +23,7 @@ import { authControllerForgotPassword } from '../../api/fn/auth/auth-controller-
 import { authControllerResetPassword } from '../../api/fn/auth/auth-controller-reset-password';
 import { authenticatedAuthControllerGetMe } from '../../api/fn/auth/authenticated-auth-controller-get-me';
 import { authenticatedAuthControllerResendVerification } from '../../api/fn/auth/authenticated-auth-controller-resend-verification';
+import { RoutePath } from '../routing/route-paths';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -82,7 +83,7 @@ export class AuthService {
     this._membershipStore.invalidateAll();
     this._cacheRegistry.clearAll();
     this._activeEntryStore.clear();
-    this._router.navigate(['/login']);
+    this._router.navigate(RoutePath.login());
   }
 
   verifyEmail(token: string): Observable<void> {

@@ -5,6 +5,7 @@ import { QueueConsoleService } from '../queue-console/queue-console.service';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { ConnectionBannerComponent } from '../../../shared/components/connection-banner/connection-banner.component';
+import { RouteParam } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-queue-shell',
@@ -26,11 +27,11 @@ export class QueueShellComponent implements OnInit, OnDestroy {
   protected readonly statusOptions: Array<'OPEN' | 'PAUSED' | 'CLOSED'> = ['OPEN', 'PAUSED', 'CLOSED'];
 
   protected get salonId(): string {
-    return this._route.snapshot.paramMap.get('salonId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
   }
 
   protected get queueId(): string {
-    return this._route.snapshot.paramMap.get('queueId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.QUEUE_ID) ?? '';
   }
 
   ngOnInit(): void {

@@ -3,17 +3,18 @@ import { CanActivateFn, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { MembershipStore } from '../salon-context/membership.store';
 import { OrgContextService } from '../salon-context/org-context.service';
+import { RouteParam, RoutePath } from '../routing/route-paths';
 
 export const tierGuard: CanActivateFn = async (route) => {
   const membershipStore = inject(MembershipStore);
   const orgContext = inject(OrgContextService);
   const router = inject(Router);
 
-  const salonId = route.paramMap.get('salonId') ??
-    route.parent?.paramMap.get('salonId');
+  const salonId = route.paramMap.get(RouteParam.SALON_ID) ??
+    route.parent?.paramMap.get(RouteParam.SALON_ID);
 
   if (!salonId) {
-    return router.createUrlTree(['/dashboard']);
+    return router.createUrlTree(RoutePath.dashboard());
   }
 
   const requiredTier: number = route.data['requiredTier'] ?? 1;
@@ -29,9 +30,9 @@ export const tierGuard: CanActivateFn = async (route) => {
     // Owners can act on it; others land on the plan view and see the gate.
     const org = await firstValueFrom(orgContext.ensureLoaded());
     return org
-      ? router.createUrlTree(['/org', org.id, 'billing'])
-      : router.createUrlTree(['/dashboard']);
+      ? router.createUrlTree(RoutePath.orgBilling(org.id))
+      : router.createUrlTree(RoutePath.dashboard());
   } catch {
-    return router.createUrlTree(['/dashboard']);
+    return router.createUrlTree(RoutePath.dashboard());
   }
 };

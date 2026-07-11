@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { EditProfileService } from './edit-profile.service';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-edit-profile',
@@ -15,6 +16,8 @@ export class EditProfileComponent implements OnInit {
   protected readonly _currentUser = inject(CurrentUserStore);
   private readonly _editProfile = inject(EditProfileService);
   private readonly _router = inject(Router);
+
+  protected readonly accountLink = RoutePath.account();
 
   protected readonly form = this._fb.nonNullable.group({
     firstName: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(50)]],
@@ -44,6 +47,6 @@ export class EditProfileComponent implements OnInit {
       phone: phone.trim() || undefined,
     });
     // Navigate immediately — profile is already predicted in the store
-    this._router.navigate(['/account']);
+    this._router.navigate(RoutePath.account());
   }
 }

@@ -5,6 +5,7 @@ import { environment } from '../../../../environments/environment';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { SalonOverviewService } from '../salon-overview/salon-overview.service';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
+import { RouteParam } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-salon-share',
@@ -32,7 +33,7 @@ export class SalonShareComponent implements OnInit {
   });
 
   private get _salonId(): string {
-    return this._route.snapshot.paramMap.get('salonId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
   }
 
   constructor() {

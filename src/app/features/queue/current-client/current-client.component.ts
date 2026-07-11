@@ -5,6 +5,7 @@ import { QueueConsoleService } from '../queue-console/queue-console.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
+import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-current-client',
@@ -34,15 +35,15 @@ export class CurrentClientComponent {
   }
 
   private get _salonId(): string {
-    return this._route.snapshot.paramMap.get('salonId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
   }
 
   private get _queueId(): string {
-    return this._route.snapshot.paramMap.get('queueId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.QUEUE_ID) ?? '';
   }
 
-  protected get queueUrl(): string {
-    return `/salons/${this._salonId}/queues/${this._queueId}/console/queue`;
+  protected get queueUrl() {
+    return RoutePath.salonQueueConsoleQueue(this._salonId, this._queueId);
   }
 
   protected endSession(): void {

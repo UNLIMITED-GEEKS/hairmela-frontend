@@ -1,10 +1,21 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { SalonVisitService } from '../salon-visit.service';
 import { SalonPublicStaffDto } from '../../../api/models/salon-public-staff-dto';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { FavoritesService } from '../../../core/favorites/favorites.service';
-import { JoinDialogComponent } from '../join-dialog/join-dialog.component';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { TabsComponent, TabItem } from '../../../shared/components/tabs/tabs.component';
+import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
+import { GalleryModalComponent } from '../../../shared/components/gallery-modal/gallery-modal.component';
+import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
+import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
+
+const LANDING_TABS: TabItem[] = [
+  { id: 'about', label: 'About' },
+  { id: 'services', label: 'Services' },
+  { id: 'staffs', label: 'Staffs' },
+];
 
 interface BarberAvailability {
   readonly label: string;
@@ -21,18 +32,59 @@ interface SalonStatusBadge {
 @Component({
   selector: 'app-salon-landing',
   templateUrl: './salon-landing.component.html',
-  imports: [JoinDialogComponent],
+  imports: [SkeletonComponent, TabsComponent, AvatarComponent, GalleryModalComponent, MediaUrlPipe],
 })
 export class SalonLandingComponent implements OnInit {
   protected readonly visit = inject(SalonVisitService);
   private readonly _route = inject(ActivatedRoute);
+  private readonly _router = inject(Router);
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _favorites = inject(FavoritesService);
+
+  protected readonly landingTabs = LANDING_TABS;
+  // Persisted on SalonVisitService (not local state) so navigating away and
+  // back within the same salon visit restores the previously selected tab.
+  protected readonly activeTab = this.visit.landingTab;
+
+  protected setTab(tab: string): void {
+    // Leaving the Services tab for another one drops the selected service —
+    // it should only survive navigating away to a barber's queue page and
+    // back, not surface again after the user has moved on to a different tab.
+    if (this.visit.landingTab() === 'services' && tab !== 'services') {
+      this.visit.selectedServiceId.set(null);
+    }
+    this.visit.landingTab.set(tab as 'about' | 'services' | 'staffs');
+  }
+
+  // Both the Staffs tab (no service context) and the Services tab's
+  // barber-drilldown (a service already chosen) land here — the queue page is
+  // the single place a join can now be started from, so both flows converge
+  // on it instead of each owning their own join-dialog trigger.
+  protected openStaffQueue(staff: SalonPublicStaffDto, serviceId?: string): void {
+    if (!staff.queueId) return;
+    this._router.navigate(RoutePath.visitQueue(this._shellPrefix, this._slug, staff.queueId), {
+      queryParams: serviceId ? { [RouteQueryParam.SERVICE_ID]: serviceId } : {},
+    });
+  }
 
   // Frozen = the salon is over its org's plan limit and can't accept walk-ins
   // (the backend rejects the join). Pre-block: hide the barbers entirely and
   // show a notice instead of letting a customer tap into a dead flow.
   protected readonly frozen = computed(() => this.visit.salonData()?.isFrozen ?? false);
+
+  // About tab's photo gallery — the full salon.galleryUrls array is always
+  // passed to the modal (only the first 4 are shown as a preview grid).
+  protected readonly galleryOpen = signal(false);
+  protected readonly galleryStartIndex = signal(0);
+
+  protected openGallery(index: number): void {
+    this.galleryStartIndex.set(index);
+    this.galleryOpen.set(true);
+  }
+
+  protected closeGallery(): void {
+    this.galleryOpen.set(false);
+  }
 
   ngOnInit(): void {
     if (this._currentUser.user()) {
@@ -55,7 +107,7 @@ export class SalonLandingComponent implements OnInit {
   }
 
   protected get _slug(): string {
-    return this._route.snapshot.paramMap.get('slug') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.SLUG) ?? '';
   }
 
   protected get _shellPrefix(): string {
@@ -84,11 +136,12 @@ export class SalonLandingComponent implements OnInit {
   });
 
   // Services-first landing: null = showing the services list; set = showing
-  // the barbers who offer that service. A local view toggle only — no
-  // navigation, no request, since visit.services()/staffList() are already
-  // loaded (same instant, client-side-filter pattern as staffServices() on
-  // the join screen).
-  protected readonly selectedServiceId = signal<string | null>(null);
+  // the barbers who offer that service. Persisted on SalonVisitService (not
+  // local state) so navigating to a barber's queue page and back restores the
+  // same service instead of resetting to the plain services list — no request
+  // either way, since visit.services()/staffList() are already loaded (same
+  // instant, client-side-filter pattern as staffServices() on the join screen).
+  protected readonly selectedServiceId = this.visit.selectedServiceId;
 
   protected readonly staffForSelectedService = computed(() => {
     const serviceId = this.selectedServiceId();
@@ -102,11 +155,11 @@ export class SalonLandingComponent implements OnInit {
   });
 
   protected selectService(serviceId: string): void {
-    this.selectedServiceId.set(serviceId);
+    this.visit.selectedServiceId.set(serviceId);
   }
 
   protected backToServices(): void {
-    this.selectedServiceId.set(null);
+    this.visit.selectedServiceId.set(null);
   }
 
   // Real availability from the barber's live queue status. CLOSED or PAUSED
@@ -139,21 +192,5 @@ export class SalonLandingComponent implements OnInit {
           showBadge: true,
         };
     }
-  }
-
-  // Dialog target — the barber the join dialog is open for. null = closed.
-  protected readonly dialogStaff = signal<SalonPublicStaffDto | null>(null);
-
-  protected selectBarber(staff: SalonPublicStaffDto): void {
-    // selectBarber() itself navigates for every other outcome (register
-    // redirect, existing entry -> position page); it only returns true when
-    // this is a genuine fresh join, which is the one case the dialog handles.
-    if (this.visit.selectBarber(staff, this._slug)) {
-      this.dialogStaff.set(staff);
-    }
-  }
-
-  protected closeDialog(): void {
-    this.dialogStaff.set(null);
   }
 }

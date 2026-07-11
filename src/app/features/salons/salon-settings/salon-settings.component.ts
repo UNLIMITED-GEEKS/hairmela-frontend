@@ -11,6 +11,7 @@ import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.
 import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/frozen-banner.component';
 import { TierFreezeDirective } from '../../../shared/directives/tier-freeze.directive';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { RouteParam } from '../../../core/routing/route-paths';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const TIMEZONES = [
@@ -49,6 +50,8 @@ export class SalonSettingsComponent implements OnInit {
 
   protected readonly form = this._fb.group({
     name: ['', [Validators.required, Validators.minLength(2)]],
+    phone: ['', Validators.required],
+    about: ['', Validators.maxLength(1000)],
     timezone: ['Africa/Lagos', Validators.required],
     defaultSlotDuration: [30, [Validators.required, Validators.min(5), Validators.max(240)]],
     allowWalkIns: [true],
@@ -71,7 +74,7 @@ export class SalonSettingsComponent implements OnInit {
   }
 
   private get _salonId(): string {
-    return this._route.snapshot.paramMap.get('salonId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
   }
 
   constructor() {
@@ -81,6 +84,8 @@ export class SalonSettingsComponent implements OnInit {
       const settings = s.settings as Record<string, unknown>;
       this.form.patchValue({
         name: s.name,
+        phone: s.phone ?? '',
+        about: s.about ?? '',
         timezone: s.timezone,
         defaultSlotDuration: s.defaultSlotDuration,
         allowWalkIns: (settings['allowWalkIns'] as boolean) ?? true,
@@ -132,6 +137,8 @@ export class SalonSettingsComponent implements OnInit {
       this._salonId,
       {
         name: v.name!,
+        phone: v.phone!,
+        about: v.about || undefined,
         timezone: v.timezone!,
         defaultSlotDuration: v.defaultSlotDuration!,
         operatingHours: enabledHours,

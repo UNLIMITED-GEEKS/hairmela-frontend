@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SalonSettingsService } from '../salon-settings/salon-settings.service';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-salon-slug',
@@ -23,7 +24,7 @@ export class SalonSlugComponent implements OnInit {
   });
 
   private get _salonId(): string {
-    return this._route.snapshot.paramMap.get('salonId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
   }
 
   constructor() {
@@ -42,7 +43,7 @@ export class SalonSlugComponent implements OnInit {
     this._settings.updateSlug(
       this._salonId,
       { slug: this.form.value.slug! },
-      () => this._router.navigate(['/salons', this._salonId, 'settings'], { replaceUrl: true }),
+      () => this._router.navigate(RoutePath.salonSettings(this._salonId), { replaceUrl: true }),
       () => this.form.get('slug')?.setErrors({ taken: true }),
     );
   }

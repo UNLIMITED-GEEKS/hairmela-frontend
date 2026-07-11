@@ -4,12 +4,14 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SalonStaff } from '../../../api/models/salon-staff';
 import { StaffService } from '../staff.service';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
+import { SalonRole } from '../../../core/salon-context/membership.types';
 import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/confirm-dialog.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { ErrorCodes } from '../../../core/errors/error-codes';
 import { isApiError } from '../../../core/errors/api-error.types';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { filter, switchMap } from 'rxjs';
+import { RouteParam, RoutePath, RouteSegment } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-staff-detail',
@@ -32,18 +34,23 @@ export class StaffDetailComponent implements OnInit {
     this._staffService.staffList().find((s) => s.staff.id === this._staffId)?.staff ?? null,
   );
 
-  protected readonly isOwner = computed(() => this.salonContext.membership()?.role === 'OWNER');
+  protected readonly isOwner = computed(() => this.salonContext.membership()?.role === SalonRole.OWNER);
   protected readonly canManage = computed(() => {
     const role = this.salonContext.membership()?.role;
-    return role === 'OWNER' || role === 'ADMIN';
+    return role === SalonRole.OWNER || role === SalonRole.ADMIN;
   });
 
+  protected readonly servicesLink = [RouteSegment.SERVICES];
+  protected readonly schedulesLink = [RouteSegment.SCHEDULES];
+  protected readonly closuresLink = [RouteSegment.CLOSURES];
+  protected readonly mediaLink = [RouteSegment.MEDIA];
+
   private get _salonId(): string {
-    return this._route.snapshot.paramMap.get('salonId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
   }
 
   private get _staffId(): string {
-    return this._route.snapshot.paramMap.get('staffId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.STAFF_ID) ?? '';
   }
 
   ngOnInit(): void {
@@ -90,7 +97,7 @@ export class StaffDetailComponent implements OnInit {
       this._staffService.transferOwnership(
         this._salonId,
         { newOwnerId: this._staffId },
-        () => this._router.navigate(['/salons', this._salonId, 'staff'], { replaceUrl: true }),
+        () => this._router.navigate(RoutePath.salonStaff(this._salonId), { replaceUrl: true }),
       );
     });
   }
@@ -107,7 +114,7 @@ export class StaffDetailComponent implements OnInit {
       this._staffService.remove(
         this._salonId,
         this._staffId,
-        () => this._router.navigate(['/salons', this._salonId, 'staff'], { replaceUrl: true }),
+        () => this._router.navigate(RoutePath.salonStaff(this._salonId), { replaceUrl: true }),
       );
     });
   }

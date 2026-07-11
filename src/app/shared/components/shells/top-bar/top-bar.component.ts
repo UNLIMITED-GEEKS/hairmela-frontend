@@ -4,6 +4,7 @@ import { CurrentUserStore } from '../../../../core/auth/current-user.store';
 import { MembershipStore } from '../../../../core/salon-context/membership.store';
 import { AvatarComponent } from '../../avatar/avatar.component';
 import { MySalonDto } from '../../../../api/models/my-salon-dto';
+import { RoutePath, RouteQueryParam, RouteSegment } from '../../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-top-bar',
@@ -30,17 +31,17 @@ export class TopBarComponent {
     const currentSalonId = this.activeSalonId();
     if (currentSalonId) this._membershipStore.invalidate(currentSalonId);
     const currentUrl = this._router.url;
-    if (currentUrl.startsWith('/dashboard')) {
-      this._router.navigate(['/dashboard'], { queryParams: { salon: salonId } });
+    if (currentUrl.startsWith(RoutePath.dashboard()[0])) {
+      this._router.navigate(RoutePath.dashboard(), { queryParams: { [RouteQueryParam.SALON]: salonId } });
       return;
     }
-    const salonMatch = currentUrl.match(/\/salons\/[^/?]+(.*)/);
+    const salonMatch = currentUrl.match(new RegExp(`/${RouteSegment.SALONS}/[^/?]+(.*)`));
     const subPath = salonMatch ? salonMatch[1] : '';
-    const target = `/salons/${salonId}${subPath}`;
+    const target = `/${RouteSegment.SALONS}/${salonId}${subPath}`;
     // FIXME: bouncing through /dashboard to force component teardown is a hack —
     // replace with a proper solution (e.g. runGuardsAndResolvers or a dedicated
     // salon-switch event that feature components subscribe to for refetching).
-    this._router.navigateByUrl('/dashboard', { skipLocationChange: true }).then(() =>
+    this._router.navigateByUrl(RoutePath.dashboard()[0], { skipLocationChange: true }).then(() =>
       this._router.navigateByUrl(target),
     );
   }

@@ -3,6 +3,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { NavItem } from '../nav-item.types';
 import { NavIconComponent } from '../nav-icon/nav-icon.component';
 import { Membership, SalonRole } from '../../../../core/salon-context/membership.types';
+import { RouteSegment, RoutePath } from '../../../../core/routing/route-paths';
 
 export interface ControlItem {
   readonly label: string;
@@ -15,28 +16,28 @@ export interface ControlItem {
 const COLLAPSED_KEY = 'hm_sidebar_collapsed';
 
 export const CONTROL_ITEMS: ControlItem[] = [
-  { label: 'Staff', url: 'staff', roles: [SalonRole.OWNER, SalonRole.ADMIN] },
+  { label: 'Staff', url: RouteSegment.STAFF, roles: [SalonRole.OWNER, SalonRole.ADMIN] },
   {
     label: 'Services',
-    url: 'services',
+    url: RouteSegment.SERVICES,
     roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF],
   },
   {
     label: 'Closures',
-    url: 'closures',
+    url: RouteSegment.CLOSURES,
     roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF],
   },
-  { label: 'Photos', url: 'media', roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
-  { label: 'Settings', url: 'settings', roles: [SalonRole.OWNER, SalonRole.ADMIN] },
+  { label: 'Photos', url: RouteSegment.MEDIA, roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
+  { label: 'Settings', url: RouteSegment.SETTINGS, roles: [SalonRole.OWNER, SalonRole.ADMIN] },
   {
     label: 'Analytics',
-    url: 'analytics',
+    url: RouteSegment.ANALYTICS,
     roles: [SalonRole.OWNER, SalonRole.ADMIN],
     requiresTier: 2,
   },
   {
     label: 'Share / QR',
-    url: 'share',
+    url: RouteSegment.SHARE,
     roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF],
   },
 ];
@@ -52,6 +53,9 @@ export interface VisibleControl extends ControlItem {
   imports: [RouterLink, RouterLinkActive, NavIconComponent],
 })
 export class SidebarComponent implements OnInit {
+  protected readonly RouteSegment = RouteSegment;
+  protected readonly RoutePath = RoutePath;
+
   readonly navItems = input<NavItem[]>([]);
   readonly activeSalonId = input<string | null>(null);
   readonly membership = input<Membership | null>(null);

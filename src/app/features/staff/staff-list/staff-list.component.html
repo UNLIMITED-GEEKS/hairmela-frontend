@@ -5,7 +5,7 @@
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-xl font-semibold text-gray-900">Staff</h1>
       <a *hasRole="['OWNER', 'ADMIN']"
-        [routerLink]="['invite']"
+        [routerLink]="inviteLink"
         class="min-h-11 px-4 py-2.5 bg-primary text-white text-sm font-medium rounded-lg
                hover:bg-primary-dark active:scale-95 transition-all">
         Add Staff
@@ -55,7 +55,7 @@
                 {{ item.staff.status }}
               </span>
               @if (item.queueId) {
-                <a [routerLink]="['/salons', salonId, 'queues', item.queueId, 'console']"
+                <a [routerLink]="queueConsoleLink(item.queueId)"
                   (click)="$event.stopPropagation()"
                   class="text-xs font-medium px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 hover:bg-sky-200 transition-colors">
                   Console

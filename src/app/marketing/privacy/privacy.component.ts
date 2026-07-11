@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { RoutePath } from '../../core/routing/route-paths';
 
 interface LegalSection {
   readonly id: string;
@@ -16,6 +17,7 @@ interface LegalSection {
 })
 export class PrivacyComponent {
   protected readonly lastUpdated = '30 June 2026';
+  protected readonly privacyLink = RoutePath.privacy();
 
   protected readonly sections: readonly LegalSection[] = [
     {

@@ -3,11 +3,13 @@ import { Location } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { Media } from '../../../api/models/media';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
+import { SalonRole } from '../../../core/salon-context/membership.types';
 import { StaffMediaService } from './staff-media.service';
 import { ImageUploaderComponent } from '../../../shared/components/image-uploader/image-uploader.component';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
 import { GalleryComponent } from '../../../shared/components/gallery/gallery.component';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { RouteParam } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-staff-media',
@@ -34,11 +36,11 @@ export class StaffMediaComponent implements OnInit {
 
   protected readonly canEdit = computed(() => {
     const role = this.salonContext.membership()?.role;
-    return role === 'OWNER' || role === 'ADMIN';
+    return role === SalonRole.OWNER || role === SalonRole.ADMIN;
   });
 
   protected get _staffId(): string {
-    return this._route.snapshot.paramMap.get('staffId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.STAFF_ID) ?? '';
   }
 
   ngOnInit(): void {

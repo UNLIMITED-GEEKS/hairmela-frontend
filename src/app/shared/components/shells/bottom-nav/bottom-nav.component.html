@@ -8,7 +8,7 @@
           #rla="routerLinkActive"
           [routerLink]="item.url"
           routerLinkActive
-          [routerLinkActiveOptions]="{ exact: item.url === '/dashboard' || item.url === '/g/queues', queryParams: 'ignored' }"
+          [routerLinkActiveOptions]="{ exact: item.url === RoutePath.dashboard()[0] || item.url === RoutePath.guestQueues()[0], queryParams: 'ignored' }"
           class="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] transition-colors relative"
           [class]="rla.isActive ? 'text-primary' : 'text-text-secondary'"
           [class.cta-tab]="item.cta">

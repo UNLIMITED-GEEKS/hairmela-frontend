@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { OrgService } from '../org.service';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { RouteParam, RoutePath, RouteSegment } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-org-overview',
@@ -17,14 +18,17 @@ export class OrgOverviewComponent implements OnInit {
   protected readonly loading = this._orgService.loading;
   protected readonly error = this._orgService.error;
 
+  protected readonly planSegment = RouteSegment.PLAN;
+  protected readonly settingsSegment = RouteSegment.SETTINGS;
+
   private get _orgId(): string {
-    return this._route.snapshot.paramMap.get('orgId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.ORG_ID) ?? '';
   }
 
   ngOnInit(): void {
     this._orgService.load(this._orgId);
     if (!this.org() && !this.loading()) {
-      this._router.navigate(['/dashboard']);
+      this._router.navigate(RoutePath.dashboard());
     }
   }
 

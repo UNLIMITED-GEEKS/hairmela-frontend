@@ -41,12 +41,12 @@
     <!-- CTA -->
     <div class="mt-10 text-center">
       @if (isLoggedIn) {
-        <a routerLink="/dashboard"
+        <a [routerLink]="RoutePath.dashboard()"
           class="inline-block rounded-full bg-primary px-8 py-3 text-sm font-bold text-white hover:bg-primary-hover transition-colors">
           Go to dashboard
         </a>
       } @else {
-        <a routerLink="/register"
+        <a [routerLink]="RoutePath.register()"
           class="inline-block rounded-full bg-primary px-8 py-3 text-sm font-bold text-white hover:bg-primary-hover transition-colors">
           Start your free trial
         </a>

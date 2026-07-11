@@ -6,6 +6,7 @@ import { QueueConsoleService } from '../queue-console/queue-console.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
+import { RouteParam } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-queue-list',
@@ -32,11 +33,11 @@ export class QueueListComponent {
   }
 
   private get _salonId(): string {
-    return this._route.snapshot.paramMap.get('salonId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
   }
 
   private get _queueId(): string {
-    return this._route.snapshot.paramMap.get('queueId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.QUEUE_ID) ?? '';
   }
 
   protected noShow(entryId: string): void {

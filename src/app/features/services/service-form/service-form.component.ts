@@ -5,14 +5,17 @@ import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ServicesService } from '../services.service';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
+import { CategoriesService } from '../../../core/categories/categories.service';
 import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/frozen-banner.component';
 import { TierFreezeDirective } from '../../../shared/directives/tier-freeze.directive';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
+import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-service-form',
   templateUrl: './service-form.component.html',
-  imports: [ReactiveFormsModule, SkeletonComponent, FrozenBannerComponent, TierFreezeDirective, FieldErrorComponent],
+  imports: [ReactiveFormsModule, SkeletonComponent, FrozenBannerComponent, TierFreezeDirective, FieldErrorComponent, InlineSpinnerComponent],
 })
 export class ServiceFormComponent implements OnInit {
   protected readonly _location = inject(Location);
@@ -21,6 +24,7 @@ export class ServiceFormComponent implements OnInit {
   private readonly _fb = inject(FormBuilder);
   private readonly _servicesService = inject(ServicesService);
   protected readonly salonContext = inject(SalonContextService);
+  protected readonly categoriesService = inject(CategoriesService);
 
   protected readonly loading = this._servicesService.loading;
   // Guards against a double-tap firing two ngSubmits before navigation away
@@ -31,6 +35,7 @@ export class ServiceFormComponent implements OnInit {
   protected readonly isEdit = computed(() => !!this._serviceId);
 
   protected readonly form = this._fb.group({
+    categoryId: ['', Validators.required],
     name: ['', [Validators.required, Validators.maxLength(100)]],
     duration: [30, [Validators.required, Validators.min(1)]],
     price: [0, [Validators.required, Validators.min(0)]],
@@ -38,14 +43,16 @@ export class ServiceFormComponent implements OnInit {
   });
 
   private get _salonId(): string {
-    return this._route.snapshot.paramMap.get('salonId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
   }
 
   private get _serviceId(): string | null {
-    return this._route.snapshot.paramMap.get('serviceId') ?? null;
+    return this._route.snapshot.paramMap.get(RouteParam.SERVICE_ID) ?? null;
   }
 
   ngOnInit(): void {
+    this.categoriesService.load();
+
     const sid = this._serviceId;
     if (!sid) return;
     this._servicesService.load(this._salonId);
@@ -55,6 +62,7 @@ export class ServiceFormComponent implements OnInit {
         const service = this._servicesService.services().find((s) => s.id === sid);
         if (service && !this.form.dirty) {
           this.form.patchValue({
+            categoryId: service.categoryId,
             name: service.name,
             duration: service.duration,
             price: Number(service.price),
@@ -69,8 +77,9 @@ export class ServiceFormComponent implements OnInit {
   protected save(): void {
     if (this.form.invalid || this.submitting()) return;
     this.submitting.set(true);
-    const { name, duration, price, description } = this.form.getRawValue();
+    const { categoryId, name, duration, price, description } = this.form.getRawValue();
     const body = {
+      categoryId: categoryId!,
       name: name!,
       duration: duration!,
       price: String(price!),
@@ -86,6 +95,6 @@ export class ServiceFormComponent implements OnInit {
     // If the request fails, OptimisticService reverts the list + toasts the error.
     // replaceUrl swaps out this form's history entry instead of stacking on top
     // of it, so a later browser-back doesn't bounce through the stale form.
-    this._router.navigate(['/salons', this._salonId, 'services'], { replaceUrl: true });
+    this._router.navigate(RoutePath.salonServices(this._salonId), { replaceUrl: true });
   }
 }

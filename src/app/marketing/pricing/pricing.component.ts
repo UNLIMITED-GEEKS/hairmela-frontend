@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CurrentUserStore } from '../../core/auth/current-user.store';
 import { PLAN_CARDS, formatPlanPrice } from '../../core/tier/tier-plans';
+import { RoutePath } from '../../core/routing/route-paths';
 
 // Public marketing pricing page. Read-only — no live subscription calls; the
 // transactional flow lives on the owner-only billing page. Signed-in users get
@@ -12,6 +13,8 @@ import { PLAN_CARDS, formatPlanPrice } from '../../core/tier/tier-plans';
   imports: [RouterLink],
 })
 export class PricingComponent {
+  protected readonly RoutePath = RoutePath;
+
   private readonly _currentUser = inject(CurrentUserStore);
 
   protected readonly isLoggedIn = !!this._currentUser.user();

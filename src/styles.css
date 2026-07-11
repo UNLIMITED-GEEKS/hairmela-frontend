@@ -72,6 +72,50 @@
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
 }
 
+/* Row enter/leave for <app-animated-list> (Angular animate.enter/animate.leave).
+   Fade + slide only — no max-height animation (that fought with the slide and
+   made rows look like they were doubling/ghosting as they opened). */
+@keyframes row-enter {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes row-leave {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-8px); }
+}
+.row-enter {
+  animation: row-enter 0.25s ease-out;
+}
+.row-leave {
+  animation: row-leave 0.2s ease-in forwards;
+}
+
+/* Tab-content fade on switch (Angular animate.enter) — no leave animation
+   since the old panel is torn down immediately when @if/@else swaps branches. */
+@keyframes tab-content-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.tab-content-enter {
+  animation: tab-content-enter 0.2s ease-out;
+}
+
+/* Gallery modal open/close fade (Angular animate.enter/animate.leave). */
+@keyframes gallery-modal-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes gallery-modal-leave {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+.gallery-modal-enter {
+  animation: gallery-modal-enter 0.2s ease-out;
+}
+.gallery-modal-leave {
+  animation: gallery-modal-leave 0.2s ease-in forwards;
+}
+
 /* Safe-area padding for iPhone notch / home indicator */
 .safe-area-bottom {
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
@@ -157,4 +201,26 @@
       height: calc(100dvh - 3rem);
     }
   }
+}
+
+/* Thin, brand-colored scrollbar for horizontal chip rows — kept visible
+   (not hidden) but styled instead of the default OS scrollbar. */
+.themed-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary) transparent;
+}
+.themed-scrollbar::-webkit-scrollbar {
+  height: 4px;
+}
+.themed-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.themed-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--color-primary);
+  border-radius: 9999px;
+}
+.themed-scrollbar::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
 }

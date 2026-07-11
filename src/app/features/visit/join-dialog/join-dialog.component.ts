@@ -1,4 +1,4 @@
-import { Component, inject, input, output, signal, effect } from '@angular/core';
+import { Component, computed, inject, input, output, signal, effect } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SalonVisitService } from '../salon-visit.service';
@@ -6,12 +6,13 @@ import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { SalonPublicStaffDto } from '../../../api/models/salon-public-staff-dto';
 import { JoinMemberDto } from '../../../api/models/join-member-dto';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { RoutePath } from '../../../core/routing/route-paths';
 
-// Shared join dialog: guest name/phone (guests only) + optional party members
-// (kids), submitted as one batch join. Opened from wherever a barber + service
-// are already both known (the salon landing page's services-first flow) —
-// owns its own form state and the full submit -> /joining navigation, so the
-// caller only toggles `open` and reacts to `closed`.
+// Shared join dialog: guest name/phone (guests only), a required service for
+// the leader, + optional party members (kids), submitted as one batch join.
+// Opened from the live queue page's Join button, once a staff member + queue
+// are known — owns its own form state and the full submit -> /joining
+// navigation, so the caller only toggles `open` and reacts to `closed`.
 @Component({
   selector: 'app-join-dialog',
   templateUrl: './join-dialog.component.html',
@@ -24,7 +25,10 @@ export class JoinDialogComponent {
   readonly slug = input.required<string>();
   readonly shellPrefix = input<string>('');
   readonly staff = input.required<SalonPublicStaffDto>();
-  readonly serviceId = input<string | null>(null);
+  // Pre-fill only — e.g. arriving from the landing page's Services tab with a
+  // service already chosen. The dialog always shows the field and always
+  // requires a value before a join can be submitted, regardless of this input.
+  readonly initialServiceId = input<string | null>(null);
 
   readonly closed = output<void>();
 
@@ -37,6 +41,10 @@ export class JoinDialogComponent {
   protected readonly guestPhone = signal('');
   protected readonly guestNameTouched = signal(false);
   protected readonly guestPhoneTouched = signal(false);
+  protected readonly leaderServiceId = signal('');
+  protected readonly leaderServiceTouched = signal(false);
+
+  protected readonly staffServices = computed(() => this.visit.staffServices(this.staff()));
 
   protected readonly kidsForm = this._fb.group({
     members: this._fb.array<ReturnType<typeof this._buildKidGroup>>([]),
@@ -61,13 +69,15 @@ export class JoinDialogComponent {
       this.guestPhone.set('');
       this.guestNameTouched.set(false);
       this.guestPhoneTouched.set(false);
+      this.leaderServiceId.set(this.initialServiceId() ?? '');
+      this.leaderServiceTouched.set(false);
       this.kidsArray.clear();
     });
   }
 
   protected addKid(): void {
     if (this.kidsArray.length >= this.visit.maxPartySize() - 1) return;
-    this.kidsArray.push(this._buildKidGroup(this.serviceId() ?? ''));
+    this.kidsArray.push(this._buildKidGroup(this.leaderServiceId()));
   }
 
   protected removeKid(i: number): void {
@@ -87,11 +97,16 @@ export class JoinDialogComponent {
     const phone = this.isGuest ? this.guestPhone().trim() : undefined;
     if (this.isGuest && (!leaderName || !phone)) return;
     if (!leaderName) return;
+    // A service is mandatory for every join — no path submits without one.
+    if (!this.leaderServiceId()) {
+      this.leaderServiceTouched.set(true);
+      return;
+    }
 
     const leader: JoinMemberDto = {
       memberName: leaderName,
       phone,
-      serviceId: this.serviceId() ?? undefined,
+      serviceId: this.leaderServiceId(),
     };
     const kids = (this.kidsArray.value as { name: string; serviceId: string }[])
       .filter((k) => k.name?.trim())
@@ -114,9 +129,7 @@ export class JoinDialogComponent {
     // Navigate to /joining FIRST (navigation-is-feedback).
     // JoiningQueueComponent reads visit.pendingJoin() and routes to position or back.
     this.visit.pendingJoin.set({ status: 'pending' });
-    const joiningUrl = prefix
-      ? [prefix, 's', slug, 'q', queueId, 'joining']
-      : ['s', slug, 'q', queueId, 'joining'];
+    const joiningUrl = RoutePath.visitJoining(prefix, slug, queueId);
     this._router.navigate(joiningUrl);
 
     this.visit.joinQueue(salonId, queueId, slug, { members });

@@ -3,8 +3,10 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import { MembershipStore } from '../../../core/salon-context/membership.store';
+import { SalonRole } from '../../../core/salon-context/membership.types';
 import { StaffService } from '../../staff/staff.service';
 import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/confirm-dialog.service';
+import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-leave-salon',
@@ -25,17 +27,17 @@ export class LeaveSalonComponent implements OnInit {
   protected readonly leaving = this._staffService.acting;
 
   private get _salonId(): string {
-    return this._route.snapshot.paramMap.get('salonId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
   }
 
   protected get transferUrl(): unknown[] {
-    return ['/salons', this._salonId, 'staff', 'transfer-ownership'];
+    return RoutePath.salonStaffTransferOwnership(this._salonId);
   }
 
   ngOnInit(): void {
     this._membershipStore.getMembership(this._salonId).pipe(
       takeUntilDestroyed(this._destroyRef),
-    ).subscribe((m) => this.isOwner.set(m.role === 'OWNER'));
+    ).subscribe((m) => this.isOwner.set(m.role === SalonRole.OWNER));
   }
 
   protected confirmLeave(): void {
@@ -49,7 +51,7 @@ export class LeaveSalonComponent implements OnInit {
       filter((confirmed) => confirmed),
       takeUntilDestroyed(this._destroyRef),
     ).subscribe(() => {
-      this._staffService.leaveSalon(this._salonId, () => this._router.navigate(['/dashboard']));
+      this._staffService.leaveSalon(this._salonId, () => this._router.navigate(RoutePath.dashboard()));
     });
   }
 }

@@ -6,6 +6,7 @@ import { StaffService } from '../staff.service';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { OrgContextService } from '../../../core/salon-context/org-context.service';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-invite-staff',
@@ -40,7 +41,7 @@ export class InviteStaffComponent {
   });
 
   private get _salonId(): string {
-    return this._route.snapshot.paramMap.get('salonId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
   }
 
   protected invite(): void {
@@ -52,6 +53,6 @@ export class InviteStaffComponent {
     // Navigate immediately — temp invite is already in the list. replaceUrl
     // swaps out this form's history entry so a later browser-back doesn't
     // bounce through the stale form.
-    this._router.navigate(['/salons', this._salonId, 'staff'], { replaceUrl: true });
+    this._router.navigate(RoutePath.salonStaff(this._salonId), { replaceUrl: true });
   }
 }

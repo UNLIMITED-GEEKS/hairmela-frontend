@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import { ActivatedRouteSnapshot, CanActivateFn, Router, RouterStateSnapshot } from '@angular/router';
 import { TokenStore } from '../auth/token.store';
 import { GuestStore } from '../guest/guest-store';
+import { RoutePath, RouteQueryParam, RouteSegment } from '../routing/route-paths';
 
 export const authGuard: CanActivateFn = (_route: ActivatedRouteSnapshot, state: RouterStateSnapshot) => {
   const tokenStore = inject(TokenStore);
@@ -14,22 +15,22 @@ export const authGuard: CanActivateFn = (_route: ActivatedRouteSnapshot, state: 
 
   // Refresh token present = user has an account; session init will restore it — send to login
   if (tokenStore.getRefreshToken()) {
-    return router.createUrlTree(['/login'], {
-      queryParams: attempted && attempted !== '/' ? { returnUrl: attempted } : {},
+    return router.createUrlTree(RoutePath.login(), {
+      queryParams: attempted && attempted !== '/' ? { [RouteQueryParam.RETURN_URL]: attempted } : {},
     });
   }
 
   // No account at all — salon visit pages go to guest shell
-  if (attempted.startsWith('/s/')) {
-    return router.createUrlTree([`/g${attempted}`]);
+  if (attempted.startsWith(`/${RouteSegment.S}/`)) {
+    return router.createUrlTree([`/${RouteSegment.G}${attempted}`]);
   }
 
   // Guest token only — they can browse guest routes
   if (guestStore.hasToken()) {
-    return router.createUrlTree(['/g/queues']);
+    return router.createUrlTree(RoutePath.guestQueues());
   }
 
-  return router.createUrlTree(['/login'], {
-    queryParams: attempted && attempted !== '/' ? { returnUrl: attempted } : {},
+  return router.createUrlTree(RoutePath.login(), {
+    queryParams: attempted && attempted !== '/' ? { [RouteQueryParam.RETURN_URL]: attempted } : {},
   });
 };

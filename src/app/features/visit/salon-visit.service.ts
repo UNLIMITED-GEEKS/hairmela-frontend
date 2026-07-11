@@ -28,6 +28,7 @@ import { walkInControllerLeaveQueue } from '../../api/fn/queues/walk-in-controll
 import { SocketPredictService } from '../../core/caching/socket-predict/socket-predict.service';
 import { myEntriesControllerGetMyEntries } from '../../api/fn/queues/my-entries-controller-get-my-entries';
 import { guestEntriesControllerGetGuestEntries } from '../../api/fn/queues/guest-entries-controller-get-guest-entries';
+import { RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
 
 import { ActiveEntry } from '../../core/queue/active-entry.store';
 export type { ActiveEntry };
@@ -70,6 +71,7 @@ export class SalonVisitService {
   // a new one at the back). Tracked as an array; views address a single entry by id.
   readonly activeEntries = signal<ActiveEntry[]>([]);
   readonly loading = signal(true);
+  readonly servicesLoading = signal(true);
   readonly timelineLoaded = signal(false);
   readonly joining = signal(false);
   readonly leaving = signal(false);
@@ -80,6 +82,14 @@ export class SalonVisitService {
   // by joinQueue(); the JoiningQueueComponent reads it and routes accordingly.
   // Writable by design — the JoiningQueueComponent clears it after handling.
   readonly pendingJoin = signal<PendingJoin | null>(null);
+  // Which tab (about/services/staffs) the salon landing page last showed —
+  // persisted here (not local component state) so navigating away and back
+  // within the same salon visit restores it instead of resetting to 'about'.
+  readonly landingTab = signal<'about' | 'services' | 'staffs'>('about');
+  // The service selected on the Services tab's barber-drilldown — persisted so
+  // going back and forth between barbers (e.g. comparing wait times for the
+  // same service) doesn't force re-picking the service each time.
+  readonly selectedServiceId = signal<string | null>(null);
 
   readonly salon = computed(() => this.salonData()?.salon ?? null);
   readonly staffList = computed(() => this.salonData()?.staff ?? []);
@@ -195,6 +205,8 @@ export class SalonVisitService {
     this.addingKids.set(false);
     this.calledVisible.set(false);
     this.pendingJoin.set(null);
+    this.landingTab.set('about');
+    this.selectedServiceId.set(null);
   }
 
   watchQueue(queueId: string): void {
@@ -224,25 +236,26 @@ export class SalonVisitService {
   }
 
   // Returns true when the caller should open the join dialog for this staff
-  // member (services-first landing flow) — false whenever selectBarber()
-  // already handled the click itself (redirected to register, or navigated
-  // to an existing position). Every branch below except the final one still
-  // navigates directly; only "no existing entry, salon open" hands control
-  // back to the caller instead of navigating to a Choose Service screen that
-  // no longer exists.
+  // member (called from the live queue page's Join button) — false whenever
+  // selectBarber() already handled the click itself (redirected to register,
+  // or navigated to an existing position). Every branch below except the
+  // final one still navigates directly; only "no existing entry, salon open"
+  // hands control back to the caller.
   selectBarber(staff: SalonPublicStaffDto, slug: string): boolean {
     if (!staff.queueId) return false;
     const isGuest = !!this._shellPrefix;
     if (!isGuest && !this._currentUser.user() && !this._guestStore.hasToken()) {
-      this._router.navigate(['/register'], { queryParams: { returnUrl: `/s/${slug}` } });
+      const returnUrl = RoutePath.visitSalon('', slug).join('/');
+      this._router.navigate(RoutePath.register(), { queryParams: { [RouteQueryParam.RETURN_URL]: returnUrl } });
       return false;
     }
     const myEntries = this._activeEntryStore.getAllForQueue(staff.queueId!);
-    const base = this._shellPrefix ? [this._shellPrefix, 's', slug] : ['s', slug];
     if (myEntries.length > 0) {
       // Already in this queue — open the position page for the (earliest) entry,
       // even if the salon is now closed (they may still be waiting).
-      this._router.navigate([...base, 'q', staff.queueId, 'e', myEntries[0].entryId, 'position']);
+      this._router.navigate(
+        RoutePath.visitPosition(this._shellPrefix, slug, staff.queueId!, myEntries[0].entryId),
+      );
       return false;
     }
     // No existing entry — a fresh join is only allowed while the salon is open.
@@ -437,7 +450,13 @@ export class SalonVisitService {
             salonId: res.body.salon.id,
           })
             .pipe(takeUntilDestroyed(this._destroyRef))
-            .subscribe({ next: (svc) => this.services.set(svc.body) });
+            .subscribe({
+              next: (svc) => {
+                this.services.set(svc.body);
+                this.servicesLoading.set(false);
+              },
+              error: () => this.servicesLoading.set(false),
+            });
           for (const stored of storedEntries) {
             const matchesStaff = res.body.staff.some((s) => s.queueId === stored.queueId);
             if (matchesStaff) {
@@ -448,6 +467,7 @@ export class SalonVisitService {
         },
         error: () => {
           this.loading.set(false);
+          this.servicesLoading.set(false);
           this._toast.error('Salon not found');
         },
       });

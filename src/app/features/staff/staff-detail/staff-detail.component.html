@@ -87,7 +87,7 @@
         </button>
       }
 
-      <a [routerLink]="['services']"
+      <a [routerLink]="servicesLink"
         class="flex items-center justify-between bg-white rounded-xl border border-gray-200 px-5 py-4 min-h-14 hover:bg-gray-50 transition-colors">
         <span class="text-sm font-medium text-gray-900">Services offered</span>
         <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -96,14 +96,14 @@
       </a>
 
       @if (canManage()) {
-        <a [routerLink]="['schedules']"
+        <a [routerLink]="schedulesLink"
           class="flex items-center justify-between bg-white rounded-xl border border-gray-200 px-5 py-4 min-h-14 hover:bg-gray-50 transition-colors">
           <span class="text-sm font-medium text-gray-900">Working hours</span>
           <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
         </a>
-        <a [routerLink]="['closures']"
+        <a [routerLink]="closuresLink"
           class="flex items-center justify-between bg-white rounded-xl border border-gray-200 px-5 py-4 min-h-14 hover:bg-gray-50 transition-colors">
           <span class="text-sm font-medium text-gray-900">Closures</span>
           <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -113,7 +113,7 @@
       }
 
       @if (canManage()) {
-        <a [routerLink]="['media']"
+        <a [routerLink]="mediaLink"
           class="flex items-center justify-between bg-white rounded-xl border border-gray-200 px-5 py-4 min-h-14 hover:bg-gray-50 transition-colors">
           <span class="text-sm font-medium text-gray-900">Photos</span>
           <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

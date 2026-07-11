@@ -2,6 +2,7 @@ import { Component, input, output } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { NavItem } from '../nav-item.types';
 import { NavIconComponent } from '../nav-icon/nav-icon.component';
+import { RoutePath } from '../../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-public-nav',
@@ -13,6 +14,8 @@ export class PublicNavComponent {
   readonly navItems = input<NavItem[]>([]);
   readonly sheetOpen = input(false);
   readonly sheetToggle = output<void>();
+
+  protected readonly rootLink = RoutePath.root();
 
   protected centerItems(): NavItem[] {
     return this.navItems().filter((i) => !i.cta && !i.auth);

@@ -1,6 +1,6 @@
 <div [class]="'rounded-full overflow-hidden shrink-0 bg-primary/10 flex items-center justify-center ' + sizeClasses()">
-  @if (resolvedSrc()) {
-    <img [src]="resolvedSrc()" [alt]="name()" class="w-full h-full object-cover" />
+  @if (src()) {
+    <img [src]="src() | mediaUrl" [alt]="name()" class="w-full h-full object-cover" />
   } @else {
     <span class="font-semibold text-primary leading-none">{{ initials() }}</span>
   }

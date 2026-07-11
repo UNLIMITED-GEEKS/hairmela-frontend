@@ -4,6 +4,7 @@
 import { Address } from '../models/address';
 import { Organization } from '../models/organization';
 export interface Salon {
+  about: string | null;
   address: Address;
   addressId: string;
   createdAt: string;
@@ -15,6 +16,7 @@ export interface Salon {
 }>;
   orgId: string;
   organization: Organization;
+  phone: string | null;
   settings: {
 };
   slug: string;

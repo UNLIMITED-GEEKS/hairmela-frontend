@@ -7,26 +7,26 @@
       <div>
         <h3 class="mb-4 text-sm font-bold uppercase tracking-wide text-text-primary">Product</h3>
         <ul class="flex flex-col gap-3 text-sm">
-          <li><a routerLink="/pricing" class="text-text-secondary hover:text-primary transition-colors">Pricing</a></li>
-          <li><a routerLink="/about" class="text-text-secondary hover:text-primary transition-colors">About us</a></li>
-          <li><a routerLink="/how-to-install" class="text-text-secondary hover:text-primary transition-colors">Get the app</a></li>
-          <li><a routerLink="/register" class="text-text-secondary hover:text-primary transition-colors">Create a salon</a></li>
-          <li><a routerLink="/login" class="text-text-secondary hover:text-primary transition-colors">Sign in</a></li>
+          <li><a [routerLink]="pricingLink" class="text-text-secondary hover:text-primary transition-colors">Pricing</a></li>
+          <li><a [routerLink]="aboutLink" class="text-text-secondary hover:text-primary transition-colors">About us</a></li>
+          <li><a [routerLink]="howToInstallLink" class="text-text-secondary hover:text-primary transition-colors">Get the app</a></li>
+          <li><a [routerLink]="registerLink" class="text-text-secondary hover:text-primary transition-colors">Create a salon</a></li>
+          <li><a [routerLink]="loginLink" class="text-text-secondary hover:text-primary transition-colors">Sign in</a></li>
         </ul>
       </div>
 
       <div>
         <h3 class="mb-4 text-sm font-bold uppercase tracking-wide text-text-primary">Legal</h3>
         <ul class="flex flex-col gap-3 text-sm">
-          <li><a routerLink="/privacy" class="text-text-secondary hover:text-primary transition-colors">Privacy policy</a></li>
-          <li><a routerLink="/terms" class="text-text-secondary hover:text-primary transition-colors">Terms of use</a></li>
+          <li><a [routerLink]="privacyLink" class="text-text-secondary hover:text-primary transition-colors">Privacy policy</a></li>
+          <li><a [routerLink]="termsLink" class="text-text-secondary hover:text-primary transition-colors">Terms of use</a></li>
         </ul>
       </div>
 
       <div>
         <h3 class="mb-4 text-sm font-bold uppercase tracking-wide text-text-primary">Support</h3>
         <ul class="flex flex-col gap-3 text-sm">
-          <li><a routerLink="/contact" class="text-text-secondary hover:text-primary transition-colors">Contact us</a></li>
+          <li><a [routerLink]="contactLink" class="text-text-secondary hover:text-primary transition-colors">Contact us</a></li>
           <li><a href="mailto:hello@hairmela.com" class="text-text-secondary hover:text-primary transition-colors">hello&#64;hairmela.com</a></li>
         </ul>
       </div>

@@ -6,6 +6,7 @@ import { SalonVisitService } from '../salon-visit.service';
 import { PushPromptComponent } from '../../../shared/components/push-prompt/push-prompt.component';
 import { PushService } from '../../../core/push/push.service';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-my-position',
@@ -46,15 +47,15 @@ export class MyPositionComponent implements OnInit {
   }
 
   protected get _slug(): string {
-    return this._route.snapshot.paramMap.get('slug') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.SLUG) ?? '';
   }
 
   protected get _queueId(): string {
-    return this._route.snapshot.paramMap.get('queueId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.QUEUE_ID) ?? '';
   }
 
   protected get _entryId(): string {
-    return this._route.snapshot.paramMap.get('entryId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.ENTRY_ID) ?? '';
   }
 
   private get _shellPrefix(): string {
@@ -65,8 +66,12 @@ export class MyPositionComponent implements OnInit {
     this.visit.watchQueue(this._queueId);
   }
 
-  protected get liveQueueUrl(): string {
-    return `${this._shellPrefix}/s/${this._slug}/q/${this._queueId}`;
+  protected get liveQueueUrl() {
+    return RoutePath.visitQueue(this._shellPrefix, this._slug, this._queueId);
+  }
+
+  protected get salonUrl() {
+    return RoutePath.visitSalon('', this._slug);
   }
 
   protected openAddKids(): void {
@@ -100,7 +105,7 @@ export class MyPositionComponent implements OnInit {
 
   protected leaveQueue(): void {
     const prefix = this._shellPrefix;
-    const segments = prefix ? [prefix, 's', this._slug] : ['s', this._slug];
+    const segments = RoutePath.visitSalon(prefix, this._slug);
     this.visit.leaveQueue(this._entryId, () => {
       // Guest subscriptions are scoped to the session — unsubscribe when they
       // leave so the device doesn't receive stale push notifications.

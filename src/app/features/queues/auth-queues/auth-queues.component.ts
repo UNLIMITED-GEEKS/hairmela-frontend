@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { QueueEntry } from '../../../api/models/queue-entry';
 import { ActiveQueuesService } from './active-queues.service';
+import { RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-auth-queues',
@@ -26,7 +27,7 @@ export class AuthQueuesComponent implements OnInit {
   protected goToPosition(entry: QueueEntry): void {
     const slug = entry.queue?.salon?.slug;
     if (!slug) return;
-    this._router.navigate(['/s', slug, 'q', entry.queueId, 'e', entry.id, 'position']);
+    this._router.navigate(RoutePath.visitPosition('', slug, entry.queueId, entry.id));
   }
 
   protected salonName(entry: QueueEntry): string {

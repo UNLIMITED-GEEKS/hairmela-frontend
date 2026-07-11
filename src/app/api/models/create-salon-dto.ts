@@ -5,10 +5,12 @@ import { AddressDto } from '../models/address-dto';
 import { InitialServiceDto } from '../models/initial-service-dto';
 import { OperatingHourDto } from '../models/operating-hour-dto';
 export interface CreateSalonDto {
+  about?: string;
   address: AddressDto;
   defaultSlotDuration?: number;
   name: string;
   operatingHours?: Array<OperatingHourDto>;
+  phone: string;
   service: InitialServiceDto;
   timezone?: string;
 }

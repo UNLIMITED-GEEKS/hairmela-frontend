@@ -6,6 +6,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { GuestStore } from '../../../core/guest/guest-store';
 import { ErrorCodes } from '../../../core/errors/error-codes';
 import { isApiError } from '../../../core/errors/api-error.types';
+import { RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 import { PasswordToggleDirective } from '../../../shared/directives/password-toggle.directive';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 
@@ -21,7 +22,13 @@ export class RegisterComponent {
   private readonly _route = inject(ActivatedRoute);
   private readonly _fb = inject(FormBuilder);
 
-  protected readonly returnUrl = this._route.snapshot.queryParamMap.get('returnUrl');
+  protected readonly returnUrl = this._route.snapshot.queryParamMap.get(RouteQueryParam.RETURN_URL);
+
+  protected readonly loginLink = RoutePath.login();
+
+  protected get loginQueryParams(): Record<string, string> {
+    return this.returnUrl ? { [RouteQueryParam.RETURN_URL]: this.returnUrl } : {};
+  }
 
   protected readonly form = this._fb.nonNullable.group({
     firstName: ['', Validators.required],
@@ -53,8 +60,8 @@ export class RegisterComponent {
     ).subscribe({
       next: () => {
         this._guestStore.clear();
-        const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
-        this._router.navigateByUrl(returnUrl ?? '/dashboard');
+        const returnUrl = new URLSearchParams(window.location.search).get(RouteQueryParam.RETURN_URL);
+        this._router.navigateByUrl(returnUrl ?? RoutePath.dashboard()[0]);
       },
       error: (err) => {
         this.loading.set(false);

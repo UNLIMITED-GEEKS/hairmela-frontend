@@ -1,7 +1,7 @@
 import { CacheRegistry } from '../../../core/caching/cache-registry/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, switchMap, tap, map } from 'rxjs';
+import { Observable, tap, map } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { subscriptionsControllerGetMine } from '../../../api/fn/subscriptions/subscriptions-controller-get-mine';
 import { subscriptionsControllerCheckout } from '../../../api/fn/subscriptions/subscriptions-controller-checkout';
@@ -62,9 +62,10 @@ export class BillingService {
     this._loader.refresh(orgId);
   }
 
-  // Start a checkout session. With the current dummy provider there's no real
-  // payment page — the caller proceeds straight to verify(). With a real
-  // provider you'd redirect the user to session.checkoutUrl first.
+  // Start a checkout session. The backend creates it against the payment
+  // provider (Flutterwave) with redirect_url already set to this org's
+  // payment callback page (PaymentCallbackComponent) — the caller redirects
+  // the browser to session.checkoutUrl to complete payment there.
   checkout(orgId: string, tier: Tier): Observable<CheckoutSessionDto> {
     return subscriptionsControllerCheckout(this._http, this._apiConfig.rootUrl, {
       orgId,
@@ -72,9 +73,10 @@ export class BillingService {
     }).pipe(map((res) => res.body));
   }
 
-  // Confirm + activate. Upgrades are IMMEDIATE — on success the org is on the
-  // new tier and frozen salons un-freeze, so we invalidate the membership
-  // cache and re-load access (handoff §4c).
+  // Confirm + activate. Called from PaymentCallbackComponent once the
+  // provider redirects back with a successful status. Upgrades are IMMEDIATE —
+  // on success the org is on the new tier and frozen salons un-freeze, so we
+  // invalidate the membership cache and re-load access (handoff §4c).
   verify(orgId: string, reference: string): Observable<Subscription> {
     this._acting.set(true);
     return subscriptionsControllerVerify(this._http, this._apiConfig.rootUrl, {
@@ -86,27 +88,28 @@ export class BillingService {
     );
   }
 
-  // Convenience: full upgrade flow for the dummy provider (checkout → verify).
-  upgrade(orgId: string, tier: Tier, onSuccess?: () => void): void {
+  // Start an upgrade: create the checkout session, then send the browser to
+  // the provider's payment page. Verification happens later, when the
+  // provider redirects back to PaymentCallbackComponent.
+  upgrade(orgId: string, tier: Tier): void {
     if (this._acting()) return;
     this._acting.set(true);
-    this.checkout(orgId, tier)
-      .pipe(
-        switchMap((session) =>
-          subscriptionsControllerVerify(this._http, this._apiConfig.rootUrl, {
-            orgId,
-            body: { reference: session.reference },
-          }).pipe(map((res) => res.body)),
-        ),
-      )
-      .subscribe({
-        next: () => {
-          this._onSubscriptionChanged(orgId);
-          this._toast.success('Plan upgraded.');
-          onSuccess?.();
-        },
-        error: () => this._acting.set(false),
-      });
+    this.checkout(orgId, tier).subscribe({
+      next: (session) => {
+        window.location.href = session.checkoutUrl;
+      },
+      error: () => this._acting.set(false),
+    });
+  }
+
+  // The payment provider's webhook — not verify() — is the real source of
+  // truth for activating a tier; it can land a few seconds after the
+  // checkout redirect. Called from PaymentCallbackComponent after a
+  // successful payment status, regardless of whether verify() itself
+  // succeeded, so the UI doesn't get stuck on a stale tier if verify failed
+  // (or never ran) but the webhook still activated it.
+  scheduleDelayedRefresh(orgId: string): void {
+    setTimeout(() => this.refresh(orgId), 6000);
   }
 
   // Schedule a downgrade at period end — NOT immediate (handoff §4d).

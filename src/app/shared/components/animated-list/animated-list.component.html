@@ -1,0 +1,5 @@
+@for (item of items(); track item.id) {
+  <div animate.enter="row-enter" animate.leave="row-leave" class="overflow-hidden">
+    <ng-container [ngTemplateOutlet]="rowTemplate()" [ngTemplateOutletContext]="{ $implicit: item }" />
+  </div>
+}

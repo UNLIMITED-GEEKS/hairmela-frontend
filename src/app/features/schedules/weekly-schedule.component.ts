@@ -8,6 +8,7 @@ import { StaffSchedule } from '../../api/models/staff-schedule';
 import { ConfirmDialogService } from '../../shared/components/confirm-dialog/confirm-dialog.service';
 import { SchedulesService } from './schedules.service';
 import { FieldErrorComponent } from '../../shared/components/field-error/field-error.component';
+import { RouteParam } from '../../core/routing/route-paths';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -43,11 +44,11 @@ export class WeeklyScheduleComponent implements OnInit {
   });
 
   private get _salonId(): string {
-    return this._route.snapshot.paramMap.get('salonId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
   }
 
   private get _staffId(): string {
-    return this._route.snapshot.paramMap.get('staffId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.STAFF_ID) ?? '';
   }
 
   ngOnInit(): void {

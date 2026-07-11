@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { RouteParam, RouteSegment } from '../../core/routing/route-paths';
 
 export const visitRoutes: Routes = [
   {
@@ -12,17 +13,17 @@ export const visitRoutes: Routes = [
           import('./salon-landing/salon-landing.component').then((m) => m.SalonLandingComponent),
       },
       {
-        path: 'q/:queueId',
+        path: `${RouteSegment.Q}/:${RouteParam.QUEUE_ID}`,
         loadComponent: () =>
           import('./live-queue/live-queue.component').then((m) => m.LiveQueueComponent),
       },
       {
-        path: 'q/:queueId/joining',
+        path: `${RouteSegment.Q}/:${RouteParam.QUEUE_ID}/${RouteSegment.JOINING}`,
         loadComponent: () =>
           import('./joining-queue/joining-queue.component').then((m) => m.JoiningQueueComponent),
       },
       {
-        path: 'q/:queueId/e/:entryId/position',
+        path: `${RouteSegment.Q}/:${RouteParam.QUEUE_ID}/${RouteSegment.E}/:${RouteParam.ENTRY_ID}/${RouteSegment.POSITION}`,
         loadComponent: () =>
           import('./my-position/my-position.component').then((m) => m.MyPositionComponent),
       },

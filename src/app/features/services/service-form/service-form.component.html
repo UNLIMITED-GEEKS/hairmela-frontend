@@ -29,6 +29,28 @@
 
       <form [formGroup]="form" (ngSubmit)="save()" [tierFreeze]="salonContext.isFrozen()" class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
 
+        <!-- Category -->
+        <div class="space-y-1.5">
+          <label class="text-sm font-medium text-gray-700 flex items-center gap-2">
+            Category
+            @if (categoriesService.loading()) {
+              <app-inline-spinner sizeClass="w-3.5 h-3.5" label="Loading categories" />
+            }
+          </label>
+          <select formControlName="categoryId" [disabled]="categoriesService.loading()"
+            class="w-full min-h-11 px-3 rounded-lg border border-gray-300 text-sm bg-white
+                   focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary
+                   disabled:opacity-50">
+            <option value="" disabled>
+              {{ categoriesService.loading() ? 'Loading…' : 'Select a category' }}
+            </option>
+            @for (cat of categoriesService.categories(); track cat.id) {
+              <option [value]="cat.id">{{ cat.name }}</option>
+            }
+          </select>
+          <app-field-error [control]="form.get('categoryId')" />
+        </div>
+
         <!-- Name -->
         <div class="space-y-1.5">
           <label class="text-sm font-medium text-gray-700">Service name</label>

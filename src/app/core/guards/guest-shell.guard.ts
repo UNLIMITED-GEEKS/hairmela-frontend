@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { TokenStore } from '../auth/token.store';
 import { GuestStore } from '../guest/guest-store';
+import { RoutePath } from '../routing/route-paths';
 
 export const guestShellGuard: CanActivateFn = () => {
   const tokenStore = inject(TokenStore);
@@ -10,7 +11,7 @@ export const guestShellGuard: CanActivateFn = () => {
 
   // Block logged-in users from the guest shell
   if (tokenStore.isAuthenticated()) {
-    return router.createUrlTree(['/']);
+    return router.createUrlTree(RoutePath.root());
   }
 
   // Allow both guest-token users and fully unauthenticated users

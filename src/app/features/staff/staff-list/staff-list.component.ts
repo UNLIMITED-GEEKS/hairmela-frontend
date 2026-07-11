@@ -6,6 +6,7 @@ import { PendingInviteDto } from '../../../api/models/pending-invite-dto';
 import { StaffService } from '../staff.service';
 import { HasRoleDirective } from '../../../shared/directives/has-role.directive';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { RouteParam, RoutePath, RouteSegment } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-staff-list',
@@ -21,8 +22,14 @@ export class StaffListComponent implements OnInit {
   protected readonly error = this._staffService.error;
   protected readonly invites = this._staffService.invites;
 
+  protected readonly inviteLink = [RouteSegment.INVITE];
+
   protected get salonId(): string {
-    return this._route.snapshot.paramMap.get('salonId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
+  }
+
+  protected queueConsoleLink(queueId: string): string[] {
+    return RoutePath.salonQueueConsole(this.salonId, queueId);
   }
 
   ngOnInit(): void {

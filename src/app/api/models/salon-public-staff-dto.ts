@@ -3,6 +3,7 @@
 
 export interface SalonPublicStaffDto {
   firstName: string;
+  galleryUrls?: Array<string>;
   lastName: string;
   nickname: string | null;
   photoUrl: string | null;

@@ -5,6 +5,7 @@ import { Service } from '../../../api/models/service';
 import { ServicesService } from '../services.service';
 import { StaffServiceAssignService } from './staff-service-assign.service';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { RouteParam } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-staff-service-assign',
@@ -36,11 +37,11 @@ export class StaffServiceAssignComponent implements OnInit {
   );
 
   private get _salonId(): string {
-    return this._route.snapshot.paramMap.get('salonId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
   }
 
   private get _staffId(): string {
-    return this._route.snapshot.paramMap.get('staffId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.STAFF_ID) ?? '';
   }
 
   ngOnInit(): void {

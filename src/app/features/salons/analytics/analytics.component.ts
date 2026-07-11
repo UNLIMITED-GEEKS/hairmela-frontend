@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartData, ChartOptions } from 'chart.js';
 import { AnalyticsService, DateRange } from './analytics.service';
+import { RouteParam } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-analytics',
@@ -29,7 +30,7 @@ export class AnalyticsComponent implements OnInit {
   protected activeStaffSort: 'served' | 'noShows' | 'walkIns' = 'served';
 
   private get salonId(): string {
-    return this._route.snapshot.paramMap.get('salonId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
   }
 
   // Bar chart — daily trends

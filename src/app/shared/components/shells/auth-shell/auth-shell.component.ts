@@ -12,6 +12,7 @@ import { MobileTopBarComponent } from '../mobile-top-bar/mobile-top-bar.componen
 import { BottomNavComponent } from '../bottom-nav/bottom-nav.component';
 import { MobileSheetComponent } from '../mobile-sheet/mobile-sheet.component';
 import { OrgContextService } from '../../../../core/salon-context/org-context.service';
+import { RoutePath } from '../../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-auth-shell',
@@ -40,10 +41,10 @@ export class AuthShellComponent implements OnInit {
   protected readonly membership = this._salonContext.membership;
 
   protected readonly navItems: NavItem[] = [
-    { label: 'Dashboard',   icon: 'home',   url: '/dashboard', bottomNav: true, sidebar: true },
-    { label: 'My Visits',   icon: 'queue',  url: '/queues',    bottomNav: true, sidebar: true },
-    { label: 'Favourites',  icon: 'heart',  url: '/favorites', bottomNav: true, sidebar: true },
-    { label: 'Account',     icon: 'person', url: '/account',   bottomNav: true, sidebar: true },
+    { label: 'Dashboard',   icon: 'home',   url: RoutePath.dashboard()[0], bottomNav: true, sidebar: true },
+    { label: 'My Visits',   icon: 'queue',  url: RoutePath.queues()[0],    bottomNav: true, sidebar: true },
+    { label: 'Favourites',  icon: 'heart',  url: RoutePath.favorites()[0], bottomNav: true, sidebar: true },
+    { label: 'Account',     icon: 'person', url: RoutePath.account()[0],   bottomNav: true, sidebar: true },
     { label: 'Logout',      icon: 'login',  action: () => this._auth.logout(), sidebar: true },
   ];
 

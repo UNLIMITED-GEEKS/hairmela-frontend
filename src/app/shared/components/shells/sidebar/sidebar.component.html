@@ -4,7 +4,7 @@
 
   <!-- Logo -->
   <div class="flex items-center h-16 px-4 shrink-0 border-b border-border overflow-hidden">
-    <a routerLink="/" class="flex items-center gap-2.5">
+    <a [routerLink]="RoutePath.root()" class="flex items-center gap-2.5">
       <img src="/fav.jpeg" alt="HairMela" class="w-7 h-7 rounded-lg object-cover shrink-0" />
       @if (!collapsed()) {
         <span class="text-lg font-bold text-primary whitespace-nowrap">HairMela</span>
@@ -20,7 +20,7 @@
       <a
         [routerLink]="item.url"
         routerLinkActive="bg-primary/10 text-primary"
-        [routerLinkActiveOptions]="{ exact: item.url === '/dashboard' }"
+        [routerLinkActiveOptions]="{ exact: item.url === RoutePath.dashboard()[0] }"
         class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors min-h-11 relative"
         [title]="collapsed() ? item.label : ''">
         <span class="shrink-0">
@@ -53,7 +53,7 @@
 
         <!-- Salon overview -->
         <a
-          [routerLink]="['/salons', activeSalonId()]"
+          [routerLink]="['/' + RouteSegment.SALONS, activeSalonId()]"
           routerLinkActive="bg-primary/10 text-primary"
           [routerLinkActiveOptions]="{ exact: true }"
           class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors min-h-11"
@@ -66,7 +66,7 @@
 
         @for (item of visibleControls(); track item.label) {
           <a
-            [routerLink]="['/salons', activeSalonId(), item.url]"
+            [routerLink]="['/' + RouteSegment.SALONS, activeSalonId(), item.url]"
             routerLinkActive="bg-primary/10 text-primary"
             class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors min-h-11"
             [class.text-text-secondary]="true"
@@ -96,7 +96,7 @@
         <!-- Leave salon — any member can leave themselves -->
         @if (activeSalonId()) {
           <a
-            [routerLink]="['/salons', activeSalonId(), 'leave']"
+            [routerLink]="['/' + RouteSegment.SALONS, activeSalonId(), RouteSegment.LEAVE]"
             routerLinkActive="bg-red-50 text-red-600"
             class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors min-h-11"
             [title]="collapsed() ? 'Leave salon' : ''">
@@ -112,7 +112,7 @@
         <!-- Delete salon — owner only, destructive -->
         @if (isOwner() && activeSalonId()) {
           <a
-            [routerLink]="['/salons', activeSalonId(), 'delete']"
+            [routerLink]="['/' + RouteSegment.SALONS, activeSalonId(), RouteSegment.DELETE]"
             routerLinkActive="bg-red-50 text-red-600"
             class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors min-h-11"
             [title]="collapsed() ? 'Delete salon' : ''">

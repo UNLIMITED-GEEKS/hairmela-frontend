@@ -113,6 +113,8 @@ export type { PublicServicesControllerFindBySalon$Params as PublicServicesContro
 export { publicServicesControllerFindBySalon as publicServicesControllerFindBySalon } from './fn/services/public-services-controller-find-by-salon';
 export type { ServicesControllerCreate$Params as ServicesControllerCreate$Params } from './fn/services/services-controller-create';
 export { servicesControllerCreate as servicesControllerCreate } from './fn/services/services-controller-create';
+export type { PublicServicesControllerFindStaffOfferingService$Params as PublicServicesControllerFindStaffOfferingService$Params } from './fn/services/public-services-controller-find-staff-offering-service';
+export { publicServicesControllerFindStaffOfferingService as publicServicesControllerFindStaffOfferingService } from './fn/services/public-services-controller-find-staff-offering-service';
 export type { ServicesControllerDeactivate$Params as ServicesControllerDeactivate$Params } from './fn/services/services-controller-deactivate';
 export { servicesControllerDeactivate as servicesControllerDeactivate } from './fn/services/services-controller-deactivate';
 export type { ServicesControllerUpdate$Params as ServicesControllerUpdate$Params } from './fn/services/services-controller-update';
@@ -125,6 +127,8 @@ export type { StaffServicesControllerRemoveService$Params as StaffServicesContro
 export { staffServicesControllerRemoveService as staffServicesControllerRemoveService } from './fn/services/staff-services-controller-remove-service';
 export type { StaffServicesControllerSetDefaultService$Params as StaffServicesControllerSetDefaultService$Params } from './fn/services/staff-services-controller-set-default-service';
 export { staffServicesControllerSetDefaultService as staffServicesControllerSetDefaultService } from './fn/services/staff-services-controller-set-default-service';
+export type { CategoriesControllerFindAll$Params as CategoriesControllerFindAll$Params } from './fn/services/categories-controller-find-all';
+export { categoriesControllerFindAll as categoriesControllerFindAll } from './fn/services/categories-controller-find-all';
 export type { SchedulesControllerFindAll$Params as SchedulesControllerFindAll$Params } from './fn/schedules/schedules-controller-find-all';
 export { schedulesControllerFindAll as schedulesControllerFindAll } from './fn/schedules/schedules-controller-find-all';
 export type { SchedulesControllerCreate$Params as SchedulesControllerCreate$Params } from './fn/schedules/schedules-controller-create';

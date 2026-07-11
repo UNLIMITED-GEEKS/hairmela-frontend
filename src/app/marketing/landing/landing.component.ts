@@ -8,9 +8,11 @@ import { SalonListingService } from './salon-listing.service';
 // import { GeoLocationService } from './geo-location.service';
 import { FavoritesService } from '../../core/favorites/favorites.service';
 import { CurrentUserStore } from '../../core/auth/current-user.store';
+import { CategoriesService } from '../../core/categories/categories.service';
 import { SalonCardComponent } from '../../shared/components/salon-card/salon-card.component';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
+import { RoutePath } from '../../core/routing/route-paths';
 
 @Component({
   selector: 'app-landing',
@@ -20,9 +22,12 @@ import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.com
 })
 export class LandingComponent implements OnInit {
   protected readonly listing = inject(SalonListingService);
+  protected readonly categoriesService = inject(CategoriesService);
   private readonly _favorites = inject(FavoritesService);
   private readonly _currentUser = inject(CurrentUserStore);
   // private readonly _geoLocation = inject(GeoLocationService);
+
+  protected readonly registerLink = RoutePath.register();
 
   protected readonly steps = [
     {
@@ -43,6 +48,8 @@ export class LandingComponent implements OnInit {
   ];
 
   ngOnInit(): void {
+    this.categoriesService.load();
+
     // Hearts on the listing cards need to know what's already favourited —
     // only worth loading for a signed-in visitor (the cards hide the heart
     // entirely for guests/anonymous, so there's nothing to prefetch for them).
@@ -59,5 +66,9 @@ export class LandingComponent implements OnInit {
   protected onSearchInput(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     this.listing.setSearch(value);
+  }
+
+  protected onCategorySelect(slug: string): void {
+    this.listing.setCategory(slug);
   }
 }

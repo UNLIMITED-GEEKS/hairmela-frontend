@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { InstallPromptService } from '../../../core/pwa/install-prompt.service';
+import { RoutePath } from '../../../core/routing/route-paths';
 
 // Site-wide install nudge, styled to match the About page's closing CTA.
 // Rendered once in the public shell, right above the footer, on every public
@@ -13,4 +14,5 @@ import { InstallPromptService } from '../../../core/pwa/install-prompt.service';
 })
 export class InstallBannerComponent {
   protected readonly install = inject(InstallPromptService);
+  protected readonly howToInstallLink = RoutePath.howToInstall();
 }

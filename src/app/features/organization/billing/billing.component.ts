@@ -6,6 +6,7 @@ import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/
 import { Tier, TIER_NAMES, displayLimit } from '../../../core/tier/tier-limits';
 import { PLAN_CARDS, formatPlanPrice } from '../../../core/tier/tier-plans';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { RouteParam } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-billing',
@@ -41,7 +42,7 @@ export class BillingComponent implements OnInit {
   protected readonly staffLimitLabel = computed(() => displayLimit(this.access()?.staffLimit ?? 0));
 
   private get _orgId(): string {
-    return this._route.snapshot.paramMap.get('orgId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.ORG_ID) ?? '';
   }
 
   ngOnInit(): void {

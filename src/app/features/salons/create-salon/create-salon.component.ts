@@ -1,10 +1,13 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal, OnInit } from '@angular/core';
 import { Location } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DashboardService } from '../../dashboard/dashboard.service';
 import { SalonService } from '../salon.service';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
+import { CategoriesService } from '../../../core/categories/categories.service';
+import { RoutePath } from '../../../core/routing/route-paths';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -26,15 +29,16 @@ const TIMEZONES = [
 @Component({
   selector: 'app-create-salon',
   templateUrl: './create-salon.component.html',
-  imports: [ReactiveFormsModule, FieldErrorComponent],
+  imports: [ReactiveFormsModule, FieldErrorComponent, InlineSpinnerComponent],
 })
-export class CreateSalonComponent {
+export class CreateSalonComponent implements OnInit {
   private readonly _location = inject(Location);
   private readonly _router = inject(Router);
   private readonly _fb = inject(FormBuilder);
   private readonly _destroyRef = inject(DestroyRef);
   private readonly _dashboardService = inject(DashboardService);
   private readonly _salonService = inject(SalonService);
+  protected readonly categoriesService = inject(CategoriesService);
 
   protected readonly saving = signal(false);
   protected readonly days = DAYS;
@@ -42,6 +46,8 @@ export class CreateSalonComponent {
 
   protected readonly form = this._fb.group({
     name: ['', [Validators.required, Validators.minLength(2)]],
+    phone: ['', Validators.required],
+    about: ['', Validators.maxLength(1000)],
     address: this._fb.group({
       country: ['', Validators.required],
       state: ['', Validators.required],
@@ -59,12 +65,17 @@ export class CreateSalonComponent {
       }))
     ),
     service: this._fb.group({
+      categoryId: ['', Validators.required],
       name: ['', [Validators.required, Validators.minLength(2)]],
       duration: [30, [Validators.required, Validators.min(5), Validators.max(480)]],
       price: [0, [Validators.required, Validators.min(0)]],
       description: [''],
     }),
   });
+
+  ngOnInit(): void {
+    this.categoriesService.load();
+  }
 
   protected get hoursArray(): FormArray {
     return this.form.get('operatingHours') as FormArray;
@@ -87,6 +98,8 @@ export class CreateSalonComponent {
     this._salonService.create(
       {
         name: v.name!,
+        phone: v.phone!,
+        about: v.about || undefined,
         address: {
           country: v.address!.country!,
           state: v.address!.state!,
@@ -97,6 +110,7 @@ export class CreateSalonComponent {
         defaultSlotDuration: v.defaultSlotDuration!,
         operatingHours: enabledHours,
         service: {
+          categoryId: v.service!.categoryId!,
           name: v.service!.name!,
           duration: v.service!.duration!,
           price: String(v.service!.price ?? '0'),
@@ -108,7 +122,7 @@ export class CreateSalonComponent {
         this.saving.set(false);
         this._dashboardService.clear();
         this._dashboardService.load();
-        this._router.navigate(['/dashboard']);
+        this._router.navigate(RoutePath.dashboard());
       },
       () => this.saving.set(false),
     );

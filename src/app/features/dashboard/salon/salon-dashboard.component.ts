@@ -4,6 +4,7 @@ import { DashboardService } from '../dashboard.service';
 import { MySalonsListComponent } from './my-salons-list/my-salons-list.component';
 import { NoSalonsEmptyStateComponent } from '../shared/no-salons-empty-state/no-salons-empty-state.component';
 import { PendingInvitesComponent } from './pending-invites/pending-invites.component';
+import { RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-salon-dashboard',
@@ -16,7 +17,9 @@ export class SalonDashboardComponent {
 
   protected readonly salons = this._dashboardService.salons;
 
+  protected readonly newSalonLink = RoutePath.newSalon();
+
   protected navigateToCreateSalon(): void {
-    this._router.navigate(['/salons/new']);
+    this._router.navigate(RoutePath.newSalon());
   }
 }

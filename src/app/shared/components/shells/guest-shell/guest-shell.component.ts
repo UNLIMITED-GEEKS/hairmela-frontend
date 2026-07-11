@@ -10,6 +10,7 @@ import { BottomNavComponent } from '../bottom-nav/bottom-nav.component';
 import { MobileSheetComponent } from '../mobile-sheet/mobile-sheet.component';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { TopBarComponent } from '../top-bar/top-bar.component';
+import { RoutePath } from '../../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-guest-shell',
@@ -32,8 +33,8 @@ export class GuestShellComponent implements OnInit {
   protected readonly sheetOpen = signal(false);
 
   protected readonly navItems: NavItem[] = [
-    { label: 'My Queues', icon: 'queue',      url: '/g/queues',  bottomNav: true, sidebar: true, sheet: true },
-    { label: 'Sign Up',   icon: 'person-add', url: '/register',  bottomNav: true, sidebar: true, sheet: true, cta: true },
+    { label: 'My Queues', icon: 'queue',      url: RoutePath.guestQueues()[0],  bottomNav: true, sidebar: true, sheet: true },
+    { label: 'Sign Up',   icon: 'person-add', url: RoutePath.register()[0],  bottomNav: true, sidebar: true, sheet: true, cta: true },
   ];
 
   ngOnInit(): void {

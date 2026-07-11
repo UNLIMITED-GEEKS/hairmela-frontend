@@ -42,18 +42,7 @@
 
       <!-- Tabs (only shown when staffId is present) -->
       @if (_staffId) {
-        <div class="flex gap-1 bg-gray-100 p-1 rounded-lg">
-          <button type="button" (click)="setTab('salon')"
-            class="flex-1 min-h-9 text-sm font-medium rounded-md transition-colors"
-            [class]="activeTab() === 'salon' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'">
-            Salon
-          </button>
-          <button type="button" (click)="setTab('staff')"
-            class="flex-1 min-h-9 text-sm font-medium rounded-md transition-colors"
-            [class]="activeTab() === 'staff' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'">
-            This staff
-          </button>
-        </div>
+        <app-tabs [tabs]="scopeTabs" [activeId]="activeTab()" (tabChange)="setTab($event)" />
       }
 
       <!-- Add form -->
@@ -100,22 +89,24 @@
         </div>
       } @else {
         <div class="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-          @for (closure of activeClosures; track closure.id) {
-            <div class="flex items-center gap-3 px-4 py-4 min-h-14">
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-gray-900">{{ closure.date }}</p>
-                @if (closure.reason) {
-                  <p class="text-xs text-gray-400 mt-0.5">{{ closure.reason }}</p>
+          <app-animated-list [items]="activeClosures">
+            <ng-template let-closure>
+              <div class="flex items-center gap-3 px-4 py-4 min-h-14">
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-gray-900">{{ closure.date }}</p>
+                  @if (closure.reason) {
+                    <p class="text-xs text-gray-400 mt-0.5">{{ closure.reason }}</p>
+                  }
+                </div>
+                @if (!salonContext.isFrozen()) {
+                  <button type="button" (click)="delete(closure)"
+                    class="min-h-9 px-3 text-xs font-medium text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors shrink-0">
+                    Remove
+                  </button>
                 }
               </div>
-              @if (!salonContext.isFrozen()) {
-                <button type="button" (click)="delete(closure)"
-                  class="min-h-9 px-3 text-xs font-medium text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors shrink-0">
-                  Remove
-                </button>
-              }
-            </div>
-          }
+            </ng-template>
+          </app-animated-list>
         </div>
       }
 

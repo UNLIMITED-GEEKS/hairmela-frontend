@@ -10,6 +10,7 @@ import { pushControllerSubscribe } from '../../api/fn/push/push-controller-subsc
 import { pushControllerUnsubscribe } from '../../api/fn/push/push-controller-unsubscribe';
 import { myEntriesControllerGetMyEntries } from '../../api/fn/queues/my-entries-controller-get-my-entries';
 import { PersistentStore } from '../storage/persistent-store';
+import { RoutePath } from '../routing/route-paths';
 
 // Result of attempting to enable push — lets callers react without knowing the
 // underlying reasons (unsupported env, denied permission, missing keys).
@@ -155,7 +156,7 @@ export class PushService {
     }
 
     const route = data.entityId ? await this._positionRouteFor(data.entityId) : null;
-    void this._router.navigate(route ?? ['/dashboard']);
+    void this._router.navigate(route ?? RoutePath.dashboard());
   }
 
   // Resolve the customer's position route for a given entryId by matching it
@@ -168,7 +169,7 @@ export class PushService {
       const entry = res.body.find((e) => e.id === entryId);
       const slug = entry?.queue?.salon?.slug;
       if (!entry || !slug) return null;
-      return ['/s', slug, 'q', entry.queueId, 'e', entry.id, 'position'];
+      return RoutePath.visitPosition('', slug, entry.queueId, entry.id);
     } catch {
       return null;
     }

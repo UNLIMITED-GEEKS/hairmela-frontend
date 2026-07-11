@@ -7,6 +7,7 @@ import { CurrentUserStore } from './current-user.store';
 import { ApiConfiguration } from '../../api/api-configuration';
 import { GuestStore } from '../guest/guest-store';
 import { authenticatedAuthControllerGetMe } from '../../api/fn/auth/authenticated-auth-controller-get-me';
+import { RoutePath } from '../routing/route-paths';
 
 // True on a genuine fresh navigation to the app (typing the URL, following a
 // link, opening a new tab) — but false on a page RELOAD/refresh. Lets the
@@ -71,7 +72,7 @@ export function sessionInit(): () => Promise<void> {
 
       // Fresh load at root as a logged-in user → dashboard. NOT on a refresh.
       if (shouldRedirect) {
-        router.navigateByUrl('/dashboard');
+        router.navigateByUrl(RoutePath.dashboard()[0]);
       }
     } catch {
       tokenStore.clearTokens();

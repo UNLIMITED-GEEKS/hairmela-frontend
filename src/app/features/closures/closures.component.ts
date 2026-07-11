@@ -11,14 +11,30 @@ import { Closure } from '../../api/models/closure';
 import { FrozenBannerComponent } from '../../shared/components/frozen-banner/frozen-banner.component';
 import { TierFreezeDirective } from '../../shared/directives/tier-freeze.directive';
 import { FieldErrorComponent } from '../../shared/components/field-error/field-error.component';
+import { TabsComponent, TabItem } from '../../shared/components/tabs/tabs.component';
+import { AnimatedListComponent } from '../../shared/components/animated-list/animated-list.component';
 import { filter } from 'rxjs';
+import { RouteParam } from '../../core/routing/route-paths';
 
 type ClosureScope = 'salon' | 'staff';
+
+const SCOPE_TABS: TabItem[] = [
+  { id: 'salon', label: 'Salon' },
+  { id: 'staff', label: 'This staff' },
+];
 
 @Component({
   selector: 'app-closures',
   templateUrl: './closures.component.html',
-  imports: [ReactiveFormsModule, SkeletonComponent, FrozenBannerComponent, TierFreezeDirective, FieldErrorComponent],
+  imports: [
+    ReactiveFormsModule,
+    SkeletonComponent,
+    FrozenBannerComponent,
+    TierFreezeDirective,
+    FieldErrorComponent,
+    TabsComponent,
+    AnimatedListComponent,
+  ],
 })
 export class ClosuresComponent implements OnInit {
   protected readonly _location = inject(Location);
@@ -29,6 +45,7 @@ export class ClosuresComponent implements OnInit {
   private readonly _closuresService = inject(ClosuresService);
   protected readonly salonContext = inject(SalonContextService);
 
+  protected readonly scopeTabs = SCOPE_TABS;
   protected readonly activeTab = signal<ClosureScope>('salon');
   protected readonly showAddForm = signal(false);
 
@@ -51,11 +68,11 @@ export class ClosuresComponent implements OnInit {
   });
 
   protected get _salonId(): string {
-    return this._route.snapshot.paramMap.get('salonId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
   }
 
   protected get _staffId(): string {
-    return this._route.snapshot.paramMap.get('staffId') ?? '';
+    return this._route.snapshot.paramMap.get(RouteParam.STAFF_ID) ?? '';
   }
 
   ngOnInit(): void {
@@ -68,8 +85,8 @@ export class ClosuresComponent implements OnInit {
     if (this._staffId) this._closuresService.refreshStaff(this._salonId, this._staffId);
   }
 
-  protected setTab(tab: ClosureScope): void {
-    this.activeTab.set(tab);
+  protected setTab(tab: string): void {
+    this.activeTab.set(tab as ClosureScope);
     this.showAddForm.set(false);
   }
 

@@ -3,6 +3,7 @@ import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { salonRoleGuard } from '../../core/guards/salon-role.guard';
 import { tierGuard } from '../../core/guards/tier.guard';
 import { SalonRole } from '../../core/salon-context/membership.types';
+import { RouteSegment } from '../../core/routing/route-paths';
 
 export const salonRoutes: Routes = [
   {
@@ -11,35 +12,35 @@ export const salonRoutes: Routes = [
       import('./salon-overview/salon-overview.component').then((m) => m.SalonOverviewComponent),
   },
   {
-    path: 'settings',
+    path: RouteSegment.SETTINGS,
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
     loadComponent: () =>
       import('./salon-settings/salon-settings.component').then((m) => m.SalonSettingsComponent),
   },
   {
-    path: 'slug',
+    path: RouteSegment.SLUG_EDIT,
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER] },
     loadComponent: () =>
       import('./salon-slug/salon-slug.component').then((m) => m.SalonSlugComponent),
   },
   {
-    path: 'share',
+    path: RouteSegment.SHARE,
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     loadComponent: () =>
       import('./salon-share/salon-share.component').then((m) => m.SalonShareComponent),
   },
   {
-    path: 'delete',
+    path: RouteSegment.DELETE,
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER] },
     loadComponent: () =>
       import('./delete-salon/delete-salon.component').then((m) => m.DeleteSalonComponent),
   },
   {
-    path: 'leave',
+    path: RouteSegment.LEAVE,
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     loadComponent: () =>
@@ -49,7 +50,7 @@ export const salonRoutes: Routes = [
     // Analytics is a Tier 2 (Pro) feature — role-gated AND tier-gated. Below
     // tier 2, tierGuard redirects to billing. The backend also returns
     // TIER_REQUIRED as the safety net.
-    path: 'analytics',
+    path: RouteSegment.ANALYTICS,
     canActivate: [salonRoleGuard, tierGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN], requiredTier: 2 },
     // Chart.js (via ng2-charts) is only ever used here — registering it at the
@@ -59,28 +60,28 @@ export const salonRoutes: Routes = [
       import('./analytics/analytics.component').then((m) => m.AnalyticsComponent),
   },
   {
-    path: 'media',
+    path: RouteSegment.MEDIA,
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     loadComponent: () =>
       import('./salon-media/salon-media.component').then((m) => m.SalonMediaComponent),
   },
   {
-    path: 'closures',
+    path: RouteSegment.CLOSURES,
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     loadChildren: () =>
       import('../../features/closures/closures.routes').then((m) => m.closuresRoutes),
   },
   {
-    path: 'services',
+    path: RouteSegment.SERVICES,
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     loadChildren: () =>
       import('../../features/services/services.routes').then((m) => m.servicesRoutes),
   },
   {
-    path: 'staff',
+    path: RouteSegment.STAFF,
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     loadChildren: () => import('../../features/staff/staff.routes').then((m) => m.staffRoutes),

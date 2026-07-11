@@ -13,7 +13,7 @@
       <!-- Sticky section nav (desktop) -->
       <nav class="sticky top-24 hidden h-fit flex-col md:flex" aria-label="Sections">
         @for (section of sections; track section.id) {
-          <a routerLink="/privacy" [fragment]="section.id"
+          <a [routerLink]="privacyLink" [fragment]="section.id"
             class="border-l-2 border-gray-200 px-3 py-2.5 text-sm text-gray-500 hover:border-primary hover:text-primary transition-colors">
             {{ section.title }}
           </a>

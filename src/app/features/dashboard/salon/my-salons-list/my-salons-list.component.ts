@@ -1,6 +1,7 @@
 import { Component, input, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { MySalonDto } from '../../../../api/models/my-salon-dto';
+import { RoutePath } from '../../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-my-salons-list',
@@ -12,11 +13,11 @@ export class MySalonsListComponent {
   private readonly _router = inject(Router);
 
   protected navigateToSalon(salonId: string): void {
-    this._router.navigate(['/salons', salonId]);
+    this._router.navigate(RoutePath.salon(salonId));
   }
 
   protected navigateToConsole(salonId: string): void {
-    this._router.navigate(['/salons', salonId]);
+    this._router.navigate(RoutePath.salon(salonId));
   }
 
   protected roleLabel(role: MySalonDto['role']): string {

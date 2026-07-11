@@ -5,21 +5,24 @@
     <div class="shrink-0 px-5 pt-6 pb-3">
       @if (visit.staffForQueue(_queueId); as staff) {
         <div class="flex items-center gap-3 mb-5">
-          <div class="w-16 h-16 rounded-full border-2 border-warning bg-warning-light flex items-center justify-center shrink-0">
-            <svg class="w-8 h-8 text-warning/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-            </svg>
+          <div class="rounded-full border-2 border-warning p-0.5 shrink-0">
+            <app-avatar [src]="staff.photoUrl" [name]="staff.firstName + ' ' + staff.lastName" size="lg" />
           </div>
           <div class="flex-1 min-w-0">
             <div class="rounded-xl bg-warning-light border border-warning/30 px-3 py-2 inline-block mb-1">
               <p class="text-base font-bold text-warning">{{ staff.firstName }} {{ staff.lastName }}@if (staff.nickname) { <span class="font-normal text-warning/70">({{ staff.nickname }})</span>}</p>
             </div>
-            <div>
+            <div class="flex items-center gap-2 flex-wrap">
               @if (staff.queueId) {
                 <span class="text-xs font-semibold px-3 py-1 rounded-full bg-success-light text-success border border-success/20">Available</span>
               } @else {
                 <span class="text-xs font-semibold px-3 py-1 rounded-full bg-primary-light text-primary border border-primary/20">Unavailable</span>
+              }
+              @if (staff.galleryUrls?.length) {
+                <button type="button" (click)="openGallery()"
+                  class="text-xs font-semibold px-3 py-1 rounded-full border border-warning/40 text-warning hover:bg-warning-light transition-colors">
+                  View my works
+                </button>
               }
             </div>
           </div>
@@ -83,6 +86,14 @@
             class="flex-1 min-h-[52px] rounded-2xl border-2 border-warning/40 bg-warning-light text-warning font-bold text-sm flex items-center justify-center hover:bg-warning/20 transition-colors">
             My queues
           </a>
+        } @else {
+          <button
+            type="button"
+            (click)="openJoin()"
+            [disabled]="!joinable()"
+            class="flex-1 min-h-[52px] rounded-2xl bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            Join
+          </button>
         }
         <button
           type="button"
@@ -94,4 +105,25 @@
     </div>
 
   </div>
+
+  @if (joinDialogOpen()) {
+    @if (visit.staffForQueue(_queueId); as staff) {
+      <app-join-dialog
+        [open]="joinDialogOpen()"
+        [salonId]="visit.salon()?.id ?? ''"
+        [queueId]="_queueId"
+        [slug]="_slug"
+        [shellPrefix]="_shellPrefix"
+        [staff]="staff"
+        [initialServiceId]="_serviceId"
+        (closed)="closeJoin()" />
+    }
+  }
+
+  @if (visit.staffForQueue(_queueId); as staff) {
+    <app-gallery-modal
+      [images]="staff.galleryUrls ?? []"
+      [open]="galleryOpen()"
+      (closed)="closeGallery()" />
+  }
 </div>

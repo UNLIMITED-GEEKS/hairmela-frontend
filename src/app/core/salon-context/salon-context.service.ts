@@ -4,6 +4,7 @@ import { filter, catchError, EMPTY } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MembershipStore } from './membership.store';
 import { Membership } from './membership.types';
+import { RouteParam, RouteQueryParam } from '../routing/route-paths';
 
 @Injectable({ providedIn: 'root' })
 export class SalonContextService {
@@ -59,13 +60,13 @@ export class SalonContextService {
     // segments like 'new' and 'mine' are never mistaken for IDs.
     let route = this._root.snapshot;
     while (route) {
-      if (route.params['salonId']) return route.params['salonId'];
+      if (route.params[RouteParam.SALON_ID]) return route.params[RouteParam.SALON_ID];
       route = route.firstChild!;
       if (!route) break;
     }
 
     // Fall back to ?salon= query param (used by the dashboard switcher)
-    const salon = this._root.snapshot.queryParamMap.get('salon');
+    const salon = this._root.snapshot.queryParamMap.get(RouteQueryParam.SALON);
     return salon ?? null;
   }
 }
