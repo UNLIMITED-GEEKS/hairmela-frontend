@@ -96,13 +96,13 @@
                 </button>
               }
               @case ('upgrade') {
-                <button type="button" (click)="upgrade(plan.tier)" disabled
+                <button type="button" (click)="upgrade(plan.tier)" 
                   class="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-colors">
                   {{ acting() ? 'Working…' : 'Upgrade' }}
                 </button>
               }
               @case ('downgrade') {
-                <button type="button" (click)="downgrade(plan.tier)" disabled
+                <button type="button" (click)="downgrade(plan.tier)"
                   class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors">
                   Downgrade
                 </button>
