@@ -66,8 +66,8 @@
          container's decision, not the card's — landing page uses 2 rows via
          its own grid, this page uses 1). -->
     @if (listing.loading()) {
-      <div class="flex gap-4 overflow-x-auto themed-scrollbar no-scrollbar-mobile pb-2">
-        <app-skeleton variant="card" [count]="4" width="100%" />
+      <div class="pb-2">
+        <app-skeleton variant="card" [count]="4" />
       </div>
     } @else if (listing.items().length === 0) {
       <div class="py-10 text-center h-64 flex justify-around items-center">
