@@ -1,19 +1,25 @@
-<!-- Full viewport height, no overflow on the shell itself -->
-<div class="h-dvh bg-gray-50 flex flex-col">
+<!-- Optional header slot -->
+<ng-content select="[slot=header]" />
 
-  <!-- Optional sticky header slot -->
-  <ng-content select="[slot=header]" />
+<!-- Body — scrolls with the page (this component doesn't assume it owns the
+     viewport; it may be nested inside a shell's own scroll container, e.g.
+     auth-shell's <main>). Bottom padding reserves room for the fixed actions
+     bar below on mobile so content never sits underneath it; not needed on
+     md+ where the actions bar is in-flow instead. -->
+<div [class]="(noPadding() ? '' : 'px-4 pt-6 ') + 'pb-24 md:pb-4 px-3 ' + maxWidth() + ' md:max-w-none mx-auto md:mx-0 w-full'">
+  <ng-content />
+</div>
 
-  <!-- Scrollable body — takes all remaining space -->
-  <div [class]="'flex-1 overflow-y-auto ' + (noPadding() ? '' : 'px-4 pt-6 pb-4') + ' ' + maxWidth() + ' mx-auto w-full'">
-    <ng-content />
+<!-- Action bar — fixed above the bottom nav on mobile (pinned to the
+     viewport, not the nearest scroll container, so it works regardless of
+     ancestor overflow/height — unlike `sticky`, which only pins within a
+     container tall enough to scroll, not guaranteed when this component is
+     nested in a shell's own scrollable <main>). On md+ there's no bottom
+     nav/mobile chrome to clear (auth-shell's sidebar owns that space
+     instead), so it renders in-flow at the end of the content. -->
+<div class="fixed inset-x-0 above-bottom-nav z-30 bg-surface px-4 pt-3 pb-4
+            md:static md:px-0 md:pt-0 md:pb-0">
+  <div [class]="maxWidth() + ' md:max-w-none mx-auto md:mx-0 w-full'">
+    <ng-content select="[slot=actions]" />
   </div>
-
-  <!-- Fixed bottom action bar -->
-  <div class="shrink-0 bg-gray-50 border-t border-gray-100 px-4 py-3 safe-area-bottom">
-    <div [class]="maxWidth() + ' mx-auto w-full'">
-      <ng-content select="[slot=actions]" />
-    </div>
-  </div>
-
 </div>

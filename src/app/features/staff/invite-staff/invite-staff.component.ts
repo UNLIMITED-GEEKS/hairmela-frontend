@@ -6,12 +6,13 @@ import { StaffService } from '../staff.service';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { OrgContextService } from '../../../core/salon-context/org-context.service';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-invite-staff',
   templateUrl: './invite-staff.component.html',
-  imports: [ReactiveFormsModule, FieldErrorComponent],
+  imports: [ReactiveFormsModule, FieldErrorComponent, PageHeaderComponent],
 })
 export class InviteStaffComponent {
   protected readonly _location = inject(Location);

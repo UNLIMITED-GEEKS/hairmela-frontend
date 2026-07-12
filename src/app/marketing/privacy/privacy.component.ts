@@ -92,7 +92,7 @@ export class PrivacyComponent {
       id: 'contact',
       title: 'Questions or suggestions',
       body: [
-        'If you have questions about this policy or your personal information, email us at hello@hairmela.com.',
+        'If you have questions about this policy or your personal information, email us at hello@contact.hairmela.com.',
       ],
     },
   ];

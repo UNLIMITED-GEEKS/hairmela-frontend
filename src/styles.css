@@ -1,5 +1,101 @@
 @import 'tailwindcss';
 
+/* Self-hosted fonts — variable-weight files (Inter, Roboto, Geist) cover
+   100–800 in one file each; Lora and Figtree ship only as static per-weight
+   files on Google Fonts (no variable axis), so those load one file per
+   weight actually used. font-display:swap avoids blocking first paint. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url('/fonts/Inter-var.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url('/fonts/Roboto-var.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url('/fonts/Geist-var.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/Lora-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/Lora-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/Lora-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/Lora-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/Figtree-300.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/Figtree-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/Figtree-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/Figtree-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/Figtree-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/Figtree-800.woff2') format('woff2');
+}
+
 @theme {
   /* ── Breakpoints ─────────────────────────────────────────────────────────── */
   --breakpoint-xxs: 340px;
@@ -13,30 +109,35 @@
   --breakpoint-2xl: 1536px;
 
   /* ── Font families ───────────────────────────────────────────────────────── */
-  --font-family-sans: 'Inter', system-ui, sans-serif;
+  --font-family-sans: 'Geist', system-ui, sans-serif;
   --font-family-inter: 'Inter', sans-serif;
   --font-family-poppins: 'Poppins', sans-serif;
+  --font-family-roboto: 'Roboto', sans-serif;
+  --font-family-geist: 'Geist', sans-serif;
+  --font-family-lora: 'Lora', serif;
+  --font-family-figtree: 'Figtree', sans-serif;
 
-  /* ── Primary — dark red ──────────────────────────────────────────────────── */
-  --color-primary:           #9B1C1C;
-  --color-primary-hover:     #7F1D1D;
-  --color-primary-light:     #FEE2E2;
-  --color-primary-foreground:#FFFFFF;
+  /* ── Primary — brand pink/burgundy scale ─────────────────────────────────── */
+  --color-primary-50:  #FF8FBC;
+  --color-primary-100: #E0729F;
+  --color-primary-200: #C25681;
+  --color-primary-300: #A33964;
+  --color-primary-400: #851D46;
+  --color-primary-500: #660029;
+  --color-primary-600: #520021;
+  --color-primary-700: #3D0019;
+  --color-primary-800: #290010;
+  --color-primary-900: #140008;
+  --color-primary:            var(--color-primary-500);
+  --color-primary-hover:      var(--color-primary-600);
+  --color-primary-light:      var(--color-primary-50);
+  --color-primary-foreground: #FFFFFF;
 
-  /* ── Neutral / surface ───────────────────────────────────────────────────── */
-  --color-surface:           #FFFFFF;
-  --color-surface-raised:    #F9FAFB;
-  --color-surface-overlay:   #F3F4F6;
-  --color-border:            #E5E7EB;
-  --color-border-strong:     #D1D5DB;
+  /* ── Secondary ────────────────────────────────────────────────────────────── */
+  --color-secondary-100: #858585A6;
+  --color-secondary-light: #F6E8D6;
 
-  /* ── Text ────────────────────────────────────────────────────────────────── */
-  --color-text-primary:      #111827;
-  --color-text-secondary:    #6B7280;
-  --color-text-disabled:     #9CA3AF;
-  --color-text-inverse:      #FFFFFF;
-
-  /* ── Semantic ────────────────────────────────────────────────────────────── */
+  /* ── Semantic (non-theme-dependent) ─────────────────────────────────────── */
   --color-success:           #16A34A;
   --color-success-light:     #DCFCE7;
   --color-error:             #DC2626;
@@ -45,6 +146,18 @@
   --color-warning-light:     #FEF3C7;
   --color-info:              #2563EB;
   --color-info-light:        #DBEAFE;
+
+  /* "Open" badge on salon photo cards — bright brand green, distinct from the
+     semantic --color-success used for other success states app-wide. */
+  --color-open:              #01FF41;
+
+  /* "Open Now" status badge background (salon slug page) — soft green with
+     alpha already baked into the hex (30%); use as-is, no /opacity modifier. */
+  --color-open-badge:        #89DC864D;
+
+  /* "Available Now" text on staff cards (salon slug page) — distinct teal
+     green from --color-open, used specifically for staff availability text. */
+  --color-available:         #07FFC5;
 
   /* ── Shadows ─────────────────────────────────────────────────────────────── */
   --shadow-card: 0px 1px 4px 2px rgba(50, 71, 92, 0.02), 0px 2px 6px 1px rgba(50, 71, 92, 0.04), 0px 1px 6px 2px rgba(50, 71, 92, 0.06);
@@ -64,6 +177,62 @@
     0%   { background-position: -400px 0; }
     100% { background-position: 400px 0; }
   }
+}
+
+/* Tailwind v4's preflight sets body's font-family from its own hardcoded
+   ui-sans-serif stack, not from --font-family-sans — redefining the theme
+   token alone doesn't retarget the base font, so it's set explicitly here. */
+body {
+  font-family: var(--font-family-sans);
+  background-color: var(--color-surface);
+}
+
+/* ── Theme-mode tokens (light/dark) ──────────────────────────────────────────
+   Surface/text/border colors live here as plain CSS custom properties (not
+   inside @theme) so they can change at runtime via [data-theme] on <html>
+   once the light/dark toggle ships. @theme inline below registers them as
+   Tailwind utilities (bg-surface, text-text-primary, border-border, etc.)
+   that resolve through the CSS variable, so components never reference a
+   raw hex and automatically pick up the active theme.
+   Dark values are currently identical to light — drop in real dark hexes
+   here when available; no component changes will be needed. */
+:root, :root[data-theme='light'] {
+  --color-surface:           #FDFAF7;
+  --color-surface-raised:    #F9FAFB;
+  --color-surface-overlay:   #F3F4F6;
+  --color-border:            #E5E7EB;
+  --color-border-strong:     #D1D5DB;
+
+  --color-text-primary:      #111827;
+  --color-text-secondary:    #6B7280;
+  --color-text-disabled:     #9CA3AF;
+  --color-text-inverse:      #FFFFFF;
+}
+
+:root[data-theme='dark'] {
+  --color-surface:           #FFFFFF;
+  --color-surface-raised:    #F9FAFB;
+  --color-surface-overlay:   #F3F4F6;
+  --color-border:            #E5E7EB;
+  --color-border-strong:     #D1D5DB;
+
+  --color-text-primary:      #111827;
+  --color-text-secondary:    #6B7280;
+  --color-text-disabled:     #9CA3AF;
+  --color-text-inverse:      #FFFFFF;
+}
+
+@theme inline {
+  --color-surface:         var(--color-surface);
+  --color-surface-raised:  var(--color-surface-raised);
+  --color-surface-overlay: var(--color-surface-overlay);
+  --color-border:           var(--color-border);
+  --color-border-strong:    var(--color-border-strong);
+
+  --color-text-primary:   var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-disabled:  var(--color-text-disabled);
+  --color-text-inverse:   var(--color-text-inverse);
 }
 
 .skeleton-pulse {
@@ -100,6 +269,25 @@
   animation: tab-content-enter 0.2s ease-out;
 }
 
+/* Bottom-nav active-tab glow fade+scale (Angular animate.enter/animate.leave).
+   Positioning is handled entirely by inset-0 (no transform) so this
+   animation's transform is pure scale — mixing it with a translate-based
+   centering technique caused the glow to visibly jump/travel on enter. */
+@keyframes nav-glow-enter {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes nav-glow-leave {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.7); }
+}
+.nav-glow-enter {
+  animation: nav-glow-enter 0.2s ease-out;
+}
+.nav-glow-leave {
+  animation: nav-glow-leave 0.15s ease-in forwards;
+}
+
 /* Gallery modal open/close fade (Angular animate.enter/animate.leave). */
 @keyframes gallery-modal-enter {
   from { opacity: 0; }
@@ -114,6 +302,57 @@
 }
 .gallery-modal-leave {
   animation: gallery-modal-leave 0.2s ease-in forwards;
+}
+
+/* Shared backdrop fade for centered dialogs (Angular animate.enter/animate.leave).
+   Pairs with .modal-card-enter/.modal-card-leave below on the inner panel. */
+@keyframes modal-backdrop-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes modal-backdrop-leave {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+.modal-backdrop-enter {
+  animation: modal-backdrop-enter 0.2s ease-out;
+}
+.modal-backdrop-leave {
+  animation: modal-backdrop-leave 0.2s ease-in forwards;
+}
+
+/* Shared card scale+fade for the panel inside a centered dialog (Angular
+   animate.enter/animate.leave). Kept subtle to match gallery-modal's simplicity. */
+@keyframes modal-card-enter {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes modal-card-leave {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.95); }
+}
+.modal-card-enter {
+  animation: modal-card-enter 0.2s ease-out;
+}
+.modal-card-leave {
+  animation: modal-card-leave 0.2s ease-in forwards;
+}
+
+/* Full-screen overlay fade for scanner/announcement-style modals with no
+   card (Angular animate.enter/animate.leave) — same pattern as gallery-modal. */
+@keyframes overlay-modal-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes overlay-modal-leave {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+.overlay-modal-enter {
+  animation: overlay-modal-enter 0.2s ease-out;
+}
+.overlay-modal-leave {
+  animation: overlay-modal-leave 0.2s ease-in forwards;
 }
 
 /* Safe-area padding for iPhone notch / home indicator */
@@ -167,6 +406,10 @@
    never occluded by the nav. Defined once here; do not hardcode elsewhere. */
 :root {
   --bottom-nav-height: calc(3.5rem + env(safe-area-inset-bottom));
+  /* Default when SidebarComponent isn't mounted (e.g. customer-facing
+     shells). SidebarComponent overwrites this on <html> with its live
+     collapsed/expanded width whenever it IS mounted (auth-shell). */
+  --sidebar-width: 0px;
 }
 
 /* Reserves room for the fixed bottom nav on mobile; collapses on md+ where
@@ -177,6 +420,21 @@
 @media (min-width: 768px) {
   .pb-bottom-nav {
     padding-bottom: 0;
+  }
+}
+
+/* Same breakpoint as .pb-bottom-nav, but as a `bottom` offset — for content
+   fixed-positioned above the bottom nav (e.g. screen-layout's action bar)
+   rather than padding a scroll container. The extra 0.75rem is a visible gap
+   above the nav; padding *inside* the fixed element can't create this since
+   its bottom edge is still pinned at the base offset regardless of its own
+   padding. */
+.above-bottom-nav {
+  bottom: calc(var(--bottom-nav-height) + 0.75rem);
+}
+@media (min-width: 768px) {
+  .above-bottom-nav {
+    bottom: 0;
   }
 }
 
@@ -203,13 +461,16 @@
   }
 }
 
-/* Thin, brand-colored scrollbar for horizontal chip rows — kept visible
-   (not hidden) but styled instead of the default OS scrollbar. */
+/* Thin, brand-colored scrollbar — kept visible (not hidden) but styled
+   instead of the default OS scrollbar. Works for both horizontal chip rows
+   and vertical lists: width sizes a vertical scrollbar, height a horizontal
+   one, and only the relevant one ever renders on a given element. */
 .themed-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: var(--color-primary) transparent;
 }
 .themed-scrollbar::-webkit-scrollbar {
+  width: 4px;
   height: 4px;
 }
 .themed-scrollbar::-webkit-scrollbar-track {

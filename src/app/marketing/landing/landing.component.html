@@ -1,9 +1,9 @@
 <!-- Compact hero — search bar overlaps its bottom edge -->
-<section class="relative flex flex-col items-center justify-center px-5 pt-28 pb-20 text-center overflow-hidden bg-surface-raised">
+<section class="relative flex flex-col items-center justify-center px-5 pt-28 pb-20 text-center overflow-hidden bg-primary/2">
 
   <!-- Subtle background gradient blobs -->
-  <div class="absolute -top-32 -left-32 w-125 h-125 rounded-full bg-primary/10 blur-3xl pointer-events-none" aria-hidden="true"></div>
-  <div class="absolute -bottom-32 -right-32 w-100 h-100 rounded-full bg-primary/8 blur-3xl pointer-events-none" aria-hidden="true"></div>
+  <!-- <div class="absolute -top-32 -left-32 w-125 h-125 rounded-full bg-primary/2 blur-3xl pointer-events-none" aria-hidden="true"></div>
+  <div class="absolute -bottom-32 -right-32 w-100 h-100 rounded-full bg-primary/2 blur-3xl pointer-events-none" aria-hidden="true"></div> -->
 
   <div class="relative z-10 max-w-2xl mx-auto flex flex-col items-center gap-4">
     <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-text-primary leading-tight tracking-tight">
@@ -19,7 +19,7 @@
 
 <!-- Search / filter bar — sticky (clears the fixed public nav above it), overlaps the hero -->
 <div class="sticky top-20 z-30 px-5">
-  <div class="max-w-3xl mx-auto -mt-8 rounded-2xl bg-white shadow-lg border border-gray-100 p-3 flex flex-col sm:flex-row gap-2">
+  <div class="max-w-3xl mx-auto -mt-8 rounded-2xl bg-white shadow-lg border border-gray-100  flex flex-col sm:flex-row gap-2">
     <div class="relative flex-1">
       <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
@@ -48,43 +48,33 @@
 
 <!-- Category chips -->
 <div class="px-5 mt-6">
-  <div class="max-w-6xl mx-auto flex justify-start sm:justify-center gap-2 overflow-x-auto themed-scrollbar pb-2">
-    <button type="button" (click)="onCategorySelect('')"
-      [class]="'shrink-0 min-h-7 px-3.5 rounded-full text-xs font-medium border transition-colors ' +
-        (listing.filters().category === ''
-          ? 'bg-primary text-white border-primary'
-          : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50')">
-      All
-    </button>
-    @for (cat of categoriesService.categories(); track cat.id) {
-      <button type="button" (click)="onCategorySelect(cat.slug)"
-        [class]="'shrink-0 min-h-7 px-3.5 rounded-full text-xs font-medium border transition-colors ' +
-          (listing.filters().category === cat.slug
-            ? 'bg-primary text-white border-primary'
-            : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50')">
-        {{ cat.name }}
-      </button>
-    }
+  <div class="max-w-6xl mx-auto">
+    <app-category-pills
+      [categories]="categoriesService.categories()"
+      [selected]="listing.filters().category"
+      (select)="onCategorySelect($event)" />
   </div>
 </div>
 
 <!-- Salon listing — height-capped grid (no infinite scroll), pagination controls -->
-<section class="px-5 pt-10 pb-16">
+<section class="px-5 pt-6 pb-4 md:pb-16 ">
   <div class="max-w-6xl mx-auto">
 
     @if (listing.loading()) {
-      <div class="grid grid-rows-2 grid-flow-col auto-cols-[45%] sm:auto-cols-[30%] gap-4 overflow-x-auto themed-scrollbar pb-2">
+      <div class="flex gap-4 overflow-x-auto themed-scrollbar pb-2">
         <app-skeleton variant="card" [count]="6" />
       </div>
     } @else if (listing.items().length === 0) {
-      <div class="py-16 text-center">
+       <div class="py-10 text-center h-64 flex justify-around items-center">
         <p class="text-sm text-gray-400">No salons found. Try a different search or location.</p>
       </div>
     } @else {
-      <!-- Capped at 2 rows — extra results scroll horizontally instead of wrapping taller. -->
-      <div class="grid grid-rows-2 grid-flow-col auto-cols-[45%] sm:auto-cols-[30%] gap-4 overflow-x-auto themed-scrollbar pb-2">
+      <!-- Single row — extra results scroll horizontally instead of wrapping taller. -->
+      <div class="flex gap-4 overflow-x-auto themed-scrollbar pb-2">
         @for (salon of listing.items(); track salon.id) {
-          <app-salon-card [salon]="salon" />
+          <div class="shrink-0 w-[70%] xs:w-[55%] sm:w-[38%] md:w-[22%] h-64 md:h-64">
+            <app-salon-card [salon]="salon" />
+          </div>
         }
       </div>
 
@@ -97,7 +87,7 @@
 </section>
 
 <!-- How it works -->
-<section class="py-20 px-5 bg-surface-raised">
+<section class="py-10 md:py-20 px-5 bg-primary/2">
   <div class="max-w-4xl mx-auto text-center">
     <h2 class="text-2xl sm:text-3xl font-bold text-text-primary mb-3">How it works</h2>
     <p class="text-sm text-text-secondary mb-12 max-w-md mx-auto">Three steps from setup to serving customers — no hardware required.</p>

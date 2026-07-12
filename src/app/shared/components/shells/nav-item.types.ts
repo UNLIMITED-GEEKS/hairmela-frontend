@@ -30,4 +30,6 @@ export type NavIcon =
   | 'scissors'
   | 'info'
   | 'mail'
-  | 'heart';
+  | 'heart'
+  | 'search'
+  | 'profile';

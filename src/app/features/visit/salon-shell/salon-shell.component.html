@@ -2,8 +2,14 @@
 
 <!-- Called banner -->
 @if (visit.calledVisible()) {
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" role="alert" aria-live="assertive">
-    <div class="bg-white rounded-2xl px-8 py-10 text-center shadow-2xl max-w-xs w-full mx-4">
+  <div
+    animate.enter="modal-backdrop-enter"
+    animate.leave="modal-backdrop-leave"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" role="alert" aria-live="assertive">
+    <div
+      animate.enter="modal-card-enter"
+      animate.leave="modal-card-leave"
+      class="bg-white rounded-2xl px-8 py-10 text-center shadow-2xl max-w-xs w-full mx-4">
       <div class="w-16 h-16 rounded-full bg-success-light flex items-center justify-center mx-auto mb-4">
         <svg class="w-8 h-8 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>

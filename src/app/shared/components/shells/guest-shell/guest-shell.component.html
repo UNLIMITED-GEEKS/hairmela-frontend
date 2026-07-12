@@ -1,4 +1,4 @@
-<div class="flex h-screen w-full overflow-hidden bg-surface-raised">
+<div class="flex h-screen w-full overflow-hidden bg-surface">
 
   <!-- Desktop sidebar -->
   <app-sidebar [navItems]="navItems" [showLogout]="false" />
@@ -20,7 +20,7 @@
 
     <!-- Content -->
     <main class="flex-1 overflow-y-auto pt-8 md:pt-0 pb-bottom-nav">
-      <div class="w-[95%] mx-auto py-6">
+      <div class="w-[95%] mx-auto py-6 md:py-2">
         <router-outlet />
       </div>
     </main>

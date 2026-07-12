@@ -1,13 +1,13 @@
 <app-connection-banner />
 
 @if (console.loading()) {
-  <div class="h-screen-minus-topbar bg-gray-50 px-4 py-8">
+  <div class="h-screen-minus-topbar bg-surface px-4 py-8">
     <div class="max-w-lg mx-auto">
       <app-skeleton variant="card" [count]="2" />
     </div>
   </div>
 } @else if (staffFrozen()) {
-  <div class="h-screen-minus-topbar bg-gray-50 flex items-center justify-center px-4">
+  <div class="h-screen-minus-topbar bg-surface flex items-center justify-center px-4">
     <div class="max-w-sm text-center space-y-3">
       <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
         <svg class="h-6 w-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -21,24 +21,19 @@
         Ask the owner to upgrade to restore access.
       </p>
       <button type="button" (click)="_location.back()"
-        class="inline-block rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+        class="inline-block rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-surface transition-colors">
         Go back
       </button>
     </div>
   </div>
 } @else {
-  <div class="h-screen-minus-topbar bg-white flex flex-col">
+  <div class="h-screen-minus-topbar bg-surface flex flex-col">
 
     <!-- Top bar: back + status pills + call next -->
-    <div class="shrink-0 bg-white border-b border-gray-100 px-4 pt-2 pb-3 space-y-2">
+    <div class="shrink-0 bg-surface border-b border-gray-100 px-4 pt-2 pb-3 space-y-2">
 
       <div class="flex items-center gap-2">
-        <button type="button" (click)="_location.back()"
-          class="min-w-11 min-h-11 flex items-center justify-center text-gray-400 hover:text-primary -ml-2 shrink-0">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-          </svg>
-        </button>
+        <app-back-button variant="plain" />
         <div class="flex items-center gap-1.5 flex-1 flex-wrap">
           @for (s of statusOptions; track s) {
             <button
@@ -48,7 +43,7 @@
                 (console.queueStatus() === s
                   ? (s === 'OPEN'   ? 'bg-success-light text-success'
                    : s === 'PAUSED' ? 'bg-warning-light text-warning'
-                                    : 'bg-primary-light text-primary')
+                                    : 'bg-red-200 text-red-950')
                   : 'bg-gray-100 text-gray-400 hover:bg-gray-200 disabled:opacity-40')">
               {{ s === 'OPEN' ? 'Open' : s === 'PAUSED' ? 'Paused' : 'Closed' }}
             </button>
@@ -59,13 +54,17 @@
       <button
         (click)="callNext()"
         [disabled]="console.queueStatus() !== 'OPEN' || console.waitingEntries().length === 0 || console.hasServingEntry() || console.nextIsLocked()"
-        class="w-full min-h-11 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-40 transition-opacity">
+        class="w-full py-2.5 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-40 transition-opacity">
         Call next
       </button>
     </div>
 
-    <!-- Page content -->
-    <div class="flex-1 overflow-hidden">
+    <!-- Page content — overflow-hidden here previously clipped the routed
+         pages' md:static desktop action bar (position: fixed on mobile
+         bypasses it, but static content actually needs to render within
+         normal flow). Each routed page already manages its own internal
+         scroll region (flex-1 overflow-y-auto), so this isn't load-bearing. -->
+    <div class="flex-1 min-h-0">
       <router-outlet />
     </div>
 

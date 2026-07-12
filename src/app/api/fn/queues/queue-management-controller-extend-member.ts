@@ -13,26 +13,26 @@ import { QueueEntryMember } from '../../models/queue-entry-member';
 export interface QueueManagementControllerExtendMember$Params {
 
 /**
+ * Salon UUID
+ */
+  salonId: string;
+
+/**
  * Queue UUID
  */
   queueId: string;
   entryId: string;
   memberId: string;
-
-/**
- * Salon UUID
- */
-  salonId: string;
       body: ExtendMemberDto
 }
 
 export function queueManagementControllerExtendMember(http: HttpClient, rootUrl: string, params: QueueManagementControllerExtendMember$Params, context?: HttpContext): Observable<StrictHttpResponse<QueueEntryMember>> {
   const rb = new RequestBuilder(rootUrl, queueManagementControllerExtendMember.PATH, 'patch');
   if (params) {
+    rb.path('salonId', params.salonId, {});
     rb.path('queueId', params.queueId, {});
     rb.path('entryId', params.entryId, {});
     rb.path('memberId', params.memberId, {});
-    rb.path('salonId', params.salonId, {});
     rb.body(params.body, 'application/json');
   }
 

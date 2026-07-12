@@ -1,0 +1,74 @@
+<div class="py-6 px-2 space-y-6">
+
+  <!-- Search -->
+  <div class="relative">
+    <app-icon name="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400" />
+    <input type="text" placeholder="Search for a salon"
+      [value]="initialSearch"
+      (input)="onSearchInput($event)"
+      class="w-full min-h-12 pl-10 pr-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400
+             focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
+  </div>
+
+  <!-- Categories -->
+  <div>
+    <h2 class="text-base font-bold text-text-primary mb-3">Categories</h2>
+    <app-category-pills
+      [categories]="categoriesService.categories()"
+      [selected]="listing.filters().category"
+      (select)="onCategorySelect($event)" />
+  </div>
+
+  <!-- Results -->
+  <div>
+    <h2 class="text-base font-bold text-text-primary mb-3">Results</h2>
+
+    @if (listing.loading()) {
+      <div class="space-y-3 overflow-x-auto themed-scrollbar pb-2">
+        <div class="flex gap-3">
+          <app-skeleton variant="card" [count]="3" />
+        </div>
+        <div class="flex gap-3">
+          <app-skeleton variant="card" [count]="3" />
+        </div>
+      </div>
+    } @else if (listing.items().length === 0) {
+      <div class="py-16 text-center h-64 flex justify-around items-center">
+        <p class="text-sm text-gray-400">No salons found. Try a different search or category.</p>
+      </div>
+    } @else {
+      <!-- Mobile: two-row horizontal-scroll carousel (see topRow/bottomRow
+           comment in the .ts for why this isn't a CSS grid). -->
+      <div class="md:hidden">
+        <div class="flex gap-3 overflow-x-auto themed-scrollbar pb-2">
+         @for (salon of topRow(); track salon.id) {
+          <div class="shrink-0 w-[65%] xs:w-[55%] sm:w-[38%] h-64">
+            <app-salon-card [salon]="salon" />
+          </div>
+        }
+      </div>
+        <div class="flex gap-3 overflow-x-auto themed-scrollbar pb-2">
+          @for (salon of bottomRow(); track salon.id) {
+          <div class="shrink-0 w-[65%] xs:w-[55%] sm:w-[38%] h-64">
+            <app-salon-card [salon]="salon" />
+          </div>
+        }
+      </div>
+      </div>
+
+      <!-- Desktop: plain 4-column grid, no horizontal scroll. -->
+      <div class="hidden md:grid md:grid-cols-4 gap-4">
+        @for (salon of listing.items(); track salon.id) {
+          <div class="h-64">
+            <app-salon-card [salon]="salon" />
+          </div>
+        }
+      </div>
+
+      <div class="mt-8">
+        <app-pagination [meta]="listing.meta()" (pageChange)="listing.goToPage($event)" />
+      </div>
+    }
+  </div>
+
+</div>

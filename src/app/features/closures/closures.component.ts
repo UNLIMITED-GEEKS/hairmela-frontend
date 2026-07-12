@@ -1,7 +1,8 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { Location } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
+import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { ScreenLayoutComponent } from '../../shared/components/screen-layout/screen-layout.component';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ToastService } from '../../core/toast/toast.service';
 import { SalonContextService } from '../../core/salon-context/salon-context.service';
@@ -34,10 +35,11 @@ const SCOPE_TABS: TabItem[] = [
     FieldErrorComponent,
     TabsComponent,
     AnimatedListComponent,
+    PageHeaderComponent,
+    ScreenLayoutComponent,
   ],
 })
 export class ClosuresComponent implements OnInit {
-  protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _fb = inject(FormBuilder);
   private readonly _confirmDialog = inject(ConfirmDialogService);

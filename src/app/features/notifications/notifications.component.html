@@ -1,7 +1,10 @@
-<div class="py-6 px-4">
+<div class="md:max-w-132 md:mx-auto">
+
+  <app-page-header title="Notifications" backVariant="glass" />
+</div>
+<div class="pb-6 px-3 ">
 
   <div class="max-w-lg mx-auto">
-    <h1 class="text-xl font-semibold text-gray-900 mb-6">Notifications</h1>
     <app-pending-invites (inviteActioned)="onInviteActioned()" />
     <div class="text-sm text-gray-400 text-center py-8">No other notifications</div>
   </div>

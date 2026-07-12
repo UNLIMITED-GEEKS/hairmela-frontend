@@ -4,6 +4,7 @@ import { SalonListingItemDto } from '../../../api/models/salon-listing-item-dto'
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { FavoritesService } from '../../../core/favorites/favorites.service';
 import { MediaUrlPipe } from '../../pipes/media-url.pipe';
+import { IconComponent } from '../icon/icon.component';
 
 // Shared salon "card" — identical shape used by the homepage listing and the
 // favourites page (FRONTEND-FAVORITES-LISTING-HANDOFF §3). Always links to the
@@ -13,7 +14,7 @@ import { MediaUrlPipe } from '../../pipes/media-url.pipe';
 @Component({
   selector: 'app-salon-card',
   templateUrl: './salon-card.component.html',
-  imports: [RouterLink, MediaUrlPipe],
+  imports: [RouterLink, MediaUrlPipe, IconComponent],
   // The card sits in a CSS grid whose rows stretch to their tallest item by
   // default — the host itself must also stretch (block-level custom elements
   // don't inherit that height automatically) so the template's h-full <a>

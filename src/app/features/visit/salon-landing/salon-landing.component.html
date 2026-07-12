@@ -1,70 +1,78 @@
-<div class="py-6 px-4">
+<div class="pt-3 px-2 md:max-w-4xl  md:mx-auto">
 
-  <div class="max-w-md mx-auto space-y-5">
+  @if (visit.salon(); as s) {
+    <!-- Header — full-bleed salon photo, glass back/heart buttons overlaid.
+         Taller on desktop — a wide, short box crops object-cover too tight,
+         zooming in past the subject instead of showing the fuller scene. -->
+    <div class="relative h-56 md:h-100 w-full overflow-hidden">
+      <img [src]="s.photoUrl ? (s.photoUrl | mediaUrl) : placeholderImage" alt=""
+        class="absolute inset-0 h-full w-full object-cover object-top rounded-t-2xl" />
 
-    <!-- Salon avatar + "Open Now" badge -->
-    <div class="flex justify-center relative mb-2">
-      <div class="rounded-full border-2 border-primary p-0.5">
-        <app-avatar [src]="visit.salon()?.photoUrl" [name]="visit.salon()?.name ?? ''" size="xl" />
+      <div class="absolute top-3 left-3">
+        <app-back-button variant="glass" />
       </div>
-      @if (salonStatus(); as status) {
-        <span class="absolute bottom-0 right-[calc(50%-52px)] translate-x-full -translate-y-1
-                     text-xs font-semibold px-3 py-1 rounded-full border"
-          [class]="status.badgeClasses">
-          {{ status.label }}
-        </span>
+
+      @if (showHeart()) {
+        <button type="button" (click)="toggleFavorite()"
+          [attr.aria-label]="isFavorited() ? 'Remove from favourites' : 'Add to favourites'"
+          [attr.aria-pressed]="isFavorited()"
+          class="absolute top-3 right-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/20 hover:scale-105 transition-transform">
+          <app-icon [name]="isFavorited() ? 'heart-filled' : 'heart'"
+            class="h-5 w-5 transition-colors"
+            [class.text-primary]="isFavorited()"
+            [class.text-white]="!isFavorited()" />
+        </button>
       }
     </div>
 
-    @if (visit.salon(); as s) {
-      <div class="relative w-full rounded-2xl border-2 border-primary bg-warning-light px-5 py-4 text-center">
-        <h1 class="text-xl font-bold text-warning">{{ s.name }}</h1>
-        @if (showHeart()) {
-          <button type="button" (click)="toggleFavorite()"
-            [attr.aria-label]="isFavorited() ? 'Remove from favourites' : 'Add to favourites'"
-            [attr.aria-pressed]="isFavorited()"
-            class="absolute top-1/2 -translate-y-1/2 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm hover:scale-105 transition-transform">
-            <svg class="h-5 w-5 transition-colors" viewBox="0 0 24 24"
-              [attr.fill]="isFavorited() ? 'currentColor' : 'none'"
-              [class.text-primary]="isFavorited()"
-              [class.text-gray-400]="!isFavorited()"
-              stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 21.036l-7.682-8.354a4.5 4.5 0 010-6.364z" />
-            </svg>
-          </button>
-        }
-      </div>
-      <div class="w-full rounded-2xl border border-gray-200 px-5 py-3">
-        <p class="text-sm text-gray-500">{{ s.address?.city ? s.address.city + ' — ' : '' }}{{ s.name }}</p>
-      </div>
-    }
+    <!-- Content sheet — overlaps the header photo, rounded top corners only -->
+    <div class="relative -mt-6 rounded-t-3xl bg-surface px-4 pt-5 pb-6">
 
-    <!-- About / Services / Staffs tabs -->
-    <app-tabs class="block mb-2" [tabs]="landingTabs" [activeId]="activeTab()" (tabChange)="setTab($event)" />
+      @if (salonStatus(); as status) {
+        <span class="inline-block text-xs font-normal px-3 py-1 rounded-full border" [class]="status.badgeClasses">
+          {{ status.label }}
+        </span>
+      }
 
-    @if (frozen()) {
-      <div class="w-full rounded-2xl border border-gray-200 bg-gray-50 px-5 py-8 text-center">
-        <p class="text-sm font-semibold text-gray-700">Not accepting walk-ins right now</p>
-        <p class="mt-1 text-sm text-gray-500">This salon isn’t taking online check-ins at the moment. Please check back later.</p>
-      </div>
-    } @else if (activeTab() === 'about') {
-      <!-- Tab: About -->
-      <div animate.enter="tab-content-enter">
-        @if (visit.salon(); as s) {
+      <h1 class="mt-2 text-xl font-semibold text-text-primary">{{ s.name }}</h1>
+      <p class="mt-1 flex items-center gap-1 text-sm text-black/70">
+        <app-icon name="location-pin" class="h-4 w-4 shrink-0" />
+        {{ s.address?.city }}{{ s.address?.state ? ', ' + s.address.state : '' }}
+      </p>
+
+      @if (s.phone) {
+        <a [href]="'tel:' + s.phone"
+          class="mt-5 w-full  min-h-12 rounded-full bg-primary text-white text-sm font-normal flex items-center justify-center gap-2 hover:bg-surface-hover transition-colors">
+          <app-icon name="phone" class="w-4 h-4" />
+          Call
+        </a>
+      }
+
+      <!-- About / Services / Staffs tabs -->
+      <app-tabs class="block mt-8 mb-4" [tabs]="landingTabs" [activeId]="activeTab()" (tabChange)="setTab($event)" />
+
+      @if (frozen()) {
+        <div class="w-full rounded-2xl border border-gray-200 bg-gray-50 px-5 py-8 text-center">
+          <p class="text-sm font-semibold text-gray-700">Not accepting walk-ins right now</p>
+          <p class="mt-1 text-sm text-gray-500">This salon isn’t taking online check-ins at the moment. Please check back later.</p>
+        </div>
+      } @else if (activeTab() === 'about') {
+        <!-- Tab: About -->
+        <div animate.enter="tab-content-enter">
           <div class="space-y-2 text-sm text-gray-600">
             @if (s.about) {
               <p>{{ s.about }}</p>
             } @else {
               <p class="text-gray-400">No description yet.</p>
             }
-            @if (s.phone) {
-              <p class="text-gray-500">Phone: {{ s.phone }}</p>
-            }
           </div>
 
           @if (s.galleryUrls.length > 0) {
-            <div class="grid grid-cols-2 gap-2 mt-4">
+            <div class="mt-8 flex items-center justify-between">
+              <h2 class="text-base font-bold text-text-primary">Recent Work</h2>
+              <button type="button" (click)="openGallery(0)" class="text-xs font-semibold text-primary">See all</button>
+            </div>
+            <div class="grid grid-cols-4 gap-2 md:gap-8 mt-3">
               @for (img of s.galleryUrls.slice(0, 4); track img; let i = $index) {
                 <button type="button" (click)="openGallery(i)"
                   class="aspect-square rounded-xl overflow-hidden hover:opacity-90 transition-opacity">
@@ -72,106 +80,66 @@
                 </button>
               }
             </div>
-            @if (s.galleryUrls.length > 4) {
-              <button type="button" (click)="openGallery(0)"
-                class="mt-3 w-full min-h-11 rounded-2xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                View more
-              </button>
-            }
           }
-        }
-      </div>
-    } @else if (activeTab() === 'services') {
-      @if (!selectedServiceId()) {
-        <!-- Screen: services list -->
-        <div animate.enter="tab-content-enter">
-          <p class="text-sm text-gray-500">Here's a list of services we offer</p>
-          @if (visit.servicesLoading()) {
-            <app-skeleton variant="list-item" [count]="4" />
-          } @else {
-            <div class="space-y-2">
-              @for (service of visit.services(); track service.id) {
-                <button
-                  (click)="selectService(service.id)"
-                  class="w-full rounded-2xl border-2 border-primary bg-warning-light px-4 py-3.5
-                         flex items-center justify-between min-h-14 text-left
-                         hover:bg-warning/20 transition-colors">
-                  <span class="text-sm font-semibold text-gray-800">{{ service.name }}</span>
-                  <span class="text-sm font-medium text-gray-500">{{ service.duration }}mins</span>
-                </button>
+        </div>
+      } @else if (activeTab() === 'services') {
+        @if (!selectedServiceId()) {
+          <!-- Screen: services list -->
+          <div animate.enter="tab-content-enter">
+            <h2 class="text-base font-semibold text-text-primary mb-1">Choose a service</h2>
+            @if (visit.servicesLoading()) {
+              <app-skeleton variant="list-item" [count]="4" />
+            } @else {
+              <div class="space-y-2">
+                @for (service of visit.services(); track service.id) {
+                  <app-service-list-item [service]="service" (select)="selectService(service.id)" />
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <!-- Screen: barbers offering the selected service -->
+          <div animate.enter="tab-content-enter">
+            <div class="flex items-center justify-between">
+              <button type="button" (click)="backToServices()"
+                class="min-h-11 px-2 -ml-2 flex items-center gap-1 text-sm font-semibold text-primary">
+                <app-icon name="chevron-left" class="w-2 h-3.5" />
+                Services
+              </button>
+            </div>
+            @if (selectedService(); as service) {
+              <p class="text-sm font-semibold text-text-primary mb-4">Here's a list of our staff that offer {{ service.name }}</p>
+            }
+           <div animate.enter="tab-content-enter" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              @for (staff of staffForSelectedService(); track staff.staffId) {
+                <div class="h-50">
+                  <app-staff-card [staff]="staff" [availability]="availability(staff)"
+                    (select)="openStaffQueue(staff, selectedServiceId() ?? undefined)" />
+                </div>
+              }
+              @if (staffForSelectedService().length === 0) {
+                <p class="col-span-2 text-sm text-gray-400 text-center py-8">No barbers currently offer this service.</p>
               }
             </div>
-          }
-        </div>
-      } @else {
-        <!-- Screen: barbers offering the selected service -->
-        <div animate.enter="tab-content-enter">
-          <div class="flex items-center justify-between">
-            <button type="button" (click)="backToServices()"
-              class="min-h-11 px-2 -ml-2 flex items-center gap-1 text-sm font-semibold text-primary">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-              </svg>
-              Services
-            </button>
           </div>
-          @if (selectedService(); as service) {
-            <p class="text-sm text-gray-500">Here's a list of our staff that offer {{ service.name }}</p>
+        }
+      } @else if (activeTab() === 'staffs') {
+        <!-- Tab: Staffs — flat list, tap opens that staff's live queue page (join happens there) -->
+        <div animate.enter="tab-content-enter" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+          @for (staff of visit.staffList(); track staff.staffId) {
+             <div class="h-50 md:h-60">
+              <app-staff-card [staff]="staff" [availability]="availability(staff)"
+                (select)="openStaffQueue(staff)" />
+            </div>
           }
-          <div class="flex flex-wrap gap-3">
-            @for (staff of staffForSelectedService(); track staff.staffId) {
-              @let avail = availability(staff);
-              <button
-                (click)="openStaffQueue(staff, selectedServiceId() ?? undefined)"
-                [disabled]="!avail.joinable"
-                class="flex-1 min-w-30 rounded-2xl border-2 border-primary bg-warning-light
-                       px-4 py-4 flex flex-col items-center gap-2
-                       hover:bg-warning/20 transition-colors
-                       disabled:opacity-50 disabled:cursor-not-allowed">
-                <div class="rounded-full border-2 border-primary p-0.5">
-                  <app-avatar [src]="staff.photoUrl" [name]="staff.firstName + ' ' + staff.lastName" size="sm" />
-                </div>
-                <span class="text-sm font-semibold text-gray-800">{{ staff.firstName }}  @if (staff.nickname) { <span class="font-normal text-gray-500">({{ staff.nickname }})</span>}</span>
-                @if (avail.showBadge) {
-                  <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full border"
-                    [class]="avail.badgeClasses">
-                    {{ avail.label }}
-                  </span>
-                }
-              </button>
-            }
-            @if (staffForSelectedService().length === 0) {
-              <p class="w-full text-sm text-gray-400 text-center py-8">No barbers currently offer this service.</p>
-            }
-          </div>
+          @if (visit.staffList().length === 0) {
+            <p class="col-span-2 text-sm text-gray-400 text-center py-8">No staff yet.</p>
+          }
         </div>
       }
-    } @else if (activeTab() === 'staffs') {
-      <!-- Tab: Staffs — flat list, tap opens that staff's live queue page (join happens there) -->
-      <div animate.enter="tab-content-enter" class="flex flex-wrap gap-3">
-        @for (staff of visit.staffList(); track staff.staffId) {
-          <button
-            (click)="openStaffQueue(staff)"
-            [disabled]="!staff.queueId"
-            class="flex-1 min-w-30 rounded-2xl border-2 border-primary bg-warning-light
-                   px-4 py-4 flex flex-col items-center gap-2
-                   hover:bg-warning/20 transition-colors
-                   disabled:opacity-50 disabled:cursor-not-allowed">
-            <div class="rounded-full border-2 border-primary p-0.5">
-              <app-avatar [src]="staff.photoUrl" [name]="staff.firstName + ' ' + staff.lastName" size="sm" />
-            </div>
-            <span class="text-sm font-semibold text-gray-800">{{ staff.firstName }}  @if (staff.nickname) { <span class="font-normal text-gray-500">({{ staff.nickname }})</span>}</span>
-          </button>
-        }
-        @if (visit.staffList().length === 0) {
-          <p class="w-full text-sm text-gray-400 text-center py-8">No staff yet.</p>
-        }
-      </div>
-    }
 
-  </div>
+    </div>
 
-  @if (visit.salon(); as s) {
     <app-gallery-modal
       [images]="s.galleryUrls"
       [open]="galleryOpen()"

@@ -1,4 +1,5 @@
-import { Component, input, output, computed, signal, OnInit } from '@angular/core';
+import { Component, input, output, computed, signal, effect, inject, OnInit } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { NavItem } from '../nav-item.types';
 import { NavIconComponent } from '../nav-icon/nav-icon.component';
@@ -25,9 +26,13 @@ export const CONTROL_ITEMS: ControlItem[] = [
   {
     label: 'Closures',
     url: RouteSegment.CLOSURES,
+    roles: [SalonRole.OWNER, SalonRole.ADMIN],
+  },
+  {
+    label: 'Photos',
+    url: RouteSegment.MEDIA,
     roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF],
   },
-  { label: 'Photos', url: RouteSegment.MEDIA, roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
   { label: 'Settings', url: RouteSegment.SETTINGS, roles: [SalonRole.OWNER, SalonRole.ADMIN] },
   {
     label: 'Analytics',
@@ -63,6 +68,24 @@ export class SidebarComponent implements OnInit {
   readonly logoutClick = output<void>();
 
   readonly collapsed = signal(false);
+
+  private readonly _document = inject(DOCUMENT);
+
+  // Mirrors the sidebar's current width onto a CSS custom property on <html>
+  // so fixed-position elements elsewhere in the app (e.g. a bottom action
+  // bar) can offset past it via `left: var(--sidebar-width)` without a direct
+  // data connection to this component — this is the only place that knows
+  // the sidebar's live width (it toggles between 64px/220px on click). Only
+  // meaningful at md: and up, where the sidebar itself is visible (hidden
+  // md:flex); consumers must gate their own use of the variable the same way.
+  constructor() {
+    effect(() => {
+      this._document.documentElement.style.setProperty(
+        '--sidebar-width',
+        this.collapsed() ? '64px' : '220px',
+      );
+    });
+  }
 
   readonly visibleControls = computed<VisibleControl[]>(() => {
     const m = this.membership();

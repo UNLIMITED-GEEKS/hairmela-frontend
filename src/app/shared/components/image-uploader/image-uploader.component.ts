@@ -23,16 +23,16 @@ export class ImageUploaderComponent {
   readonly entityId = input.required<string>();
   readonly mediaType = input.required<'PROFILE' | 'GALLERY'>();
   readonly label = input('Upload image');
+  readonly disabled = input(false);
 
   readonly uploaded = output<Media>();
 
   protected readonly uploading = signal(false);
-  protected readonly previewUrl = signal<string | null>(null);
 
   protected onFileChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-    if (!file) return;
+    if (!file || this.disabled()) return;
 
     if (!ALLOWED_TYPES.includes(file.type)) {
       this._toast.error('Only JPEG, PNG, or WebP images are allowed');
@@ -44,10 +44,6 @@ export class ImageUploaderComponent {
       input.value = '';
       return;
     }
-
-    const reader = new FileReader();
-    reader.onload = (e) => this.previewUrl.set(e.target?.result as string);
-    reader.readAsDataURL(file);
 
     this.uploading.set(true);
     mediaControllerUpload(this._http, this._apiConfig.rootUrl, {
@@ -64,7 +60,6 @@ export class ImageUploaderComponent {
       },
       error: () => {
         this.uploading.set(false);
-        this.previewUrl.set(null);
         input.value = '';
       },
     });

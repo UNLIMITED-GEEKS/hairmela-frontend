@@ -62,6 +62,32 @@ export class SalonVisitService {
   private _shellPrefix = '';
   private _socketInitialReceived = new Set<string>();
   private _loadedSlug: string | null = null;
+  // The queue currently displayed (position/live-queue page). Because timeline
+  // is a single shared signal (see FIXME below), this id is what every async
+  // writer checks (`if (this._activeQueueId !== queueId) return;`) so a late
+  // push from a queue the user has since navigated away from can't overwrite
+  // the one on screen. watchQueue() also uses it to seed timeline from the
+  // target queue's cached frame on switch — see the comment there for WHY it
+  // seeds instead of blanking (blanking left switched-to queues empty forever).
+  //
+  // FIXME: this is a patch, not the real fix. The root cause is that `timeline`
+  // is one global signal pretending to represent "whatever queue was last
+  // viewed", even though the domain has N concurrent queues (dashboard watches
+  // several; a caller can be in two barbers' lines at one salon). Because of
+  // that, every async writer (the socket subscription in watchQueue() and all
+  // three timeline.set() paths in _loadInitialTimeline()) has to defend itself
+  // with `if (this._activeQueueId !== queueId) return;` — a guard that's easy
+  // to forget at the next write site added — and switching queues has to
+  // manually re-seed timeline from a side cache (QueueSocketService.lastTimeline)
+  // because a shared signal has no memory of the queue you're returning to.
+  // The proper fix is to partition state by queueId (e.g. a
+  // Map<queueId, QueueState> exposed via a timelineFor(queueId) signal) so
+  // views read their own queue's signal: stale cross-queue pushes become
+  // structurally impossible, switch-back is free (each queue keeps its own
+  // signal), and _activeQueueId + every guard + the lastTimeline side cache all
+  // delete. Deferred: touches myEntry(), waitingEntries(), liveWaitMinutes(),
+  // memberWaitMinutes(), _reconcileEntries(), and both viewing components.
+  private _activeQueueId: string | null = null;
 
   readonly salonData = signal<SalonPublicDto | null>(null);
   readonly services = signal<Service[]>([]);
@@ -148,6 +174,14 @@ export class SalonVisitService {
     const map = new Map<string, number>();
     for (const entry of this.timeline()) {
       const isServing = entry.members.some((m) => m.status === 'SERVING');
+      // The first waiting member's wait is the entry's live wait (until the
+      // entry reaches the front) — the same elapsed-adjusted value the entry
+      // card shows via liveWaitMinutes(). Each later member additionally waits
+      // for the earlier members ahead of them to finish (pendingDuration). The
+      // non-serving branch previously used the raw estimatedWaitMinutes without
+      // subtracting elapsed, so member rows read higher than the entry's own
+      // wait (e.g. entry 1h23m but its first member 2h0m).
+      const liveEntryWait = Math.max(0, entry.estimatedWaitMinutes - elapsedMinutes);
       let pendingDuration = 0;
       for (const member of entry.members) {
         if (member.status === 'SERVED') {
@@ -161,7 +195,7 @@ export class SalonVisitService {
         }
         const wait = isServing
           ? Math.max(0, pendingDuration)
-          : Math.max(0, entry.estimatedWaitMinutes + pendingDuration);
+          : Math.max(0, liveEntryWait + pendingDuration);
         map.set(member.memberId, wait);
         pendingDuration += member.serviceDuration;
       }
@@ -193,6 +227,7 @@ export class SalonVisitService {
     }
     this._watchedQueueIds.clear();
     this._socketInitialReceived.clear();
+    this._activeQueueId = null;
     this.salonData.set(null);
     this.services.set([]);
     this.timeline.set([]);
@@ -210,6 +245,26 @@ export class SalonVisitService {
   }
 
   watchQueue(queueId: string): void {
+    if (this._activeQueueId !== queueId) {
+      // Switching which queue is displayed. Don't blank timeline to [] and
+      // wait — the socket's per-queue stream is a ReplaySubject(1), and an
+      // already-attached subscription won't re-emit its cached frame on its
+      // own, so blanking here leaves the queue looking empty until the next
+      // server push (which may never come while the user is looking). Instead
+      // seed timeline synchronously from this queue's last cached frame if we
+      // already have one; the live subscription below (for a not-yet-watched
+      // queue) or a fresh server push then keeps it current.
+      this._activeQueueId = queueId;
+      const cached = this._socket.lastTimeline(queueId);
+      if (cached) {
+        this.timeline.set(cached);
+        this.timelineLoaded.set(true);
+      } else {
+        this.timeline.set([]);
+        this.timelineLoaded.set(false);
+      }
+    }
+
     if (this._watchedQueueIds.has(queueId)) return;
     this._watchedQueueIds.add(queueId);
 
@@ -222,6 +277,7 @@ export class SalonVisitService {
       .queueTimeline$(queueId)
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe((entries) => {
+        if (this._activeQueueId !== queueId) return;
         const isFirstMessage = !this._socketInitialReceived.has(queueId);
         this._socketInitialReceived.add(queueId);
         this._reconcileEntries(queueId, entries, isFirstMessage);
@@ -488,6 +544,10 @@ export class SalonVisitService {
           // the authoritative source. The _socketInitialReceived Set is populated
           // in watchQueue()'s socket subscription.
           if (this._socketInitialReceived.has(queueId)) return;
+          // Skip if the caller has since switched to a different queue — this
+          // response would otherwise overwrite the new queue's timeline with
+          // stale data from the one that's no longer displayed.
+          if (this._activeQueueId !== queueId) return;
           const { timeline: entries, serverTime } = res.body;
           this._clock.sync(serverTime);
           const stored = this._activeEntryStore.getAllForQueue(queueId);
@@ -516,6 +576,7 @@ export class SalonVisitService {
           }
           recover$.pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
             next: (myEntries) => {
+              if (this._activeQueueId !== queueId) return;
               const salon = this.salon();
               const recovered = myEntries
                 .filter((e) => e.queueId === queueId)
@@ -538,6 +599,7 @@ export class SalonVisitService {
               this.timelineLoaded.set(true);
             },
             error: () => {
+              if (this._activeQueueId !== queueId) return;
               this.timeline.set(entries);
               this.timelineLoaded.set(true);
             },

@@ -3,13 +3,14 @@ import { ActivatedRoute } from '@angular/router';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartData, ChartOptions } from 'chart.js';
 import { AnalyticsService, DateRange } from './analytics.service';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { RouteParam } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-analytics',
   templateUrl: './analytics.component.html',
   providers: [AnalyticsService],
-  imports: [BaseChartDirective],
+  imports: [BaseChartDirective, PageHeaderComponent],
 })
 export class AnalyticsComponent implements OnInit {
   protected readonly analytics = inject(AnalyticsService);

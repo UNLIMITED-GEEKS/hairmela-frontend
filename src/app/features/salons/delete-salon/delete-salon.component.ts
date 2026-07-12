@@ -1,11 +1,13 @@
 import { Component, DestroyRef, inject, signal, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SalonService } from '../salon.service';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-delete-salon',
   templateUrl: './delete-salon.component.html',
+  imports: [PageHeaderComponent],
 })
 export class DeleteSalonComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
@@ -30,7 +32,6 @@ export class DeleteSalonComponent implements OnInit {
   }
 
   protected confirmDelete(): void {
-    this.deleting.set(true);
     this._salonService.delete(
       this._salonId,
       this.salonName(),
@@ -39,6 +40,7 @@ export class DeleteSalonComponent implements OnInit {
         this.deleting.set(false);
         this._router.navigate(RoutePath.dashboard());
       },
+      () => this.deleting.set(true),
     );
   }
 }

@@ -13,22 +13,22 @@ import { SetQueueStatusDto } from '../../models/set-queue-status-dto';
 export interface QueueManagementControllerSetStatus$Params {
 
 /**
- * Queue UUID
- */
-  queueId: string;
-
-/**
  * Salon UUID
  */
   salonId: string;
+
+/**
+ * Queue UUID
+ */
+  queueId: string;
       body: SetQueueStatusDto
 }
 
 export function queueManagementControllerSetStatus(http: HttpClient, rootUrl: string, params: QueueManagementControllerSetStatus$Params, context?: HttpContext): Observable<StrictHttpResponse<Queue>> {
   const rb = new RequestBuilder(rootUrl, queueManagementControllerSetStatus.PATH, 'patch');
   if (params) {
-    rb.path('queueId', params.queueId, {});
     rb.path('salonId', params.salonId, {});
+    rb.path('queueId', params.queueId, {});
     rb.body(params.body, 'application/json');
   }
 

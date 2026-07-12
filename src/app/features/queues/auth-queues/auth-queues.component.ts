@@ -2,11 +2,13 @@ import { Component, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { QueueEntry } from '../../../api/models/queue-entry';
 import { ActiveQueuesService } from './active-queues.service';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-auth-queues',
   templateUrl: './auth-queues.component.html',
+  imports: [PageHeaderComponent],
 })
 export class AuthQueuesComponent implements OnInit {
   private readonly _router = inject(Router);

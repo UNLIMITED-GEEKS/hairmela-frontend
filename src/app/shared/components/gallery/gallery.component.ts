@@ -5,15 +5,17 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { mediaControllerDelete } from '../../../api/fn/media/media-controller-delete';
 import { mediaReorderControllerReorderSalonGallery } from '../../../api/fn/media/media-reorder-controller-reorder-salon-gallery';
+import { staffMediaControllerReorderStaffGallery } from '../../../api/fn/media/staff-media-controller-reorder-staff-gallery';
 import { Media } from '../../../api/models/media';
 import { ConfirmDialogService } from '../confirm-dialog/confirm-dialog.service';
 import { MediaUrlPipe } from '../../pipes/media-url.pipe';
+import { IconComponent } from '../icon/icon.component';
 import { filter, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-gallery',
   templateUrl: './gallery.component.html',
-  imports: [DragDropModule, MediaUrlPipe],
+  imports: [DragDropModule, MediaUrlPipe, IconComponent],
 })
 export class GalleryComponent {
   private readonly _http = inject(HttpClient);
@@ -23,6 +25,7 @@ export class GalleryComponent {
 
   readonly items = input.required<Media[]>();
   readonly salonId = input<string | null>(null);
+  readonly staffId = input<string | null>(null);
   readonly canEdit = input(false);
 
   readonly reordered = output<Media[]>();
@@ -35,14 +38,29 @@ export class GalleryComponent {
     moveItemInArray(list, event.previousIndex, event.currentIndex);
     this.reordered.emit(list);
 
+    const orderedIds = list.map((m) => m.id);
+    const sfid = this.staffId();
     const sid = this.salonId();
-    if (!sid) return;
 
     this.saving.set(true);
-    mediaReorderControllerReorderSalonGallery(this._http, this._apiConfig.rootUrl, {
-      salonId: sid,
-      body: { orderedIds: list.map((m) => m.id) },
-    }).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
+    const request$ = sfid
+      ? staffMediaControllerReorderStaffGallery(this._http, this._apiConfig.rootUrl, {
+          staffId: sfid,
+          body: { orderedIds },
+        })
+      : sid
+        ? mediaReorderControllerReorderSalonGallery(this._http, this._apiConfig.rootUrl, {
+            salonId: sid,
+            body: { orderedIds },
+          })
+        : null;
+
+    if (!request$) {
+      this.saving.set(false);
+      return;
+    }
+
+    request$.pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
       next: () => this.saving.set(false),
       error: () => this.saving.set(false),
     });

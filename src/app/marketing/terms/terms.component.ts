@@ -85,9 +85,7 @@ export class TermsComponent {
     {
       id: 'contact',
       title: 'Contact',
-      body: [
-        'Questions about these terms? Email us at hello@hairmela.com.',
-      ],
+      body: ['Questions about these terms? Email us at hello@contact.hairmela.com.'],
     },
   ];
 }

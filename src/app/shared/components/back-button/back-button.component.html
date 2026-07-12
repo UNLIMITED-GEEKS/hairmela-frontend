@@ -1,0 +1,13 @@
+@if (variant() === 'glass') {
+  <button type="button" (click)="goBack()"
+    aria-label="Go back"
+    class="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/20 text-white hover:bg-white/30 transition-colors">
+    <app-icon name="chevron-left" class="w-2 h-3.5" />
+  </button>
+} @else {
+  <button type="button" (click)="goBack()"
+    aria-label="Go back"
+    class="min-w-11 min-h-11 flex items-center justify-center text-gray-400 hover:text-primary -ml-2 shrink-0">
+    <app-icon name="chevron-left" class="w-2 h-3.5" />
+  </button>
+}

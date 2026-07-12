@@ -1,15 +1,7 @@
-<div class="pt-4 pb-6 px-4">
-  <div class="max-w-5xl mx-auto">
+<div class="">
+  <app-page-header title="Favourites" backVariant="glass" />
+  <div class=" pb-6 px-4">
 
-    <div class="flex items-center gap-1 mb-3">
-      <button type="button" (click)="_location.back()"
-        class="min-w-11 min-h-11 flex items-center justify-center text-gray-400 hover:text-primary -ml-2 shrink-0">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-        </svg>
-      </button>
-      <h1 class="text-xl font-semibold text-gray-900">Favourites</h1>
-    </div>
 
     @if (favorites.listLoading() && favorites.list().length === 0) {
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -24,7 +16,7 @@
         <p class="mt-3 text-sm text-gray-400">No favourites yet — tap the heart on a salon to save it here.</p>
       </div>
     } @else {
-      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
         @for (salon of favorites.list(); track salon.id) {
           <app-salon-card [salon]="salon" />
         }

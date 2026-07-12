@@ -12,23 +12,23 @@ import { QueueEntry } from '../../models/queue-entry';
 export interface QueueManagementControllerMarkNoShow$Params {
 
 /**
+ * Salon UUID
+ */
+  salonId: string;
+
+/**
  * Queue UUID
  */
   queueId: string;
   entryId: string;
-
-/**
- * Salon UUID
- */
-  salonId: string;
 }
 
 export function queueManagementControllerMarkNoShow(http: HttpClient, rootUrl: string, params: QueueManagementControllerMarkNoShow$Params, context?: HttpContext): Observable<StrictHttpResponse<QueueEntry>> {
   const rb = new RequestBuilder(rootUrl, queueManagementControllerMarkNoShow.PATH, 'patch');
   if (params) {
+    rb.path('salonId', params.salonId, {});
     rb.path('queueId', params.queueId, {});
     rb.path('entryId', params.entryId, {});
-    rb.path('salonId', params.salonId, {});
   }
 
   return http.request(

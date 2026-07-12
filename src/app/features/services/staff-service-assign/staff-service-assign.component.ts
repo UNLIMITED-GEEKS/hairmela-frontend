@@ -1,19 +1,18 @@
 import { Component, inject, OnInit, computed } from '@angular/core';
-import { Location } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Service } from '../../../api/models/service';
 import { ServicesService } from '../services.service';
 import { StaffServiceAssignService } from './staff-service-assign.service';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { RouteParam } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-staff-service-assign',
   templateUrl: './staff-service-assign.component.html',
-  imports: [RouterLink, SkeletonComponent],
+  imports: [RouterLink, SkeletonComponent, PageHeaderComponent],
 })
 export class StaffServiceAssignComponent implements OnInit {
-  protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _servicesService = inject(ServicesService);
   private readonly _assignService = inject(StaffServiceAssignService);

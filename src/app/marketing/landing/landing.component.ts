@@ -10,6 +10,7 @@ import { FavoritesService } from '../../core/favorites/favorites.service';
 import { CurrentUserStore } from '../../core/auth/current-user.store';
 import { CategoriesService } from '../../core/categories/categories.service';
 import { SalonCardComponent } from '../../shared/components/salon-card/salon-card.component';
+import { CategoryPillsComponent } from '../../shared/components/category-pills/category-pills.component';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 import { RoutePath } from '../../core/routing/route-paths';
@@ -17,7 +18,7 @@ import { RoutePath } from '../../core/routing/route-paths';
 @Component({
   selector: 'app-landing',
   templateUrl: './landing.component.html',
-  imports: [RouterLink, SalonCardComponent, PaginationComponent, SkeletonComponent],
+  imports: [RouterLink, SalonCardComponent, CategoryPillsComponent, PaginationComponent, SkeletonComponent],
   providers: [SalonListingService],
 })
 export class LandingComponent implements OnInit {

@@ -16,6 +16,11 @@ export class QueueSocketService implements OnDestroy {
   private readonly _watchedStaffQueues = new Set<string>();
 
   private readonly _timelines = new Map<string, ReplaySubject<TimelineEntryDto[]>>();
+  // Last timeline frame pushed per queue — lets a consumer read the cached
+  // frame synchronously (e.g. when re-displaying an already-watched queue)
+  // without waiting for a fresh server push. Mirrors the ReplaySubject(1)
+  // buffer, which RxJS doesn't expose for direct reads.
+  private readonly _lastTimeline = new Map<string, TimelineEntryDto[]>();
   private readonly _serverTimes = new Map<string, ReplaySubject<string>>();
   private readonly _called = new Map<string, Subject<CustomerCalledPayload>>();
   private readonly _connectionState$ = new BehaviorSubject<ConnectionState>('disconnected');
@@ -45,11 +50,13 @@ export class QueueSocketService implements OnDestroy {
     });
 
     this._socket.on('queueTimeline', (data: { queueId: string; timeline: TimelineEntryDto[]; serverTime?: string }) => {
+      this._lastTimeline.set(data.queueId, data.timeline);
       this._timelines.get(data.queueId)?.next(data.timeline);
       if (data.serverTime) this._serverTimes.get(data.queueId)?.next(data.serverTime);
     });
 
     this._socket.on('queue.updated', (data: { queueId: string; timeline: TimelineEntryDto[]; serverTime?: string }) => {
+      this._lastTimeline.set(data.queueId, data.timeline);
       this._timelines.get(data.queueId)?.next(data.timeline);
       if (data.serverTime) this._serverTimes.get(data.queueId)?.next(data.serverTime);
     });
@@ -92,6 +99,11 @@ export class QueueSocketService implements OnDestroy {
   queueTimeline$(queueId: string): Observable<TimelineEntryDto[]> {
     this._ensureTimelineSubject(queueId);
     return this._timelines.get(queueId)!.asObservable();
+  }
+
+  /** The most recent timeline frame received for a queue, or null if none yet. */
+  lastTimeline(queueId: string): TimelineEntryDto[] | null {
+    return this._lastTimeline.get(queueId) ?? null;
   }
 
   // Server's clock at the moment the timeline was generated — used to correct

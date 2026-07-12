@@ -183,6 +183,11 @@ export const routes: Routes = [
           ),
       },
       {
+        path: RouteSegment.SEARCH,
+        loadComponent: () =>
+          import('./features/search/search.component').then((m) => m.SearchComponent),
+      },
+      {
         path: `${RouteSegment.S}/:${RouteParam.SLUG}`,
         data: { shellPrefix: '' },
         loadChildren: () => import('./features/visit/visit.routes').then((m) => m.visitRoutes),

@@ -6,12 +6,13 @@ import { MembershipStore } from '../../../core/salon-context/membership.store';
 import { SalonRole } from '../../../core/salon-context/membership.types';
 import { StaffService } from '../../staff/staff.service';
 import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/confirm-dialog.service';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-leave-salon',
   templateUrl: './leave-salon.component.html',
-  imports: [RouterLink],
+  imports: [RouterLink, PageHeaderComponent],
 })
 export class LeaveSalonComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);

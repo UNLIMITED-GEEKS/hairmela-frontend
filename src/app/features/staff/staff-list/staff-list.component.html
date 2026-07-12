@@ -1,38 +1,27 @@
-<div class="py-6 px-4">
-  <div class="">
+<app-screen-layout [noPadding]="true">
+  <ng-container slot="header">
+    <app-page-header title="Staff" backVariant="glass" />
+  </ng-container>
 
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-xl font-semibold text-gray-900">Staff</h1>
-      <a *hasRole="['OWNER', 'ADMIN']"
-        [routerLink]="inviteLink"
-        class="min-h-11 px-4 py-2.5 bg-primary text-white text-sm font-medium rounded-lg
-               hover:bg-primary-dark active:scale-95 transition-all">
-        Add Staff
-      </a>
+  @if (loading()) {
+    <app-skeleton variant="list-item" [count]="5" />
+  } @else if (error()) {
+    <div class="flex flex-col items-center py-16 gap-3">
+      <p class="text-sm text-gray-500">Failed to load staff.</p>
+      <button type="button" (click)="retry()"
+        class="px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors">
+        Retry
+      </button>
     </div>
-
-    @if (loading()) {
-      <app-skeleton variant="list-item" [count]="5" />
-    } @else if (error()) {
-      <div class="flex flex-col items-center py-16 gap-3">
-        <p class="text-sm text-gray-500">Failed to load staff.</p>
-        <button type="button" (click)="retry()"
-          class="px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors">
-          Retry
-        </button>
-      </div>
-    } @else if (staffList().length === 0) {
-      <div class="text-center py-16">
-        <p class="text-sm text-gray-500">No staff yet. add someone to get started.</p>
-      </div>
-    } @else {
-      <div class="space-y-2 ">
-        @for (item of staffList(); track item.staff.id) {
-          <a [routerLink]="[item.staff.id]"
-            class="flex items-center gap-3 bg-white rounded-xl border border-gray-200 px-4 py-3 min-h-[68px]
-                   hover:bg-gray-50 transition-colors">
-
+  } @else if (staffList().length === 0) {
+    <div class="text-center py-16">
+      <p class="text-sm text-gray-500">No staff yet. add someone to get started.</p>
+    </div>
+  } @else {
+    <div class="space-y-2 ">
+      @for (item of staffList(); track item.staff.id) {
+        <div class="bg-white rounded-xl border border-gray-200 px-4 py-3">
+          <div class="flex items-center gap-3">
             <!-- Avatar -->
             <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
               <span class="text-primary font-semibold text-sm">
@@ -46,7 +35,7 @@
               <p class="text-xs text-gray-400 truncate">{{ item.staff.email }}</p>
             </div>
 
-            <!-- Badges + console link -->
+            <!-- Badges -->
             <div class="flex flex-col items-end gap-1.5 shrink-0">
               <span class="text-xs font-medium px-2 py-0.5 rounded-full {{ roleBadgeClass(item.staff.role) }}">
                 {{ item.staff.role }}
@@ -54,48 +43,63 @@
               <span class="text-xs font-medium px-2 py-0.5 rounded-full {{ statusBadgeClass(item.staff.status) }}">
                 {{ item.staff.status }}
               </span>
-              @if (item.queueId) {
-                <a [routerLink]="queueConsoleLink(item.queueId)"
-                  (click)="$event.stopPropagation()"
-                  class="text-xs font-medium px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 hover:bg-sky-200 transition-colors">
-                  Console
-                </a>
-              }
             </div>
+          </div>
 
-          </a>
-        }
-      </div>
-    }
-
-    <!-- Pending invites (OWNER/ADMIN) -->
-    <div *hasRole="['OWNER', 'ADMIN']">
-      @if (invites().length > 0) {
-        <div class="mt-8">
-          <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Pending invites</h2>
-          <div class="space-y-2">
-            @for (invite of invites(); track invite.staffId) {
-              <div class="bg-white rounded-xl border border-amber-200 p-4 flex items-center gap-3 min-h-16">
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-gray-900 truncate">{{ invite.email }}</p>
-                  <p class="text-xs text-gray-400 truncate">
-                    {{ invite.role | lowercase }} · invited {{ invite.invitedAt | date:'mediumDate' }}
-                    @if (!invite.hasAccount) { · no account yet }
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  (click)="cancelInvite(invite)"
-                  class="min-h-9 px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg
-                         hover:bg-red-50 transition-colors shrink-0">
-                  Cancel
-                </button>
-              </div>
+          <!-- Actions -->
+          <div class="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+            <a [routerLink]="[item.staff.id]"
+              class="flex-1 md:flex-none flex items-center justify-center min-h-9 px-3 rounded-lg text-xs font-medium
+                     text-primary bg-white border-primary border hover:bg-primary/15 transition-colors">
+              Edit
+            </a>
+            @if (item.queueId) {
+              <a [routerLink]="queueConsoleLink(item.queueId)"
+                class="flex-1 md:flex-none flex items-center justify-center min-h-9 px-3 rounded-lg text-xs font-medium
+                       text-primary bg-white border border-primary hover:bg-secondary-light/15 transition-colors">
+                View Queue Console
+              </a>
             }
           </div>
         </div>
       }
     </div>
+  }
 
+  <!-- Pending invites (OWNER/ADMIN) -->
+  <div *hasRole="['OWNER', 'ADMIN']">
+    @if (invites().length > 0) {
+      <div class="mt-8">
+        <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Pending invites</h2>
+        <div class="space-y-2">
+          @for (invite of invites(); track invite.staffId) {
+            <div class="bg-white rounded-xl border border-amber-200 p-4 flex items-center gap-3 min-h-16">
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900 truncate">{{ invite.email }}</p>
+                <p class="text-xs text-gray-400 truncate">
+                  {{ invite.role | lowercase }} · invited {{ invite.invitedAt | date:'mediumDate' }}
+                  @if (!invite.hasAccount) { · no account yet }
+                </p>
+              </div>
+              <button
+                type="button"
+                (click)="cancelInvite(invite)"
+                class="min-h-9 px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg
+                       hover:bg-red-50 transition-colors shrink-0">
+                Cancel
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    }
   </div>
-</div>
+
+  <ng-container slot="actions" *hasRole="['OWNER', 'ADMIN']">
+    <a [routerLink]="inviteLink"
+      class="flex items-center md:ml-3  justify-center min-h-11 px-4 py-2.5 border border-primary bg-secondary-light/30 text-primary text-sm font-medium rounded-lg
+             hover:bg-primary-dark active:scale-95 transition-all md:inline-flex md:w-auto">
+      Add Staff
+    </a>
+  </ng-container>
+</app-screen-layout>

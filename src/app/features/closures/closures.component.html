@@ -14,27 +14,12 @@
     </button>
   </div>
 } @else {
-  <div class="py-6 px-4">
+  <app-screen-layout [noPadding]="true" >
+    <ng-container slot="header">
+      <app-page-header title="Closures" backVariant="glass" />
+    </ng-container>
 
     <div class="space-y-5">
-
-      <div class="flex items-center gap-3">
-        <button type="button" (click)="_location.back()" class="text-gray-400 hover:text-gray-600 min-w-11 min-h-11 flex items-center justify-center -ml-2 shrink-0">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <h1 class="text-lg font-semibold text-gray-900 flex-1">Closures</h1>
-        @if (!salonContext.isFrozen()) {
-          <button type="button" (click)="showAddForm.set(!showAddForm())"
-            class="min-h-11 min-w-11 px-3 flex items-center gap-1.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors shrink-0">
-            <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
-            <span class="hidden xs:inline">Add closure</span>
-          </button>
-        }
-      </div>
 
       @if (salonContext.isFrozen()) {
         <app-frozen-banner />
@@ -82,34 +67,48 @@
         </form>
       }
 
-      <!-- Closure list -->
-      @if (activeClosures.length === 0) {
-        <div class="bg-white rounded-xl border border-gray-200 p-10 text-center">
-          <p class="text-sm text-gray-400">No closures scheduled</p>
-        </div>
-      } @else {
-        <div class="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-          <app-animated-list [items]="activeClosures">
-            <ng-template let-closure>
-              <div class="flex items-center gap-3 px-4 py-4 min-h-14">
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-gray-900">{{ closure.date }}</p>
-                  @if (closure.reason) {
-                    <p class="text-xs text-gray-400 mt-0.5">{{ closure.reason }}</p>
+      <div class="mt-4">
+        <!-- Closure list -->
+        @if (activeClosures.length === 0) {
+          <div class="bg-white rounded-xl border border-gray-200 p-10 text-center">
+            <p class="text-sm text-gray-400">No closures scheduled</p>
+          </div>
+        } @else {
+          <div class="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+            <app-animated-list [items]="activeClosures">
+              <ng-template let-closure>
+                <div class="flex items-center gap-3 px-4 py-4 min-h-14">
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900">{{ closure.date }}</p>
+                    @if (closure.reason) {
+                      <p class="text-xs text-gray-400 mt-0.5">{{ closure.reason }}</p>
+                    }
+                  </div>
+                  @if (!salonContext.isFrozen()) {
+                    <button type="button" (click)="delete(closure)"
+                      class="min-h-9 px-3 text-xs font-medium text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors shrink-0">
+                      Remove
+                    </button>
                   }
                 </div>
-                @if (!salonContext.isFrozen()) {
-                  <button type="button" (click)="delete(closure)"
-                    class="min-h-9 px-3 text-xs font-medium text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors shrink-0">
-                    Remove
-                  </button>
-                }
-              </div>
-            </ng-template>
-          </app-animated-list>
-        </div>
-      }
+              </ng-template>
+            </app-animated-list>
+          </div>
+        }
+      </div>
 
     </div>
-  </div>
+
+    @if (!salonContext.isFrozen() && !showAddForm()) {
+      <ng-container slot="actions">
+        <button type="button" (click)="showAddForm.set(!showAddForm())"
+          class="w-full md:w-1/8 md:ml-4 min-h-11 px-3 flex items-center justify-center gap-1.5 bg-secondary-light/20  text-sm font-medium rounded-lg border border-primary text-primary hover:bg-secondary-light transition-colors">
+          <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Add closure
+        </button>
+      </ng-container>
+    }
+  </app-screen-layout>
 }

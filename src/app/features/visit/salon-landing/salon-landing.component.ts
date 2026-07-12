@@ -8,6 +8,13 @@ import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.
 import { TabsComponent, TabItem } from '../../../shared/components/tabs/tabs.component';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
 import { GalleryModalComponent } from '../../../shared/components/gallery-modal/gallery-modal.component';
+import { BackButtonComponent } from '../../../shared/components/back-button/back-button.component';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
+import {
+  StaffCardComponent,
+  StaffCardAvailability,
+} from '../../../shared/components/staff-card/staff-card.component';
+import { ServiceListItemComponent } from '../../../shared/components/service-list-item/service-list-item.component';
 import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 
@@ -17,13 +24,6 @@ const LANDING_TABS: TabItem[] = [
   { id: 'staffs', label: 'Staffs' },
 ];
 
-interface BarberAvailability {
-  readonly label: string;
-  readonly badgeClasses: string;
-  readonly joinable: boolean;
-  readonly showBadge: boolean;
-}
-
 interface SalonStatusBadge {
   readonly label: string;
   readonly badgeClasses: string;
@@ -32,7 +32,16 @@ interface SalonStatusBadge {
 @Component({
   selector: 'app-salon-landing',
   templateUrl: './salon-landing.component.html',
-  imports: [SkeletonComponent, TabsComponent, AvatarComponent, GalleryModalComponent, MediaUrlPipe],
+  imports: [
+    SkeletonComponent,
+    TabsComponent,
+    GalleryModalComponent,
+    BackButtonComponent,
+    IconComponent,
+    StaffCardComponent,
+    ServiceListItemComponent,
+    MediaUrlPipe,
+  ],
 })
 export class SalonLandingComponent implements OnInit {
   protected readonly visit = inject(SalonVisitService);
@@ -40,6 +49,10 @@ export class SalonLandingComponent implements OnInit {
   private readonly _router = inject(Router);
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _favorites = inject(FavoritesService);
+
+  // Fallback photo for salons with no uploaded image — same asset used by
+  // SalonCardComponent (public/salon-placeholder.jpg).
+  protected readonly placeholderImage = '/salon-placeholder.jpg';
 
   protected readonly landingTabs = LANDING_TABS;
   // Persisted on SalonVisitService (not local state) so navigating away and
@@ -123,14 +136,14 @@ export class SalonLandingComponent implements OnInit {
       case 'OPEN':
         return {
           label: 'Open Now',
-          badgeClasses: 'bg-success-light text-success border-success/20',
+          badgeClasses: 'bg-open-badge text-success border-success/20',
         };
       case 'CLOSED_HOURS':
-        return { label: 'Closed', badgeClasses: 'bg-primary-light text-primary border-primary/20' };
+        return { label: 'Closed', badgeClasses: 'bg-error-light text-error border-error/20' };
       default: // 'CLOSED_TODAY'
         return {
           label: 'Closed today',
-          badgeClasses: 'bg-primary-light text-primary border-primary/20',
+          badgeClasses: 'bg-error-light text-error border-error/20',
         };
     }
   });
@@ -165,28 +178,28 @@ export class SalonLandingComponent implements OnInit {
   // Real availability from the barber's live queue status. CLOSED or PAUSED
   // queues are not joinable from the landing page. When the salon itself is
   // closed, no barber is joinable and no badge shows.
-  protected availability(staff: SalonPublicStaffDto): BarberAvailability {
+  protected availability(staff: SalonPublicStaffDto): StaffCardAvailability {
     if (!this.visit.salonData()?.isOpen) {
       return { label: '', badgeClasses: '', joinable: false, showBadge: false };
     }
     switch (staff.queueStatus) {
       case 'OPEN':
         return {
-          label: 'Available',
+          label: 'Available Now',
           badgeClasses: 'bg-success-light text-success border-success/20',
           joinable: true,
           showBadge: true,
         };
       case 'PAUSED':
         return {
-          label: 'On break',
+          label: 'Unavailable',
           badgeClasses: 'bg-warning-light text-warning border-warning/30',
           joinable: false,
           showBadge: true,
         };
       default: // 'CLOSED' or null (no queue yet)
         return {
-          label: 'Closed',
+          label: 'Unavailable',
           badgeClasses: 'bg-primary-light text-primary border-primary/20',
           joinable: false,
           showBadge: true,

@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { Location } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
+import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { filter } from 'rxjs';
 import { StaffSchedule } from '../../api/models/staff-schedule';
@@ -15,10 +15,9 @@ const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 
 @Component({
   selector: 'app-weekly-schedule',
   templateUrl: './weekly-schedule.component.html',
-  imports: [ReactiveFormsModule, SkeletonComponent, FieldErrorComponent],
+  imports: [ReactiveFormsModule, SkeletonComponent, FieldErrorComponent, PageHeaderComponent],
 })
 export class WeeklyScheduleComponent implements OnInit {
-  protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _fb = inject(FormBuilder);
   private readonly _confirmDialog = inject(ConfirmDialogService);

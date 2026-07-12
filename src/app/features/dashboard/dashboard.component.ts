@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { DashboardService } from './dashboard.service';
 import { CurrentUserStore } from '../../core/auth/current-user.store';
 import { ActiveQueuesService } from '../queues/auth-queues/active-queues.service';
@@ -7,13 +7,32 @@ import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.com
 import { PendingInvitesComponent } from './salon/pending-invites/pending-invites.component';
 import { MyVisitsComponent } from './my-visits/my-visits.component';
 import { QrScannerComponent } from '../../shared/components/qr-scanner/qr-scanner.component';
+import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
+import { SalonCardComponent } from '../../shared/components/salon-card/salon-card.component';
+import { CategoryPillsComponent } from '../../shared/components/category-pills/category-pills.component';
+import { IconComponent } from '../../shared/components/icon/icon.component';
+import { JoinBannerComponent } from './join-banner/join-banner.component';
+import { CategoriesService } from '../../core/categories/categories.service';
+import { SalonListingService } from '../../marketing/landing/salon-listing.service';
 import { ToastService } from '../../core/toast/toast.service';
-import { RoutePath } from '../../core/routing/route-paths';
+import { RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
 
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
-  imports: [SkeletonComponent, PendingInvitesComponent, MyVisitsComponent, QrScannerComponent],
+  imports: [
+    RouterLink,
+    SkeletonComponent,
+    PendingInvitesComponent,
+    // MyVisitsComponent,
+    QrScannerComponent,
+    AvatarComponent,
+    SalonCardComponent,
+    CategoryPillsComponent,
+    IconComponent,
+    JoinBannerComponent,
+  ],
+  providers: [SalonListingService],
 })
 export class DashboardComponent implements OnInit {
   protected readonly _dashboardService = inject(DashboardService);
@@ -21,6 +40,9 @@ export class DashboardComponent implements OnInit {
   private readonly _activeQueues = inject(ActiveQueuesService);
   private readonly _toast = inject(ToastService);
   private readonly _router = inject(Router);
+
+  protected readonly listing = inject(SalonListingService);
+  protected readonly categoriesService = inject(CategoriesService);
 
   protected readonly loading = this._dashboardService.loading;
   protected readonly error = this._dashboardService.error;
@@ -30,9 +52,28 @@ export class DashboardComponent implements OnInit {
 
   protected readonly showScanner = signal(false);
 
+  protected readonly notificationsLink = RoutePath.notifications();
+  protected readonly favoritesLink = RoutePath.favorites();
+  protected readonly searchLink = RoutePath.search();
+
   ngOnInit(): void {
     this._dashboardService.load();
     this._activeQueues.load();
+    this.categoriesService.load();
+  }
+
+  protected onSearchInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.listing.setSearch(value);
+  }
+
+  protected onSearchSubmit(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this._router.navigate(RoutePath.search(), { queryParams: { [RouteQueryParam.SEARCH]: value } });
+  }
+
+  protected onCategorySelect(slug: string): void {
+    this.listing.setCategory(slug);
   }
 
   protected onQrScanned(text: string): void {

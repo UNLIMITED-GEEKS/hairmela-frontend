@@ -1,22 +1,20 @@
-<div class="py-6 px-4">
-  <div class="space-y-6">
+<div class="">
+  <app-page-header title="Leave Salon" backVariant="glass" />
+  <div class="space-y-6 pt-3 pb-6 px-4">
 
-    <div>
-      <h1 class="text-xl font-semibold text-gray-900 mb-1">Leave Salon</h1>
-      <p class="text-sm text-gray-500">Remove yourself from this salon's team.</p>
-    </div>
+    <p class="text-base text-black/90 -mt-4">Remove yourself from this salon's team.</p>
 
     @if (isOwner()) {
       <!-- Owners must transfer ownership first -->
-      <div class="bg-amber-50 rounded-xl border border-amber-200 p-5 space-y-3">
-        <h2 class="text-sm font-semibold text-amber-800">You're the owner of this salon</h2>
-        <p class="text-sm text-amber-700">
+      <div class="bg-secondary-light rounded-xl border border-primary p-5 space-y-3">
+        <h2 class="text-sm font-semibold text-primary">You're the owner of this salon</h2>
+        <p class="text-sm text-primary">
           Owners can't leave directly — every salon must always have an owner.
           Transfer ownership to another team member first, then you can leave.
         </p>
         <a [routerLink]="transferUrl"
-          class="inline-flex items-center justify-center min-h-10 px-4 bg-amber-600 text-white
-                 text-sm font-medium rounded-lg hover:bg-amber-700 transition-colors">
+          class="inline-flex items-center justify-center min-h-10 px-4 bg-white text-primary 
+                 text-sm font-medium rounded-lg hover:bg-sky-50 transition-colors">
           Transfer ownership
         </a>
       </div>

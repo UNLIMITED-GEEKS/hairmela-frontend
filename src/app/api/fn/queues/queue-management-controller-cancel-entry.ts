@@ -11,23 +11,23 @@ import { RequestBuilder } from '../../request-builder';
 export interface QueueManagementControllerCancelEntry$Params {
 
 /**
+ * Salon UUID
+ */
+  salonId: string;
+
+/**
  * Queue UUID
  */
   queueId: string;
   entryId: string;
-
-/**
- * Salon UUID
- */
-  salonId: string;
 }
 
 export function queueManagementControllerCancelEntry(http: HttpClient, rootUrl: string, params: QueueManagementControllerCancelEntry$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
   const rb = new RequestBuilder(rootUrl, queueManagementControllerCancelEntry.PATH, 'delete');
   if (params) {
+    rb.path('salonId', params.salonId, {});
     rb.path('queueId', params.queueId, {});
     rb.path('entryId', params.entryId, {});
-    rb.path('salonId', params.salonId, {});
   }
 
   return http.request(

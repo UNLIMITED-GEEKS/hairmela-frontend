@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { ToastService } from '../../../core/toast/toast.service';
 import { environment } from '../../../../environments/environment';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { SalonOverviewService } from '../salon-overview/salon-overview.service';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { RouteParam } from '../../../core/routing/route-paths';
@@ -11,7 +12,7 @@ import { RouteParam } from '../../../core/routing/route-paths';
   selector: 'app-salon-share',
   templateUrl: './salon-share.component.html',
   styleUrl: './salon-share.component.scss',
-  imports: [SkeletonComponent],
+  imports: [SkeletonComponent, PageHeaderComponent],
 })
 export class SalonShareComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);

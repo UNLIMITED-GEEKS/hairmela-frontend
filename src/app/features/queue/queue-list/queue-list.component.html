@@ -1,25 +1,25 @@
-<div class="h-full flex flex-col px-5 py-5">
+<div class="h-full min-h-0 flex flex-col px-5 py-5">
 
   <!-- "Total Count" pill -->
   <div class="shrink-0 mb-4">
-    <div class="inline-flex flex-col items-center rounded-2xl bg-warning-light px-6 py-2.5">
-      <span class="text-xs font-semibold text-warning uppercase tracking-wide">Total Count</span>
-      <span class="text-2xl font-bold text-warning leading-tight">{{ console.waitingEntries().length }}</span>
+    <div class="inline-flex flex-col items-center rounded-2xl bg-secondary-light px-6 py-2.5">
+      <span class="text-xs font-semibold text-primary uppercase tracking-wide">Total Count</span>
+      <span class="text-2xl font-bold text-primary leading-tight">{{ console.waitingEntries().length }}</span>
     </div>
   </div>
 
   <!-- Column headers -->
   <div class="shrink-0 flex gap-2 mb-3">
-    <div class="flex-1 rounded-xl bg-primary/10 px-3 py-2 text-xs font-bold text-primary">
+    <div class="flex-1 rounded-xl bg-secondary-light px-3 py-2 text-xs font-bold text-primary">
       Clients on queue
     </div>
-    <div class="w-20 rounded-xl bg-primary/10 px-3 py-2 text-xs font-bold text-primary text-center">
+    <div class="w-20 rounded-xl whitespace-nowrap bg-secondary-light px-3 py-2 text-xs font-bold text-primary text-center">
       Wait time
     </div>
   </div>
 
   <!-- Scrollable queue rows -->
-  <div class="flex-1 overflow-y-auto space-y-2 pr-0.5">
+  <div class="flex-1 min-h-0 overflow-y-auto space-y-2 pr-0.5 pb-24">
     @for (entry of console.queueListEntries(); track entry.entryId) {
       @let isServing = entry.members.some(m => m.status === 'SERVING');
       <div class="flex items-center justify-between bg-white border border-primary/20 rounded-2xl px-3 py-3 min-h-[52px]">
@@ -27,7 +27,7 @@
           <span class="text-sm font-medium text-gray-800 block truncate">
             {{ entry.members[0].memberName }}
             @if (entry.members.length > 1) {
-              <span class="text-xs text-gray-500"> +{{ entry.members.length - 1 }} {{ entry.members.length - 1 === 1 ? 'kid' : 'kids' }}</span>
+              <span class="text-xs text-gray-500"> + {{ entry.members.length - 1 }} {{ entry.members.length - 1 === 1 ? 'more person' : 'more persons' }}</span>
             }
           </span>
           @if (entry.members[0].serviceName) {
@@ -50,7 +50,7 @@
           @if (isServing) {
             <span class="text-xs font-bold text-success" aria-live="polite">Serving</span>
           } @else {
-            <span class="text-xs text-warning font-medium" aria-live="polite">{{ console.liveWait(entry.entryId) }}</span>
+            <span class="text-xs text-primary font-medium" aria-live="polite">{{ console.liveWait(entry.entryId) }}</span>
           }
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
@@ -58,11 +58,11 @@
             <app-inline-spinner class="text-warning" />
           }
           <button (click)="noShow(entry.entryId)" [disabled]="console.isLocked(entry.entryId)"
-            class="min-h-8 px-2.5 rounded-xl text-xs font-semibold border border-warning/40 text-warning bg-warning-light hover:bg-warning/20 disabled:opacity-40 transition-colors">
+            class="min-h-8 px-2.5 rounded-xl text-xs font-semibold border border-primary/40 text-primary bg-surface hover:bg-warning/20 disabled:opacity-40 transition-colors">
             No-show
           </button>
           <button (click)="cancelEntry(entry.entryId)" [disabled]="console.isLocked(entry.entryId)"
-            class="min-h-8 px-2.5 rounded-xl text-xs font-semibold border border-primary/30 text-primary bg-primary-light hover:bg-primary/10 disabled:opacity-40 transition-colors">
+            class="min-h-8 px-2.5 rounded-xl text-xs font-semibold border border-primary/30 text-white bg-primary hover:bg-primary-hover disabled:opacity-40 transition-colors">
             Cancel
           </button>
         </div>
@@ -79,25 +79,35 @@
     }
   </div>
 
-  <!-- Bottom action buttons -->
-  <div class="shrink-0 pt-5 flex gap-3" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom))">
+  <!-- Bottom action buttons — always fixed; see current-client's version of
+       this comment for the sidebar-avoidance rationale. -->
+  <div class="fixed left-0 right-0 above-bottom-nav z-30 bg-surface px-7 md:px-16 pt-3 pb-4 flex gap-3
+              md:left-(--sidebar-width) transition-[left] duration-250 ease-in-out">
     <button
       (click)="openAddQueueModal()"
-      class="flex-1 min-h-[52px] rounded-2xl bg-warning-light border border-warning/30 text-warning font-bold text-sm transition-colors hover:bg-warning/20">
-      Add Queue
+      class="flex-1 min-h-[45px] rounded-2xl bg-primary border  text-white font-bold text-sm transition-colors hover:bg-primary-hover">
+      Add a client
     </button>
     <button
       (click)="_location.back()"
-      class="flex-1 min-h-[52px] rounded-2xl border-2 border-primary text-primary font-bold text-sm transition-colors hover:bg-primary-light">
+      class="flex-1 min-h-[45px] rounded-2xl border-2 border-primary text-primary font-bold text-sm transition-colors hover:bg-surface">
       Back
     </button>
   </div>
 
+</div>
+
 <!-- Add Queue Modal -->
 @if (showAddQueueModal()) {
-  <div class="fixed inset-0 z-40 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label="Add client to queue">
+  <div
+    animate.enter="modal-backdrop-enter"
+    animate.leave="modal-backdrop-leave"
+    class="fixed inset-0 z-40 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label="Add client to queue">
     <div class="absolute inset-0 bg-black/40" (click)="showAddQueueModal.set(false)"></div>
-    <div class="relative w-full max-w-md bg-white rounded-3xl px-5 pt-5 pb-0 z-10 max-h-80dvh flex flex-col" [formGroup]="addQueueForm">
+    <div
+      animate.enter="modal-card-enter"
+      animate.leave="modal-card-leave"
+      class="relative w-full max-w-md bg-surface rounded-3xl px-5 pt-5 pb-0 z-10 max-h-80dvh flex flex-col" [formGroup]="addQueueForm">
       <div class="shrink-0 flex items-center justify-between mb-4">
         <h2 class="text-base font-bold text-gray-900">Add client to queue</h2>
         <button (click)="showAddQueueModal.set(false)"
@@ -110,7 +120,7 @@
       </div>
       <div class="flex-1 overflow-y-auto space-y-3 mb-4" formArrayName="members">
         @for (ctrl of addQueueMembers.controls; track $index; let i = $index) {
-          <div [formGroupName]="i" class="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex flex-col gap-2">
+          <div [formGroupName]="i" class="bg-white border border-gray-200 rounded-2xl px-4 py-4 flex flex-col gap-2">
             <div class="flex gap-3 items-start">
               <div class="flex-1">
                 <input formControlName="name" type="text" [placeholder]="'Client ' + (i + 1) + ' name'"
@@ -140,16 +150,14 @@
       </div>
       <div class="shrink-0 flex gap-3 border-t border-gray-100 pt-3 pb-5">
         <button (click)="addQueueMemberRow()"
-          class="flex-1 min-h-12 rounded-2xl border-2 border-dashed border-primary/30 text-primary text-sm font-medium hover:bg-primary-light/30 transition-colors">
+          class="flex-1 min-h-12 rounded-2xl border-2 border-dashed border-primary/30 text-primary text-sm font-medium hover:bg-surface transition-colors">
           + Add a kid
         </button>
         <button (click)="staffAddToQueue()"
-          class="flex-1 min-h-12 rounded-2xl bg-warning-light border-2 border-warning/30 text-warning font-bold text-sm hover:bg-warning/20 transition-colors">
+          class="flex-1 min-h-12 rounded-2xl bg-primary border-2  text-white font-bold text-sm hover:bg-primary-hover transition-colors">
           Add to queue
         </button>
       </div>
     </div>
   </div>
 }
-
-</div>

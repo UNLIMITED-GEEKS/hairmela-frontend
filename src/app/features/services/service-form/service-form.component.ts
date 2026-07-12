@@ -1,5 +1,4 @@
 import { Component, effect, inject, OnInit, computed, signal } from '@angular/core';
-import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -10,15 +9,23 @@ import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/
 import { TierFreezeDirective } from '../../../shared/directives/tier-freeze.directive';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-service-form',
   templateUrl: './service-form.component.html',
-  imports: [ReactiveFormsModule, SkeletonComponent, FrozenBannerComponent, TierFreezeDirective, FieldErrorComponent, InlineSpinnerComponent],
+  imports: [
+    ReactiveFormsModule,
+    SkeletonComponent,
+    FrozenBannerComponent,
+    TierFreezeDirective,
+    FieldErrorComponent,
+    InlineSpinnerComponent,
+    PageHeaderComponent,
+  ],
 })
 export class ServiceFormComponent implements OnInit {
-  protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
   private readonly _fb = inject(FormBuilder);
@@ -50,15 +57,15 @@ export class ServiceFormComponent implements OnInit {
     return this._route.snapshot.paramMap.get(RouteParam.SERVICE_ID) ?? null;
   }
 
-  ngOnInit(): void {
-    this.categoriesService.load();
-
-    const sid = this._serviceId;
-    if (!sid) return;
-    this._servicesService.load(this._salonId);
-    // Patch form reactively so it works whether the cache was cold or warm
+  constructor() {
+    // Patch form reactively so it works whether the cache was cold or warm.
+    // effect() must be created here (a valid injection context), not in
+    // ngOnInit() — it still only does anything once _serviceId is set (edit
+    // mode) and the matching service has loaded.
     effect(
       () => {
+        const sid = this._serviceId;
+        if (!sid) return;
         const service = this._servicesService.services().find((s) => s.id === sid);
         if (service && !this.form.dirty) {
           this.form.patchValue({
@@ -72,6 +79,11 @@ export class ServiceFormComponent implements OnInit {
       },
       { allowSignalWrites: true },
     );
+  }
+
+  ngOnInit(): void {
+    this.categoriesService.load();
+    if (this._serviceId) this._servicesService.load(this._salonId);
   }
 
   protected save(): void {

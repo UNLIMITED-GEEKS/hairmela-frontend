@@ -1,0 +1,7 @@
+<div class="flex items-center justify-between gap-3 mb-6 mt-6 mx-3 px-3 py-2 bg-linear-to-r rounded-xl from-primary to-primary-hover">
+  <div class="flex items-center gap-2 min-w-0">
+    <app-back-button [variant]="backVariant()" [fallbackRoute]="fallbackRoute()" />
+    <h1 class="text-base font-semibold text-white truncate">{{ title() }}</h1>
+  </div>
+  <ng-content select="[slot=actions]" />
+</div>

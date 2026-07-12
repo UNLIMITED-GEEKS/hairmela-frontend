@@ -1,5 +1,4 @@
 import { Component, OnInit, inject, computed } from '@angular/core';
-import { Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Service } from '../../../api/models/service';
 import { ServicesService } from '../services.service';
@@ -9,16 +8,24 @@ import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/frozen-banner.component';
 import { AnimatedListComponent } from '../../../shared/components/animated-list/animated-list.component';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { ScreenLayoutComponent } from '../../../shared/components/screen-layout/screen-layout.component';
 import { RouteParam, RouteSegment } from '../../../core/routing/route-paths';
 import { filter } from 'rxjs';
 
 @Component({
   selector: 'app-service-list',
   templateUrl: './service-list.component.html',
-  imports: [RouterLink, SkeletonComponent, FrozenBannerComponent, AnimatedListComponent],
+  imports: [
+    RouterLink,
+    SkeletonComponent,
+    FrozenBannerComponent,
+    AnimatedListComponent,
+    PageHeaderComponent,
+    ScreenLayoutComponent,
+  ],
 })
 export class ServiceListComponent implements OnInit {
-  protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _servicesService = inject(ServicesService);
   private readonly _confirmDialog = inject(ConfirmDialogService);
@@ -58,10 +65,10 @@ export class ServiceListComponent implements OnInit {
   protected deactivate(service: Service): void {
     this._confirmDialog
       .open({
-        title: `Deactivate "${service.name}"?`,
+        title: `Delete "${service.name}"?`,
         message:
           'This service will be unassigned from all staff and removed from new queues. In-flight queue entries keep their duration.',
-        confirmLabel: 'Deactivate',
+        confirmLabel: 'Delete',
         danger: true,
       })
       .pipe(filter((ok) => ok))

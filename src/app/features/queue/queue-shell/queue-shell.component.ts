@@ -5,13 +5,14 @@ import { QueueConsoleService } from '../queue-console/queue-console.service';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { ConnectionBannerComponent } from '../../../shared/components/connection-banner/connection-banner.component';
+import { BackButtonComponent } from '../../../shared/components/back-button/back-button.component';
 import { RouteParam } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-queue-shell',
   templateUrl: './queue-shell.component.html',
   providers: [QueueConsoleService],
-  imports: [RouterOutlet, SkeletonComponent, ConnectionBannerComponent],
+  imports: [RouterOutlet, SkeletonComponent, ConnectionBannerComponent, BackButtonComponent],
 })
 export class QueueShellComponent implements OnInit, OnDestroy {
   protected readonly console = inject(QueueConsoleService);

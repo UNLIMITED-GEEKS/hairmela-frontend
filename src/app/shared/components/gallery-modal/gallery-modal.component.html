@@ -19,8 +19,11 @@
       </svg>
     </button>
 
-    <!-- Main image track -->
-    <div class="flex-1 relative overflow-hidden flex items-center" #trackWrap
+    <!-- Main image track — touch-action: none so the browser doesn't claim
+         the gesture as a page scroll/pan before pointermove sees it. Without
+         this, drag/swipe works with a mouse (no such ambiguity) but silently
+         does nothing on a real touchscreen. -->
+    <div class="flex-1 relative overflow-hidden flex items-center touch-none" #trackWrap
       (pointerdown)="onPointerDown($event, trackWrap)"
       (pointermove)="onPointerMove($event)"
       (pointerup)="onPointerUp()"
@@ -53,7 +56,8 @@
 
     <!-- Thumbnail strip -->
     @if (images().length > 1) {
-      <div #thumbStrip class="shrink-0 min-w-0 w-full flex gap-2 overflow-x-auto px-4 py-4 themed-scrollbar">
+      <div #thumbStrip class="shrink-0 min-w-0 w-full flex gap-2 overflow-x-auto overscroll-x-contain touch-pan-x px-4 py-4 themed-scrollbar"
+        style="-webkit-overflow-scrolling: touch;">
         @for (img of images(); track img; let i = $index) {
           <button #thumbBtn type="button" (click)="jumpTo(i)"
             [class]="'shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-colors ' +

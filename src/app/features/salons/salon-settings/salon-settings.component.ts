@@ -11,6 +11,7 @@ import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.
 import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/frozen-banner.component';
 import { TierFreezeDirective } from '../../../shared/directives/tier-freeze.directive';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { RouteParam } from '../../../core/routing/route-paths';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -32,7 +33,14 @@ const TIMEZONES = [
 @Component({
   selector: 'app-salon-settings',
   templateUrl: './salon-settings.component.html',
-  imports: [ReactiveFormsModule, SkeletonComponent, FrozenBannerComponent, TierFreezeDirective, FieldErrorComponent],
+  imports: [
+    ReactiveFormsModule,
+    SkeletonComponent,
+    FrozenBannerComponent,
+    TierFreezeDirective,
+    FieldErrorComponent,
+    PageHeaderComponent,
+  ],
 })
 export class SalonSettingsComponent implements OnInit {
   protected readonly _location = inject(Location);

@@ -1,37 +1,57 @@
-<div class="h-full flex flex-col px-5 py-5">
+<div class="h-full min-h-0 flex flex-col px-4 py-5">
 
   <!-- "Current Client" header pill -->
   <div class="shrink-0 mb-4">
-    <div class="w-full rounded-2xl bg-primary-light px-4 py-3 text-center">
+    <div class="w-full rounded-2xl bg-white border border-primary px-4 py-2.5 text-center">
       <span class="text-sm font-bold tracking-wide text-primary uppercase">Current Client</span>
     </div>
   </div>
 
-  <!-- Circle -->
+  <!-- Circle — same tick-mark ring + dynamic progress arc as the customer's
+       my-position page, but time-based (elapsed vs. serviceDuration) since
+       there's no queue position for the one client being served. -->
   <div class="shrink-0 flex items-center justify-center py-2">
-    <div class="w-52 h-52 rounded-full border-4 border-warning flex flex-col items-center justify-center gap-1 text-center px-4">
-      @if (console.callNextWaiting()) {
-        <app-inline-spinner class="text-warning" />
-        <span class="text-sm font-medium text-warning mt-1" aria-live="polite">Calling next person…</span>
-      } @else if (console.displayServingMember(); as member) {
-        <span class="text-4xl font-bold text-warning leading-none">
-          {{ member.memberName.split(' ')[0] }}
-        </span>
-        @if (member.serviceName) {
-          <span class="text-xs font-medium text-warning/70">{{ member.serviceName }}</span>
-        }
-        <span class="text-xl font-semibold text-warning mt-1" aria-live="polite">
-          {{ console.timerFromServedAt() }}
-        </span>
-        @if (console.estimatedFinishTime()) {
-          <span class="text-xs text-warning/70 font-medium mt-0.5">
-            eft: {{ console.estimatedFinishTime() }}
-          </span>
-        }
+    <div class="relative w-52 h-52">
+      @if (console.displayServingMember(); as member) {
+        <!-- Static tick-mark ring background -->
+        <img src="/svgs/queue-ticks.svg" alt="" class="absolute inset-0 h-full w-full" />
+
+        <!-- Dynamic progress arc — time-based (fuller = closer to estimated finish) -->
+        <svg class="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 326 326" aria-hidden="true">
+          <circle cx="163" cy="163" r="125" fill="none" stroke="var(--color-secondary-light)" stroke-width="10" />
+          <circle cx="163" cy="163" r="125" fill="none" stroke="var(--color-primary)" stroke-width="10"
+            stroke-linecap="round"
+            [attr.stroke-dasharray]="console.ringCircumference"
+            [attr.stroke-dashoffset]="console.ringDashOffset()"
+            class="transition-[stroke-dashoffset] duration-500 ease-out" />
+        </svg>
       } @else {
-        <span class="text-sm font-medium text-gray-400">No active client</span>
-        <!-- <span class="text-xs text-gray-300 mt-1">Queue is free</span> -->
+        <div class="absolute inset-0 rounded-full border-4 border-gray-200"></div>
       }
+
+      <div class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-center px-4">
+        @if (console.callNextWaiting()) {
+          <app-inline-spinner class="text-primary" />
+          <span class="text-sm font-medium text-primary mt-1" aria-live="polite">Calling next person…</span>
+        } @else if (console.displayServingMember(); as member) {
+          <span class="text-4xl font-bold text-primary leading-none">
+            {{ member.memberName.split(' ')[0] }}
+          </span>
+          @if (member.serviceName) {
+            <span class="text-xs font-medium text-primary/70">{{ member.serviceName }}</span>
+          }
+          <span class="text-xl font-semibold text-primary mt-1" aria-live="polite">
+            {{ console.timerFromServedAt() }}
+          </span>
+          @if (console.estimatedFinishTime()) {
+            <span class="text-xs text-primary/70 font-medium mt-0.5">
+              eft: {{ console.estimatedFinishTime() }}
+            </span>
+          }
+        } @else {
+          <span class="text-sm font-medium text-primary">No active client</span>
+        }
+      </div>
     </div>
   </div>
 
@@ -39,34 +59,34 @@
        the circle: this list is fed by servingEntry(), which reflects the
        same unconfirmed optimistic paint. -->
   @if (!console.callNextWaiting() && console.servingPartyMembers().length > 0) {
-    <div class="flex-1 overflow-y-auto space-y-2 mt-3">
+    <div class="flex-1 min-h-0 overflow-y-auto space-y-2 mt-3 pb-24">
       @for (member of console.servingPartyMembers(); track member.memberId) {
-        <div class="flex items-center gap-2 bg-warning-light border border-warning/20 rounded-2xl px-3 py-2.5 min-h-12">
+        <div class="flex items-center gap-2 bg-white border border-primary/20 rounded-2xl px-3 py-2.5 min-h-12">
           <span class="flex-1 min-w-0">
-            <span class="block text-sm font-medium text-warning truncate">{{ member.memberName }}</span>
+            <span class="block text-sm font-medium text-primary truncate">{{ member.memberName }}</span>
             @if (member.serviceName) {
-              <span class="block text-xs text-warning/70 truncate">{{ member.serviceName }}</span>
+              <span class="block text-xs text-primary/70 truncate">{{ member.serviceName }}</span>
             }
           </span>
-          <span [class]="'text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ' +
+          <span [class]="'text-xs text-black/90 min-h-8 inline-flex items-center font-semibold px-2 py-0.5 rounded-xl shrink-0 ' +
             (member.status === 'SERVING' ? 'bg-success-light text-success' : 'bg-gray-100 text-gray-500')">
             {{ member.status === 'SERVING' ? 'Serving' : 'Waiting' }}
           </span>
           @if (member.status === 'WAITING') {
-            <span class="text-xs text-gray-400 shrink-0" aria-live="polite">{{ console.memberWait(member.memberId) }}</span>
+            <span class="text-xs min-h-8 rounded-xl inline-flex items-center text-black/90 shrink-0" aria-live="polite">{{ console.memberWait(member.memberId) }}</span>
           }
           @if (member.status === 'SERVING') {
             @if (console.isLocked(member.memberId)) {
-              <app-inline-spinner class="text-warning" />
+              <app-inline-spinner class="text-primary" />
             }
             <button (click)="openExtendModal(console.servingEntry()!.entryId, member.memberId)"
               [disabled]="console.isLocked(member.memberId)"
-              class="min-w-9 min-h-9 px-2 rounded-xl border border-warning text-warning text-xs font-bold disabled:opacity-40 shrink-0">
+              class="min-w-9 min-h-8 px-2 rounded-xl border border-primary text-primary text-xs font-bold disabled:opacity-40 shrink-0">
               +mins
             </button>
             <button (click)="completeMember(console.servingEntry()!.entryId, member.memberId)"
               [disabled]="console.isLocked(member.memberId)"
-              class="min-w-9 min-h-9 px-2 rounded-xl bg-success-light text-success text-xs font-bold disabled:opacity-40 shrink-0">
+              class="min-w-9 min-h-8 px-2 rounded-xl bg-primary text-white text-xs font-bold disabled:opacity-40 shrink-0">
               Done
             </button>
           }
@@ -77,16 +97,25 @@
     <div class="flex-1"></div>
   }
 
-  <!-- Bottom action buttons -->
-  <div class="shrink-0 pt-3 flex gap-3" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom))">
+  <!-- Bottom action buttons — always fixed, on every screen size, so it can
+       never scroll away with page content. right-0 + above-bottom-nav pin it
+       above the mobile bottom nav; left-0 spans full width there. On md+
+       there's no bottom nav (above-bottom-nav collapses to bottom:0), but
+       auth-shell's sidebar occupies the left --sidebar-width — set by
+       SidebarComponent itself (the only place that knows its live
+       64px/220px collapsed state) — so the bar starts after it instead of
+       overlapping. transition-[left] mirrors the sidebar's own collapse
+       animation so the bar's edge moves in sync with it. -->
+  <div class="fixed left-0 right-0 above-bottom-nav z-30 bg-surface px-6 md:px-13 pt-3 pb-4 flex gap-3
+              md:left-(--sidebar-width) transition-[left] duration-250 ease-in-out">
     <a [routerLink]="queueUrl"
-      class="flex-1 min-h-[52px] rounded-2xl bg-warning-light border border-warning/30 text-warning font-bold text-sm flex items-center justify-center transition-colors hover:bg-warning/20">
+      class="flex-1 min-h-[45px] rounded-2xl bg-primary border  text-white font-bold text-sm flex items-center justify-center transition-colors hover:bg-primary-hover">
       View Queue
     </a>
     <button
       (click)="endSession()"
       [disabled]="!console.servingEntry() || console.isLocked(console.servingEntry()!.entryId)"
-      class="flex-1 min-h-[52px] rounded-2xl border-2 border-primary text-primary font-bold text-sm disabled:opacity-40 transition-opacity flex items-center justify-center gap-2">
+      class="flex-1 min-h-[45px] rounded-2xl bg-white border-2 border-primary text-primary font-bold text-sm disabled:opacity-40 transition-opacity flex items-center justify-center gap-2">
       @if (console.servingEntry() && console.isLocked(console.servingEntry()!.entryId)) {
         <app-inline-spinner />
       }
@@ -99,9 +128,15 @@
 
 <!-- End Party Modal -->
 @if (showEndPartyModal()) {
-  <div class="fixed inset-0 z-40 flex items-center justify-center px-5" role="dialog" aria-modal="true">
+  <div
+    animate.enter="modal-backdrop-enter"
+    animate.leave="modal-backdrop-leave"
+    class="fixed inset-0 z-40 flex items-center justify-center px-5" role="dialog" aria-modal="true">
     <div class="absolute inset-0 bg-black/40" (click)="showEndPartyModal.set(false)"></div>
-    <div class="relative w-full max-w-sm bg-white rounded-3xl px-6 py-6 z-10">
+    <div
+      animate.enter="modal-card-enter"
+      animate.leave="modal-card-leave"
+      class="relative w-full max-w-sm bg-white rounded-3xl px-6 py-6 z-10">
       <h2 class="text-base font-bold text-gray-900 mb-2">End session?</h2>
       <p class="text-sm text-gray-500 mb-6">
         This party has {{ console.servingPartyMembers().length }} members still in progress.
@@ -124,9 +159,15 @@
 
 <!-- Extend Session Modal -->
 @if (showExtendModal()) {
-  <div class="fixed inset-0 z-40 flex items-center justify-center px-4" role="dialog" aria-modal="true">
+  <div
+    animate.enter="modal-backdrop-enter"
+    animate.leave="modal-backdrop-leave"
+    class="fixed inset-0 z-40 flex items-center justify-center px-4" role="dialog" aria-modal="true">
     <div class="absolute inset-0 bg-black/40" (click)="showExtendModal.set(false)"></div>
-    <div class="relative w-full max-w-md bg-white rounded-3xl px-5 pt-5 pb-6 z-10">
+    <div
+      animate.enter="modal-card-enter"
+      animate.leave="modal-card-leave"
+      class="relative w-full max-w-md bg-white rounded-3xl px-5 pt-5 pb-6 z-10">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-base font-bold text-gray-900">Extend session</h2>
         <button (click)="showExtendModal.set(false)"
@@ -171,9 +212,15 @@
 
 <!-- Add Queue Modal -->
 @if (showAddQueueModal()) {
-  <div class="fixed inset-0 z-40 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label="Add client to queue">
+  <div
+    animate.enter="modal-backdrop-enter"
+    animate.leave="modal-backdrop-leave"
+    class="fixed inset-0 z-40 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label="Add client to queue">
     <div class="absolute inset-0 bg-black/40" (click)="showAddQueueModal.set(false)"></div>
-    <div class="relative w-full max-w-md bg-white rounded-3xl px-5 pt-5 pb-0 z-10 max-h-80dvh flex flex-col" [formGroup]="addQueueForm">
+    <div
+      animate.enter="modal-card-enter"
+      animate.leave="modal-card-leave"
+      class="relative w-full max-w-md bg-white rounded-3xl px-5 pt-5 pb-0 z-10 max-h-80dvh flex flex-col" [formGroup]="addQueueForm">
       <div class="shrink-0 flex items-center justify-between mb-4">
         <h2 class="text-base font-bold text-gray-900">Add client to queue</h2>
         <button (click)="showAddQueueModal.set(false)"

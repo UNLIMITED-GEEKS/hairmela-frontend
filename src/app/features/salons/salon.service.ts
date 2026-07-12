@@ -51,7 +51,13 @@ export class SalonService {
       });
   }
 
-  delete(salonId: string, salonName: string, destroyRef: DestroyRef, onSuccess?: () => void): void {
+  delete(
+    salonId: string,
+    salonName: string,
+    destroyRef: DestroyRef,
+    onSuccess?: () => void,
+    onConfirmed?: () => void,
+  ): void {
     this._confirmDialog
       .open({
         title: `Delete "${salonName}"?`,
@@ -61,9 +67,14 @@ export class SalonService {
       })
       .pipe(
         filter((confirmed) => confirmed),
-        switchMap(() =>
-          salonsControllerSoftDelete(this._http, this._apiConfig.rootUrl, { salonId }),
-        ),
+        switchMap(() => {
+          // Only flip to "deleting" once the user has actually confirmed —
+          // not on the initial click, which merely opens this dialog and
+          // would otherwise leave the caller's loading state stuck on if the
+          // user cancels instead of confirming.
+          onConfirmed?.();
+          return salonsControllerSoftDelete(this._http, this._apiConfig.rootUrl, { salonId });
+        }),
         takeUntilDestroyed(destroyRef),
       )
       .subscribe({

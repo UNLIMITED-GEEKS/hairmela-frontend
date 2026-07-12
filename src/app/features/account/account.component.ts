@@ -11,6 +11,7 @@ import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.com
 import { ResetPasswordComponent } from './reset-password/reset-password.component';
 import { NotificationsToggleComponent } from './notifications-toggle/notifications-toggle.component';
 import { VerifyEmailBannerComponent } from '../../shared/components/verify-email-banner/verify-email-banner.component';
+import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { RoutePath } from '../../core/routing/route-paths';
 
 @Component({
@@ -23,6 +24,7 @@ import { RoutePath } from '../../core/routing/route-paths';
     ResetPasswordComponent,
     NotificationsToggleComponent,
     VerifyEmailBannerComponent,
+    PageHeaderComponent,
   ],
 })
 export class AccountComponent {

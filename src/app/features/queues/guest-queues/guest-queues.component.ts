@@ -2,12 +2,13 @@ import { Component, inject, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { QueueEntry } from '../../../api/models/queue-entry';
 import { GuestQueuesService } from './guest-queues.service';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-guest-queues',
   templateUrl: './guest-queues.component.html',
-  imports: [RouterLink],
+  imports: [RouterLink, PageHeaderComponent],
 })
 export class GuestQueuesComponent implements OnInit {
   private readonly _router = inject(Router);

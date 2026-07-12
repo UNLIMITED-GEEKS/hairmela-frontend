@@ -1,0 +1,33 @@
+@if (open()) {
+  <div
+    animate.enter="modal-backdrop-enter"
+    animate.leave="modal-backdrop-leave"
+    class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-4 pb-4 sm:pb-0" role="dialog" aria-modal="true" aria-label="Edit photos">
+    <div
+      animate.enter="modal-card-enter"
+      animate.leave="modal-card-leave"
+      class="w-full max-w-sm bg-surface rounded-3xl p-6 space-y-4 shadow-xl max-h-85dvh flex flex-col">
+
+      <div class="shrink-0 flex items-center justify-between">
+        <h2 class="text-lg font-bold text-gray-900">Edit photos</h2>
+        <button type="button" (click)="close()" aria-label="Close"
+          class="w-8 h-8 rounded-full flex items-center justify-center bg-primary text-white hover:bg-primary-hover transition-colors">
+          <app-icon name="close" class="w-4 h-4" />
+        </button>
+      </div>
+
+      <p class="shrink-0 text-xs text-text-secondary -mt-2">Drag to reorder, tap the × to delete.</p>
+
+      <div class="flex-1 overflow-y-auto themed-scrollbar">
+        <app-gallery
+          [items]="items()"
+          [salonId]="salonId()"
+          [staffId]="staffId()"
+          [canEdit]="true"
+          (reordered)="reordered.emit($event)"
+          (deleted)="deleted.emit($event)" />
+      </div>
+
+    </div>
+  </div>
+}

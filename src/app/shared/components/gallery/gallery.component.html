@@ -6,26 +6,15 @@
     (cdkDropListDropped)="drop($event)">
     @for (item of items(); track item.id) {
       <div cdkDrag [cdkDragDisabled]="!canEdit()"
-        class="relative aspect-square rounded-lg overflow-hidden bg-gray-100 group">
+        class="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
         <img [src]="item.url | mediaUrl" alt="Gallery photo"
           class="object-cover w-full h-full" />
         @if (canEdit()) {
-          <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-start justify-end p-1">
-            <button type="button" (click)="deleteItem(item)"
-              class="w-7 h-7 rounded-full bg-white/90 flex items-center justify-center text-red-600 hover:bg-white transition-colors"
-              aria-label="Delete photo">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <div cdkDragHandle
-            class="absolute bottom-1 left-1 w-6 h-6 rounded bg-white/70 flex items-center justify-center cursor-grab active:cursor-grabbing">
-            <svg class="w-3.5 h-3.5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M7 2a2 2 0 110 4 2 2 0 010-4zm6 0a2 2 0 110 4 2 2 0 010-4zM7 8a2 2 0 110 4 2 2 0 010-4zm6 0a2 2 0 110 4 2 2 0 010-4zM7 14a2 2 0 110 4 2 2 0 010-4zm6 0a2 2 0 110 4 2 2 0 010-4z"/>
-            </svg>
-          </div>
+          <button type="button" (click)="deleteItem(item)"
+            class="absolute top-1 right-1 w-7 h-7 rounded-full bg-primary flex items-center justify-center text-white hover:bg-primary-hover transition-colors shadow"
+            aria-label="Delete photo">
+            <app-icon name="close" class="w-4 h-4" />
+          </button>
         }
       </div>
     }

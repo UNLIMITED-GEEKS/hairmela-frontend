@@ -1,29 +1,41 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { SalonVisitService } from '../salon-visit.service';
 import { JoinDialogComponent } from '../join-dialog/join-dialog.component';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
 import { GalleryModalComponent } from '../../../shared/components/gallery-modal/gallery-modal.component';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { BackButtonComponent } from '../../../shared/components/back-button/back-button.component';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-live-queue',
   templateUrl: './live-queue.component.html',
-  imports: [RouterLink, JoinDialogComponent, AvatarComponent, GalleryModalComponent],
+  imports: [
+    // RouterLink,
+    JoinDialogComponent,
+    AvatarComponent,
+    GalleryModalComponent,
+    IconComponent,
+    // BackButtonComponent,
+  ],
 })
-export class LiveQueueComponent implements OnInit {
+export class LiveQueueComponent {
   protected readonly visit = inject(SalonVisitService);
   protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
 
-  protected get _queueId(): string {
-    return this._route.snapshot.paramMap.get(RouteParam.QUEUE_ID) ?? '';
-  }
+  // Reactive, not snapshot-based — q/:queueId is a single route, so navigating
+  // between two barbers (q/A -> q/B) reuses this component instance and never
+  // re-runs a one-time init; only the paramMap actually updates, which is why
+  // these must be signals derived from it rather than snapshot getters.
+  private readonly _paramMap = toSignal(this._route.paramMap, { requireSync: true });
+  private readonly _queryParamMap = toSignal(this._route.queryParamMap, { requireSync: true });
 
-  protected get _slug(): string {
-    return this._route.snapshot.paramMap.get(RouteParam.SLUG) ?? '';
-  }
+  protected readonly _queueId = computed(() => this._paramMap().get(RouteParam.QUEUE_ID) ?? '');
+  protected readonly _slug = computed(() => this._paramMap().get(RouteParam.SLUG) ?? '');
 
   protected get _shellPrefix(): string {
     return this._route.snapshot.data['shellPrefix'] ?? '';
@@ -31,14 +43,38 @@ export class LiveQueueComponent implements OnInit {
 
   // Carried from the Services tab's barber-drilldown (?serviceId=...) so the
   // join dialog can pre-fill it; absent when arriving via the Staffs tab.
-  protected get _serviceId(): string | null {
-    return this._route.snapshot.queryParamMap.get(RouteQueryParam.SERVICE_ID);
+  protected readonly _serviceId = computed(() =>
+    this._queryParamMap().get(RouteQueryParam.SERVICE_ID),
+  );
+
+  constructor() {
+    effect(() => this.visit.watchQueue(this._queueId()));
   }
 
   /** True when any of the caller's own entries are in this queue. */
   protected hasMyEntries(): boolean {
     return this.visit.waitingEntries().some((e) => this.visit.isMine(e.entryId));
   }
+
+  // Estimated Wait Time hero card — always shown. If the caller already has
+  // an entry in this queue, it's their own live wait; otherwise it's the
+  // wait a fresh joiner would face (back of the line).
+  protected readonly myWaitingEntry = computed(
+    () => this.visit.waitingEntries().find((e) => this.visit.isMine(e.entryId)) ?? null,
+  );
+
+  protected readonly estimatedWait = computed(() => {
+    const entry = this.myWaitingEntry();
+    return entry ? this.visit.liveWait(entry.entryId) : this.visit.backOfLineWait();
+  });
+
+  // People ahead: everyone currently waiting/serving when there's no entry
+  // of my own yet; otherwise my position's index in the ordered list.
+  protected readonly peopleAheadOfMe = computed(() => {
+    const entries = this.visit.waitingEntries();
+    const myIndex = entries.findIndex((e) => this.visit.isMine(e.entryId));
+    return myIndex >= 0 ? myIndex : entries.length;
+  });
 
   // Whether a fresh join is currently possible — salon open AND this queue open.
   // Mirrors the availability check the landing page's barber cards use.
@@ -50,18 +86,14 @@ export class LiveQueueComponent implements OnInit {
     return this._shellPrefix ? RoutePath.guestQueues() : RoutePath.queues();
   }
 
-  ngOnInit(): void {
-    this.visit.watchQueue(this._queueId);
-  }
-
   // Join dialog is opened only after selectBarber()'s gate passes (guest ->
   // register redirect, existing entry -> position redirect are handled there
   // and both navigate away themselves; this only opens for a genuine fresh join).
   protected readonly joinDialogOpen = signal(false);
 
   protected openJoin(): void {
-    const staff = this.visit.staffForQueue(this._queueId);
-    if (staff && this.visit.selectBarber(staff, this._slug)) {
+    const staff = this.visit.staffForQueue(this._queueId());
+    if (staff && this.visit.selectBarber(staff, this._slug())) {
       this.joinDialogOpen.set(true);
     }
   }

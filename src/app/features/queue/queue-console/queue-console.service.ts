@@ -26,6 +26,12 @@ import { staffServicesControllerGetStaffServices } from '../../../api/fn/service
 import { StaffService } from '../../../api/models/staff-service';
 import { SocketPredictService } from '../../../core/caching/socket-predict/socket-predict.service';
 
+// Ring geometry — matches the same r="125" circle convention used by the
+// customer-facing my-position ring (see that component for the tick-mark
+// spacing rationale).
+const RING_RADIUS = 125;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
 @Injectable()
 export class QueueConsoleService {
   private readonly _http = inject(HttpClient);
@@ -384,6 +390,25 @@ export class QueueConsoleService {
     const finishMs = new Date(member.servedAt).getTime() + member.serviceDuration * 60 * 1000;
     return new Date(finishMs).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   });
+
+  readonly ringCircumference = RING_CIRCUMFERENCE;
+
+  // Progress ring for the "Current Client" circle — time-based, not
+  // position-based (there's no queue position for the one client currently
+  // being served): fills as elapsed time approaches the member's
+  // serviceDuration. Pure derivation off _elapsedSeconds(), which already
+  // ticks correctly every second via _tick() — no local anchor state, so this
+  // can't get stuck the way the customer countdown once did. Clamped at 1 so
+  // a session running past its estimated duration shows a full ring rather
+  // than overflowing the arc.
+  readonly ringProgress = computed(() => {
+    const member = this.displayServingMember();
+    if (!member?.servedAt || !member.serviceDuration) return 0;
+    const elapsed = this._elapsedSeconds();
+    return Math.min(1, Math.max(0, elapsed / (member.serviceDuration * 60)));
+  });
+
+  readonly ringDashOffset = computed(() => RING_CIRCUMFERENCE * (1 - this.ringProgress()));
 
   readonly liveWaitMinutes = computed((): Map<string, number> => {
     this._tick();

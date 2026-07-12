@@ -49,7 +49,7 @@ export class SalonListingService {
 
   constructor() {
     this._searchInput$
-      .pipe(debounceTime(350), distinctUntilChanged(), takeUntilDestroyed())
+      .pipe(debounceTime(500), distinctUntilChanged(), takeUntilDestroyed())
       .subscribe((search) => {
         // Search always wins over an active category — the two filters don't combine.
         this._filters.update((f) => ({ ...f, search, category: '' }));

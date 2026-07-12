@@ -1,9 +1,9 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { Location } from '@angular/common';
 import { FavoritesService } from '../../core/favorites/favorites.service';
 import { SalonCardComponent } from '../../shared/components/salon-card/salon-card.component';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
+import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 
 // Favourites page — same card + pagination as the homepage listing, fed by
 // FavoritesService's own cache (GET /users/me/favorites), which toggle()
@@ -11,10 +11,9 @@ import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.com
 @Component({
   selector: 'app-favorites-page',
   templateUrl: './favorites-page.component.html',
-  imports: [SalonCardComponent, PaginationComponent, SkeletonComponent],
+  imports: [SalonCardComponent, PaginationComponent, SkeletonComponent, PageHeaderComponent],
 })
 export class FavoritesPageComponent implements OnInit {
-  protected readonly _location = inject(Location);
   protected readonly favorites = inject(FavoritesService);
 
   ngOnInit(): void {

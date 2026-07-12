@@ -12,23 +12,23 @@ import { QueueEntry } from '../../models/queue-entry';
 export interface QueueManagementControllerCompleteAllMembers$Params {
 
 /**
+ * Salon UUID
+ */
+  salonId: string;
+
+/**
  * Queue UUID
  */
   queueId: string;
   entryId: string;
-
-/**
- * Salon UUID
- */
-  salonId: string;
 }
 
 export function queueManagementControllerCompleteAllMembers(http: HttpClient, rootUrl: string, params: QueueManagementControllerCompleteAllMembers$Params, context?: HttpContext): Observable<StrictHttpResponse<QueueEntry>> {
   const rb = new RequestBuilder(rootUrl, queueManagementControllerCompleteAllMembers.PATH, 'post');
   if (params) {
+    rb.path('salonId', params.salonId, {});
     rb.path('queueId', params.queueId, {});
     rb.path('entryId', params.entryId, {});
-    rb.path('salonId', params.salonId, {});
   }
 
   return http.request(

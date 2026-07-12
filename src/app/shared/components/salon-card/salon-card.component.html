@@ -1,48 +1,40 @@
 <a [routerLink]="detailLink()"
-  class="group relative flex h-full flex-col rounded-2xl border border-gray-200 bg-white overflow-hidden hover:shadow-md transition-shadow">
+  class="group relative block h-full w-full rounded-xl overflow-hidden bg-gray-100 hover:shadow-md transition-shadow">
 
-  <!-- Photo — explicit fixed height (not aspect-ratio) so every card's photo
-       box is identical regardless of the source image's own dimensions or
-       any flex/grid stretching interaction. -->
-  <div class="relative h-36 md:h-48 w-full shrink-0 bg-gray-100">
-    <!-- Salons with no uploaded photo fall back to /salon-placeholder.jpg
-         (drop the file in public/ — see salon-card.component.ts). -->
-    <img [src]="salon().photoUrl ? (salon().photoUrl | mediaUrl) : placeholderImage"
-      [alt]="salon().name" loading="lazy"
-      class="h-full w-full object-cover" />
+  <!-- Full-bleed photo — the card IS the photo; name/location/badges are
+       glassmorphic overlays on top of it, not a separate info block below. -->
+  <!-- Salons with no uploaded photo fall back to /salon-placeholder.jpg
+       (drop the file in public/ — see salon-card.component.ts). -->
+  <img [src]="salon().photoUrl ? (salon().photoUrl | mediaUrl) : placeholderImage"
+    [alt]="salon().name" loading="lazy"
+    class="h-full w-full object-cover" />
 
-    <!-- Open/closed badge -->
-    <span class="absolute top-2 left-2 rounded-full px-2.5 py-1 text-xs font-semibold"
-      [class.bg-success-light]="salon().isOpen"
-      [class.text-success]="salon().isOpen"
-      [class.bg-gray-800/80]="!salon().isOpen"
-      [class.text-white]="!salon().isOpen">
-      {{ salon().isOpen ? 'Open' : 'Closed' }}
-    </span>
+  <!-- Open/closed badge — glassmorphic (neutral glass, colored text) -->
+  <span class="absolute top-3 left-3 rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-md bg-secondary-100/70 border border-white/20"
+    [class.text-open]="salon().isOpen"
+    [class.text-white]="!salon().isOpen">
+    {{ salon().isOpen ? 'Open' : 'Closed' }}
+  </span>
 
-    <!-- Heart (auth-gated, absent for anonymous/guest — never shown disabled) -->
-    @if (showHeart()) {
-      <button type="button" (click)="toggleFavorite($event)"
-        [attr.aria-label]="isFavorited() ? 'Remove from favourites' : 'Add to favourites'"
-        [attr.aria-pressed]="isFavorited()"
-        class="absolute top-2 right-2 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm shadow-sm hover:scale-105 transition-transform">
-        <svg class="h-5 w-5 transition-colors" viewBox="0 0 24 24"
-          [attr.fill]="isFavorited() ? 'currentColor' : 'none'"
-          [class.text-primary]="isFavorited()"
-          [class.text-gray-400]="!isFavorited()"
-          stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round"
-            d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 21.036l-7.682-8.354a4.5 4.5 0 010-6.364z" />
-        </svg>
-      </button>
-    }
-  </div>
+  <!-- Heart — glassmorphic (auth-gated, absent for anonymous/guest) -->
+  @if (showHeart()) {
+    <button type="button" (click)="toggleFavorite($event)"
+      [attr.aria-label]="isFavorited() ? 'Remove from favourites' : 'Add to favourites'"
+      [attr.aria-pressed]="isFavorited()"
+      class="absolute top-3 right-3 flex h-10 w-10 items-center justify-center rounded-full bg-secondary-100/70 backdrop-blur-md border border-white/20 hover:scale-105 transition-transform">
+      <app-icon [name]="isFavorited() ? 'heart-filled' : 'heart'"
+        class="h-5 w-5 transition-colors"
+        [class.text-primary]="isFavorited()"
+        [class.text-white]="!isFavorited()" />
+    </button>
+  }
 
-  <!-- Info — flex-1 fills whatever height the grid stretches the card to, so
-       every card in a row lines up regardless of name/address length. -->
-  <div class="flex flex-1 flex-col justify-center gap-1 p-4">
-    <h3 class="text-sm font-semibold text-gray-900 truncate">{{ salon().name }}</h3>
-    <p class="text-xs text-gray-500 truncate">
+  <!-- Name/location — glassmorphic bar pinned to the bottom of the photo -->
+  <div class="absolute inset-x-0 bottom-0 px-4 py-3 bg-gray-900/40 backdrop-blur-md">
+    <p class="text-xs font-medium text-open">{{ salon().isOpen ? 'Open' : 'Closed' }}</p>
+    <h3 class="mt-0.5 text-base font-bold text-white truncate">{{ salon().name }}</h3>
+    <p class="mt-0.5 flex items-center gap-1 text-xs text-white/80 truncate">
+      <app-icon name="location-pin" class="h-3.5 w-3.5 shrink-0" />
       {{ salon().address.city }}, {{ salon().address.state }}
     </p>
   </div>
