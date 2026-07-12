@@ -66,15 +66,15 @@
          container's decision, not the card's — landing page uses 2 rows via
          its own grid, this page uses 1). -->
     @if (listing.loading()) {
-      <div class="flex gap-4 overflow-x-auto themed-scrollbar pb-2">
-        <app-skeleton variant="card" [count]="4" />
+      <div class="flex gap-4 overflow-x-auto themed-scrollbar no-scrollbar-mobile pb-2">
+        <app-skeleton variant="card" [count]="4" width="100%" />
       </div>
     } @else if (listing.items().length === 0) {
       <div class="py-10 text-center h-64 flex justify-around items-center">
         <p class="text-sm text-gray-400">No salons found. Try a different search.</p>
       </div>
     } @else {
-      <div class="flex gap-3 overflow-x-auto themed-scrollbar pb-2">
+      <div class="flex gap-3 overflow-x-auto themed-scrollbar no-scrollbar-mobile pb-2">
         @for (salon of listing.items(); track salon.id) {
           <div class="shrink-0 w-[65%] xs:w-[55%] sm:w-[38%] md:w-[22%] h-64 md:h-64">
             <app-salon-card [salon]="salon" />

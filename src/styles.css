@@ -485,3 +485,15 @@ body {
   width: 0;
   height: 0;
 }
+
+/* Same scrollable behavior as .themed-scrollbar, but with the scrollbar
+   fully hidden below md: (touch-scroll doesn't need a visible track there);
+   the themed scrollbar still shows at md: and up for mouse/trackpad users. */
+@media (max-width: 767px) {
+  .no-scrollbar-mobile {
+    scrollbar-width: none;
+  }
+  .no-scrollbar-mobile::-webkit-scrollbar {
+    display: none;
+  }
+}

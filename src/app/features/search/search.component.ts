@@ -31,6 +31,9 @@ export class SearchComponent implements OnInit {
   // of relying on CSS grid-flow-col, which wasn't reliably wrapping/scrolling
   // extra columns on mobile. Column-major order (item 0 -> row1, item 1 ->
   // row2, item 2 -> row1, ...) so consecutive results sit in the same column.
+  // Below 4 results there's nothing to gain from a second row (bottomRow
+  // would end up sparse/empty), so those render as a single row instead.
+  protected readonly useSingleRow = computed(() => this.listing.items().length < 4);
   protected readonly topRow = computed(() =>
     this.listing.items().filter((_, i) => i % 2 === 0),
   );

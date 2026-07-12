@@ -24,12 +24,12 @@
     <h2 class="text-base font-bold text-text-primary mb-3">Results</h2>
 
     @if (listing.loading()) {
-      <div class="space-y-3 overflow-x-auto themed-scrollbar pb-2">
+      <div class="space-y-3 overflow-x-auto themed-scrollbar no-scrollbar-mobile pb-2">
         <div class="flex gap-3">
-          <app-skeleton variant="card" [count]="3" />
+          <app-skeleton variant="card" [count]="3" width="100%" />
         </div>
         <div class="flex gap-3">
-          <app-skeleton variant="card" [count]="3" />
+          <app-skeleton variant="card" [count]="3" width="100%" />
         </div>
       </div>
     } @else if (listing.items().length === 0) {
@@ -38,22 +38,34 @@
       </div>
     } @else {
       <!-- Mobile: two-row horizontal-scroll carousel (see topRow/bottomRow
-           comment in the .ts for why this isn't a CSS grid). -->
+           comment in the .ts for why this isn't a CSS grid) — collapses to a
+           single row under 4 results, since a sparse/empty second row isn't
+           worth it. -->
       <div class="md:hidden">
-        <div class="flex gap-3 overflow-x-auto themed-scrollbar pb-2">
-         @for (salon of topRow(); track salon.id) {
-          <div class="shrink-0 w-[65%] xs:w-[55%] sm:w-[38%] h-64">
-            <app-salon-card [salon]="salon" />
+        @if (useSingleRow()) {
+          <div class="flex gap-3 overflow-x-auto themed-scrollbar no-scrollbar-mobile pb-2">
+            @for (salon of listing.items(); track salon.id) {
+              <div class="shrink-0 w-[65%] xs:w-[55%] sm:w-[38%] h-64">
+                <app-salon-card [salon]="salon" />
+              </div>
+            }
           </div>
+        } @else {
+          <div class="flex gap-3 overflow-x-auto themed-scrollbar no-scrollbar-mobile pb-2">
+           @for (salon of topRow(); track salon.id) {
+            <div class="shrink-0 w-[65%] xs:w-[55%] sm:w-[38%] h-64">
+              <app-salon-card [salon]="salon" />
+            </div>
+          }
+        </div>
+          <div class="flex gap-3 overflow-x-auto themed-scrollbar no-scrollbar-mobile pb-2">
+            @for (salon of bottomRow(); track salon.id) {
+            <div class="shrink-0 w-[65%] xs:w-[55%] sm:w-[38%] h-64">
+              <app-salon-card [salon]="salon" />
+            </div>
+          }
+        </div>
         }
-      </div>
-        <div class="flex gap-3 overflow-x-auto themed-scrollbar pb-2">
-          @for (salon of bottomRow(); track salon.id) {
-          <div class="shrink-0 w-[65%] xs:w-[55%] sm:w-[38%] h-64">
-            <app-salon-card [salon]="salon" />
-          </div>
-        }
-      </div>
       </div>
 
       <!-- Desktop: plain 4-column grid, no horizontal scroll. -->
