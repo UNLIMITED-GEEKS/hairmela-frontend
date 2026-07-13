@@ -8,13 +8,13 @@ import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
 import { CreateSalonDto } from '../../models/create-salon-dto';
-import { Salon } from '../../models/salon';
+import { CreateSalonResponseDto } from '../../models/create-salon-response-dto';
 
 export interface UserSalonsControllerCreate$Params {
       body: CreateSalonDto
 }
 
-export function userSalonsControllerCreate(http: HttpClient, rootUrl: string, params: UserSalonsControllerCreate$Params, context?: HttpContext): Observable<StrictHttpResponse<Salon>> {
+export function userSalonsControllerCreate(http: HttpClient, rootUrl: string, params: UserSalonsControllerCreate$Params, context?: HttpContext): Observable<StrictHttpResponse<CreateSalonResponseDto>> {
   const rb = new RequestBuilder(rootUrl, userSalonsControllerCreate.PATH, 'post');
   if (params) {
     rb.body(params.body, 'application/json');
@@ -25,7 +25,7 @@ export function userSalonsControllerCreate(http: HttpClient, rootUrl: string, pa
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<Salon>;
+      return r as StrictHttpResponse<CreateSalonResponseDto>;
     })
   );
 }

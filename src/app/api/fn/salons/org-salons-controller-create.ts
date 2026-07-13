@@ -8,7 +8,7 @@ import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
 import { CreateSalonDto } from '../../models/create-salon-dto';
-import { Salon } from '../../models/salon';
+import { CreateSalonResponseDto } from '../../models/create-salon-response-dto';
 
 export interface OrgSalonsControllerCreate$Params {
 
@@ -19,7 +19,7 @@ export interface OrgSalonsControllerCreate$Params {
       body: CreateSalonDto
 }
 
-export function orgSalonsControllerCreate(http: HttpClient, rootUrl: string, params: OrgSalonsControllerCreate$Params, context?: HttpContext): Observable<StrictHttpResponse<Salon>> {
+export function orgSalonsControllerCreate(http: HttpClient, rootUrl: string, params: OrgSalonsControllerCreate$Params, context?: HttpContext): Observable<StrictHttpResponse<CreateSalonResponseDto>> {
   const rb = new RequestBuilder(rootUrl, orgSalonsControllerCreate.PATH, 'post');
   if (params) {
     rb.path('orgId', params.orgId, {});
@@ -31,7 +31,7 @@ export function orgSalonsControllerCreate(http: HttpClient, rootUrl: string, par
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<Salon>;
+      return r as StrictHttpResponse<CreateSalonResponseDto>;
     })
   );
 }

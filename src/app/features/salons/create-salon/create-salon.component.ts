@@ -3,6 +3,7 @@ import { Location } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SalonsStore } from '../../../core/salon-context/salons.store';
+import { MembershipStore } from '../../../core/salon-context/membership.store';
 import { SalonService } from '../salon.service';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
@@ -38,6 +39,7 @@ export class CreateSalonComponent implements OnInit {
   private readonly _destroyRef = inject(DestroyRef);
   private readonly _dashboardService = inject(SalonsStore);
   private readonly _salonService = inject(SalonService);
+  private readonly _membershipStore = inject(MembershipStore);
   protected readonly categoriesService = inject(CategoriesService);
 
   protected readonly saving = signal(false);
@@ -118,10 +120,14 @@ export class CreateSalonComponent implements OnInit {
         },
       },
       this._destroyRef,
-      (salon) => {
+      ({ salon, membership }) => {
         this.saving.set(false);
         this._dashboardService.clear();
         this._dashboardService.load();
+        // The create response already includes the creator's membership —
+        // seed the cache directly instead of re-fetching what we already
+        // have, so salonRoleGuard resolves from cache with zero latency.
+        this._membershipStore.setFromDto(membership);
         this._router.navigate(RoutePath.salon(salon.id));
       },
       () => this.saving.set(false),

@@ -14,6 +14,7 @@ export type { Closure } from './models/closure';
 export type { ContactUsDto } from './models/contact-us-dto';
 export type { CreateClosureDto } from './models/create-closure-dto';
 export type { CreateSalonDto } from './models/create-salon-dto';
+export type { CreateSalonResponseDto } from './models/create-salon-response-dto';
 export type { CreateScheduleDto } from './models/create-schedule-dto';
 export type { CreateServiceDto } from './models/create-service-dto';
 export type { DowngradeDto } from './models/downgrade-dto';

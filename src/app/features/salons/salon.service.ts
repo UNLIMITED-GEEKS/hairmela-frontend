@@ -8,7 +8,7 @@ import { CreateSalonDto } from '../../api/models/create-salon-dto';
 import { userSalonsControllerCreate } from '../../api/fn/salons/user-salons-controller-create';
 import { salonsControllerFindOne } from '../../api/fn/salons/salons-controller-find-one';
 import { salonsControllerSoftDelete } from '../../api/fn/salons/salons-controller-soft-delete';
-import { Salon } from '../../api/models/salon';
+import { CreateSalonResponseDto } from '../../api/models/create-salon-response-dto';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogService } from '../../shared/components/confirm-dialog/confirm-dialog.service';
 import { isApiError } from '../../core/errors/api-error.types';
@@ -24,15 +24,15 @@ export class SalonService {
   create(
     body: CreateSalonDto,
     destroyRef: DestroyRef,
-    onSuccess?: (salon: Salon) => void,
+    onSuccess?: (result: CreateSalonResponseDto) => void,
     onLimitReached?: () => void,
   ): void {
     userSalonsControllerCreate(this._http, this._apiConfig.rootUrl, { body })
       .pipe(takeUntilDestroyed(destroyRef))
       .subscribe({
         next: (res) => {
-          this._toast.success('Salon created');
           onSuccess?.(res.body);
+          this._toast.success('Salon created');
         },
         error: (err: unknown) => {
           if (isApiError(err) && err.code === ErrorCodes.SALON_LIMIT_REACHED) {
