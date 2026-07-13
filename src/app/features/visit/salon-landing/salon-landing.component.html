@@ -23,6 +23,14 @@
             [class.text-white]="!isFavorited()" />
         </button>
       }
+
+      @if (!install.installed()) {
+        <a [routerLink]="howToInstallLink"
+          class="absolute bottom-10 right-3 flex items-center gap-1.5 h-9 px-3 rounded-full bg-white/20 backdrop-blur-md border border-white/20 text-white text-xs font-semibold hover:scale-105 transition-transform">
+          <app-icon name="download" class="h-3.5 w-3.5" />
+          Get the app
+        </a>
+      }
     </div>
 
     <!-- Content sheet — overlaps the header photo, rounded top corners only -->

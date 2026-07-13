@@ -89,7 +89,7 @@
 
     <!-- Scan QR Code -->
     <button (click)="showScanner.set(true)" type="button"
-      class="w-full flex mb-10 md:mt-6 items-center gap-3 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+      class="w-full flex md:mt-6 items-center gap-3 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
       <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
         <app-icon name="qr-code" class="w-5 h-5 text-primary" />
       </div>
@@ -98,6 +98,20 @@
         <p class="text-xs text-text-secondary">Scan a salon's QR code to join their queue</p>
       </div>
     </button>
+
+    <!-- Get the app -->
+    @if (!install.installed()) {
+    <a [routerLink]="howToInstallLink"
+      class="w-full flex mb-10 items-center gap-3 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+      <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+        <app-icon name="download" class="w-5 h-5 text-primary" />
+      </div>
+      <div>
+        <p class="text-sm font-semibold text-start text-text-primary">Get the app</p>
+        <p class="text-xs text-text-secondary">Install HairMela for quicker access, right from your home screen</p>
+      </div>
+    </a>
+    }
   </div>
 }
 

@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SalonVisitService } from '../salon-visit.service';
 import { SalonPublicStaffDto } from '../../../api/models/salon-public-staff-dto';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
@@ -16,6 +16,7 @@ import {
 } from '../../../shared/components/staff-card/staff-card.component';
 import { ServiceListItemComponent } from '../../../shared/components/service-list-item/service-list-item.component';
 import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
+import { InstallPromptService } from '../../../core/pwa/install-prompt.service';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 
 const LANDING_TABS: TabItem[] = [
@@ -41,10 +42,13 @@ interface SalonStatusBadge {
     StaffCardComponent,
     ServiceListItemComponent,
     MediaUrlPipe,
+    RouterLink,
   ],
 })
 export class SalonLandingComponent implements OnInit {
   protected readonly visit = inject(SalonVisitService);
+  protected readonly install = inject(InstallPromptService);
+  protected readonly howToInstallLink = RoutePath.howToInstall();
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
   private readonly _currentUser = inject(CurrentUserStore);

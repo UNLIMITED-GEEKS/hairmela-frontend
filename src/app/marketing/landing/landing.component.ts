@@ -13,21 +13,25 @@ import { SalonCardComponent } from '../../shared/components/salon-card/salon-car
 import { CategoryPillsComponent } from '../../shared/components/category-pills/category-pills.component';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
+import { IconComponent } from '../../shared/components/icon/icon.component';
+import { InstallPromptService } from '../../core/pwa/install-prompt.service';
 import { RoutePath } from '../../core/routing/route-paths';
 
 @Component({
   selector: 'app-landing',
   templateUrl: './landing.component.html',
-  imports: [RouterLink, SalonCardComponent, CategoryPillsComponent, PaginationComponent, SkeletonComponent],
+  imports: [RouterLink, SalonCardComponent, CategoryPillsComponent, PaginationComponent, SkeletonComponent, IconComponent],
 })
 export class LandingComponent implements OnInit {
   protected readonly listing = inject(SalonListingService);
   protected readonly categoriesService = inject(CategoriesService);
+  protected readonly install = inject(InstallPromptService);
   private readonly _favorites = inject(FavoritesService);
   private readonly _currentUser = inject(CurrentUserStore);
   // private readonly _geoLocation = inject(GeoLocationService);
 
   protected readonly registerLink = RoutePath.register();
+  protected readonly howToInstallLink = RoutePath.howToInstall();
 
   protected readonly steps = [
     {

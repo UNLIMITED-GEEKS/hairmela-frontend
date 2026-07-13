@@ -15,6 +15,7 @@ import { JoinBannerComponent } from './join-banner/join-banner.component';
 import { CategoriesService } from '../../core/categories/categories.service';
 import { SalonListingService } from '../../marketing/landing/salon-listing.service';
 import { ToastService } from '../../core/toast/toast.service';
+import { InstallPromptService } from '../../core/pwa/install-prompt.service';
 import { RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
 
 @Component({
@@ -42,6 +43,7 @@ export class DashboardComponent implements OnInit {
 
   protected readonly listing = inject(SalonListingService);
   protected readonly categoriesService = inject(CategoriesService);
+  protected readonly install = inject(InstallPromptService);
 
   protected readonly loading = this._dashboardService.loading;
   protected readonly error = this._dashboardService.error;
@@ -54,6 +56,7 @@ export class DashboardComponent implements OnInit {
   protected readonly notificationsLink = RoutePath.notifications();
   protected readonly favoritesLink = RoutePath.favorites();
   protected readonly searchLink = RoutePath.search();
+  protected readonly howToInstallLink = RoutePath.howToInstall();
 
   ngOnInit(): void {
     this._dashboardService.load();
