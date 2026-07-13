@@ -96,6 +96,13 @@
   src: url('/fonts/Figtree-800.woff2') format('woff2');
 }
 
+/* Native <button> defaults to cursor: default in most browsers — force
+   pointer app-wide so every button reads as clickable. Excludes disabled
+   buttons so per-component disabled:cursor-not-allowed styling still wins. */
+button:not(:disabled) {
+  cursor: pointer;
+}
+
 @theme {
   /* ── Breakpoints ─────────────────────────────────────────────────────────── */
   --breakpoint-xxs: 340px;
