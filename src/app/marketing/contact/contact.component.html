@@ -62,6 +62,23 @@
             <app-field-error [control]="form.get('email')" />
           </div>
 
+          <!-- Phone -->
+          <div>
+            <label for="contact-phone" class="block text-sm font-medium text-gray-700 mb-1.5">Phone number</label>
+            <input
+              id="contact-phone"
+              type="tel"
+              formControlName="phone"
+              autocomplete="tel"
+              placeholder="Your phone number"
+              class="w-full min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg
+                     focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+              [class.border-red-400]="form.get('phone')?.invalid && form.get('phone')?.touched" />
+            <app-field-error
+              [control]="form.get('phone')"
+              [messages]="{ required: 'Please enter your phone number.' }" />
+          </div>
+
           <!-- Message -->
           <div>
             <label for="contact-message" class="block text-sm font-medium text-gray-700 mb-1.5">Your message</label>

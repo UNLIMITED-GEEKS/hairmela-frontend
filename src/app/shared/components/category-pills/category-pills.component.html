@@ -1,6 +1,6 @@
-<div class="flex gap-2 overflow-x-auto themed-scrollbar no-scrollbar-mobile pb-1">
+<div class="flex gap-2 overflow-x-auto themed-scrollbar no-scrollbar-mobile pb-1 md:overflow-x-visible md:justify-between">
   <button type="button" (click)="select.emit('')"
-    [class]="'shrink-0 flex items-center justify-center min-h-9 min-w-20 px-4 rounded-xl text-sm font-semibold border transition-colors ' +
+    [class]="'shrink-0 flex items-center justify-center min-h-9 min-w-20 px-4 md:px-10 rounded-xl text-sm font-semibold border transition-colors ' +
       (selected() === ''
         ? 'bg-primary text-white border-primary'
         : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50')">
@@ -8,7 +8,7 @@
   </button>
   @for (cat of categories(); track cat.id) {
     <button type="button" (click)="select.emit(cat.slug)"
-      [class]="'shrink-0 flex items-center justify-center min-h-9 min-w-20 px-4 rounded-xl text-sm font-semibold border transition-colors ' +
+      [class]="'shrink-0 flex items-center justify-center min-h-9 min-w-20 px-4 md:px-6 rounded-xl text-sm font-semibold border transition-colors ' +
         (selected() === cat.slug
           ? 'bg-primary text-white border-primary'
           : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50')">

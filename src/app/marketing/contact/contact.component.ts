@@ -1,11 +1,12 @@
 import { Component, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ToastService } from '../../core/toast/toast.service';
 import { FieldErrorComponent } from '../../shared/components/field-error/field-error.component';
+import { ApiConfiguration } from '../../api/api-configuration';
+import { contactControllerSubmit } from '../../api/fn/contact/contact-controller-submit';
 
-// Public contact form. For now it validates and logs the payload; the backend
-// endpoint isn't built yet, so submit() is the single seam to swap a real API
-// call into later (replace the console.log + toast with the HTTP call).
+// Public contact form — submits to POST /v1/contact.
 @Component({
   selector: 'app-contact',
   templateUrl: './contact.component.html',
@@ -14,13 +15,16 @@ import { FieldErrorComponent } from '../../shared/components/field-error/field-e
 export class ContactComponent {
   private readonly _fb = inject(FormBuilder);
   private readonly _toast = inject(ToastService);
+  private readonly _http = inject(HttpClient);
+  private readonly _apiConfig = inject(ApiConfiguration);
 
   protected readonly submitting = signal(false);
   protected readonly sent = signal(false);
 
-  protected readonly form = this._fb.group({
+  protected readonly form = this._fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(120)]],
     email: ['', [Validators.required, Validators.email]],
+    phone: ['', [Validators.required, Validators.maxLength(30)]],
     message: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(2000)]],
   });
 
@@ -33,14 +37,18 @@ export class ContactComponent {
     this.submitting.set(true);
     const payload = this.form.getRawValue();
 
-    // TODO: replace with the real contact API call once it exists.
-    // eslint-disable-next-line no-console
-    console.log('[contact] submission', payload);
-
-    this.submitting.set(false);
-    this.sent.set(true);
-    this.form.reset();
-    this._toast.success('Thanks — we got your message and will be in touch.');
+    contactControllerSubmit(this._http, this._apiConfig.rootUrl, { body: payload }).subscribe({
+      next: () => {
+        this.submitting.set(false);
+        this.sent.set(true);
+        this.form.reset();
+        this._toast.success('Thanks — we got your message and will be in touch.');
+      },
+      error: () => {
+        this.submitting.set(false);
+        this._toast.error('Something went wrong sending your message. Please try again.');
+      },
+    });
   }
 
   protected sendAnother(): void {

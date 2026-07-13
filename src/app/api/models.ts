@@ -11,6 +11,7 @@ export type { CategoryResponseDto } from './models/category-response-dto';
 export type { CheckoutDto } from './models/checkout-dto';
 export type { CheckoutSessionDto } from './models/checkout-session-dto';
 export type { Closure } from './models/closure';
+export type { ContactUsDto } from './models/contact-us-dto';
 export type { CreateClosureDto } from './models/create-closure-dto';
 export type { CreateSalonDto } from './models/create-salon-dto';
 export type { CreateScheduleDto } from './models/create-schedule-dto';

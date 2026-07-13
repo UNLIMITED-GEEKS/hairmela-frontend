@@ -240,5 +240,9 @@ export const routes: Routes = [
     ],
   },
 
-  { path: '**', redirectTo: '' },
+  {
+    path: '**',
+    loadComponent: () =>
+      import('./marketing/not-found/not-found.component').then((m) => m.NotFoundComponent),
+  },
 ];

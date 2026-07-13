@@ -15,7 +15,6 @@ import { RouteQueryParam } from '../../core/routing/route-paths';
   selector: 'app-search',
   templateUrl: './search.component.html',
   imports: [IconComponent, SalonCardComponent, CategoryPillsComponent, PaginationComponent, SkeletonComponent],
-  providers: [SalonListingService],
 })
 export class SearchComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);

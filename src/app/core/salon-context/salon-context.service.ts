@@ -1,22 +1,45 @@
-import { Injectable, inject, signal, computed, effect } from '@angular/core';
+import { Injectable, inject, signal, computed, effect, Signal, WritableSignal } from '@angular/core';
 import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { filter, catchError, EMPTY } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MembershipStore } from './membership.store';
 import { Membership } from './membership.types';
+import { PersistentStore } from '../storage/persistent-store';
 import { RouteParam, RouteQueryParam } from '../routing/route-paths';
+
+const LAST_SALON_KEY = 'hm_last_selected_salon_id';
 
 @Injectable({ providedIn: 'root' })
 export class SalonContextService {
   private readonly _router = inject(Router);
   private readonly _root = inject(ActivatedRoute);
   private readonly _membershipStore = inject(MembershipStore);
+  private readonly _persistentStore = inject(PersistentStore);
 
   private readonly _activeSalonId = signal<string | null>(null);
   private readonly _membership = signal<Membership | null>(null);
+  private readonly _displayMembership = signal<Membership | null>(null);
+
+  // Last salon the user was actually in (route-derived), persisted across
+  // navigations to pages that carry no salon in their URL at all (Dashboard,
+  // Favourites, Search, Account). This is a DISPLAY preference only — the
+  // top bar / sidebar dropdown reads `displaySalonId` so it doesn't appear to
+  // "forget" the selection on those pages. It must never be used for
+  // permissions/gating: `activeSalonId` (below) stays strictly route-derived
+  // for that, so isFrozen/tier/staffFrozen etc. correctly go inert the moment
+  // the user is genuinely outside any salon-scoped route.
+  private readonly _lastSelectedSalonId = signal<string | null>(
+    this._persistentStore.get<string>(LAST_SALON_KEY),
+  );
 
   readonly activeSalonId = this._activeSalonId.asReadonly();
+  readonly displaySalonId = computed(() => this._activeSalonId() ?? this._lastSelectedSalonId());
   readonly membership = this._membership.asReadonly();
+  // Membership for displaySalonId — lets shell-level nav (sidebar "Controls"
+  // section) keep showing Staff/Services/Settings links for the last-visited
+  // salon on pages with no salon in the URL. Never used for gating page
+  // content/tier banners — those stay on the strict `membership` above.
+  readonly displayMembership = this._displayMembership.asReadonly();
   readonly isFrozen = computed(() => this._membership()?.isFrozen ?? false);
 
   // ── Tier / subscription derived state (single source for banners + gates) ──
@@ -38,19 +61,39 @@ export class SalonContextService {
 
     this._activeSalonId.set(this._extractSalonId());
 
+    this._bindMembership(this._activeSalonId, this._membership);
+    this._bindMembership(this.displaySalonId, this._displayMembership);
+
+    // Remember the last salon actually visited (route-derived) so
+    // displaySalonId can keep showing it on pages with no salon in their
+    // URL. Deliberately one-directional: only writes when activeSalonId is
+    // real, never clears on navigating away — that's the whole point.
     effect(() => {
       const salonId = this._activeSalonId();
-      if (!salonId) {
-        this._membership.set(null);
+      if (!salonId) return;
+      this._lastSelectedSalonId.set(salonId);
+      this._persistentStore.set(LAST_SALON_KEY, salonId);
+    });
+  }
+
+  // Fetches membership for whatever salon id `salonId` currently points to,
+  // writing it into `target` (null on no-id or fetch error). Shared by both
+  // the strict `activeSalonId` binding and the `displaySalonId` binding so
+  // adding a third membership consumer is a one-line call, not a copy-paste.
+  private _bindMembership(salonId: Signal<string | null>, target: WritableSignal<Membership | null>): void {
+    effect(() => {
+      const id = salonId();
+      if (!id) {
+        target.set(null);
         return;
       }
 
-      this._membershipStore.getMembership(salonId).pipe(
+      this._membershipStore.getMembership(id).pipe(
         catchError(() => {
-          this._membership.set(null);
+          target.set(null);
           return EMPTY;
         }),
-      ).subscribe((m) => this._membership.set(m));
+      ).subscribe((m) => target.set(m));
     });
   }
 

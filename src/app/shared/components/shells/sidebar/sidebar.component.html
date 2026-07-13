@@ -19,9 +19,10 @@
     @for (item of sidebarItems(); track item.label) {
       <a
         [routerLink]="item.url"
-        routerLinkActive="bg-primary/10 text-primary"
+        routerLinkActive="bg-primary text-white"
         [routerLinkActiveOptions]="{ exact: item.url === RoutePath.dashboard()[0] }"
-        class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors min-h-11 relative"
+        class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-primary hover:text-white transition-all ease-in min-h-11 relative"
+        [class.justify-center]="collapsed()"
         [title]="collapsed() ? item.label : ''">
         <span class="shrink-0">
           <app-nav-icon [icon]="item.icon" />
@@ -54,9 +55,10 @@
         <!-- Salon overview -->
         <a
           [routerLink]="['/' + RouteSegment.SALONS, activeSalonId()]"
-          routerLinkActive="bg-primary/10 text-primary"
+          routerLinkActive="bg-primary text-white"
           [routerLinkActiveOptions]="{ exact: true }"
-          class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors min-h-11"
+          class="flex items-center gap-3 rounded-xl px-3 mb-1 py-2.5 text-sm font-medium text-text-secondary hover:bg-primary hover:text-white transition-all ease-in min-h-11"
+          [class.justify-center]="collapsed()"
           [title]="collapsed() ? 'Salon' : ''">
           <app-nav-icon icon="scissors" />
           @if (!collapsed()) {
@@ -67,12 +69,13 @@
         @for (item of visibleControls(); track item.label) {
           <a
             [routerLink]="['/' + RouteSegment.SALONS, activeSalonId(), item.url]"
-            routerLinkActive="bg-primary/10 text-primary"
-            class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors min-h-11"
+            routerLinkActive="bg-primary text-white"
+            class="flex items-center gap-3 rounded-xl mb-1 px-3 py-2.5 text-sm font-medium transition-all ease-in min-h-11"
             [class.text-text-secondary]="true"
-            [class.hover:bg-surface-overlay]="item.unlocked"
-            [class.hover:text-text-primary]="item.unlocked"
+            [class.hover:bg-primary]="item.unlocked"
+            [class.hover:text-white]="item.unlocked"
             [class.opacity-60]="!item.unlocked"
+            [class.justify-center]="collapsed()"
             [title]="collapsed() ? item.label : (item.unlocked ? '' : 'Available on the Pro plan')">
             <span class="w-5 h-5 shrink-0 flex items-center justify-center">
               @if (item.unlocked) {
@@ -99,6 +102,7 @@
             [routerLink]="['/' + RouteSegment.SALONS, activeSalonId(), RouteSegment.LEAVE]"
             routerLinkActive="bg-red-50 text-red-600"
             class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors min-h-11"
+            [class.justify-center]="collapsed()"
             [title]="collapsed() ? 'Leave salon' : ''">
             <span class="w-5 h-5 shrink-0 flex items-center justify-center">
               <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
@@ -115,6 +119,7 @@
             [routerLink]="['/' + RouteSegment.SALONS, activeSalonId(), RouteSegment.DELETE]"
             routerLinkActive="bg-red-50 text-red-600"
             class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors min-h-11"
+            [class.justify-center]="collapsed()"
             [title]="collapsed() ? 'Delete salon' : ''">
             <span class="w-5 h-5 shrink-0 flex items-center justify-center">
               <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>

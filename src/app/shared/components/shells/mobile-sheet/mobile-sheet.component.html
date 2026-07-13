@@ -14,7 +14,7 @@
       } @else if (item.url) {
         <a
           [routerLink]="item.url"
-          routerLinkActive="bg-primary/10 text-primary"
+          routerLinkActive="bg-primary text-white"
           [routerLinkActiveOptions]="{ exact: item.url === RoutePath.dashboard()[0] }"
           (click)="closed.emit()"
           class="flex items-center gap-3 px-3 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors">
@@ -46,7 +46,7 @@
         <!-- Salon overview -->
         <a
           [routerLink]="['/' + RouteSegment.SALONS, activeSalonId()]"
-          routerLinkActive="bg-primary/10 text-primary"
+          routerLinkActive="bg-primary text-white"
           [routerLinkActiveOptions]="{ exact: true }"
           (click)="closed.emit()"
           class="flex items-center gap-3 px-3 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors">
@@ -57,7 +57,7 @@
         @for (item of visibleControls(); track item.label) {
           <a
             [routerLink]="['/' + RouteSegment.SALONS, activeSalonId(), item.url]"
-            routerLinkActive="bg-primary/10 text-primary"
+            routerLinkActive="bg-primary text-white"
             (click)="closed.emit()"
             class="flex items-center gap-3 px-3 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors"
             [class.opacity-60]="!item.unlocked">

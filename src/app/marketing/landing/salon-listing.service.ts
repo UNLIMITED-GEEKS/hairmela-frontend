@@ -16,12 +16,12 @@ export interface ListingFilters {
 }
 
 const PAGE_SIZE = 18; // 6 rows x 3 columns on desktop
-const TTL_MS = 120_000; // 2 minutes — skip refetch on unchanged filters/page (e.g. back-navigation)
+const TTL_MS = 300_000; // 5 minutes — skip refetch on unchanged filters/page (e.g. back-navigation)
 
 // Homepage salon listing — search/filter/pagination against GET /salons
 // (public, no auth). Debounces search input so every keystroke doesn't fire
 // a request; state/city changes and page changes go straight through.
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class SalonListingService {
   private readonly _http = inject(HttpClient);
   private readonly _apiConfig = inject(ApiConfiguration);
@@ -29,7 +29,12 @@ export class SalonListingService {
   private readonly _items = signal<SalonListingItemDto[]>([]);
   private readonly _meta = signal<PaginatedMetaDto | null>(null);
   private readonly _loading = signal(true);
-  private readonly _filters = signal<ListingFilters>({ state: '', city: '', search: '', category: '' });
+  private readonly _filters = signal<ListingFilters>({
+    state: '',
+    city: '',
+    search: '',
+    category: '',
+  });
   private readonly _page = signal(1);
 
   readonly items = this._items.asReadonly();

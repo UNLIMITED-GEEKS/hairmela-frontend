@@ -37,8 +37,20 @@ export class AuthShellComponent implements OnInit {
   protected readonly sheetOpen = signal(false);
 
   protected readonly salons = this._dashboardService.salons;
-  protected readonly activeSalonId = this._salonContext.activeSalonId;
+  // Display only (top bar / sidebar dropdown) — persists across pages with no
+  // salon in their URL (Dashboard, Favourites, Search, Account) instead of
+  // appearing to "forget" the selection. Role-gated nav (membership below)
+  // intentionally does NOT use this — it stays tied to the strict,
+  // route-derived activeSalonId so permissions never apply outside an actual
+  // salon-scoped route.
+  protected readonly displaySalonId = this._salonContext.displaySalonId;
   protected readonly membership = this._salonContext.membership;
+  // Membership for displaySalonId — feeds the sidebar/mobile-sheet "Controls"
+  // nav section so Staff/Services/Settings links stay visible for the
+  // last-visited salon on pages with no salon in the URL. Page-level
+  // components (tier banners, role checks) keep using the strict
+  // `membership` above, untouched.
+  protected readonly displayMembership = this._salonContext.displayMembership;
 
   protected readonly navItems: NavItem[] = [
     { label: 'Home',        icon: 'home',   url: RoutePath.dashboard()[0], bottomNav: true, sidebar: true },

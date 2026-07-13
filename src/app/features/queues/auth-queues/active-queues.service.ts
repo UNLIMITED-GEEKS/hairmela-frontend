@@ -24,7 +24,7 @@ export class ActiveQueuesService {
   // anything changed (disconnected, missed an event, or zero active entries).
   // CLAUDE.md's "never cache live queue state" rule is why it stays short
   // instead of being removed outright.
-  private readonly _watch = new SocketInvalidatedTtl(this._socket, 15_000);
+  private readonly _watch = new SocketInvalidatedTtl(this._socket, 30_000);
 
   readonly entries = this._entries.asReadonly();
   readonly loading = this._loading.asReadonly();

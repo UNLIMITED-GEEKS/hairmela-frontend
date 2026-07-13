@@ -98,6 +98,8 @@ export class SidebarComponent implements OnInit {
 
   readonly isOwner = computed(() => this.membership()?.role === SalonRole.OWNER);
 
+  readonly sidebarItems = computed(() => this.navItems().filter((i) => i.sidebar && !i.action));
+
   ngOnInit(): void {
     try {
       this.collapsed.set(localStorage.getItem(COLLAPSED_KEY) === '1');
@@ -109,10 +111,6 @@ export class SidebarComponent implements OnInit {
     try {
       localStorage.setItem(COLLAPSED_KEY, this.collapsed() ? '1' : '0');
     } catch { /* ignore */ }
-  }
-
-  sidebarItems(): NavItem[] {
-    return this.navItems().filter((i) => i.sidebar && !i.action);
   }
 
   onLogout(): void {

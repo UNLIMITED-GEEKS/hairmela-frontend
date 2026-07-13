@@ -92,12 +92,12 @@ export class AnalyticsComponent implements OnInit {
   }
 
   // Dummy data — no endpoint yet
-  protected readonly dummySummaryCards = [
-    { label: 'Avg Queue Size', value: '6',   sub: 'Clients/day' },
-    { label: 'Peak Hour',      value: '2pm', sub: 'Most busy time' },
-  ];
+  // protected readonly dummySummaryCards = [
+  //   { label: 'Avg Queue Size', value: '6',   sub: 'Clients/day' },
+  //   { label: 'Peak Hour',      value: '2pm', sub: 'Most busy time' },
+  // ];
 
-  protected readonly heatmapHours = [8,9,10,11,12,13,14,15,16,17,18];
-  protected readonly heatmapDays = ['M','T','W','T','F','S','S'];
-  protected readonly heatmapColors = ['bg-primary/10','bg-primary/30','bg-primary/60','bg-primary/80','bg-primary/20'];
+  // protected readonly heatmapHours = [8,9,10,11,12,13,14,15,16,17,18];
+  // protected readonly heatmapDays = ['M','T','W','T','F','S','S'];
+  // protected readonly heatmapColors = ['bg-primary/10','bg-primary/30','bg-primary/60','bg-primary/80','bg-primary/20'];
 }

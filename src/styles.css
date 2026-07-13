@@ -465,10 +465,6 @@ body {
    instead of the default OS scrollbar. Works for both horizontal chip rows
    and vertical lists: width sizes a vertical scrollbar, height a horizontal
    one, and only the relevant one ever renders on a given element. */
-.themed-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-primary) transparent;
-}
 .themed-scrollbar::-webkit-scrollbar {
   width: 4px;
   height: 4px;

@@ -4,8 +4,8 @@
   <div class="print:hidden contents">
     <app-sidebar
       [navItems]="navItems"
-      [activeSalonId]="activeSalonId()"
-      [membership]="membership()"
+      [activeSalonId]="displaySalonId()"
+      [membership]="displayMembership()"
       (logoutClick)="logout()" />
   </div>
 
@@ -16,7 +16,7 @@
       <app-top-bar
         [showUserAvatar]="true"
         [salons]="salons()"
-        [activeSalonId]="activeSalonId()" />
+        [activeSalonId]="displaySalonId()" />
     </div>
 
     <!-- Mobile top bar + expandable sheet -->
@@ -24,13 +24,13 @@
       <app-mobile-top-bar
         [sheetOpen]="sheetOpen()"
         [salons]="salons()"
-        [activeSalonId]="activeSalonId()"
+        [activeSalonId]="displaySalonId()"
         (sheetToggle)="sheetOpen.update(v => !v)">
         <app-mobile-sheet
           [navItems]="navItems"
           [open]="sheetOpen()"
-          [activeSalonId]="activeSalonId()"
-          [membership]="membership()"
+          [activeSalonId]="displaySalonId()"
+          [membership]="displayMembership()"
           (closed)="sheetOpen.set(false)" />
       </app-mobile-top-bar>
     </div>

@@ -209,3 +209,5 @@ export type { AnalyticsControllerGetStaffPerformance$Params as AnalyticsControll
 export { analyticsControllerGetStaffPerformance as analyticsControllerGetStaffPerformance } from './fn/analytics/analytics-controller-get-staff-performance';
 export type { AnalyticsControllerGetTrends$Params as AnalyticsControllerGetTrends$Params } from './fn/analytics/analytics-controller-get-trends';
 export { analyticsControllerGetTrends as analyticsControllerGetTrends } from './fn/analytics/analytics-controller-get-trends';
+export type { ContactControllerSubmit$Params as ContactControllerSubmit$Params } from './fn/contact/contact-controller-submit';
+export { contactControllerSubmit as contactControllerSubmit } from './fn/contact/contact-controller-submit';

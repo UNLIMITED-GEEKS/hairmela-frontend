@@ -4,22 +4,24 @@
 <!-- Body — scrolls with the page (this component doesn't assume it owns the
      viewport; it may be nested inside a shell's own scroll container, e.g.
      auth-shell's <main>). Bottom padding reserves room for the fixed actions
-     bar below on mobile so content never sits underneath it; not needed on
-     md+ where the actions bar is in-flow instead. -->
-<div [class]="(noPadding() ? '' : 'px-4 pt-6 ') + 'pb-24 md:pb-4 px-3 ' + maxWidth() + ' md:max-w-none mx-auto md:mx-0 w-full'">
+     bar below on every screen size, since it's always fixed now. -->
+<div [class]="(noPadding() ? '' : 'px-4 pt-6 ') + 'pb-24 px-3 ' + maxWidth() + ' md:max-w-none mx-auto md:mx-0 w-full'">
   <ng-content />
 </div>
 
-<!-- Action bar — fixed above the bottom nav on mobile (pinned to the
-     viewport, not the nearest scroll container, so it works regardless of
-     ancestor overflow/height — unlike `sticky`, which only pins within a
-     container tall enough to scroll, not guaranteed when this component is
-     nested in a shell's own scrollable <main>). On md+ there's no bottom
-     nav/mobile chrome to clear (auth-shell's sidebar owns that space
-     instead), so it renders in-flow at the end of the content. -->
-<div class="fixed inset-x-0 above-bottom-nav z-30 bg-surface px-4 pt-3 pb-4
-            md:static md:px-0 md:pt-0 md:pb-0">
-  <div [class]="maxWidth() + ' md:max-w-none mx-auto md:mx-0 w-full'">
+<!-- Action bar — always fixed, on every screen size (pinned to the viewport,
+     not the nearest scroll container, so it works regardless of ancestor
+     overflow/height — unlike `sticky`, which only pins within a container
+     tall enough to scroll). left-0 + above-bottom-nav clear the mobile
+     bottom nav; on md+ there's no bottom nav (above-bottom-nav collapses to
+     bottom:0), but auth-shell's sidebar occupies the left --sidebar-width —
+     set by SidebarComponent itself (the only place that knows its live
+     64px/220px collapsed state) — so the bar starts after it instead of
+     overlapping. transition-[left] mirrors the sidebar's own collapse
+     animation. -->
+<div class="fixed left-0 right-0 above-bottom-nav z-30 bg-surface px-4 pt-3 pb-4
+            md:left-(--sidebar-width) transition-[left] duration-250 ease-in-out">
+  <div [class]="maxWidth() + ' md:max-w-none mx-auto md:mx-0 w-full md:ml-6'">
     <ng-content select="[slot=actions]" />
   </div>
 </div>

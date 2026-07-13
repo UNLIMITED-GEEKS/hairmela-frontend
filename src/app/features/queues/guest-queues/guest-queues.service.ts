@@ -21,7 +21,7 @@ export class GuestQueuesService {
   // TTL is a fallback, not the primary staleness signal — see
   // ActiveQueuesService for the full reasoning (identical here, guest-token
   // auth instead of JWT).
-  private readonly _watch = new SocketInvalidatedTtl(this._socket, 15_000);
+  private readonly _watch = new SocketInvalidatedTtl(this._socket, 30_000);
 
   readonly entries = this._entries.asReadonly();
   readonly loading = this._loading.asReadonly();

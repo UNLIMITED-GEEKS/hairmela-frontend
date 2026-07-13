@@ -19,7 +19,6 @@ import { RoutePath } from '../../core/routing/route-paths';
   selector: 'app-landing',
   templateUrl: './landing.component.html',
   imports: [RouterLink, SalonCardComponent, CategoryPillsComponent, PaginationComponent, SkeletonComponent],
-  providers: [SalonListingService],
 })
 export class LandingComponent implements OnInit {
   protected readonly listing = inject(SalonListingService);

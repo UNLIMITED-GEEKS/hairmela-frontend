@@ -32,7 +32,6 @@ import { RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
     IconComponent,
     JoinBannerComponent,
   ],
-  providers: [SalonListingService],
 })
 export class DashboardComponent implements OnInit {
   protected readonly _dashboardService = inject(DashboardService);
