@@ -1,6 +1,7 @@
 import { CacheRegistry } from '../../../core/caching/cache-registry/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { Observable, tap, map } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { subscriptionsControllerGetMine } from '../../../api/fn/subscriptions/subscriptions-controller-get-mine';
@@ -16,6 +17,7 @@ import { MembershipStore } from '../../../core/salon-context/membership.store';
 import { ToastService } from '../../../core/toast/toast.service';
 import { OptimisticService } from '../../../core/caching/optimistic/optimistic.service';
 import { CachedLoader } from '../../../core/caching/optimistic/cached-loader';
+import { RoutePath } from '../../../core/routing/route-paths';
 
 @Injectable({ providedIn: 'root' })
 export class BillingService {
@@ -25,6 +27,7 @@ export class BillingService {
   private readonly _membershipStore = inject(MembershipStore);
   private readonly _toast = inject(ToastService);
   private readonly _optimistic = inject(OptimisticService);
+  private readonly _router = inject(Router);
 
   constructor() {
     this._cacheRegistry.register(this);
@@ -88,9 +91,43 @@ export class BillingService {
     );
   }
 
+  // Shared handling for wherever Flutterwave lands the browser after checkout
+  // (normally /org/:orgId/billing/payment/callback, but subscription/Payment
+  // Plan checkouts have been observed ignoring redirect_url and landing on
+  // the bare domain root instead — LandingComponent detects that case and
+  // calls this with an orgId parsed out of tx_ref). Only a `status` of
+  // `successful` is worth verifying — `cancelled`/`failed` have nothing to
+  // confirm server-side, so we just toast and redirect back to billing.
+  handlePaymentReturn(orgId: string, status: string | null, txRef: string | null): void {
+    if (!orgId || !txRef || status !== 'successful') {
+      if (status === 'cancelled') this._toast.error('Payment cancelled.');
+      else if (status === 'failed') this._toast.error('Payment failed. Please try again.');
+      this._router.navigate(RoutePath.orgBilling(orgId));
+      return;
+    }
+
+    this.verify(orgId, txRef).subscribe({
+      next: () => {
+        this._toast.success('Payment confirmed — your plan is active.');
+      },
+      error: () => {
+        // verify() is a fast-path UX confirmation, not the source of truth —
+        // the provider's webhook activates the tier independently, so this
+        // isn't necessarily a real failure from the user's POV. No error
+        // toast; the delayed refresh below picks up the real state once the
+        // webhook lands.
+      },
+    });
+    // Scheduled unconditionally (success or failure above) — the webhook can
+    // land a few seconds after this call either way.
+    this.scheduleDelayedRefresh(orgId);
+    this._router.navigate(RoutePath.orgBilling(orgId));
+  }
+
   // Start an upgrade: create the checkout session, then send the browser to
   // the provider's payment page. Verification happens later, when the
-  // provider redirects back to PaymentCallbackComponent.
+  // provider redirects back to PaymentCallbackComponent (or, for Payment Plan
+  // checkouts, wherever Flutterwave actually lands the browser).
   upgrade(orgId: string, tier: Tier): void {
     if (this._acting()) return;
     this._acting.set(true);

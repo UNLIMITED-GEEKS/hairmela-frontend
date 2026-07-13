@@ -9,7 +9,7 @@ import { GuestStore } from '../guest/guest-store';
 import { authenticatedAuthControllerGetMe } from '../../api/fn/auth/authenticated-auth-controller-get-me';
 import { PersistentStore } from '../storage/persistent-store';
 import { LAST_SALON_KEY } from '../salon-context/salon-context.service';
-import { RoutePath } from '../routing/route-paths';
+import { RoutePath, RouteQueryParam } from '../routing/route-paths';
 
 // True on a genuine fresh navigation to the app (typing the URL, following a
 // link, opening a new tab) — but false on a page RELOAD/refresh. Lets the
@@ -42,7 +42,14 @@ export function sessionInit(): () => Promise<void> {
     const persistentStore = inject(PersistentStore);
 
     const atRoot = window.location.pathname === '/';
-    const shouldRedirect = atRoot && isFreshNavigation();
+    // Flutterwave's redirect_url is set to the org's payment-callback page,
+    // but subscription/Payment Plan checkouts have been observed ignoring
+    // that and landing on the bare root instead, with ?status=&tx_ref=
+    // appended. When that's the case, don't redirect away from "/" here —
+    // LandingComponent needs to actually mount so it can detect those params
+    // and run the payment verification flow (see its _handlePaymentReturnIfPresent).
+    const hasPaymentReturnParams = new URLSearchParams(window.location.search).has(RouteQueryParam.TX_REF);
+    const shouldRedirect = atRoot && isFreshNavigation() && !hasPaymentReturnParams;
 
     // Fresh load at root as a returning guest → back to their queue.
     if (shouldRedirect && guestStore.hasToken() && !tokenStore.getRefreshToken()) {
