@@ -16,6 +16,7 @@ import { CategoriesService } from '../../core/categories/categories.service';
 import { SalonListingService } from '../../marketing/landing/salon-listing.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { InstallPromptService } from '../../core/pwa/install-prompt.service';
+import { CreateSalonCardComponent } from '../../shared/components/create-salon-card/create-salon-card.component';
 import { RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
 
 @Component({
@@ -32,6 +33,7 @@ import { RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
     CategoryPillsComponent,
     IconComponent,
     JoinBannerComponent,
+    CreateSalonCardComponent,
   ],
 })
 export class DashboardComponent implements OnInit {

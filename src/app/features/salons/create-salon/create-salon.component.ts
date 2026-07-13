@@ -118,11 +118,11 @@ export class CreateSalonComponent implements OnInit {
         },
       },
       this._destroyRef,
-      () => {
+      (salon) => {
         this.saving.set(false);
         this._dashboardService.clear();
         this._dashboardService.load();
-        this._router.navigate(RoutePath.dashboard());
+        this._router.navigate(RoutePath.salon(salon.id));
       },
       () => this.saving.set(false),
     );

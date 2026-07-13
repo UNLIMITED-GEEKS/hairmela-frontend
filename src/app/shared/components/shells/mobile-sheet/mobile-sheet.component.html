@@ -40,7 +40,7 @@
     @if (visibleControls().length > 0) {
       <div class="pt-3">
         <p class="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-text-secondary/60">
-          Controls
+         Salon Controls
         </p>
 
         <!-- Salon overview -->
@@ -51,7 +51,7 @@
           (click)="closed.emit()"
           class="flex items-center gap-3 px-3 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors">
           <app-nav-icon icon="scissors" size="w-5 h-5" />
-          <span class="text-sm font-medium">Salon</span>
+          <span class="text-sm font-medium">Salon Overview</span>
         </a>
 
         @for (item of visibleControls(); track item.label) {

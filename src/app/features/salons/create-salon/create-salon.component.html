@@ -235,9 +235,13 @@
         <button
           type="submit"
           [disabled]="form.invalid || saving()"
-          class="flex-1 min-h-11 bg-primary text-white text-sm font-medium rounded-lg
+          class="flex-1 min-h-11 flex items-center justify-center gap-2 bg-primary text-white text-sm font-medium rounded-lg
                  hover:bg-primary-dark disabled:opacity-50 active:scale-95 transition-all">
-          {{ saving() ? 'Creating…' : 'Create salon' }}
+          @if (saving()) {
+            <app-inline-spinner sizeClass="w-4 h-4" label="Creating salon" />
+          } @else {
+            Create salon
+          }
         </button>
       </div>
 

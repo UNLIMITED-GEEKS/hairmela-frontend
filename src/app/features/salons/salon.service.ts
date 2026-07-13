@@ -8,6 +8,7 @@ import { CreateSalonDto } from '../../api/models/create-salon-dto';
 import { userSalonsControllerCreate } from '../../api/fn/salons/user-salons-controller-create';
 import { salonsControllerFindOne } from '../../api/fn/salons/salons-controller-find-one';
 import { salonsControllerSoftDelete } from '../../api/fn/salons/salons-controller-soft-delete';
+import { Salon } from '../../api/models/salon';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogService } from '../../shared/components/confirm-dialog/confirm-dialog.service';
 import { isApiError } from '../../core/errors/api-error.types';
@@ -23,15 +24,15 @@ export class SalonService {
   create(
     body: CreateSalonDto,
     destroyRef: DestroyRef,
-    onSuccess?: () => void,
+    onSuccess?: (salon: Salon) => void,
     onLimitReached?: () => void,
   ): void {
     userSalonsControllerCreate(this._http, this._apiConfig.rootUrl, { body })
       .pipe(takeUntilDestroyed(destroyRef))
       .subscribe({
-        next: () => {
+        next: (res) => {
           this._toast.success('Salon created');
-          onSuccess?.();
+          onSuccess?.(res.body);
         },
         error: (err: unknown) => {
           if (isApiError(err) && err.code === ErrorCodes.SALON_LIMIT_REACHED) {

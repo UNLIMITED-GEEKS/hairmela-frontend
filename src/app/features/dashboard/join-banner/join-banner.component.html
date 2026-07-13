@@ -25,7 +25,7 @@
 
       @if (queueLink(); as link) {
         <a [routerLink]="link"
-          class="self-start mt-1 min-h-10 px-5 rounded-xl bg-primary text-white text-sm font-semibold flex items-center hover:bg-primary-hover transition-colors">
+          class="self-start mt-1 min-h-10 px-5 rounded-xl bg-primary whitespace-nowrap text-white text-sm font-semibold flex items-center hover:bg-primary-hover transition-colors">
           View Queue
         </a>
       }
@@ -68,7 +68,7 @@
       </p>
       <div class="flex items-center gap-3 mt-1">
         <a [routerLink]="searchLink()"
-          class="min-h-10 px-5 rounded-xl bg-primary text-white text-sm font-semibold flex items-center hover:bg-primary-hover transition-colors">
+          class="min-h-10 px-5 rounded-xl whitespace-nowrap bg-primary text-white text-sm font-semibold flex items-center hover:bg-primary-hover transition-colors">
           Join Now
         </a>
         <button type="button" (click)="scanQrCode.emit()"
