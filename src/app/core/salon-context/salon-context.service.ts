@@ -7,7 +7,7 @@ import { Membership } from './membership.types';
 import { PersistentStore } from '../storage/persistent-store';
 import { RouteParam, RouteQueryParam } from '../routing/route-paths';
 
-const LAST_SALON_KEY = 'hm_last_selected_salon_id';
+export const LAST_SALON_KEY = 'hm_last_selected_salon_id';
 
 @Injectable({ providedIn: 'root' })
 export class SalonContextService {

@@ -6,6 +6,9 @@ import { ErrorCodes } from '../../../core/errors/error-codes';
 import { isApiError } from '../../../core/errors/api-error.types';
 import { PasswordToggleDirective } from '../../../shared/directives/password-toggle.directive';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { SalonsStore } from '../../../core/salon-context/salons.store';
+import { PersistentStore } from '../../../core/storage/persistent-store';
+import { LAST_SALON_KEY } from '../../../core/salon-context/salon-context.service';
 import { RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 
 @Component({
@@ -18,6 +21,8 @@ export class LoginComponent {
   private readonly _router = inject(Router);
   private readonly _route = inject(ActivatedRoute);
   private readonly _fb = inject(FormBuilder);
+  private readonly _salonsStore = inject(SalonsStore);
+  private readonly _persistentStore = inject(PersistentStore);
 
   protected readonly justRegistered = signal(
     this._route.snapshot.queryParamMap.get(RouteQueryParam.REGISTERED) === '1',
@@ -53,7 +58,29 @@ export class LoginComponent {
     this._auth.login(this.form.getRawValue()).subscribe({
       next: () => {
         const returnUrl = new URLSearchParams(window.location.search).get(RouteQueryParam.RETURN_URL);
-        this._router.navigateByUrl(returnUrl ?? RoutePath.dashboard()[0]);
+        if (returnUrl) {
+          this._router.navigateByUrl(returnUrl);
+          return;
+        }
+
+        // Returning user: a salon id is already persisted — land there
+        // directly, no fetch. salonRoleGuard validates it downstream; a
+        // stale/no-longer-valid id just bounces to /dashboard.
+        const lastId = this._persistentStore.get<string>(LAST_SALON_KEY);
+        if (lastId) {
+          this._router.navigate(RoutePath.salon(lastId));
+          return;
+        }
+
+        // Nothing persisted (first login on this browser) — fetch once,
+        // then land on the first salon, or /dashboard if there are none.
+        this._salonsStore.ensureLoaded().subscribe({
+          next: (salons) =>
+            this._router.navigate(
+              salons.length > 0 ? RoutePath.salon(salons[0].salon.id) : RoutePath.dashboard(),
+            ),
+          error: () => this._router.navigate(RoutePath.dashboard()),
+        });
       },
       error: (err) => {
         this.loading.set(false);

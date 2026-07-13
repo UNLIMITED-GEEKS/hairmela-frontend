@@ -7,6 +7,8 @@ import { CurrentUserStore } from './current-user.store';
 import { ApiConfiguration } from '../../api/api-configuration';
 import { GuestStore } from '../guest/guest-store';
 import { authenticatedAuthControllerGetMe } from '../../api/fn/auth/authenticated-auth-controller-get-me';
+import { PersistentStore } from '../storage/persistent-store';
+import { LAST_SALON_KEY } from '../salon-context/salon-context.service';
 import { RoutePath } from '../routing/route-paths';
 
 // True on a genuine fresh navigation to the app (typing the URL, following a
@@ -37,6 +39,7 @@ export function sessionInit(): () => Promise<void> {
     const apiConfig = inject(ApiConfiguration);
     const guestStore = inject(GuestStore);
     const router = inject(Router);
+    const persistentStore = inject(PersistentStore);
 
     const atRoot = window.location.pathname === '/';
     const shouldRedirect = atRoot && isFreshNavigation();
@@ -70,9 +73,12 @@ export function sessionInit(): () => Promise<void> {
       // every boot. Keeps socket.io-client out of this bundle entirely for
       // sessions that restore but never touch a queue page.
 
-      // Fresh load at root as a logged-in user → dashboard. NOT on a refresh.
+      // Fresh load at root as a logged-in user → their last-visited salon if
+      // one is persisted (no fetch — salonRoleGuard validates it downstream),
+      // else the dashboard. NOT on a refresh.
       if (shouldRedirect) {
-        router.navigateByUrl(RoutePath.dashboard()[0]);
+        const lastId = persistentStore.get<string>(LAST_SALON_KEY);
+        router.navigate(lastId ? RoutePath.salon(lastId) : RoutePath.dashboard());
       }
     } catch {
       tokenStore.clearTokens();
