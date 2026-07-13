@@ -1,6 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { DashboardService } from '../../../features/dashboard/dashboard.service';
+import { SalonsStore } from '../../../core/salon-context/salons.store';
 import { OrgContextService } from '../../../core/salon-context/org-context.service';
 import { UNLIMITED_SENTINEL } from '../../../core/tier/tier-limits';
 import { SalonRole } from '../../../core/salon-context/membership.types';
@@ -15,7 +15,7 @@ import { RoutePath } from '../../../core/routing/route-paths';
   imports: [RouterLink],
 })
 export class CreateSalonCardComponent {
-  private readonly _dashboardService = inject(DashboardService);
+  private readonly _dashboardService = inject(SalonsStore);
   private readonly _orgContext = inject(OrgContextService);
 
   protected readonly newSalonLink = RoutePath.newSalon();

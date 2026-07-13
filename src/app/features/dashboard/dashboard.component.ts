@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { DashboardService } from './dashboard.service';
+import { SalonsStore } from '../../core/salon-context/salons.store';
 import { CurrentUserStore } from '../../core/auth/current-user.store';
 import { ActiveQueuesService } from '../queues/auth-queues/active-queues.service';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
@@ -37,7 +37,7 @@ import { RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
   ],
 })
 export class DashboardComponent implements OnInit {
-  protected readonly _dashboardService = inject(DashboardService);
+  protected readonly _dashboardService = inject(SalonsStore);
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _activeQueues = inject(ActiveQueuesService);
   private readonly _toast = inject(ToastService);

@@ -2,7 +2,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { CurrentUserStore } from '../../../../core/auth/current-user.store';
 import { SalonContextService } from '../../../../core/salon-context/salon-context.service';
-import { DashboardService } from '../../../../features/dashboard/dashboard.service';
+import { SalonsStore } from '../../../../core/salon-context/salons.store';
 import { InvitesService } from '../../../../features/dashboard/invites.service';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { NavItem } from '../nav-item.types';
@@ -29,7 +29,7 @@ import { RoutePath } from '../../../../core/routing/route-paths';
 export class AuthShellComponent implements OnInit {
   private readonly _invites = inject(InvitesService);
   private readonly _auth = inject(AuthService);
-  private readonly _dashboardService = inject(DashboardService);
+  private readonly _dashboardService = inject(SalonsStore);
   private readonly _salonContext = inject(SalonContextService);
   private readonly _orgContext = inject(OrgContextService);
   protected readonly _currentUser = inject(CurrentUserStore);

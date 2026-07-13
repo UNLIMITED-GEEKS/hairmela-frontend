@@ -2,7 +2,7 @@ import { Component, DestroyRef, inject, signal, OnInit } from '@angular/core';
 import { Location } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
-import { DashboardService } from '../../dashboard/dashboard.service';
+import { SalonsStore } from '../../../core/salon-context/salons.store';
 import { SalonService } from '../salon.service';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
@@ -36,7 +36,7 @@ export class CreateSalonComponent implements OnInit {
   private readonly _router = inject(Router);
   private readonly _fb = inject(FormBuilder);
   private readonly _destroyRef = inject(DestroyRef);
-  private readonly _dashboardService = inject(DashboardService);
+  private readonly _dashboardService = inject(SalonsStore);
   private readonly _salonService = inject(SalonService);
   protected readonly categoriesService = inject(CategoriesService);
 

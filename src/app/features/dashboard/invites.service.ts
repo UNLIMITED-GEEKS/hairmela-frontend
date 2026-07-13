@@ -9,7 +9,7 @@ import { staffInviteControllerAccept } from '../../api/fn/staff/staff-invite-con
 import { staffInviteControllerDecline } from '../../api/fn/staff/staff-invite-controller-decline';
 import { MembershipStore } from '../../core/salon-context/membership.store';
 import { ToastService } from '../../core/toast/toast.service';
-import { DashboardService } from './dashboard.service';
+import { SalonsStore } from '../../core/salon-context/salons.store';
 import { OptimisticService, ReadToken } from '../../core/caching/optimistic/optimistic.service';
 
 @Injectable({ providedIn: 'root' })
@@ -19,7 +19,7 @@ export class InvitesService {
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _membershipStore = inject(MembershipStore);
   private readonly _toast = inject(ToastService);
-  private readonly _dashboardService = inject(DashboardService);
+  private readonly _dashboardService = inject(SalonsStore);
   private readonly _optimistic = inject(OptimisticService);
 
   constructor() {

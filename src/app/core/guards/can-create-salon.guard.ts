@@ -1,10 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { HttpClient } from '@angular/common/http';
-import { ApiConfiguration } from '../../api/api-configuration';
-import { userSalonsControllerFindMine } from '../../api/fn/salons/user-salons-controller-find-mine';
+import { SalonsStore } from '../salon-context/salons.store';
 import { SalonRole } from '../salon-context/membership.types';
 import { RoutePath } from '../routing/route-paths';
 
@@ -12,15 +9,18 @@ import { RoutePath } from '../routing/route-paths';
 // user with no salons yet, or someone who already owns at least one. Users who
 // are ONLY staff/admin (and own nothing) are redirected to the dashboard.
 // Roles are per-salon, so "owner" means an OWNER entry in GET /salons/mine.
+//
+// Reuses SalonsStore's cached/in-flight salons list (ensureLoaded())
+// instead of issuing its own duplicate GET /salons/mine — by the time a user
+// reaches this route (from the dashboard, account page, or sidebar), that
+// data is almost always already loaded, so this resolves instantly instead
+// of blocking navigation on a redundant network round-trip.
 export const canCreateSalonGuard: CanActivateFn = async () => {
-  const http = inject(HttpClient);
-  const apiConfig = inject(ApiConfiguration);
+  const dashboardService = inject(SalonsStore);
   const router = inject(Router);
 
   try {
-    const salons = await firstValueFrom(
-      userSalonsControllerFindMine(http, apiConfig.rootUrl).pipe(map((res) => res.body)),
-    );
+    const salons = await firstValueFrom(dashboardService.ensureLoaded());
 
     const isNewUser = salons.length === 0;
     const ownsASalon = salons.some((s) => s.role === SalonRole.OWNER);
