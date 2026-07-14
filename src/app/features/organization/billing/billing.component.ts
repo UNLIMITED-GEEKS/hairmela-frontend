@@ -53,11 +53,19 @@ export class BillingComponent implements OnInit {
   // Upgrade = immediate (checkout -> verify -> re-fetch). During the trial no
   // plan is purchased yet (tier reads as 3 only for access), so every plan is a
   // purchase — show Upgrade on all of them, never Downgrade.
+  //
+  // Downgrade is disabled app-wide for now: the backend doesn't correctly
+  // handle billing the new (lower) tier when a downgrade takes effect at
+  // period end, so it can't be exposed. Until that's fixed, a lower tier than
+  // current just falls through to 'current' (no action shown) instead of
+  // 'downgrade' — the only paths are Upgrade or Cancel. Revert the last line
+  // to `return tier > current ? 'upgrade' : 'downgrade';` once the backend
+  // downgrade billing is fixed.
   protected actionFor(tier: Tier): 'current' | 'upgrade' | 'downgrade' {
     if (this.isTrialing()) return 'upgrade';
     const current = this.currentTier();
     if (tier === current) return 'current';
-    return tier > current ? 'upgrade' : 'downgrade';
+    return tier > current ? 'upgrade' : 'current';
   }
 
   protected upgrade(tier: Tier): void {

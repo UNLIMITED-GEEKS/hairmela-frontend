@@ -104,12 +104,18 @@
                   {{ acting() ? 'Working…' : 'Upgrade' }}
                 </button>
               }
+              <!-- Downgrade disabled app-wide: the backend doesn't correctly
+                   bill the new (lower) tier when a downgrade takes effect at
+                   period end. actionFor() never returns 'downgrade' right
+                   now, so this case can't render — kept here, commented out,
+                   for when the backend fixes downgrade billing.
               @case ('downgrade') {
                 <button type="button" (click)="downgrade(plan.tier)"
                   class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors">
                   Downgrade
                 </button>
               }
+              -->
             }
           </div>
         </div>
@@ -119,7 +125,7 @@
     <!-- Cancel -->
     @if (currentTier() > 0 && status() !== 'CANCELLED') {
       <div class="mt-6 text-center">
-        <button type="button" (click)="cancelPlan()" disabled
+        <button type="button" (click)="cancelPlan()"
           class="text-sm font-medium text-red-600 hover:text-red-800 disabled:opacity-50 transition-colors">
           Cancel plan
         </button>
