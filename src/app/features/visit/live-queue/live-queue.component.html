@@ -10,7 +10,13 @@
     <div class="shrink-0 px-3 pt-2 pb-4">
       @if (visit.staffForQueue(_queueId()); as staff) {
         <div class="flex items-center gap-3">
-          <app-avatar [src]="staff.photoUrl" [name]="staff.firstName + ' ' + staff.lastName" size="lg" />
+          @if (staff.photoUrl) {
+            <button type="button" (click)="openPhoto()" aria-label="View barber photo" class="shrink-0 rounded-full">
+              <app-avatar [src]="staff.photoUrl" [name]="staff.firstName + ' ' + staff.lastName" size="lg" />
+            </button>
+          } @else {
+            <app-avatar [src]="staff.photoUrl" [name]="staff.firstName + ' ' + staff.lastName" size="lg" />
+          }
           <div class="flex-1 min-w-0">
             <p class="text-base font-bold text-text-primary truncate">
               {{ staff.firstName }} {{ staff.lastName }}
@@ -123,5 +129,12 @@
       [images]="staff.galleryUrls ?? []"
       [open]="galleryOpen()"
       (closed)="closeGallery()" />
+
+    @if (staff.photoUrl) {
+      <app-gallery-modal
+        [images]="[staff.photoUrl]"
+        [open]="photoOpen()"
+        (closed)="photoOpen.set(false)" />
+    }
   }
 </div>

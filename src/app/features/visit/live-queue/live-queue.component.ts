@@ -113,4 +113,12 @@ export class LiveQueueComponent {
   protected closeGallery(): void {
     this.galleryOpen.set(false);
   }
+
+  // Separate open-state for the barber's profile-photo lightbox — its own
+  // instance so it never collides with the "View my works" gallery modal.
+  protected readonly photoOpen = signal(false);
+
+  protected openPhoto(): void {
+    this.photoOpen.set(true);
+  }
 }

@@ -5,8 +5,16 @@
          Taller on desktop — a wide, short box crops object-cover too tight,
          zooming in past the subject instead of showing the fuller scene. -->
     <div class="relative h-56 md:h-100 w-full overflow-hidden">
-      <img [src]="s.photoUrl ? (s.photoUrl | mediaUrl) : placeholderImage" alt=""
-        class="absolute inset-0 h-full w-full object-cover object-top rounded-t-2xl" />
+      @if (s.photoUrl) {
+        <button type="button" (click)="openPhoto()" aria-label="View salon photo"
+          class="absolute inset-0 h-full w-full">
+          <img [src]="s.photoUrl | mediaUrl" alt=""
+            class="h-full w-full object-cover object-top rounded-t-2xl" />
+        </button>
+      } @else {
+        <img [src]="placeholderImage" alt=""
+          class="absolute inset-0 h-full w-full object-cover object-top rounded-t-2xl" />
+      }
 
       <div class="absolute top-3 left-3">
         <app-back-button variant="glass" />
@@ -153,6 +161,13 @@
       [open]="galleryOpen()"
       [startIndex]="galleryStartIndex()"
       (closed)="closeGallery()" />
+
+    @if (s.photoUrl) {
+      <app-gallery-modal
+        [images]="[s.photoUrl]"
+        [open]="photoOpen()"
+        (closed)="photoOpen.set(false)" />
+    }
   }
 
 </div>

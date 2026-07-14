@@ -103,6 +103,14 @@ export class SalonLandingComponent implements OnInit {
     this.galleryOpen.set(false);
   }
 
+  // Separate open-state for the header photo lightbox — its own instance so it
+  // never collides with the Recent Work gallery modal above.
+  protected readonly photoOpen = signal(false);
+
+  protected openPhoto(): void {
+    this.photoOpen.set(true);
+  }
+
   ngOnInit(): void {
     if (this._currentUser.user()) {
       this._favorites.ensureIdsLoaded();
