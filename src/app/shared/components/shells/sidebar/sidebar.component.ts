@@ -12,6 +12,13 @@ export interface ControlItem {
   readonly roles: SalonRole[];
   /** Minimum tier to use this feature; below it the link renders locked. */
   readonly requiresTier?: number;
+  /**
+   * Builds the staff-scoped variant of this item's link (e.g. their own
+   * staff/:staffId/services instead of the salon-wide services page). Only
+   * set on items that have one; used only when the viewer's role is STAFF
+   * and Membership.staffId is present — see SidebarComponent.controlLink().
+   */
+  readonly staffScopedLink?: (salonId: string, staffId: string) => string[];
 }
 
 const COLLAPSED_KEY = 'hm_sidebar_collapsed';
@@ -22,6 +29,7 @@ export const CONTROL_ITEMS: ControlItem[] = [
     label: 'Services',
     url: RouteSegment.SERVICES,
     roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF],
+    staffScopedLink: RoutePath.salonStaffServices,
   },
   {
     label: 'Closures',
@@ -32,6 +40,7 @@ export const CONTROL_ITEMS: ControlItem[] = [
     label: 'Photos',
     url: RouteSegment.MEDIA,
     roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF],
+    staffScopedLink: RoutePath.salonStaffMedia,
   },
   { label: 'Settings', url: RouteSegment.SETTINGS, roles: [SalonRole.OWNER, SalonRole.ADMIN] },
   {
@@ -94,6 +103,23 @@ export class SidebarComponent implements OnInit {
       unlocked: c.requiresTier === undefined || m.tier >= c.requiresTier,
     }));
   });
+
+  // Items with a staffScopedLink (Photos, Services): STAFF goes to their own
+  // staff/:staffId page (Membership already carries staffId — no fetch
+  // needed); OWNER/ADMIN get the salon-wide page. Falls back to the
+  // salon-wide page if a STAFF membership somehow has no staffId (shouldn't
+  // happen, but never renders a broken link).
+  controlLink(item: VisibleControl): string[] {
+    // Only ever invoked from the template inside the visibleControls().length
+    // > 0 branch, which itself requires activeSalonId() truthy — never
+    // actually null here, but the input's type is nullable.
+    const salonId = this.activeSalonId() ?? '';
+    const m = this.membership();
+    if (item.staffScopedLink && m?.role === SalonRole.STAFF && m.staffId) {
+      return item.staffScopedLink(salonId, m.staffId);
+    }
+    return ['/' + RouteSegment.SALONS, salonId, item.url];
+  }
 
   readonly isOwner = computed(() => this.membership()?.role === SalonRole.OWNER);
 

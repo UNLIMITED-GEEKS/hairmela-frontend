@@ -55,9 +55,16 @@ export class StaffMediaComponent implements OnInit {
     this.previewOpen.set(true);
   }
 
+  // FIXME: not scoped to "is this MY staffId" — a STAFF member can currently
+  // upload/edit/delete on ANY staff member's media page in this salon, not
+  // just their own. Scoping this properly requires resolving the SalonStaff
+  // record behind _staffId (it has userId) and comparing to
+  // CurrentUserStore.user()?.id, which nothing here does yet. Fixing the
+  // reported bug (staff couldn't upload their own photos at all) first;
+  // tighten this to owner/admin-or-self once that comparison is wired up.
   protected readonly canEdit = computed(() => {
     const role = this.salonContext.membership()?.role;
-    return role === SalonRole.OWNER || role === SalonRole.ADMIN;
+    return role === SalonRole.OWNER || role === SalonRole.ADMIN || role === SalonRole.STAFF;
   });
 
   protected get _staffId(): string {

@@ -9,6 +9,7 @@ export interface Subscription {
   orgId: string;
   organization: Organization;
   pendingTier: (0 | 1 | 2 | 3) | null;
+  providerSubscriptionId: string | null;
   startsAt: string;
   status: 'TRIALING' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
   tier: 0 | 1 | 2 | 3;

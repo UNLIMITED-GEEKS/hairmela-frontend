@@ -84,6 +84,20 @@
         </div>
       </div>
 
+      <!-- Pricing -->
+      <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+        <h2 class="text-sm font-semibold text-gray-700">Pricing</h2>
+
+        <label class="flex items-center justify-between min-h-11 cursor-pointer">
+          <span>
+            <span class="block text-sm text-gray-700">Show prices to customers</span>
+            <span class="block text-xs text-gray-400">If enabled, customers will see the price of each service before joining the queue.</span>
+          </span>
+          <input type="checkbox" formControlName="showPrice"
+            class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/40 shrink-0" />
+        </label>
+      </div>
+
       <!-- Address -->
       <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-4" formGroupName="address">
         <h2 class="text-sm font-semibold text-gray-700">Address</h2>

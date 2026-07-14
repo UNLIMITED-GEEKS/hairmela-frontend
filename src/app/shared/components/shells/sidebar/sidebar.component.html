@@ -68,7 +68,7 @@
 
         @for (item of visibleControls(); track item.label) {
           <a
-            [routerLink]="['/' + RouteSegment.SALONS, activeSalonId(), item.url]"
+            [routerLink]="controlLink(item)"
             routerLinkActive="bg-primary text-white"
             class="flex items-center gap-3 rounded-xl mb-1 px-3 py-2.5 text-sm font-medium transition-all ease-in min-h-11"
             [class.text-text-secondary]="true"

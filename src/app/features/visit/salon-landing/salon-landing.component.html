@@ -100,7 +100,7 @@
             } @else {
               <div class="space-y-2">
                 @for (service of visit.services(); track service.id) {
-                  <app-service-list-item [service]="service" (select)="selectService(service.id)" />
+                  <app-service-list-item [service]="service" [showPrice]="visit.showPrice()" (select)="selectService(service.id)" />
                 }
               </div>
             }

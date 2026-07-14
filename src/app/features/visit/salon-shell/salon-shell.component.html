@@ -1,6 +1,10 @@
 <app-connection-banner />
 
-<!-- Called banner -->
+<!-- FIXME: "You're up!" called banner disabled — calledVisible re-fires on
+     EVERY socket frame where any member is still SERVING (salon-visit.service.ts
+     _reconcileEntries), not just the WAITING→SERVING transition, so it pops up
+     repeatedly for the whole duration a customer is being served instead of
+     once. Needs a "already shown for this entryId" guard before re-enabling.
 @if (visit.calledVisible()) {
   <div
     animate.enter="modal-backdrop-enter"
@@ -20,6 +24,8 @@
     </div>
   </div>
 }
+-->
+
 
 @if (visit.loading()) {
   <div class="h-mobile-content bg-white px-4 py-8">

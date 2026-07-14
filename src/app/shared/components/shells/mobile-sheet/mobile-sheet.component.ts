@@ -36,4 +36,16 @@ export class MobileSheetComponent {
   protected sheetItems(): NavItem[] {
     return this.navItems().filter((i) => i.sheet);
   }
+
+  // Items with a staffScopedLink (Photos, Services): STAFF goes to their own
+  // staff/:staffId page (Membership already carries staffId — no fetch
+  // needed); OWNER/ADMIN get the salon-wide page.
+  controlLink(item: VisibleControl): string[] {
+    const salonId = this.activeSalonId() ?? '';
+    const m = this.membership();
+    if (item.staffScopedLink && m?.role === SalonRole.STAFF && m.staffId) {
+      return item.staffScopedLink(salonId, m.staffId);
+    }
+    return ['/' + RouteSegment.SALONS, salonId, item.url];
+  }
 }

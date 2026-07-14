@@ -6,4 +6,5 @@ export interface UpdateSalonSettingsDto {
   cancellationWindow?: number;
   maxPartySize?: number;
   noShowWindow?: number;
+  showPrice?: boolean;
 }

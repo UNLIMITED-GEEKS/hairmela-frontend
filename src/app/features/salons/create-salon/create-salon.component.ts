@@ -58,6 +58,7 @@ export class CreateSalonComponent implements OnInit {
     }),
     timezone: ['Africa/Lagos', Validators.required],
     defaultSlotDuration: [30, [Validators.required, Validators.min(5), Validators.max(240)]],
+    showPrice: [false],
     operatingHours: this._fb.array(
       DAYS.map((_, i) => this._fb.group({
         enabled: [i >= 1 && i <= 5],
@@ -111,6 +112,7 @@ export class CreateSalonComponent implements OnInit {
         timezone: v.timezone!,
         defaultSlotDuration: v.defaultSlotDuration!,
         operatingHours: enabledHours,
+        settings: { showPrice: v.showPrice! },
         service: {
           categoryId: v.service!.categoryId!,
           name: v.service!.name!,

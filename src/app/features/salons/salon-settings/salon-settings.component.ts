@@ -63,6 +63,7 @@ export class SalonSettingsComponent implements OnInit {
     timezone: ['Africa/Lagos', Validators.required],
     defaultSlotDuration: [30, [Validators.required, Validators.min(5), Validators.max(240)]],
     allowWalkIns: [true],
+    showPrice: [false],
     maxPartySize: [5, [Validators.required, Validators.min(1), Validators.max(20)]],
     noShowWindow: [10, [Validators.required, Validators.min(1)]],
     operatingHours: this._fb.array(
@@ -97,6 +98,7 @@ export class SalonSettingsComponent implements OnInit {
         timezone: s.timezone,
         defaultSlotDuration: s.defaultSlotDuration,
         allowWalkIns: (settings['allowWalkIns'] as boolean) ?? true,
+        showPrice: (settings['showPrice'] as boolean) ?? false,
         maxPartySize: (settings['maxPartySize'] as number) ?? 5,
         noShowWindow: (settings['noShowWindow'] as number) ?? 10,
       });
@@ -153,6 +155,7 @@ export class SalonSettingsComponent implements OnInit {
       },
       {
         allowWalkIns: v.allowWalkIns!,
+        showPrice: v.showPrice!,
         maxPartySize: v.maxPartySize!,
         noShowWindow: v.noShowWindow!,
       },

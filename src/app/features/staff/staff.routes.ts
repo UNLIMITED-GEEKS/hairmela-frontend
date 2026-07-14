@@ -29,9 +29,15 @@ export const staffRoutes: Routes = [
       import('./staff-detail/staff-detail.component').then((m) => m.StaffDetailComponent),
   },
   {
+    // STAFF is allowed here so a staff member can reach their own photos
+    // page — but StaffMediaComponent.canEdit() doesn't yet scope to "is this
+    // MY staffId" (that requires resolving the SalonStaff.userId behind this
+    // staffId and comparing to CurrentUserStore, not done yet — see its own
+    // comment). Until that lands, a STAFF role can view any staff member's
+    // media page here, upload only disabled for non-owner/admin regardless.
     path: `:${RouteParam.STAFF_ID}/${RouteSegment.MEDIA}`,
     canActivate: [salonRoleGuard],
-    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
+    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     loadComponent: () =>
       import('./staff-media/staff-media.component').then((m) => m.StaffMediaComponent),
   },

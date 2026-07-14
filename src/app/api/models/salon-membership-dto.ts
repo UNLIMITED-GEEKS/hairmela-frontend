@@ -12,6 +12,7 @@ export interface SalonMembershipDto {
 };
   salonId: string;
   staffFrozen: boolean;
+  staffId: string | null;
   status: string;
   tier: number;
   trialEndsAt: string | null;

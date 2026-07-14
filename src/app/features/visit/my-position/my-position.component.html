@@ -46,7 +46,9 @@
 
           <!-- Center content -->
           <div class="absolute inset-0 flex flex-col items-center justify-center gap-0.5 text-center px-6">
-            @if (visit.myEntry(_entryId()); as timelineEntry) {
+            @if (isBeingServed()) {
+              <span class="text-4xl font-bold text-primary leading-tight" aria-live="polite">Serving</span>
+            } @else if (visit.myEntry(_entryId()); as timelineEntry) {
               <span class="text-sm mr-4 text-text-primary">You are</span>
               <span class="text-5xl font-bold text-primary leading-tight" aria-live="polite">
                 {{ timelineEntry.position }}<span class="text-2xl align-top">{{ ordinalSuffix(timelineEntry.position) }}</span>

@@ -185,7 +185,11 @@ export class AcceptInviteComponent implements OnInit {
     });
   }
 
+  // Lands inside the salon just joined (SalonContextService's route-derived
+  // effect persists it as the last-visited salon automatically) rather than
+  // the dashboard — matches "You've been added to {{ salonName }}" above.
   protected goToDashboard(): void {
-    this._router.navigate(RoutePath.dashboard());
+    const dto = this.invite();
+    this._router.navigate(dto ? RoutePath.salon(dto.salonId) : RoutePath.dashboard());
   }
 }

@@ -88,15 +88,32 @@
           </div>
         </div>
 
+        <!-- Pricing -->
+        <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+          <h2 class="text-sm font-semibold text-gray-700">Pricing</h2>
+
+          <label class="flex items-center justify-between min-h-11 cursor-pointer">
+            <span>
+              <span class="block text-sm text-gray-700">Show prices to customers</span>
+              <span class="block text-xs text-gray-400">If enabled, customers will see the price of each service before joining the queue.</span>
+            </span>
+            <input type="checkbox" formControlName="showPrice"
+              class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/40 shrink-0" />
+          </label>
+        </div>
+
         <!-- Queue settings -->
         <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
           <h2 class="text-sm font-semibold text-gray-700">Queue</h2>
 
+          <!-- Allow walk-ins toggle hidden for now — form control (allowWalkIns,
+               defaults true) stays wired and still submits on save.
           <label class="flex items-center justify-between min-h-11 cursor-pointer">
             <span class="text-sm text-gray-700">Allow walk-ins</span>
             <input type="checkbox" formControlName="allowWalkIns"
               class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/40" />
           </label>
+          -->
 
           <div>
             <label for="s-party" class="block text-sm font-medium text-gray-700 mb-1.5">Max party size</label>

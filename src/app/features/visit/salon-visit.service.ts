@@ -120,6 +120,14 @@ export class SalonVisitService {
   readonly salon = computed(() => this.salonData()?.salon ?? null);
   readonly staffList = computed(() => this.salonData()?.staff ?? []);
 
+  // Whether this salon wants service prices shown to customers. settings is
+  // an untyped blob on the wire (backend doesn't declare its shape in
+  // Swagger) — same bracket-index-and-cast pattern as salon-settings.component.ts.
+  readonly showPrice = computed(() => {
+    const settings = this.salon()?.settings as Record<string, unknown> | undefined;
+    return (settings?.['showPrice'] as boolean) ?? false;
+  });
+
   /** The live timeline entry for a specific entryId (the position page's entry). */
   myEntry(entryId: string): TimelineEntryDto | null {
     return this.timeline().find((e) => e.entryId === entryId) ?? null;

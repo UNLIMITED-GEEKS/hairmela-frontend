@@ -12,5 +12,6 @@ import { IconComponent } from '../icon/icon.component';
 })
 export class ServiceListItemComponent {
   readonly service = input.required<Service>();
+  readonly showPrice = input(true);
   readonly select = output<void>();
 }

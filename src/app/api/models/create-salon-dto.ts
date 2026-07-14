@@ -4,6 +4,7 @@
 import { AddressDto } from '../models/address-dto';
 import { InitialServiceDto } from '../models/initial-service-dto';
 import { OperatingHourDto } from '../models/operating-hour-dto';
+import { UpdateSalonSettingsDto } from '../models/update-salon-settings-dto';
 export interface CreateSalonDto {
   about?: string;
   address: AddressDto;
@@ -12,5 +13,6 @@ export interface CreateSalonDto {
   operatingHours?: Array<OperatingHourDto>;
   phone: string;
   service: InitialServiceDto;
+  settings?: UpdateSalonSettingsDto;
   timezone?: string;
 }

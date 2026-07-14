@@ -53,6 +53,7 @@ export class MembershipStore {
       salonId: dto.salonId,
       role: dto.role as unknown as SalonRole,
       isStaff: dto.isStaff,
+      staffId: dto.staffId,
       canManageSalon: dto.canManageSalon,
       canManageStaff: dto.canManageStaff,
       tier: dto.tier,
