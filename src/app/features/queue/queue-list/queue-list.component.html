@@ -49,7 +49,7 @@
           }
           @if (isServing) {
             <span class="text-xs font-bold text-success" aria-live="polite">Serving</span>
-          } @else {
+          } @else if (!console.isLocked(entry.entryId)) {
             <span class="text-xs text-primary font-medium" aria-live="polite">{{ console.liveWait(entry.entryId) }}</span>
           }
         </div>
