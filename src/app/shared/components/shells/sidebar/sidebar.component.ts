@@ -38,7 +38,6 @@ export const CONTROL_ITEMS: ControlItem[] = [
     label: 'Analytics',
     url: RouteSegment.ANALYTICS,
     roles: [SalonRole.OWNER, SalonRole.ADMIN],
-    requiresTier: 2,
   },
   {
     label: 'Share / QR',

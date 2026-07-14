@@ -1,7 +1,6 @@
 import { Routes } from '@angular/router';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { salonRoleGuard } from '../../core/guards/salon-role.guard';
-import { tierGuard } from '../../core/guards/tier.guard';
 import { SalonRole } from '../../core/salon-context/membership.types';
 import { RouteSegment } from '../../core/routing/route-paths';
 
@@ -47,12 +46,10 @@ export const salonRoutes: Routes = [
       import('./leave-salon/leave-salon.component').then((m) => m.LeaveSalonComponent),
   },
   {
-    // Analytics is a Tier 2 (Pro) feature — role-gated AND tier-gated. Below
-    // tier 2, tierGuard redirects to billing. The backend also returns
-    // TIER_REQUIRED as the safety net.
+    // Analytics is available on every tier — role-gated only.
     path: RouteSegment.ANALYTICS,
-    canActivate: [salonRoleGuard, tierGuard],
-    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN], requiredTier: 2 },
+    canActivate: [salonRoleGuard],
+    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
     // Chart.js (via ng2-charts) is only ever used here — registering it at the
     // route level keeps it out of the initial main.js bundle for everyone else.
     providers: [provideCharts(withDefaultRegisterables())],
