@@ -40,7 +40,7 @@ export class TermsComponent {
       id: 'service-scope',
       title: 'What HairMela provides',
       body: [
-        'HairMela is a walk-in queue tool for salons. Salons set up their business, staff, services, and hours; customers sign in, join a barber’s line, and watch their position update live.',
+        'HairMela is a walk-in queue tool for salons. Salons set up their business, staff, services, and hours; customers sign in, join a staff’s line, and watch their position update live.',
         'HairMela connects customers with salons but does not provide the haircare services itself. The salon you join is solely responsible for the service it delivers. We do not verify or guarantee any salon’s availability, quality, or conduct.',
       ],
     },

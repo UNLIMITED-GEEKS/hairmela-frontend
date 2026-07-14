@@ -21,7 +21,14 @@ import { RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
 @Component({
   selector: 'app-landing',
   templateUrl: './landing.component.html',
-  imports: [RouterLink, SalonCardComponent, CategoryPillsComponent, PaginationComponent, SkeletonComponent, IconComponent],
+  imports: [
+    RouterLink,
+    SalonCardComponent,
+    CategoryPillsComponent,
+    PaginationComponent,
+    SkeletonComponent,
+    IconComponent,
+  ],
 })
 export class LandingComponent implements OnInit {
   protected readonly listing = inject(SalonListingService);
@@ -40,7 +47,8 @@ export class LandingComponent implements OnInit {
     {
       number: '1',
       title: 'Set up your salon',
-      description: 'Add your salon details, invite barbers, and define your services in minutes.',
+      description:
+        'Add your salon details, invite your staffs, and define your services in minutes.',
     },
     {
       number: '2',

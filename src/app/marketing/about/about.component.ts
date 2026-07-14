@@ -28,7 +28,7 @@ export class AboutComponent {
     {
       number: '02.',
       title: 'Built for the chair, not the desk',
-      body: 'Barbers run their day from a phone between clients, not a back-office computer. Every screen is designed to be glanced at and tapped once — open the queue, call the next client, get back to work.',
+      body: 'Staffs run their day from a phone between clients, not a back-office computer. Every screen is designed to be glanced at and tapped once — open the queue, call the next client, get back to work.',
     },
     {
       number: '03.',

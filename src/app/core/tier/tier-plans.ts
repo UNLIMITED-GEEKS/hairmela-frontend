@@ -24,7 +24,7 @@ export const PLAN_CARDS: readonly PlanCard[] = [
   {
     tier: 1,
     name: 'Free',
-    tagline: 'For a single barber getting started.',
+    tagline: 'For a single salon getting started.',
     salons: '1 salon',
     staff: '1 staff (owner only)',
     price: 0,
