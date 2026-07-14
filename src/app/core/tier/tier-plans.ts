@@ -37,7 +37,7 @@ export const PLAN_CARDS: readonly PlanCard[] = [
     tagline: 'For growing salons with a team.',
     salons: 'Up to 3 salons',
     staff: 'Unlimited staff',
-    features: ['Walk-in queue', 'Appointments', 'Analytics'],
+    features: ['Walk-in queue', 'Appointments (coming soon)', 'Analytics'],
   },
   {
     tier: 3,
