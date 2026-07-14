@@ -33,7 +33,7 @@ export const PLAN_CARDS: readonly PlanCard[] = [
   {
     tier: 2,
     name: 'Pro',
-    price: 3000,
+    price: 2900,
     tagline: 'For growing salons with a team.',
     salons: 'Up to 3 salons',
     staff: 'Unlimited staff',
@@ -42,7 +42,7 @@ export const PLAN_CARDS: readonly PlanCard[] = [
   {
     tier: 3,
     name: 'Scale',
-    price: 10000,
+    price: 9900,
     tagline: 'For multi-location businesses.',
     salons: 'Unlimited salons',
     staff: 'Unlimited staff',
