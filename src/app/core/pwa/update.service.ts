@@ -5,9 +5,17 @@ import { concat, interval } from 'rxjs';
 import { first, filter } from 'rxjs/operators';
 import { ToastService } from '../toast/toast.service';
 
-const UPDATE_CHECK_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes — a customer watching a live queue shouldn't sit long on stale code
+const UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes — a customer watching a live queue shouldn't sit long on stale code
 const RELOAD_DELAY_MS = 4000; // matches ToastService's auto-dismiss, so the toast is seen before reload
-//do a comment banner later
+
+// FIXME: as the user base grows, replace the every-10-minutes background poll
+// with a user-initiated update. Each open tab hits ngsw.json on the interval —
+// cheap per client, but it scales linearly with concurrent users, and the
+// silent auto-reload can interrupt someone mid-interaction. The better pattern
+// at scale: keep listening for VERSION_READY, but instead of auto-reloading,
+// show a persistent "New version available — Reload" banner/button and let the
+// user choose when. That drops the polling cost (check on demand / on
+// visibilitychange) and removes the surprise reload.
 // Watches Angular's service worker for a newly-deployed version. Angular
 // downloads the new build in the background and emits VERSION_READY when it's
 // ready to swap in — without this, the swap only happens on the user's *next*
