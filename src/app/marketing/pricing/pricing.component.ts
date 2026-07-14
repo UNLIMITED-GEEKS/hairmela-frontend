@@ -19,9 +19,7 @@ export class PricingComponent {
 
   protected readonly isLoggedIn = !!this._currentUser.user();
 
-  // Tier 1 (Free) is hidden until launch (FRONTEND-TIER-HANDOFF §9) — show the
-  // paid plans only. Re-include tier 1 here when the floor flips to Free.
-  protected readonly plans = PLAN_CARDS.filter((p) => p.tier >= 2);
-
+  // All three plans are paid — Standard, Pro, Scale. No free tier.
+  protected readonly plans = PLAN_CARDS;
   protected readonly formatPlanPrice = formatPlanPrice;
 }

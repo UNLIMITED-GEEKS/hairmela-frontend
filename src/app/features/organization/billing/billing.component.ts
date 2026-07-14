@@ -19,10 +19,8 @@ export class BillingComponent implements OnInit {
   private readonly _billing = inject(BillingService);
   private readonly _confirm = inject(ConfirmDialogService);
 
-  // Free (tier 1) is hidden until launch (FRONTEND-TIER-HANDOFF §9) — show the
-  // paid plans only, matching the public pricing page. Re-include tier 1 here
-  // when the floor flips to Free.
-  protected readonly plans = PLAN_CARDS.filter((p) => p.tier >= 2);
+  // All three plans are paid — Standard, Pro, Scale. No free tier.
+  protected readonly plans = PLAN_CARDS;
   protected readonly tierNames = TIER_NAMES;
   protected readonly formatPlanPrice = formatPlanPrice;
 

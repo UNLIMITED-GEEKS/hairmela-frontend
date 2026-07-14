@@ -15,7 +15,7 @@ export class PlanExplainerComponent {
   private readonly _route = inject(ActivatedRoute);
 
   protected readonly orgId = this._route.snapshot.paramMap.get(RouteParam.ORG_ID) ?? '';
-  protected readonly plans = PLAN_CARDS.filter((p) => p.tier >= 2);
+  protected readonly plans = PLAN_CARDS;
   protected readonly formatPlanPrice = formatPlanPrice;
 
   protected get billingLink(): string[] {
