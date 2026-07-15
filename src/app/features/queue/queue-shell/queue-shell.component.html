@@ -54,8 +54,8 @@
       <button
         (click)="callNext()"
         [disabled]="console.queueStatus() !== 'OPEN' || console.waitingEntries().length === 0 || console.hasServingEntry() || console.nextIsLocked()"
-        class="w-full py-2.5 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-40 transition-opacity">
-        Call next
+        class="w-full py-2.5 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-40 transition-opacity whitespace-nowrap">
+        click serve next client
       </button>
     </div>
 
