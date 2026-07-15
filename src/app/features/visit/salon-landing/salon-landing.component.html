@@ -51,9 +51,9 @@
       }
 
       <h1 class="mt-2 text-xl font-semibold text-text-primary">{{ s.name }}</h1>
-      <p class="mt-1 flex items-center gap-1 text-sm text-black/70">
-        <app-icon name="location-pin" class="h-4 w-4 shrink-0" />
-        {{ s.address?.city }}{{ s.address?.state ? ', ' + s.address.state : '' }}
+      <p class="mt-1 flex items-start gap-1 text-sm text-black/70">
+        <app-icon name="location-pin" class="h-4 w-4 shrink-0 mt-0.5" />
+      {{s.address.street}} {{ s.address?.city }}{{ s.address?.state ? ', ' + s.address.state : '' }}
       </p>
 
       @if (s.phone) {
