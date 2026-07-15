@@ -121,7 +121,15 @@
 }
 
 @defer (when showScanner()) {
-  <app-qr-scanner
-    (scanned)="onQrScanned($event)"
-    (closed)="showScanner.set(false)" />
+  <!-- @defer's `when` trigger fires the chunk load once and never re-checks
+       it — that's why the modal used to stay stuck open (the (closed) handler
+       flipped showScanner() back to false, but nothing tore the deferred
+       block down). Once loaded, this block stays mounted permanently; the
+       @if inside it is what actually shows/hides the scanner on every
+       subsequent open/close, without re-fetching the html5-qrcode chunk. -->
+  @if (showScanner()) {
+    <app-qr-scanner
+      (scanned)="onQrScanned($event)"
+      (closed)="showScanner.set(false)" />
+  }
 }
