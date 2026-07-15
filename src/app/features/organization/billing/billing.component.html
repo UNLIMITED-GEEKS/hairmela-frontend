@@ -93,10 +93,12 @@
           <div class="mt-4">
             @switch (actionFor(plan.tier)) {
               @case ('current') {
-                <button type="button" disabled
-                  class="w-full rounded-lg bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-400 cursor-default">
-                  Your plan
-                </button>
+                @if (plan.tier === currentTier() && !isTrialing()) {
+                  <button type="button" disabled
+                    class="w-full rounded-lg bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-400 cursor-default">
+                    Your plan
+                  </button>
+                }
               }
               @case ('upgrade') {
                 <button type="button" (click)="upgrade(plan.tier)" 
@@ -125,8 +127,8 @@
     <!-- Cancel -->
     @if (currentTier() > 0 && status() !== 'CANCELLED') {
       <div class="mt-6 text-center">
-        <button type="button" (click)="cancelPlan()"
-          class="text-sm font-medium text-red-600 hover:text-red-800 disabled:opacity-50 transition-colors">
+        <button type="button" (click)="cancelPlan()" [disabled]="isTrialing()"
+          class="text-sm font-medium text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
           Cancel plan
         </button>
       </div>

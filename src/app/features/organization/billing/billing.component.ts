@@ -48,22 +48,21 @@ export class BillingComponent implements OnInit {
     this._billing.load(this._orgId);
   }
 
-  // Upgrade = immediate (checkout -> verify -> re-fetch). During the trial no
-  // plan is purchased yet (tier reads as 3 only for access), so every plan is a
-  // purchase — show Upgrade on all of them, never Downgrade.
+  // Upgrade = immediate (checkout -> verify -> re-fetch), only offered as the
+  // very first purchase — while trialing with no real subscription yet
+  // (currentTier() === 0). Once a real paid plan exists, no plan-switching is
+  // offered at all: every card just reflects 'current' and the only action on
+  // the whole page is Cancel below. (Plan changes go through cancel + a fresh
+  // purchase, not an in-place upgrade/downgrade.)
   //
-  // Downgrade is disabled app-wide for now: the backend doesn't correctly
-  // handle billing the new (lower) tier when a downgrade takes effect at
-  // period end, so it can't be exposed. Until that's fixed, a lower tier than
-  // current just falls through to 'current' (no action shown) instead of
-  // 'downgrade' — the only paths are Upgrade or Cancel. Revert the last line
-  // to `return tier > current ? 'upgrade' : 'downgrade';` once the backend
-  // downgrade billing is fixed.
+  // Downgrade is disabled app-wide for the same underlying reason (the
+  // backend doesn't correctly bill a lower tier at period end) — kept as a
+  // possible return value only for the commented-out template case below.
   protected actionFor(tier: Tier): 'current' | 'upgrade' | 'downgrade' {
-    if (this.isTrialing()) return 'upgrade';
     const current = this.currentTier();
-    if (tier === current) return 'current';
-    return tier > current ? 'upgrade' : 'current';
+    if (this.isTrialing() && current === 0) return 'upgrade';
+    if (current > 0) return 'current';
+    return tier === current ? 'current' : 'upgrade';
   }
 
   protected upgrade(tier: Tier): void {
