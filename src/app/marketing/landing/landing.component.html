@@ -1,5 +1,5 @@
 <!-- Compact hero — search bar overlaps its bottom edge -->
-<section class="relative flex flex-col items-center justify-center px-5 pt-28 pb-20 text-center overflow-hidden bg-primary/2">
+<section class="relative flex flex-col items-center justify-center px-5 pt-28 pb-12 md:pb-20 text-center overflow-hidden bg-primary/2">
 
   <!-- Subtle background gradient blobs -->
   <!-- <div class="absolute -top-32 -left-32 w-125 h-125 rounded-full bg-primary/2 blur-3xl pointer-events-none" aria-hidden="true"></div>
@@ -7,26 +7,34 @@
 
   <div class="relative md:text-center text-left z-10 max-w-2xl mx-auto flex flex-col md:items-center gap-4">
     <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-text-primary leading-tight tracking-tight">
-      Skip the wait.<br class="hidden sm:block" />
-      <span class="text-primary">Join the queue</span> from your phone.
+      Never lose a <span class="text-primary">customer</span>, even on your busiest day.
     </h1>
     <p class="text-sm md:text-center text-left sm:text-base text-text-secondary max-w-lg leading-relaxed">
-      HairMela lets customers join a salon's live queue and track their position in real time.
+      Your queue, in your pocket. See who's next, who's on the way, and how long each cut takes — so nobody waits, and nobody walks.
     </p>
-    @if (!install.installed()) {
-      <a [routerLink]="howToInstallLink"
-        class="inline-flex items-center gap-2 w-fit min-h-10 px-4 rounded-xl border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/5 transition-colors">
-        <app-icon name="download" class="w-4 h-4" />
-        Get the app
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+      <a [routerLink]="registerLink"
+        class="min-h-12 px-8 rounded-2xl bg-primary text-white font-bold text-sm flex items-center justify-center hover:bg-primary/90 transition-colors shadow-md">
+        Create a free account
       </a>
+      <a [routerLink]="[]" fragment="how-it-works"
+        class="min-h-12 px-8 rounded-2xl border border-primary/30 text-primary font-bold text-sm flex items-center justify-center hover:bg-primary/5 transition-colors">
+        See how it works
+      </a>
+    </div>
+    <p class="text-xs text-text-secondary">Free to start. Set up in minutes.</p>
+    @if (!install.installed()) {      
     }
   </div>
 
 </section>
 
 <!-- Search / filter bar — sticky (clears the fixed public nav above it), overlaps the hero -->
-<div class="sticky top-20 z-30 px-5">
-  <div class="max-w-3xl mx-auto -mt-8 rounded-2xl bg-white shadow-lg border border-gray-100  flex flex-col sm:flex-row gap-2">
+<div class="px-5 md:px-0 md:whitespace-nowrap  mb-6 pt-12">
+  <h2 class="text-center  text-lg sm:text-xl font-bold text-text-primary max-w-md mx-auto">Getting a cut today? See the line before you go.</h2>
+</div>
+<div class="sticky mb-10 md:mb-16 top-20 z-30 px-5">
+  <div class="max-w-3xl mx-auto rounded-2xl bg-white shadow-lg border border-gray-100  flex flex-col sm:flex-row gap-2">
     <div class="relative flex-1">
       <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
@@ -94,10 +102,10 @@
 </section>
 
 <!-- How it works -->
-<section class="py-10 md:py-20 px-5 bg-primary/2">
+<section id="how-it-works" class="py-10 md:py-20 px-5 bg-primary/2">
   <div class="max-w-4xl mx-auto text-center">
     <h2 class="text-2xl sm:text-3xl font-bold text-text-primary mb-3">How it works</h2>
-    <p class="text-sm text-text-secondary mb-12 max-w-md mx-auto">Three steps from setup to serving customers — no hardware required.</p>
+    <p class="text-sm text-text-secondary mb-12 max-w-md mx-auto">Three steps from setup to a calmer salon. No hardware, no training, no more manual writing of bookings, no stress.</p>
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-8">
       @for (step of steps; track step.title) {
@@ -110,14 +118,24 @@
         </div>
       }
     </div>
+
+    <p class="mt-12 text-sm text-text-secondary max-w-md mx-auto">And it works from day one. Even if nobody scans the code, you've already replaced the notebook.</p>
+  </div>
+</section>
+
+<!-- Proof -->
+<section class="py-20 px-5 text-center">
+  <div class="max-w-lg mx-auto flex flex-col items-center gap-5">
+    <h2 class="text-2xl sm:text-3xl font-bold text-text-primary">"Two people ahead of me. I'll leave in 20 minutes."</h2>
+    <p class="text-sm text-text-secondary">That's what your clients see. So they stop crowding your bench, stop calling to ask how long, and stop walking out when the shop looks full. You keep the cut. They keep their afternoon.</p>
   </div>
 </section>
 
 <!-- Final CTA -->
-<section class="py-20 px-5 text-center">
+<section class="py-20 px-5 text-center bg-primary/2">
   <div class="max-w-lg mx-auto flex flex-col items-center gap-5">
-    <h2 class="text-2xl sm:text-3xl font-bold text-text-primary">Ready to run a smarter salon?</h2>
-    <p class="text-sm text-text-secondary">Create your salon, invite your staffs, and start accepting walk-ins today.</p>
+    <h2 class="text-2xl sm:text-3xl font-bold text-text-primary">Ready to run a calmer, busier salon?</h2>
+    <p class="text-sm text-text-secondary">Set up your salon, invite your staffs, and take your first walk-in today.</p>
     <a
       [routerLink]="registerLink"
       class="min-h-13 px-10 rounded-2xl bg-primary text-white font-bold text-sm flex items-center justify-center hover:bg-primary/90 transition-colors shadow-md">

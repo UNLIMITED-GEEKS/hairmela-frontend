@@ -27,7 +27,6 @@ import { RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
     CategoryPillsComponent,
     PaginationComponent,
     SkeletonComponent,
-    IconComponent,
   ],
 })
 export class LandingComponent implements OnInit {
@@ -46,19 +45,20 @@ export class LandingComponent implements OnInit {
   protected readonly steps = [
     {
       number: '1',
-      title: 'Set up your salon',
-      description:
-        'Add your salon details, invite your staffs, and define your services in minutes.',
+      title: 'Set up in minutes',
+      description: "Create an account, then add your salon, your staffs, and your services. That's it.",
     },
     {
       number: '2',
-      title: 'Share your queue link',
-      description: 'Customers scan your QR code or tap your link to see your live queue.',
+      title: 'Run your queue',
+      description:
+        'Add walk-ins, call the next client, add clients to the queue yourself and see how long each cut takes. All from your phone.',
     },
     {
       number: '3',
-      title: 'Serve clients smoothly',
-      description: 'Call the next client, track service time, and manage walk-ins from your phone.',
+      title: 'Let clients join from anywhere',
+      description:
+        'Put your QR code on the wall, or send clients a link to your salon page. They check the line before they leave home and show up right on time.',
     },
   ];
 
