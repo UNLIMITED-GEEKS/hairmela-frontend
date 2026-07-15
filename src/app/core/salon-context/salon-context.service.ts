@@ -5,6 +5,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MembershipStore } from './membership.store';
 import { Membership } from './membership.types';
 import { PersistentStore } from '../storage/persistent-store';
+import { CacheRegistry } from '../caching/cache-registry/cache-registry.service';
 import { RouteParam, RouteQueryParam } from '../routing/route-paths';
 
 export const LAST_SALON_KEY = 'hm_last_selected_salon_id';
@@ -15,6 +16,7 @@ export class SalonContextService {
   private readonly _root = inject(ActivatedRoute);
   private readonly _membershipStore = inject(MembershipStore);
   private readonly _persistentStore = inject(PersistentStore);
+  private readonly _cacheRegistry = inject(CacheRegistry);
 
   private readonly _activeSalonId = signal<string | null>(null);
   private readonly _membership = signal<Membership | null>(null);
@@ -52,6 +54,8 @@ export class SalonContextService {
   readonly isReadOnly = computed(() => this.tier() === 0);
 
   constructor() {
+    this._cacheRegistry.register(this);
+
     this._router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd),
       takeUntilDestroyed(),
@@ -95,6 +99,26 @@ export class SalonContextService {
         }),
       ).subscribe((m) => target.set(m));
     });
+  }
+
+  // CacheRegistry.clearAll() hook — logout wipes the persisted last-selected
+  // salon unconditionally, so the next login (possibly a different user on a
+  // shared browser, or the same user with no salons left) never redirects
+  // into a stale id.
+  clear(): void {
+    this._lastSelectedSalonId.set(null);
+    this._persistentStore.remove(LAST_SALON_KEY);
+  }
+
+  // Only clears if the persisted id is the one being invalidated — e.g. a
+  // salon just got deleted (clear so login doesn't redirect into a 404'd
+  // salon again), or salonRoleGuard just failed to load this exact salon
+  // (self-heals a stale id after a single bad redirect instead of looping on
+  // every future login). Deleting/failing on a DIFFERENT salon than the one
+  // persisted must not clear it — that salon may still be perfectly valid.
+  clearIfMatches(salonId: string): void {
+    if (this._lastSelectedSalonId() !== salonId) return;
+    this.clear();
   }
 
   private _extractSalonId(): string | null {

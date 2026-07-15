@@ -10,6 +10,7 @@ import { salonsControllerFindOne } from '../../api/fn/salons/salons-controller-f
 import { salonsControllerSoftDelete } from '../../api/fn/salons/salons-controller-soft-delete';
 import { CreateSalonResponseDto } from '../../api/models/create-salon-response-dto';
 import { ToastService } from '../../core/toast/toast.service';
+import { SalonContextService } from '../../core/salon-context/salon-context.service';
 import { ConfirmDialogService } from '../../shared/components/confirm-dialog/confirm-dialog.service';
 import { isApiError } from '../../core/errors/api-error.types';
 import { ErrorCodes } from '../../core/errors/error-codes';
@@ -20,6 +21,7 @@ export class SalonService {
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _toast = inject(ToastService);
   private readonly _confirmDialog = inject(ConfirmDialogService);
+  private readonly _salonContext = inject(SalonContextService);
 
   create(
     body: CreateSalonDto,
@@ -81,6 +83,9 @@ export class SalonService {
       .subscribe({
         next: () => {
           this._toast.success('Salon deleted');
+          // No-ops unless this was the persisted "last visited" salon — a
+          // deleted salon must never be what the next login redirects into.
+          this._salonContext.clearIfMatches(salonId);
           onSuccess?.();
         },
       });
