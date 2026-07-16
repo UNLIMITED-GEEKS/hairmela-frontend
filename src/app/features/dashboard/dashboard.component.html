@@ -11,7 +11,7 @@
     </button>
   </div>
 } @else {
-  <div class="pt-8 md:py-0 md:pt-3 px-2 space-y-6">
+  <div class="pt-8 md:py-0 md:pt-3 px-2 space-y-4">
 
     <!-- Greeting -->
     <div class="flex items-center justify-between gap-3">
@@ -87,6 +87,11 @@
 
     
 
+    <!-- Create salon -->
+    <div>
+      <app-create-salon-card />
+    </div>
+
     <!-- Scan QR Code -->
     <button (click)="showScanner.set(true)" type="button"
       class="w-full flex md:mt-6 items-center gap-3 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
@@ -102,7 +107,7 @@
     <!-- Get the app -->
     @if (!install.installed()) {
     <a [routerLink]="howToInstallLink"
-      class="w-full flex items-center gap-3 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+      class="w-full flex items-center gap-3 mb-6 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
       <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
         <app-icon name="download" class="w-5 h-5 text-primary" />
       </div>
@@ -112,11 +117,6 @@
       </div>
     </a>
     }
-
-    <!-- Create salon -->
-    <div class="mb-10">
-      <app-create-salon-card />
-    </div>
   </div>
 }
 
