@@ -49,20 +49,20 @@ export class BillingComponent implements OnInit {
   }
 
   // Upgrade = immediate (checkout -> verify -> re-fetch), only offered as the
-  // very first purchase — while trialing with no real subscription yet
-  // (currentTier() === 0). Once a real paid plan exists, no plan-switching is
-  // offered at all: every card just reflects 'current' and the only action on
-  // the whole page is Cancel below. (Plan changes go through cancel + a fresh
-  // purchase, not an in-place upgrade/downgrade.)
+  // very first purchase — while trialing. NOTE: tier reads as 3 (Scale) during
+  // a trial even with no real subscription (EffectiveAccessDto.tier doc:
+  // "trial reads as 3") — so isTrialing() alone (not currentTier() === 0) is
+  // the only reliable "no real plan yet" signal. Once isTrialing() is false, a
+  // real paid plan exists and no plan-switching is offered at all: every card
+  // just reflects 'current' and the only action on the whole page is Cancel
+  // below. (Plan changes go through cancel + a fresh purchase, not an
+  // in-place upgrade/downgrade.)
   //
   // Downgrade is disabled app-wide for the same underlying reason (the
   // backend doesn't correctly bill a lower tier at period end) — kept as a
   // possible return value only for the commented-out template case below.
-  protected actionFor(tier: Tier): 'current' | 'upgrade' | 'downgrade' {
-    const current = this.currentTier();
-    if (this.isTrialing() && current === 0) return 'upgrade';
-    if (current > 0) return 'current';
-    return tier === current ? 'current' : 'upgrade';
+  protected actionFor(_tier: Tier): 'current' | 'upgrade' | 'downgrade' {
+    return this.isTrialing() ? 'upgrade' : 'current';
   }
 
   protected upgrade(tier: Tier): void {

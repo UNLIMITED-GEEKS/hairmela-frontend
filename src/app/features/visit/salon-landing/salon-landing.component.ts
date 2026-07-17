@@ -15,6 +15,7 @@ import {
   StaffCardAvailability,
 } from '../../../shared/components/staff-card/staff-card.component';
 import { ServiceListItemComponent } from '../../../shared/components/service-list-item/service-list-item.component';
+import { PushPromptComponent } from '../../../shared/components/push-prompt/push-prompt.component';
 import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
 import { InstallPromptService } from '../../../core/pwa/install-prompt.service';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
@@ -41,6 +42,7 @@ interface SalonStatusBadge {
     IconComponent,
     StaffCardComponent,
     ServiceListItemComponent,
+    PushPromptComponent,
     MediaUrlPipe,
     RouterLink,
   ],
@@ -120,6 +122,15 @@ export class SalonLandingComponent implements OnInit {
   // Heart shown only when authenticated (handoff §2) — same rule as the card,
   // absent (not disabled) for guest/anonymous visitors on this shared route.
   protected readonly showHeart = computed(() => !!this._currentUser.user());
+
+  // Get-notified nudge only makes sense once the customer already has an
+  // active entry somewhere in this salon (any queue) — not for anonymous
+  // browsers who haven't joined anything yet. activeEntries is salon-wide
+  // (not scoped to one queue like waitingEntries), so match on salonId.
+  protected readonly hasActiveEntryHere = computed(() => {
+    const salonId = this.visit.salon()?.id;
+    return !!salonId && this.visit.activeEntries().some((e) => e.salonId === salonId);
+  });
 
   protected readonly isFavorited = computed(() => {
     const id = this.visit.salon()?.id;

@@ -50,6 +50,13 @@
       <app-icon name="clock" class="w-8 h-8 text-primary shrink-0" />
     </div>
 
+    <!-- Get-notified nudge — contextual, only once the customer has joined this queue -->
+    @if (hasMyEntries()) {
+      <div class="shrink-0 mx-3 mb-6">
+        <app-push-prompt />
+      </div>
+    }
+
     <!-- Queue Status -->
     <div class="shrink-0 px-3 mb-3">
       <h2 class="text-base font-bold text-text-primary">Queue Status</h2>

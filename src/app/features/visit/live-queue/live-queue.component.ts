@@ -8,6 +8,7 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar.compon
 import { GalleryModalComponent } from '../../../shared/components/gallery-modal/gallery-modal.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { BackButtonComponent } from '../../../shared/components/back-button/back-button.component';
+import { PushPromptComponent } from '../../../shared/components/push-prompt/push-prompt.component';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 
 @Component({
@@ -19,6 +20,7 @@ import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/ro
     AvatarComponent,
     GalleryModalComponent,
     IconComponent,
+    PushPromptComponent,
     // BackButtonComponent,
   ],
 })

@@ -64,6 +64,13 @@
         </a>
       }
 
+      <!-- Get-notified nudge — contextual, only once the customer already has an active entry in this salon -->
+      @if (hasActiveEntryHere()) {
+        <div class="mt-5">
+          <app-push-prompt />
+        </div>
+      }
+
       <!-- About / Services / Staffs tabs -->
       <app-tabs class="block mt-8 mb-4" [tabs]="landingTabs" [activeId]="activeTab()" (tabChange)="setTab($event)" />
 
