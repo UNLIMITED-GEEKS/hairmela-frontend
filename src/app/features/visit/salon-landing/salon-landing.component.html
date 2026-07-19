@@ -64,6 +64,15 @@
         </a>
       }
 
+      <!-- Book ahead — walk-in fallback, only while the salon is closed -->
+      @if (showBookAhead()) {
+        <button type="button" (click)="openBookDialog()"
+          class="mt-3 w-full min-h-12 rounded-full border-2 border-primary text-primary text-sm font-semibold flex items-center justify-center gap-2 hover:bg-secondary-light transition-colors">
+          <app-icon name="clock" class="w-4 h-4" />
+          Book ahead
+        </button>
+      }
+
       <!-- Get-notified nudge — contextual, only once the customer already has an active entry in this salon -->
       @if (hasActiveEntryHere()) {
         <div class="mt-5">
@@ -174,6 +183,15 @@
         [images]="[s.photoUrl]"
         [open]="photoOpen()"
         (closed)="photoOpen.set(false)" />
+    }
+
+    @if (bookDialogOpen()) {
+      <app-book-appointment-dialog
+        [open]="bookDialogOpen()"
+        [salonId]="s.id"
+        [slug]="_slug"
+        [staffList]="visit.staffList()"
+        (closed)="closeBookDialog()" />
     }
   }
 

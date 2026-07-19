@@ -158,7 +158,6 @@
       <app-book-appointment-dialog
         [open]="bookDialogOpen()"
         [salonId]="visit.salon()?.id ?? ''"
-        [queueId]="_queueId()"
         [slug]="_slug()"
         [staff]="staff"
         (closed)="closeBookDialog()" />

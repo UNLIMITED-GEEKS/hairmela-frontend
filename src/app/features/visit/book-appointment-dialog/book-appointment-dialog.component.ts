@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, input, output, signal, effect, untracked } from '@angular/core';
+import { Component, DestroyRef, inject, input, output, signal, computed, effect, untracked } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -17,15 +17,20 @@ function todayIsoDate(): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-// Customer-facing appointment booking: date -> slot (from the availability
-// endpoint) -> service for yourself + optional extra party members (each
-// with a REQUIRED service, unlike join-dialog's optional-per-kid service —
-// an appointment must know every member's service up front so the slot's
-// real duration is known before it's reserved). Opened from the live-queue
-// page's "Book an appointment" section, only ever for a signed-in customer
-// (BookingController requires JwtAuthGuard — no guest path exists here,
-// unlike joining a walk-in queue), so the leader is always the signed-in
-// user, never a name field — same self-is-the-leader pattern as join-dialog.
+// Customer-facing appointment booking: [pick a staff member, when none was
+// pre-selected] -> date -> slot (from the availability endpoint) -> service
+// for yourself + optional extra party members (each with a REQUIRED service,
+// unlike join-dialog's optional-per-kid service — an appointment must know
+// every member's service up front so the slot's real duration is known
+// before it's reserved). Opened from the live-queue page's "Book an
+// appointment" section (staff already known — `staff` input passed) OR from
+// the salon-landing page's "Book ahead" button, shown only while the salon
+// is closed (no staff known yet — `staff` omitted, the dialog's own
+// staff-picker step resolves one from `staffList` before the rest of the
+// flow proceeds). Only ever for a signed-in customer (BookingController
+// requires JwtAuthGuard — no guest path exists here, unlike joining a
+// walk-in queue), so the leader is always the signed-in user, never a name
+// field — same self-is-the-leader pattern as join-dialog.
 @Component({
   selector: 'app-book-appointment-dialog',
   templateUrl: './book-appointment-dialog.component.html',
@@ -34,9 +39,15 @@ function todayIsoDate(): string {
 export class BookAppointmentDialogComponent {
   readonly open = input.required<boolean>();
   readonly salonId = input.required<string>();
-  readonly queueId = input.required<string>();
   readonly slug = input.required<string>();
-  readonly staff = input.required<SalonPublicStaffDto>();
+  // Pre-selected when opened from a barber's own live-queue page. Omitted
+  // when opened from the salon-landing page's "Book ahead" button — the
+  // staff-picker step below resolves one from staffList() instead.
+  readonly staff = input<SalonPublicStaffDto | null>(null);
+  // Needed only for the staff-picker path (staff() is empty) — the landing
+  // page already has the full list loaded via visit.staffList(), so no
+  // extra fetch, just passed straight through.
+  readonly staffList = input<SalonPublicStaffDto[]>([]);
 
   readonly closed = output<void>();
 
@@ -52,7 +63,16 @@ export class BookAppointmentDialogComponent {
   protected readonly slotsLoading = signal(false);
   protected readonly selectedStartTime = signal<string | null>(null);
 
-  protected readonly staffServices = () => this.visit.staffServices(this.staff());
+  // The staff member actually being booked — either passed in directly, or
+  // picked by the user in the picker step below.
+  protected readonly pickedStaff = signal<SalonPublicStaffDto | null>(null);
+  protected readonly selectedStaff = computed(() => this.staff() ?? this.pickedStaff());
+  protected readonly needsStaffPicker = computed(() => !this.staff());
+
+  protected readonly staffServices = () => {
+    const staff = this.selectedStaff();
+    return staff ? this.visit.staffServices(staff) : [];
+  };
 
   protected get leaderName(): string {
     return this._currentUser.user()?.firstName ?? 'You';
@@ -91,10 +111,22 @@ export class BookAppointmentDialogComponent {
         this.selectedStartTime.set(null);
         this.leaderServiceId.set('');
         this.leaderServiceTouched.set(false);
+        this.pickedStaff.set(null);
         this.membersArray.clear();
-        this._fetchSlots();
+        // Only fetch if a staff member is already known — the staff-picker
+        // path (needsStaffPicker()) has nothing to fetch availability for
+        // yet; pickStaff() triggers the fetch once one is chosen.
+        if (this.selectedStaff()) this._fetchSlots();
       });
     });
+  }
+
+  protected pickStaff(staff: SalonPublicStaffDto): void {
+    this.pickedStaff.set(staff);
+    this.date.set(this.minDate);
+    this.selectedStartTime.set(null);
+    this.leaderServiceId.set('');
+    this._fetchSlots();
   }
 
   protected onDateChange(value: string): void {
@@ -121,6 +153,9 @@ export class BookAppointmentDialogComponent {
   }
 
   protected confirmBooking(): void {
+    const staff = this.selectedStaff();
+    const queueId = staff?.queueId;
+    if (!staff || !queueId) return;
     const startTime = this.selectedStartTime();
     if (!startTime) return;
     if (!this.leaderServiceId()) {
@@ -140,7 +175,7 @@ export class BookAppointmentDialogComponent {
     this.closed.emit();
     this.visit.bookAppointment(
       this.salonId(),
-      this.queueId(),
+      queueId,
       this.slug(),
       this.date(),
       startTime,
@@ -155,10 +190,12 @@ export class BookAppointmentDialogComponent {
   }
 
   private _fetchSlots(): void {
+    const staff = this.selectedStaff();
+    if (!staff) return;
     this.slotsLoading.set(true);
     this.slots.set([]);
     this.visit
-      .getAvailability(this.salonId(), this.staff().staffId, this.date())
+      .getAvailability(this.salonId(), staff.staffId, this.date())
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe({
         next: (slots) => {

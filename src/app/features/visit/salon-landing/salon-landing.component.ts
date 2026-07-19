@@ -16,6 +16,7 @@ import {
 } from '../../../shared/components/staff-card/staff-card.component';
 import { ServiceListItemComponent } from '../../../shared/components/service-list-item/service-list-item.component';
 import { PushPromptComponent } from '../../../shared/components/push-prompt/push-prompt.component';
+import { BookAppointmentDialogComponent } from '../book-appointment-dialog/book-appointment-dialog.component';
 import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
 import { InstallPromptService } from '../../../core/pwa/install-prompt.service';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
@@ -43,6 +44,7 @@ interface SalonStatusBadge {
     StaffCardComponent,
     ServiceListItemComponent,
     PushPromptComponent,
+    BookAppointmentDialogComponent,
     MediaUrlPipe,
     RouterLink,
   ],
@@ -131,6 +133,24 @@ export class SalonLandingComponent implements OnInit {
     const salonId = this.visit.salon()?.id;
     return !!salonId && this.visit.activeEntries().some((e) => e.salonId === salonId);
   });
+
+  // "Book ahead" is the walk-in fallback for a closed salon — while open,
+  // customers use the per-staff "Book an appointment" section on the
+  // live-queue page instead (staff already known there). Authenticated only,
+  // same gate as that section (BookingController requires JwtAuthGuard).
+  protected readonly showBookAhead = computed(
+    () => !this.visit.salonData()?.isOpen && !!this._currentUser.user(),
+  );
+
+  protected readonly bookDialogOpen = signal(false);
+
+  protected openBookDialog(): void {
+    this.bookDialogOpen.set(true);
+  }
+
+  protected closeBookDialog(): void {
+    this.bookDialogOpen.set(false);
+  }
 
   protected readonly isFavorited = computed(() => {
     const id = this.visit.salon()?.id;
