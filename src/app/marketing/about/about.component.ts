@@ -23,12 +23,12 @@ export class AboutComponent {
     {
       number: '01.',
       title: 'Respect your customer’s time',
-      body: 'Standing around guessing when you’ll be seen is the worst part of a haircut. HairMela turns the wait into a number you can watch — so people show up right when it’s their turn, not an hour early.',
+      body: 'Standing around guessing when you’ll be seen is the worst part of a haircut. HairMela turns the wait into a number you can watch, so people show up right when it’s their turn, not an hour early.',
     },
     {
       number: '02.',
       title: 'Built for the chair, not the desk',
-      body: 'Staffs run their day from a phone between clients, not a back-office computer. Every screen is designed to be glanced at and tapped once — open the queue, call the next client, get back to work.',
+      body: 'Staffs run their day from a phone between clients, not a back-office computer. Every screen is designed to be glanced at and tapped once: open the queue, call the next client, get back to work.',
     },
     {
       number: '03.',

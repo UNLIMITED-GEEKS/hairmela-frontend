@@ -5,7 +5,10 @@ import { TimelineMemberDto } from '../models/timeline-member-dto';
 export interface TimelineEntryDto {
   entryId: string;
   estimatedWaitMinutes: number;
+  isUpcoming: boolean;
   members: Array<TimelineMemberDto>;
-  position: number;
+  position: number | null;
+  scheduledAt: string | null;
+  type: 'WALK_IN' | 'APPOINTMENT';
   updatedAt: string;
 }

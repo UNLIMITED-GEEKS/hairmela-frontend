@@ -51,6 +51,7 @@ export const RouteSegment = {
   ANALYTICS: 'analytics',
   MEDIA: 'media',
   CLOSURES: 'closures',
+  APPOINTMENTS: 'appointments',
   SERVICES: 'services',
   STAFF: 'staff',
   INVITE: 'invite',
@@ -115,6 +116,7 @@ export const RoutePath = {
   salonAnalytics: (salonId: string) => ['/salons', salonId, RouteSegment.ANALYTICS],
   salonMedia: (salonId: string) => ['/salons', salonId, RouteSegment.MEDIA],
   salonClosures: (salonId: string) => ['/salons', salonId, RouteSegment.CLOSURES],
+  salonAppointments: (salonId: string) => ['/salons', salonId, RouteSegment.APPOINTMENTS],
   salonServices: (salonId: string) => ['/salons', salonId, RouteSegment.SERVICES],
   salonServiceNew: (salonId: string) => ['/salons', salonId, RouteSegment.SERVICES, RouteSegment.NEW],
   salonServiceEdit: (salonId: string, serviceId: string) => [
@@ -137,6 +139,9 @@ export const RoutePath = {
   ],
   salonStaffClosures: (salonId: string, staffId: string) => [
     '/salons', salonId, RouteSegment.STAFF, staffId, RouteSegment.CLOSURES,
+  ],
+  salonStaffAppointments: (salonId: string, staffId: string) => [
+    '/salons', salonId, RouteSegment.STAFF, staffId, RouteSegment.APPOINTMENTS,
   ],
   salonQueueConsole: (salonId: string, queueId: string) => [
     '/salons', salonId, RouteSegment.QUEUES, queueId, RouteSegment.CONSOLE,

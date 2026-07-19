@@ -47,6 +47,14 @@
               </button>
             </span>
           }
+          @if (entry.type === 'APPOINTMENT') {
+            <span class="flex items-center gap-1 mt-0.5">
+              <span class="text-xs font-semibold text-primary bg-secondary-light px-1.5 py-0.5 rounded">Booking</span>
+              @if (entry.scheduledAt) {
+                <span class="text-xs text-gray-500">{{ entry.scheduledAt | date: 'shortTime' }}</span>
+              }
+            </span>
+          }
           @if (isServing) {
             <span class="text-xs font-bold text-success" aria-live="polite">Serving</span>
           } @else if (!console.isLocked(entry.entryId)) {
@@ -97,67 +105,9 @@
 
 </div>
 
-<!-- Add Queue Modal -->
-@if (showAddQueueModal()) {
-  <div
-    animate.enter="modal-backdrop-enter"
-    animate.leave="modal-backdrop-leave"
-    class="fixed inset-0 z-40 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label="Add client to queue">
-    <div class="absolute inset-0 bg-black/40" (click)="showAddQueueModal.set(false)"></div>
-    <div
-      animate.enter="modal-card-enter"
-      animate.leave="modal-card-leave"
-      class="relative w-full max-w-md bg-surface rounded-3xl px-5 pt-5 pb-0 z-10 max-h-80dvh flex flex-col" [formGroup]="addQueueForm">
-      <div class="shrink-0 flex items-center justify-between mb-4">
-        <h2 class="text-base font-bold text-gray-900">Add client to queue</h2>
-        <button (click)="showAddQueueModal.set(false)"
-          class="min-w-10 min-h-10 flex items-center justify-center text-gray-400 hover:text-gray-600"
-          aria-label="Close">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </button>
-      </div>
-      <div class="flex-1 overflow-y-auto space-y-3 mb-4" formArrayName="members">
-        @for (ctrl of addQueueMembers.controls; track $index; let i = $index) {
-          <div [formGroupName]="i" class="bg-white border border-gray-200 rounded-2xl px-4 py-4 flex flex-col gap-2">
-            <div class="flex gap-3 items-start">
-              <div class="flex-1">
-                <input formControlName="name" type="text" [placeholder]="'Client ' + (i + 1) + ' name'"
-                  class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 focus:outline-none focus:ring-2 focus:ring-primary/30">
-                <app-field-error [control]="ctrl.get('name')" [messages]="{ required: 'Enter a name.' }" />
-              </div>
-              @if (addQueueMembers.length > 1) {
-                <button (click)="removeQueueMemberRow(i)"
-                  class="text-gray-300 hover:text-red-500 min-w-10 min-h-10 flex items-center justify-center shrink-0"
-                  aria-label="Remove">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                  </svg>
-                </button>
-              }
-            </div>
-            <select formControlName="serviceId"
-              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-700">
-              @for (s of staffServices(); track s.serviceId) {
-                <option [value]="s.serviceId">{{ s.service.name }}</option>
-              }
-            </select>
-            <input formControlName="phone" type="tel" placeholder="Phone (optional)"
-              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 focus:outline-none focus:ring-2 focus:ring-primary/30">
-          </div>
-        }
-      </div>
-      <div class="shrink-0 flex gap-3 border-t border-gray-100 pt-3 pb-5">
-        <button (click)="addQueueMemberRow()"
-          class="flex-1 min-h-12 rounded-2xl border-2 border-dashed border-primary/30 text-primary text-sm font-medium hover:bg-surface transition-colors">
-          + Add a kid
-        </button>
-        <button (click)="staffAddToQueue()"
-          class="flex-1 min-h-12 rounded-2xl bg-primary border-2  text-white font-bold text-sm hover:bg-primary-hover transition-colors">
-          Add to queue
-        </button>
-      </div>
-    </div>
-  </div>
-}
+<app-add-client-modal
+  [open]="showAddQueueModal()"
+  [salonId]="_salonId"
+  [queueId]="_queueId"
+  [staffId]="_staffId"
+  (closed)="showAddQueueModal.set(false)" />

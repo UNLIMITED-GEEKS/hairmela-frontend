@@ -163,6 +163,8 @@ export type { PublicQueueControllerGetQueue$Params as PublicQueueControllerGetQu
 export { publicQueueControllerGetQueue as publicQueueControllerGetQueue } from './fn/queues/public-queue-controller-get-queue';
 export type { PublicQueueControllerGetTimeline$Params as PublicQueueControllerGetTimeline$Params } from './fn/queues/public-queue-controller-get-timeline';
 export { publicQueueControllerGetTimeline as publicQueueControllerGetTimeline } from './fn/queues/public-queue-controller-get-timeline';
+export type { QueueManagementControllerGetStaffTimeline$Params as QueueManagementControllerGetStaffTimeline$Params } from './fn/queues/queue-management-controller-get-staff-timeline';
+export { queueManagementControllerGetStaffTimeline as queueManagementControllerGetStaffTimeline } from './fn/queues/queue-management-controller-get-staff-timeline';
 export type { QueueManagementControllerSetStatus$Params as QueueManagementControllerSetStatus$Params } from './fn/queues/queue-management-controller-set-status';
 export { queueManagementControllerSetStatus as queueManagementControllerSetStatus } from './fn/queues/queue-management-controller-set-status';
 export type { QueueManagementControllerCallNext$Params as QueueManagementControllerCallNext$Params } from './fn/queues/queue-management-controller-call-next';
@@ -189,6 +191,12 @@ export type { BookingControllerBookAppointment$Params as BookingControllerBookAp
 export { bookingControllerBookAppointment as bookingControllerBookAppointment } from './fn/queues/booking-controller-book-appointment';
 export type { BookingControllerCancelAppointment$Params as BookingControllerCancelAppointment$Params } from './fn/queues/booking-controller-cancel-appointment';
 export { bookingControllerCancelAppointment as bookingControllerCancelAppointment } from './fn/queues/booking-controller-cancel-appointment';
+export type { StaffBookingControllerStaffBookAppointment$Params as StaffBookingControllerStaffBookAppointment$Params } from './fn/queues/staff-booking-controller-staff-book-appointment';
+export { staffBookingControllerStaffBookAppointment as staffBookingControllerStaffBookAppointment } from './fn/queues/staff-booking-controller-staff-book-appointment';
+export type { StaffAppointmentsControllerGetStaffAppointments$Params as StaffAppointmentsControllerGetStaffAppointments$Params } from './fn/queues/staff-appointments-controller-get-staff-appointments';
+export { staffAppointmentsControllerGetStaffAppointments as staffAppointmentsControllerGetStaffAppointments } from './fn/queues/staff-appointments-controller-get-staff-appointments';
+export type { StaffAppointmentsControllerGetSalonAppointments$Params as StaffAppointmentsControllerGetSalonAppointments$Params } from './fn/queues/staff-appointments-controller-get-salon-appointments';
+export { staffAppointmentsControllerGetSalonAppointments as staffAppointmentsControllerGetSalonAppointments } from './fn/queues/staff-appointments-controller-get-salon-appointments';
 export type { NotificationsControllerGetInbox$Params as NotificationsControllerGetInbox$Params } from './fn/notifications/notifications-controller-get-inbox';
 export { notificationsControllerGetInbox as notificationsControllerGetInbox } from './fn/notifications/notifications-controller-get-inbox';
 export type { NotificationsControllerMarkAsRead$Params as NotificationsControllerMarkAsRead$Params } from './fn/notifications/notifications-controller-mark-as-read';

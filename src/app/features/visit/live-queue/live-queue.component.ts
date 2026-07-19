@@ -1,14 +1,16 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
-import { Location } from '@angular/common';
+import { Location, DatePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { SalonVisitService } from '../salon-visit.service';
 import { JoinDialogComponent } from '../join-dialog/join-dialog.component';
+import { BookAppointmentDialogComponent } from '../book-appointment-dialog/book-appointment-dialog.component';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
 import { GalleryModalComponent } from '../../../shared/components/gallery-modal/gallery-modal.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { BackButtonComponent } from '../../../shared/components/back-button/back-button.component';
 import { PushPromptComponent } from '../../../shared/components/push-prompt/push-prompt.component';
+import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 
 @Component({
@@ -17,10 +19,12 @@ import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/ro
   imports: [
     // RouterLink,
     JoinDialogComponent,
+    BookAppointmentDialogComponent,
     AvatarComponent,
     GalleryModalComponent,
     IconComponent,
     PushPromptComponent,
+    DatePipe,
     // BackButtonComponent,
   ],
 })
@@ -28,6 +32,7 @@ export class LiveQueueComponent {
   protected readonly visit = inject(SalonVisitService);
   protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
+  private readonly _currentUser = inject(CurrentUserStore);
 
   // Reactive, not snapshot-based — q/:queueId is a single route, so navigating
   // between two barbers (q/A -> q/B) reuses this component instance and never
@@ -42,6 +47,17 @@ export class LiveQueueComponent {
   protected get _shellPrefix(): string {
     return this._route.snapshot.data['shellPrefix'] ?? '';
   }
+
+  // Memoized — staffForQueue() itself does an array .find() and returns a new
+  // object reference on every call, so binding it inline in an @if(...; as x)
+  // block makes Angular see a "changed" value on every change-detection tick
+  // (this page's clock/socket-driven wait-time updates trigger many) and tear
+  // down + rebuild the block's content each time. That silently reset
+  // BookAppointmentDialogComponent's internal state (date, selected slot,
+  // form) mid-interaction. computed() only re-derives when its actual
+  // dependencies (_queueId, salonData) change, so the reference stays stable
+  // across unrelated CD ticks.
+  protected readonly _currentStaff = computed(() => this.visit.staffForQueue(this._queueId()));
 
   // Carried from the Services tab's barber-drilldown (?serviceId=...) so the
   // join dialog can pre-fill it; absent when arriving via the Staffs tab.
@@ -102,6 +118,21 @@ export class LiveQueueComponent {
 
   protected closeJoin(): void {
     this.joinDialogOpen.set(false);
+  }
+
+  // "Not ready today? Book an appointment" — authenticated customers only.
+  // Absence, not a disabled control, for guests — same pattern as showHeart
+  // on salon-landing.
+  protected readonly showBookAppointment = computed(() => !!this._currentUser.user());
+
+  protected readonly bookDialogOpen = signal(false);
+
+  protected openBookDialog(): void {
+    this.bookDialogOpen.set(true);
+  }
+
+  protected closeBookDialog(): void {
+    this.bookDialogOpen.set(false);
   }
 
   // "View my works" gallery — the staff's own galleryUrls (already in the

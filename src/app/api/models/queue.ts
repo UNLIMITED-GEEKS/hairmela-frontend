@@ -8,6 +8,7 @@ export interface Queue {
   createdAt: string;
   entries: Array<QueueEntry>;
   id: string;
+  lastResetDate: string | null;
   salon: Salon;
   salonId: string;
   staff: SalonStaff;

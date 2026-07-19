@@ -22,8 +22,10 @@ import { queueManagementControllerExtendMember } from '../../../api/fn/queues/qu
 import { queueManagementControllerMarkNoShow } from '../../../api/fn/queues/queue-management-controller-mark-no-show';
 import { queueManagementControllerCancelEntry } from '../../../api/fn/queues/queue-management-controller-cancel-entry';
 import { walkInControllerStaffAddToQueue } from '../../../api/fn/queues/walk-in-controller-staff-add-to-queue';
+import { staffBookingControllerStaffBookAppointment } from '../../../api/fn/queues/staff-booking-controller-staff-book-appointment';
 import { staffServicesControllerGetStaffServices } from '../../../api/fn/services/staff-services-controller-get-staff-services';
 import { StaffService } from '../../../api/models/staff-service';
+import { BookAppointmentDto } from '../../../api/models/book-appointment-dto';
 import { SocketPredictService } from '../../../core/caching/socket-predict/socket-predict.service';
 
 // Ring geometry — matches the same r="125" circle convention used by the
@@ -788,7 +790,8 @@ export class QueueConsoleService {
     // Build a temp entry from form data + staff services for instant paint
     const services = this.staffServices();
     const current = this.timeline();
-    const lastPosition = current.length > 0 ? Math.max(...current.map((e) => e.position)) : 0;
+    const positions = current.map((e) => e.position).filter((p): p is number => p !== null);
+    const lastPosition = positions.length > 0 ? Math.max(...positions) : 0;
     const lastWait =
       current.length > 0 ? Math.max(...current.map((e) => e.estimatedWaitMinutes)) : 0;
     const now = new Date().toISOString();
@@ -796,6 +799,9 @@ export class QueueConsoleService {
       entryId: `temp_${crypto.randomUUID()}`,
       position: lastPosition + 1,
       estimatedWaitMinutes: lastWait,
+      isUpcoming: false,
+      scheduledAt: null,
+      type: 'WALK_IN',
       updatedAt: now,
       members: members.map((m, i) => {
         const svc = services.find((s) => s.serviceId === m.serviceId);
@@ -868,6 +874,92 @@ export class QueueConsoleService {
       this._toast.success('Client added to queue.');
       onSuccess?.();
     }
+  }
+
+  // Same optimistic-temp-entry shape as staffAddToQueue — a barber booking an
+  // appointment on a client's behalf needs the same instant-paint UX. The
+  // temp entry carries scheduledAt so the console row can show it's an
+  // appointment, not a walk-in, the moment it paints.
+  staffBookAppointment(
+    salonId: string,
+    queueId: string,
+    date: string,
+    startTime: string,
+    members: { memberName: string; serviceId: string }[],
+    onSuccess?: () => void,
+    onError?: () => void,
+  ): void {
+    const services = this.staffServices();
+    const current = this.timeline();
+    const positions = current.map((e) => e.position).filter((p): p is number => p !== null);
+    const lastPosition = positions.length > 0 ? Math.max(...positions) : 0;
+    const lastWait =
+      current.length > 0 ? Math.max(...current.map((e) => e.estimatedWaitMinutes)) : 0;
+    const now = new Date().toISOString();
+    // Optimistic-paint only — a slightly-off timezone interpretation here is
+    // cosmetic (this temp entry is immediately replaced by the real server
+    // row once the request resolves), unlike BookingService's own
+    // salon-timezone-aware scheduledAt on the actual persisted entry.
+    const scheduledAt = new Date(`${date}T${startTime}:00`).toISOString();
+    const tempEntry: TimelineEntryDto = {
+      entryId: `temp_${crypto.randomUUID()}`,
+      position: lastPosition + 1,
+      estimatedWaitMinutes: lastWait,
+      isUpcoming: true,
+      scheduledAt,
+      type: 'APPOINTMENT',
+      updatedAt: now,
+      members: members.map((m, i) => {
+        const svc = services.find((s) => s.serviceId === m.serviceId);
+        return {
+          memberId: `temp_${crypto.randomUUID()}`,
+          memberName: m.memberName,
+          isLeader: i === 0,
+          status: 'WAITING' as const,
+          servedAt: null,
+          serviceId: m.serviceId,
+          serviceName: svc?.service.name ?? null,
+          serviceDuration: svc?.service.duration ?? 30,
+          phone: null,
+          updatedAt: now,
+        };
+      }),
+    };
+
+    const body: BookAppointmentDto = { date, startTime, members };
+    const tempEntryId = tempEntry.entryId;
+    const tempMemberIds = tempEntry.members.map((m) => m.memberId);
+    this._beginPending(tempEntryId, ...tempMemberIds);
+    this._addRealIds.update((m) => new Map(m).set(tempEntryId, null));
+    this._addBaselineCounts.set(tempEntryId, this._serverTimeline().length);
+    const accepted = this._socketPredict.run({
+      signal: this._optimisticAdds,
+      apply: (t) => [...t, tempEntry],
+      request: () =>
+        staffBookingControllerStaffBookAppointment(this._http, this._apiConfig.rootUrl, {
+          salonId,
+          queueId,
+          body,
+        }),
+      onSuccess: (res) => {
+        this._addRealIds.update((m) => new Map(m).set(tempEntryId, res.body.id));
+        this._pruneConfirmedAdds();
+      },
+      onError: () => {
+        this._refetchTimeline(queueId);
+        this._removePendingAdd(tempEntryId);
+      },
+      destroyRef: this._destroyRef,
+      dedupeKey: `QueueConsoleService.staffBookAppointment:${queueId}:${date}:${startTime}:${members.map((m) => `${m.memberName}:${m.serviceId}`).join(',')}`,
+      onSettled: () => this._clearPending(tempEntryId, ...tempMemberIds),
+    });
+    if (!accepted) {
+      this._removePendingAdd(tempEntryId);
+      onError?.();
+      return;
+    }
+    this._toast.success('Appointment booked.');
+    onSuccess?.();
   }
 
   formatWait(minutes: number): string {

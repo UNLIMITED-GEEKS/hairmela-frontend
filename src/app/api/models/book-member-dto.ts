@@ -3,5 +3,5 @@
 
 export interface BookMemberDto {
   memberName: string;
-  serviceId?: string;
+  serviceId: string;
 }

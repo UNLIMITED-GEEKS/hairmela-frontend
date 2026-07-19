@@ -49,11 +49,20 @@
             @if (isBeingServed()) {
               <span class="text-4xl font-bold text-primary leading-tight" aria-live="polite">Serving</span>
             } @else if (visit.myEntry(_entryId()); as timelineEntry) {
-              <span class="text-sm mr-4 text-text-primary">You are</span>
-              <span class="text-5xl font-bold text-primary leading-tight" aria-live="polite">
-                {{ timelineEntry.position }}<span class="text-2xl align-top">{{ ordinalSuffix(timelineEntry.position) }}</span>
-              </span>
-              <span class="text-sm text-text-primary">In Queue</span>
+              @if (timelineEntry.position !== null) {
+                <span class="text-sm mr-4 text-text-primary">You are</span>
+                <span class="text-5xl font-bold text-primary leading-tight" aria-live="polite">
+                  {{ timelineEntry.position }}<span class="text-2xl align-top">{{ ordinalSuffix(timelineEntry.position) }}</span>
+                </span>
+                <span class="text-sm text-text-primary">In Queue</span>
+              } @else {
+                <!-- Upcoming appointment not yet at the front of the live
+                     queue — no meaningful numeric position to show yet. -->
+                <span class="text-sm text-text-primary">Appointment at</span>
+                <span class="text-3xl font-bold text-primary leading-tight" aria-live="polite">
+                  {{ timelineEntry.scheduledAt | date: 'shortTime' }}
+                </span>
+              }
             } @else {
               <div class="w-16 h-16 rounded-full bg-gray-100 animate-pulse"></div>
             }

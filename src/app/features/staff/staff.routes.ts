@@ -66,4 +66,15 @@ export const staffRoutes: Routes = [
     loadComponent: () =>
       import('../../features/closures/closures.component').then((m) => m.ClosuresComponent),
   },
+  {
+    // A staff member can view their own appointment history here too — same
+    // role set as :staffId/services (staff manage their own booked schedule).
+    path: `:${RouteParam.STAFF_ID}/${RouteSegment.APPOINTMENTS}`,
+    canActivate: [salonRoleGuard],
+    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
+    loadComponent: () =>
+      import('../../features/salons/appointments/appointments-list.component').then(
+        (m) => m.AppointmentsListComponent,
+      ),
+  },
 ];

@@ -71,6 +71,11 @@
           <span class="text-sm font-semibold text-text-primary">Analytics</span>
           <span class="text-xs text-text-secondary">Queue insights</span>
         </a>
+        <a [routerLink]="appointmentsLink(salon.id)"
+          class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+          <span class="text-sm font-semibold text-text-primary">Appointments</span>
+          <span class="text-xs text-text-secondary">View bookings</span>
+        </a>
         <a [routerLink]="shareLink(salon.id)"
           class="col-span-2 flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
           <span class="text-sm font-semibold text-text-primary">Share</span>
@@ -96,11 +101,13 @@
           <span class="text-sm font-semibold text-text-primary">My Services</span>
           <span class="text-xs text-text-secondary">View assigned services</span>
         </a>
-       
-       
-      
-      
-      
+        @if (myStaff(); as staff) {
+          <a [routerLink]="staffAppointmentsLink(salon.id, staff.id)"
+            class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+            <span class="text-sm font-semibold text-text-primary">Appointments</span>
+            <span class="text-xs text-text-secondary">View your bookings</span>
+          </a>
+        }
         <a [routerLink]="shareLink(salon.id)"
           class="col-span-2 flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
           <span class="text-sm font-semibold text-text-primary">Share</span>

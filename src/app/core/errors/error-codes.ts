@@ -42,6 +42,7 @@ export const ErrorCodes = {
   // ── Appointments ──────────────────────────────────────────────────────────────
   SLOT_ALREADY_BOOKED: 'SLOT_ALREADY_BOOKED',
   SLOT_NOT_AVAILABLE: 'SLOT_NOT_AVAILABLE',
+  SLOT_IN_PAST: 'SLOT_IN_PAST',
   CANCELLATION_WINDOW_PASSED: 'CANCELLATION_WINDOW_PASSED',
 
   // ── Tiers ─────────────────────────────────────────────────────────────────────

@@ -45,6 +45,7 @@ export class StaffDetailComponent implements OnInit {
   protected readonly schedulesLink = [RouteSegment.SCHEDULES];
   protected readonly closuresLink = [RouteSegment.CLOSURES];
   protected readonly mediaLink = [RouteSegment.MEDIA];
+  protected readonly appointmentsLink = [RouteSegment.APPOINTMENTS];
 
   private get _salonId(): string {
     return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';

@@ -83,4 +83,16 @@ export const salonRoutes: Routes = [
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     loadChildren: () => import('../../features/staff/staff.routes').then((m) => m.staffRoutes),
   },
+  {
+    // Whole-salon appointment history — owner/admin only, matching the
+    // backend guard on GET /salons/:salonId/appointments (staff only see
+    // their own via the :staffId/appointments route under staffRoutes).
+    path: RouteSegment.APPOINTMENTS,
+    canActivate: [salonRoleGuard],
+    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
+    loadComponent: () =>
+      import('./appointments/appointments-list.component').then(
+        (m) => m.AppointmentsListComponent,
+      ),
+  },
 ];

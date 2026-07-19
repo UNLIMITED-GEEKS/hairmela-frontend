@@ -95,4 +95,12 @@ export class SalonOverviewComponent implements OnInit {
   protected closuresLink(salonId: string): string[] {
     return RoutePath.salonClosures(salonId);
   }
+
+  protected appointmentsLink(salonId: string): string[] {
+    return RoutePath.salonAppointments(salonId);
+  }
+
+  protected staffAppointmentsLink(salonId: string, staffId: string): string[] {
+    return RoutePath.salonStaffAppointments(salonId, staffId);
+  }
 }

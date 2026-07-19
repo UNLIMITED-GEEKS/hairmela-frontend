@@ -46,13 +46,14 @@ export class LandingComponent implements OnInit {
     {
       number: '1',
       title: 'Set up in minutes',
-      description: "Create an account, then add your salon, your staffs, and your services. That's it.",
+      description:
+        "Create an account, then add your salon, your staffs, and your services. That's it.",
     },
     {
       number: '2',
-      title: 'Run your queue',
+      title: 'Run your queue and bookings',
       description:
-        'Add walk-ins, call the next client, add clients to the queue yourself and see how long each cut takes. All from your phone.',
+        'Add walk-ins, call the next client, and see how long each cut takes. Clients can also book ahead for a day that works for them. All from your phone.',
     },
     {
       number: '3',

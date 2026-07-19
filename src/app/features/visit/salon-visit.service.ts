@@ -25,6 +25,10 @@ import { publicQueueControllerGetTimeline } from '../../api/fn/queues/public-que
 import { publicQueueControllerGetQueue } from '../../api/fn/queues/public-queue-controller-get-queue';
 import { walkInControllerJoinQueue } from '../../api/fn/queues/walk-in-controller-join-queue';
 import { walkInControllerLeaveQueue } from '../../api/fn/queues/walk-in-controller-leave-queue';
+import { availabilityControllerGetSlots } from '../../api/fn/schedules/availability-controller-get-slots';
+import { bookingControllerBookAppointment } from '../../api/fn/queues/booking-controller-book-appointment';
+import { AvailableSlotDto } from '../../api/models/available-slot-dto';
+import { BookAppointmentDto } from '../../api/models/book-appointment-dto';
 import { SocketPredictService } from '../../core/caching/socket-predict/socket-predict.service';
 import { myEntriesControllerGetMyEntries } from '../../api/fn/queues/my-entries-controller-get-my-entries';
 import { guestEntriesControllerGetGuestEntries } from '../../api/fn/queues/guest-entries-controller-get-guest-entries';
@@ -42,6 +46,15 @@ export type PendingJoin =
   | { status: 'pending' }
   | { status: 'joined'; entryId: string; queueId: string; slug: string; shellPrefix: string }
   | { status: 'failed'; reason: 'closed' | 'party-too-large' | 'generic' };
+
+export interface BookMemberRow {
+  name: string;
+  serviceId: string;
+}
+
+export type BookingResult =
+  | { status: 'booked' }
+  | { status: 'failed'; reason: 'slot-taken' | 'slot-in-past' | 'generic' };
 
 @Injectable({ providedIn: 'root' })
 export class SalonVisitService {
@@ -103,6 +116,8 @@ export class SalonVisitService {
   readonly leaving = signal(false);
   readonly addingKids = signal(false);
   readonly calledVisible = signal(false);
+  readonly booking = signal(false);
+  readonly bookingResult = signal<BookingResult | null>(null);
   // Signal-based result for the navigation-is-feedback join flow.
   // Set to `pending` before navigating to /joining; resolved to `joined` or `failed`
   // by joinQueue(); the JoiningQueueComponent reads it and routes accordingly.
@@ -247,6 +262,8 @@ export class SalonVisitService {
     this.leaving.set(false);
     this.addingKids.set(false);
     this.calledVisible.set(false);
+    this.booking.set(false);
+    this.bookingResult.set(null);
     this.pendingJoin.set(null);
     this.landingTab.set('about');
     this.selectedServiceId.set(null);
@@ -359,6 +376,75 @@ export class SalonVisitService {
             this.pendingJoin.set({ status: 'failed', reason: 'party-too-large' });
           } else {
             this.pendingJoin.set({ status: 'failed', reason: 'generic' });
+          }
+        },
+      });
+  }
+
+  // Bookable slots for one staff member on one date — public, no auth (a
+  // guest can browse availability before deciding to register/log in and
+  // actually book, same as browsing the queue itself).
+  getAvailability(salonId: string, staffId: string, date: string) {
+    return availabilityControllerGetSlots(this._http, this._apiConfig.rootUrl, {
+      salonId,
+      staffId,
+      date,
+    }).pipe(map((res): AvailableSlotDto[] => res.body));
+  }
+
+  // Books an appointment for the signed-in customer. Unlike joinQueue, there
+  // is no guest path here — BookingController requires JwtAuthGuard, so this
+  // is only ever called from behind the `CurrentUserStore.user()` gate on the
+  // live-queue page's "Book an appointment" section. On success, the new
+  // entry is saved the same way joinQueue saves one, so My Queues' recovery
+  // fetch (my-entries) picks it up immediately without a manual refetch.
+  bookAppointment(
+    salonId: string,
+    queueId: string,
+    salonSlug: string,
+    date: string,
+    startTime: string,
+    members: BookMemberRow[],
+    notes?: string,
+  ): void {
+    if (this.booking()) return;
+    this.booking.set(true);
+    const body: BookAppointmentDto = {
+      date,
+      startTime,
+      members: members.map((m) => ({ memberName: m.name.trim(), serviceId: m.serviceId })),
+      notes,
+    };
+
+    bookingControllerBookAppointment(this._http, this._apiConfig.rootUrl, { salonId, queueId, body })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: (res) => {
+          const entry: ActiveEntry = { queueId, entryId: res.body.id, salonId, salonSlug };
+          this.activeEntries.update((list) => [
+            ...list.filter((e) => e.entryId !== entry.entryId),
+            entry,
+          ]);
+          this._activeEntryStore.save(entry);
+          this.booking.set(false);
+          this.bookingResult.set({ status: 'booked' });
+          this._toast.success('Appointment booked.');
+        },
+        error: (err: unknown) => {
+          this.booking.set(false);
+          const apiBody = (err as { error?: unknown })?.error;
+          if (
+            isApiError(apiBody) &&
+            (apiBody.code === ErrorCodes.SLOT_NOT_AVAILABLE || apiBody.code === ErrorCodes.SLOT_ALREADY_BOOKED)
+          ) {
+            this.bookingResult.set({ status: 'failed', reason: 'slot-taken' });
+            this._toast.error('That slot was just taken — pick another.');
+          } else if (isApiError(apiBody) && apiBody.code === ErrorCodes.SLOT_IN_PAST) {
+            this.bookingResult.set({ status: 'failed', reason: 'slot-in-past' });
+            this._toast.error('That time has already passed — pick another slot.');
+          } else {
+            this.bookingResult.set({ status: 'failed', reason: 'generic' });
+            this._toast.error('Failed to book appointment.');
           }
         },
       });

@@ -1,5 +1,5 @@
 import { Component, computed, effect, inject, signal, linkedSignal } from '@angular/core';
-import { Location } from '@angular/common';
+import { Location, DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -29,6 +29,7 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
     FieldErrorComponent,
     BackButtonComponent,
     MediaUrlPipe,
+    DatePipe,
   ],
 })
 export class MyPositionComponent {
@@ -88,7 +89,9 @@ export class MyPositionComponent {
   protected readonly ringProgress = computed(() => {
     const entry = this.visit.myEntry(this._entryId());
     const total = this.visit.timeline().length;
-    if (!entry || total === 0) return 0;
+    // position is null for an appointment that hasn't reached the front of
+    // the live queue yet (isUpcoming) — nothing to show progress toward.
+    if (!entry || total === 0 || entry.position === null) return 0;
     return Math.min(1, Math.max(0, 1 - (entry.position - 1) / total));
   });
 
