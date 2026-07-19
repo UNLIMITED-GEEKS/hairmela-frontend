@@ -57,19 +57,17 @@
       </div>
     }
 
-    <!-- Book an appointment — authenticated customers only -->
-    @if (showBookAppointment()) {
-      <button type="button" (click)="openBookDialog()"
-        class="shrink-0 mx-3 mb-6 flex items-center justify-between rounded-2xl border border-primary/20 bg-white px-4 py-3.5 text-left hover:bg-secondary-light transition-colors">
-        <div>
-          <p class="text-sm font-semibold text-text-primary">Not ready today?</p>
-          <p class="text-xs text-text-secondary mt-0.5">Book an appointment for later</p>
-        </div>
-        <svg class="w-4 h-4 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
-    }
+    <!-- Book an appointment — always shown; unauthenticated tap redirects to register -->
+    <button type="button" (click)="openBookDialog()"
+      class="shrink-0 mx-3 mb-6 flex items-center justify-between rounded-2xl border border-primary/20 bg-white px-4 py-3.5 text-left hover:bg-secondary-light transition-colors">
+      <div>
+        <p class="text-sm font-semibold text-text-primary">Not ready today?</p>
+        <p class="text-xs text-text-secondary mt-0.5">Book an appointment for later</p>
+      </div>
+      <svg class="w-4 h-4 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      </svg>
+    </button>
 
     <!-- Queue Status -->
     <div class="shrink-0 px-3 mb-3">

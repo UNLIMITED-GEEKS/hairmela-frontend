@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { Location, DatePipe } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { SalonVisitService } from '../salon-visit.service';
 import { JoinDialogComponent } from '../join-dialog/join-dialog.component';
@@ -32,6 +32,7 @@ export class LiveQueueComponent {
   protected readonly visit = inject(SalonVisitService);
   protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
+  private readonly _router = inject(Router);
   private readonly _currentUser = inject(CurrentUserStore);
 
   // Reactive, not snapshot-based — q/:queueId is a single route, so navigating
@@ -120,14 +121,19 @@ export class LiveQueueComponent {
     this.joinDialogOpen.set(false);
   }
 
-  // "Not ready today? Book an appointment" — authenticated customers only.
-  // Absence, not a disabled control, for guests — same pattern as showHeart
-  // on salon-landing.
-  protected readonly showBookAppointment = computed(() => !!this._currentUser.user());
-
   protected readonly bookDialogOpen = signal(false);
 
+  // "Not ready today? Book an appointment" — always shown (not hidden for
+  // guests, unlike the old showBookAppointment gate). A guest tapping it is
+  // sent to register with a returnUrl back to this page, same redirect
+  // pattern selectBarber() uses for the walk-in join flow, rather than never
+  // seeing the option existed at all.
   protected openBookDialog(): void {
+    if (!this._currentUser.user()) {
+      const returnUrl = RoutePath.visitQueue(this._shellPrefix, this._slug(), this._queueId()).join('/');
+      this._router.navigate(RoutePath.register(), { queryParams: { [RouteQueryParam.RETURN_URL]: returnUrl } });
+      return;
+    }
     this.bookDialogOpen.set(true);
   }
 

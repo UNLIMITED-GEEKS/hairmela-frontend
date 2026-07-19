@@ -136,15 +136,21 @@ export class SalonLandingComponent implements OnInit {
 
   // "Book ahead" is the walk-in fallback for a closed salon — while open,
   // customers use the per-staff "Book an appointment" section on the
-  // live-queue page instead (staff already known there). Authenticated only,
-  // same gate as that section (BookingController requires JwtAuthGuard).
-  protected readonly showBookAhead = computed(
-    () => !this.visit.salonData()?.isOpen && !!this._currentUser.user(),
-  );
+  // live-queue page instead (staff already known there).
+  protected readonly showBookAhead = computed(() => !this.visit.salonData()?.isOpen);
 
   protected readonly bookDialogOpen = signal(false);
 
+  // Always shown for a closed salon, even to guests — tapping it while
+  // signed out redirects to register with a returnUrl back to this page,
+  // same pattern selectBarber() uses for the walk-in join flow, rather than
+  // hiding the option from anyone not yet signed in.
   protected openBookDialog(): void {
+    if (!this._currentUser.user()) {
+      const returnUrl = RoutePath.visitSalon('', this._slug).join('/');
+      this._router.navigate(RoutePath.register(), { queryParams: { [RouteQueryParam.RETURN_URL]: returnUrl } });
+      return;
+    }
     this.bookDialogOpen.set(true);
   }
 
