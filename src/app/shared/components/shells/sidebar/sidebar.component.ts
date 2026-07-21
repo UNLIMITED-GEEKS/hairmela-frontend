@@ -49,6 +49,15 @@ export const CONTROL_ITEMS: ControlItem[] = [
     roles: [SalonRole.OWNER, SalonRole.ADMIN],
   },
   {
+    // Salon-wide appointment calendar — every staff member's bookings.
+    // OWNER/ADMIN only; a staff member's OWN appointments are on Salon
+    // Overview's "My Appointments" card instead (staff/:staffId/appointments,
+    // not linked from here).
+    label: 'Salon appointments',
+    url: RouteSegment.APPOINTMENTS,
+    roles: [SalonRole.OWNER, SalonRole.ADMIN],
+  },
+  {
     label: 'Share / QR',
     url: RouteSegment.SHARE,
     roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF],

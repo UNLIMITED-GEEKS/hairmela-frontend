@@ -7,34 +7,46 @@ import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { SalonPublicStaffDto } from '../../../api/models/salon-public-staff-dto';
 import { AvailableSlotDto } from '../../../api/models/available-slot-dto';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { MiniMonthCalendarComponent } from '../../../shared/components/mini-month-calendar/mini-month-calendar.component';
 import { RoutePath } from '../../../core/routing/route-paths';
 
-function todayIsoDate(): string {
-  const d = new Date();
+function toIsoDate(d: Date): string {
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
 }
 
+function startOfMonth(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+
 // Customer-facing appointment booking: [pick a staff member, when none was
-// pre-selected] -> date -> slot (from the availability endpoint) -> service
-// for yourself + optional extra party members (each with a REQUIRED service,
-// unlike join-dialog's optional-per-kid service — an appointment must know
-// every member's service up front so the slot's real duration is known
-// before it's reserved). Opened from the live-queue page's "Book an
-// appointment" section (staff already known — `staff` input passed) OR from
-// the salon-landing page's "Book ahead" button, shown only while the salon
-// is closed (no staff known yet — `staff` omitted, the dialog's own
+// pre-selected] -> month-grid date picker -> slot -> service for yourself +
+// optional extra party members (each with a REQUIRED service, unlike
+// join-dialog's optional-per-kid service — an appointment must know every
+// member's service up front so the slot's real duration is known before
+// it's reserved). Opened from the live-queue page's "Book an appointment"
+// section (staff already known — `staff` input passed) OR from the
+// salon-landing page's "Book ahead" button, shown only while the salon is
+// closed (no staff known yet — `staff` omitted, the dialog's own
 // staff-picker step resolves one from `staffList` before the rest of the
 // flow proceeds). Only ever for a signed-in customer (BookingController
 // requires JwtAuthGuard — no guest path exists here, unlike joining a
 // walk-in queue), so the leader is always the signed-in user, never a name
 // field — same self-is-the-leader pattern as join-dialog.
+//
+// Availability is fetched a WHOLE MONTH at a time (getAvailabilityRange) and
+// re-fetched only when the visible month changes — not on every day click —
+// per the product call: this is live bookable-slot data, so it's never
+// cached across sessions/components (unlike AppointmentsCalendarService's
+// booked-appointment history), but batching the fetch per-month instead of
+// per-day is purely a request-count optimization, not a staleness risk,
+// since the whole month's slots are always freshly fetched together.
 @Component({
   selector: 'app-book-appointment-dialog',
   templateUrl: './book-appointment-dialog.component.html',
-  imports: [ReactiveFormsModule, FieldErrorComponent],
+  imports: [ReactiveFormsModule, FieldErrorComponent, MiniMonthCalendarComponent],
 })
 export class BookAppointmentDialogComponent {
   readonly open = input.required<boolean>();
@@ -57,11 +69,26 @@ export class BookAppointmentDialogComponent {
   private readonly _fb = inject(FormBuilder);
   private readonly _destroyRef = inject(DestroyRef);
 
-  protected readonly minDate = todayIsoDate();
-  protected readonly date = signal(this.minDate);
-  protected readonly slots = signal<AvailableSlotDto[]>([]);
+  protected readonly minDate = toIsoDate(new Date());
+  protected readonly viewedMonth = signal(startOfMonth(new Date()));
+  protected readonly selectedDate = signal<string | null>(null);
+  protected readonly monthSlots = signal<AvailableSlotDto[]>([]);
   protected readonly slotsLoading = signal(false);
   protected readonly selectedStartTime = signal<string | null>(null);
+
+  // Which days in the visible month have at least one bookable slot — feeds
+  // MiniMonthCalendarComponent's badge dots, same as the barber calendar's
+  // appointment-count badge but here it's "has availability" (0 or 1).
+  protected readonly badgeFor = computed(() => {
+    const daysWithSlots = new Set(this.monthSlots().map((s) => s.date).filter((d): d is string => !!d));
+    return (iso: string) => (daysWithSlots.has(iso) ? 1 : 0);
+  });
+
+  protected readonly selectedDaySlots = computed<AvailableSlotDto[]>(() => {
+    const day = this.selectedDate();
+    if (!day) return [];
+    return this.monthSlots().filter((s) => s.date === day);
+  });
 
   // The staff member actually being booked — either passed in directly, or
   // picked by the user in the picker step below.
@@ -94,20 +121,23 @@ export class BookAppointmentDialogComponent {
 
   constructor() {
     // Reset every time the dialog opens, mirroring join-dialog's own reset
-    // effect — no stale date/slot/members from a prior open. Deliberately
+    // effect — no stale month/slot/members from a prior open. Deliberately
     // reads ONLY this.open() as its tracked dependency — untracked() wraps
-    // everything else because _fetchSlots() reads this.date() internally,
-    // and an effect tracks every signal read during its execution, including
-    // reads that happen inside a called function. Without untracked(), this
-    // effect was accidentally also depending on `date`, so onDateChange()'s
-    // this.date.set(value) retriggered THIS effect, which immediately reset
-    // date back to minDate before the user's selection could ever be used —
-    // the appointment was always booked for today regardless of the picked date.
+    // everything else because _fetchMonth() reads this.viewedMonth()
+    // internally, and an effect tracks every signal read during its
+    // execution, including reads that happen inside a called function.
+    // Without untracked(), this effect would also depend on `viewedMonth`,
+    // so onMonthChange()'s viewedMonth.set(...) would retrigger THIS effect
+    // and immediately reset the month back to the current one — see the
+    // identical bug this exact pattern fixed for the old single-date input.
     effect(() => {
       if (!this.open()) return;
       untracked(() => {
-        this.date.set(this.minDate);
-        this.slots.set([]);
+        this.viewedMonth.set(startOfMonth(new Date()));
+        // Auto-select today so the Time section is visible immediately, not
+        // only after a manual day tap.
+        this.selectedDate.set(this.minDate);
+        this.monthSlots.set([]);
         this.selectedStartTime.set(null);
         this.leaderServiceId.set('');
         this.leaderServiceTouched.set(false);
@@ -116,23 +146,35 @@ export class BookAppointmentDialogComponent {
         // Only fetch if a staff member is already known — the staff-picker
         // path (needsStaffPicker()) has nothing to fetch availability for
         // yet; pickStaff() triggers the fetch once one is chosen.
-        if (this.selectedStaff()) this._fetchSlots();
+        if (this.selectedStaff()) this._fetchMonth();
       });
     });
   }
 
   protected pickStaff(staff: SalonPublicStaffDto): void {
     this.pickedStaff.set(staff);
-    this.date.set(this.minDate);
+    this.viewedMonth.set(startOfMonth(new Date()));
+    this.selectedDate.set(this.minDate);
     this.selectedStartTime.set(null);
     this.leaderServiceId.set('');
-    this._fetchSlots();
+    this._fetchMonth();
   }
 
-  protected onDateChange(value: string): void {
-    this.date.set(value);
+  protected onMonthChange(month: Date): void {
+    this.viewedMonth.set(month);
+    // Auto-select the 1st of the newly-visible month so Time stays visible
+    // without an extra manual day tap after navigating.
+    this.selectedDate.set(toIsoDate(new Date(month.getFullYear(), month.getMonth(), 1)));
     this.selectedStartTime.set(null);
-    this._fetchSlots();
+    this._fetchMonth();
+  }
+
+  protected onDaySelect(iso: string): void {
+    // No toggle-off — a day is always selected once the dialog is open (auto-
+    // selected on open/month-change), so Time stays visible; re-tapping the
+    // same day is a no-op instead of hiding the section again.
+    this.selectedDate.set(iso);
+    this.selectedStartTime.set(null);
   }
 
   protected selectSlot(slot: AvailableSlotDto): void {
@@ -156,8 +198,9 @@ export class BookAppointmentDialogComponent {
     const staff = this.selectedStaff();
     const queueId = staff?.queueId;
     if (!staff || !queueId) return;
+    const date = this.selectedDate();
     const startTime = this.selectedStartTime();
-    if (!startTime) return;
+    if (!date || !startTime) return;
     if (!this.leaderServiceId()) {
       this.leaderServiceTouched.set(true);
       return;
@@ -177,7 +220,7 @@ export class BookAppointmentDialogComponent {
       this.salonId(),
       queueId,
       this.slug(),
-      this.date(),
+      date,
       startTime,
       members,
     );
@@ -189,17 +232,20 @@ export class BookAppointmentDialogComponent {
     this._router.navigate(RoutePath.queues());
   }
 
-  private _fetchSlots(): void {
+  private _fetchMonth(): void {
     const staff = this.selectedStaff();
     if (!staff) return;
+    const month = this.viewedMonth();
+    const from = toIsoDate(new Date(month.getFullYear(), month.getMonth(), 1));
+    const to = toIsoDate(new Date(month.getFullYear(), month.getMonth() + 1, 0));
     this.slotsLoading.set(true);
-    this.slots.set([]);
+    this.monthSlots.set([]);
     this.visit
-      .getAvailability(this.salonId(), staff.staffId, this.date())
+      .getAvailabilityRange(this.salonId(), staff.staffId, from, to)
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe({
         next: (slots) => {
-          this.slots.set(slots);
+          this.monthSlots.set(slots);
           this.slotsLoading.set(false);
         },
         error: () => this.slotsLoading.set(false),

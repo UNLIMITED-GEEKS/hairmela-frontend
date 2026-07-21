@@ -5,15 +5,8 @@ import { AppointmentsCalendarService } from './appointments-calendar.service';
 import { QueueEntry } from '../../../api/models/queue-entry';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { MiniMonthCalendarComponent } from '../../../shared/components/mini-month-calendar/mini-month-calendar.component';
 import { RouteParam } from '../../../core/routing/route-paths';
-
-interface DayCell {
-  readonly date: Date;
-  readonly iso: string;
-  readonly inCurrentMonth: boolean;
-  readonly isToday: boolean;
-  readonly count: number;
-}
 
 function toIsoDate(d: Date): string {
   const yyyy = d.getFullYear();
@@ -26,17 +19,14 @@ function toIsoDate(d: Date): string {
 // route -> one staff's appointments; absent -> whole-salon. Both hit the
 // same date-ranged { data: QueueEntry[] } shape from
 // AppointmentsCalendarService, which prefetches + caches by month so
-// re-visiting a month already viewed this session is instant.
-//
-// No calendar library — native Date handles month-length/leap-year
-// correctly on its own (`new Date(year, month + 1, 0).getDate()` always
-// returns the real last day of the month), and a month grid + click-a-day
-// list is simple enough that a dependency isn't justified here (matches
-// this project's existing custom-Tailwind, no-UI-library direction).
+// re-visiting a month already viewed this session is instant. Month-grid
+// rendering itself is MiniMonthCalendarComponent (shared with the booking
+// modals' date picker) — this component only owns the per-day appointment
+// count (as the grid's badge) and the fetch-by-month logic.
 @Component({
   selector: 'app-appointments-list',
   templateUrl: './appointments-list.component.html',
-  imports: [PageHeaderComponent, SkeletonComponent, DatePipe],
+  imports: [PageHeaderComponent, SkeletonComponent, DatePipe, MiniMonthCalendarComponent],
 })
 export class AppointmentsListComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
@@ -56,43 +46,9 @@ export class AppointmentsListComponent implements OnInit {
     return this._route.snapshot.paramMap.get(RouteParam.STAFF_ID) ?? '';
   }
 
-  protected readonly monthLabel = computed(() =>
-    this.viewedMonth().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-  );
-
-  // 7-day-wide grid, leading/trailing cells from adjacent months fill out
-  // the first/last week so every row has 7 days (standard calendar-grid shape).
-  protected readonly weeks = computed<DayCell[][]>(() => {
-    const month = this.viewedMonth();
-    const year = month.getFullYear();
-    const monthIndex = month.getMonth();
-    const firstOfMonth = new Date(year, monthIndex, 1);
-    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-    const leadingBlanks = firstOfMonth.getDay(); // 0 = Sunday
-    const totalCells = Math.ceil((leadingBlanks + daysInMonth) / 7) * 7;
-
-    const today = toIsoDate(new Date());
+  protected readonly badgeFor = computed(() => {
     const countByDay = this._countByDay();
-
-    const cells: DayCell[] = [];
-    for (let i = 0; i < totalCells; i++) {
-      const dayOffset = i - leadingBlanks + 1;
-      const date = new Date(year, monthIndex, dayOffset);
-      const iso = toIsoDate(date);
-      cells.push({
-        date,
-        iso,
-        inCurrentMonth: date.getMonth() === monthIndex,
-        isToday: iso === today,
-        count: countByDay.get(iso) ?? 0,
-      });
-    }
-
-    const weeks: DayCell[][] = [];
-    for (let i = 0; i < cells.length; i += 7) {
-      weeks.push(cells.slice(i, i + 7));
-    }
-    return weeks;
+    return (iso: string) => countByDay.get(iso) ?? 0;
   });
 
   protected readonly selectedDayEntries = computed<QueueEntry[]>(() => {
@@ -117,24 +73,14 @@ export class AppointmentsListComponent implements OnInit {
     this._loadMonth(this.viewedMonth());
   }
 
-  protected prevMonth(): void {
-    const m = this.viewedMonth();
-    const prev = new Date(m.getFullYear(), m.getMonth() - 1, 1);
-    this.viewedMonth.set(prev);
+  protected onMonthChange(month: Date): void {
+    this.viewedMonth.set(month);
     this.selectedDate.set(null);
-    this._loadMonth(prev);
+    this._loadMonth(month);
   }
 
-  protected nextMonth(): void {
-    const m = this.viewedMonth();
-    const next = new Date(m.getFullYear(), m.getMonth() + 1, 1);
-    this.viewedMonth.set(next);
-    this.selectedDate.set(null);
-    this._loadMonth(next);
-  }
-
-  protected selectDay(cell: DayCell): void {
-    this.selectedDate.set(this.selectedDate() === cell.iso ? null : cell.iso);
+  protected onDaySelect(iso: string): void {
+    this.selectedDate.set(this.selectedDate() === iso ? null : iso);
   }
 
   protected statusBadgeClasses(status: QueueEntry['status']): string {

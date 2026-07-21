@@ -381,14 +381,20 @@ export class SalonVisitService {
       });
   }
 
-  // Bookable slots for one staff member on one date — public, no auth (a
-  // guest can browse availability before deciding to register/log in and
-  // actually book, same as browsing the queue itself).
-  getAvailability(salonId: string, staffId: string, date: string) {
+  // Bookable slots for one staff member across an inclusive salon-local date
+  // range (a calendar month, from the booking dialog's month-grid picker) —
+  // public, no auth (a guest can browse availability before deciding to
+  // register/log in and actually book, same as browsing the queue itself).
+  // Deliberately NOT cached anywhere (unlike AppointmentsCalendarService's
+  // booked-appointment history) — live bookable-slot availability must
+  // always be current; only the fetch itself is batched per-month instead
+  // of per-day, not the response.
+  getAvailabilityRange(salonId: string, staffId: string, from: string, to: string) {
     return availabilityControllerGetSlots(this._http, this._apiConfig.rootUrl, {
       salonId,
       staffId,
-      date,
+      from,
+      to,
     }).pipe(map((res): AvailableSlotDto[] => res.body));
   }
 

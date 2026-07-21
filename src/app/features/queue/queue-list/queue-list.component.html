@@ -1,5 +1,29 @@
 <div class="h-full min-h-0 flex flex-col px-5 py-5">
 
+  <!-- Sound-off notice — dismissible, reappears next visit. Real playback
+       isn't wired yet (backend can't distinguish who caused a queue update
+       yet), so this is UI-only for now. -->
+  @if (!soundPreference.enabled() && !soundOffBannerDismissed()) {
+    <div class="shrink-0 mb-4 flex items-start gap-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+      <svg class="w-4 h-4 text-gray-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 8m0-8l-4 8" />
+      </svg>
+      <div class="flex-1 min-w-0">
+        <p class="text-xs text-gray-600">
+          Queue sound is off. Turn it on in
+          <a [routerLink]="accountLink" class="font-semibold text-primary hover:underline">Account settings</a>.
+        </p>
+      </div>
+      <button type="button" (click)="soundOffBannerDismissed.set(true)" aria-label="Dismiss"
+        class="shrink-0 text-gray-400 hover:text-gray-600">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+  }
+
   <!-- "Total Count" pill -->
   <div class="shrink-0 mb-4">
     <div class="inline-flex flex-col items-center rounded-2xl bg-secondary-light px-6 py-2.5">

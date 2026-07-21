@@ -277,6 +277,10 @@ export class QueueConsoleService {
     request: () => Observable<unknown>;
     onError?: (err: unknown) => void;
   }): void {
+    // Every staff mutation on this screen funnels through here — marking it
+    // as the single choke point lets QueueSocketService suppress the sound
+    // for this action's own confirming frame (see its class doc comment).
+    this._socket.markSelfAction(this._activeQueueId);
     this._beginPending(...config.ids);
     this._serverTimeline.update((t) => config.apply(t));
     this._actionQueue$.next(() =>
@@ -787,6 +791,9 @@ export class QueueConsoleService {
     members: { memberName: string; serviceId?: string }[],
     onSuccess?: () => void,
   ): void {
+    // Doesn't route through _runLocked (uses _socketPredict.run directly) —
+    // mark it here instead, same reason as _runLocked's own call.
+    this._socket.markSelfAction(queueId);
     // Build a temp entry from form data + staff services for instant paint
     const services = this.staffServices();
     const current = this.timeline();
@@ -889,6 +896,9 @@ export class QueueConsoleService {
     onSuccess?: () => void,
     onError?: () => void,
   ): void {
+    // Doesn't route through _runLocked (uses _socketPredict.run directly) —
+    // mark it here instead, same reason as _runLocked's own call.
+    this._socket.markSelfAction(queueId);
     const services = this.staffServices();
     const current = this.timeline();
     const positions = current.map((e) => e.position).filter((p): p is number => p !== null);

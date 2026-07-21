@@ -1,0 +1,22 @@
+<div class="bg-white rounded-xl border border-gray-200 p-5">
+  <div class="flex items-center justify-between gap-4">
+    <div class="min-w-0">
+      <p class="text-sm font-semibold text-gray-900">Queue sound</p>
+      <p class="mt-0.5 text-sm text-gray-500">
+        Play a sound on your queue console when your queue changes.
+      </p>
+    </div>
+
+    @if (enabled()) {
+      <button type="button" (click)="disable()"
+        class="shrink-0 rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+        Turn off
+      </button>
+    } @else {
+      <button type="button" (click)="enable()"
+        class="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover transition-colors">
+        Turn on
+      </button>
+    }
+  </div>
+</div>

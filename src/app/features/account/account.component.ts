@@ -6,6 +6,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 import { ResetPasswordComponent } from './reset-password/reset-password.component';
 import { NotificationsToggleComponent } from './notifications-toggle/notifications-toggle.component';
+import { QueueSoundToggleComponent } from './queue-sound-toggle/queue-sound-toggle.component';
 import { VerifyEmailBannerComponent } from '../../shared/components/verify-email-banner/verify-email-banner.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { CreateSalonCardComponent } from '../../shared/components/create-salon-card/create-salon-card.component';
@@ -20,6 +21,7 @@ import { RoutePath } from '../../core/routing/route-paths';
     SkeletonComponent,
     ResetPasswordComponent,
     NotificationsToggleComponent,
+    QueueSoundToggleComponent,
     VerifyEmailBannerComponent,
     PageHeaderComponent,
     CreateSalonCardComponent,

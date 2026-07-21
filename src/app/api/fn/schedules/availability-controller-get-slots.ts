@@ -22,9 +22,19 @@ export interface AvailabilityControllerGetSlots$Params {
   staffId: string;
 
 /**
- * Calendar date in YYYY-MM-DD format (in the salon's local timezone)
+ * Calendar date in YYYY-MM-DD format (in the salon's local timezone). Ignored if from+to are both present.
  */
-  date: string;
+  date?: string;
+
+/**
+ * Inclusive start of a salon-local date range (YYYY-MM-DD). Send with `to` for a month view — every available slot across the range, flat, each stamped with its own `date`. Capped at 31 days.
+ */
+  from?: string;
+
+/**
+ * Inclusive end of a salon-local date range (YYYY-MM-DD). Send with `from`.
+ */
+  to?: string;
 }
 
 export function availabilityControllerGetSlots(http: HttpClient, rootUrl: string, params: AvailabilityControllerGetSlots$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<AvailableSlotDto>>> {
@@ -33,6 +43,8 @@ export function availabilityControllerGetSlots(http: HttpClient, rootUrl: string
     rb.path('salonId', params.salonId, {});
     rb.path('staffId', params.staffId, {});
     rb.query('date', params.date, {});
+    rb.query('from', params.from, {});
+    rb.query('to', params.to, {});
   }
 
   return http.request(

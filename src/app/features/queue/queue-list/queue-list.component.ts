@@ -1,24 +1,34 @@
 import { Component, inject, signal } from '@angular/core';
 import { Location, DatePipe } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { QueueConsoleService } from '../queue-console/queue-console.service';
 import { AddClientModalComponent } from '../add-client-modal/add-client-modal.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { QueueSoundPreferenceService } from '../../../core/queue/queue-sound-preference.service';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
-import { RouteParam } from '../../../core/routing/route-paths';
+import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-queue-list',
   templateUrl: './queue-list.component.html',
-  imports: [InlineSpinnerComponent, AddClientModalComponent, DatePipe],
+  imports: [InlineSpinnerComponent, AddClientModalComponent, DatePipe, RouterLink],
 })
 export class QueueListComponent {
   protected readonly console = inject(QueueConsoleService);
   protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _toast = inject(ToastService);
+  protected readonly soundPreference = inject(QueueSoundPreferenceService);
 
   protected readonly showAddQueueModal = signal(false);
+
+  // Dismissed for this page view only (not persisted) — reappears next time
+  // the console is opened, unless the barber turns sound back on in Account
+  // settings. Real sound playback isn't wired yet — see
+  // QueueSoundPreferenceService's own comment for why (waiting on a backend
+  // change to distinguish who caused a queue update).
+  protected readonly soundOffBannerDismissed = signal(false);
+  protected readonly accountLink = RoutePath.account();
 
   protected get _salonId(): string {
     return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
