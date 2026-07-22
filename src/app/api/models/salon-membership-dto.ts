@@ -8,6 +8,7 @@ export interface SalonMembershipDto {
   isFrozen: boolean;
   isStaff: boolean;
   isTrialing: boolean;
+  queueId: string | null;
   role: {
 };
   salonId: string;

@@ -4,6 +4,7 @@ import { ToastComponent } from './core/toast/toast.component';
 import { ConfirmDialogComponent } from './shared/components/confirm-dialog/confirm-dialog.component';
 import { CookieConsentComponent } from './shared/components/cookie-consent/cookie-consent.component';
 import { QueueSoundService } from './core/queue/queue-sound.service';
+import { QueueSoundWatcherService } from './core/queue/queue-sound-watcher.service';
 
 @Component({
   selector: 'app-root',
@@ -22,6 +23,10 @@ import { QueueSoundService } from './core/queue/queue-sound.service';
 })
 export class App {
   private readonly _queueSound = inject(QueueSoundService);
+  // Eagerly instantiated so its watch effect runs for the app's lifetime —
+  // keeps the barber's queue joined for sound from anywhere in the app, not
+  // just the console page. See the service for the full rationale.
+  private readonly _queueSoundWatcher = inject(QueueSoundWatcherService);
 
   protected onFirstInteraction(): void {
     this._queueSound.warmUp();

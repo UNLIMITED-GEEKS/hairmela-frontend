@@ -18,6 +18,12 @@ export interface Membership {
   // photo gallery, services, etc.) resolve synchronously off Membership
   // instead of a separate staff-list fetch just to find their own row.
   readonly staffId: string | null;
+  // This staff member's Queue.id in this salon — null if they have no staff
+  // row, or have one but no queue exists yet (e.g. right after salon
+  // creation, before QueuesListener provisions it). Lets app-wide features
+  // (e.g. the queue-sound socket subscription) resolve "my queue" off
+  // Membership instead of needing a page that already loaded queue data.
+  readonly queueId: string | null;
   readonly canManageSalon: boolean;
   readonly canManageStaff: boolean;
   readonly tier: number;

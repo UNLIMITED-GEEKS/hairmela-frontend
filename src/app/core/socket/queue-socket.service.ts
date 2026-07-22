@@ -40,6 +40,12 @@ export class QueueSocketService implements OnDestroy {
   private _socket: Socket | null = null;
   private readonly _watchedQueues = new Set<string>();
   private readonly _watchedStaffQueues = new Set<string>();
+  // Refcounts staff-watch callers per queueId. More than one caller can watch
+  // the same staff room independently — e.g. the queue-console page and the
+  // background queue-sound watcher (QueueSoundWatcherService) when the barber
+  // is sitting on their own console. Without refcounting, whichever unwatches
+  // first would drop the room out from under the other.
+  private readonly _staffWatchRefs = new Map<string, number>();
 
   private readonly _timelines = new Map<string, ReplaySubject<TimelineEntryDto[]>>();
   // Last timeline frame pushed per queue — lets a consumer read the cached
@@ -104,6 +110,7 @@ export class QueueSocketService implements OnDestroy {
     this._socket = null;
     this._watchedQueues.clear();
     this._watchedStaffQueues.clear();
+    this._staffWatchRefs.clear();
     this._connectionState$.next('disconnected');
   }
 
@@ -118,6 +125,7 @@ export class QueueSocketService implements OnDestroy {
   watchQueueAsStaff(queueId: string): void {
     this._ensureTimelineSubject(queueId);
     this._watchedStaffQueues.add(queueId);
+    this._staffWatchRefs.set(queueId, (this._staffWatchRefs.get(queueId) ?? 0) + 1);
     if (this._socket?.connected) {
       this._socket.emit('joinQueueStaff', { queueId });
     }
@@ -125,8 +133,25 @@ export class QueueSocketService implements OnDestroy {
 
   unwatchQueue(queueId: string): void {
     this._watchedQueues.delete(queueId);
-    this._watchedStaffQueues.delete(queueId);
-    this._socket?.emit('leaveQueue', { queueId });
+
+    // Staff watches are refcounted (see _staffWatchRefs): only the last staff
+    // watcher for this queue actually drops it. A single decrement that leaves
+    // refs > 0 keeps the staff set intact.
+    const refs = this._staffWatchRefs.get(queueId) ?? 0;
+    if (refs > 1) {
+      this._staffWatchRefs.set(queueId, refs - 1);
+    } else {
+      this._staffWatchRefs.delete(queueId);
+      this._watchedStaffQueues.delete(queueId);
+    }
+
+    // leaveQueue leaves BOTH the public and staff rooms for this socket (see
+    // queue.gateway.ts), so only emit it once no watcher of either kind still
+    // wants this queue — otherwise unmounting one watcher would tear the room
+    // out from under a surviving one.
+    if (!this._watchedQueues.has(queueId) && !this._watchedStaffQueues.has(queueId)) {
+      this._socket?.emit('leaveQueue', { queueId });
+    }
   }
 
   queueTimeline$(queueId: string): Observable<TimelineEntryDto[]> {
