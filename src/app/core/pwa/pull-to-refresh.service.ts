@@ -30,11 +30,11 @@ export interface PullToRefreshConfig {
   window?: boolean;
 }
 
-const PULL_THRESHOLD_PX = 70;
+const PULL_THRESHOLD_PX = 120;
 // Resistance so the drag feels progressively "heavier" past the threshold,
 // the standard native-feeling pull-to-refresh behavior — a raw 1:1 drag
 // feels wrong once you're well past what's needed to trigger a refresh.
-const RESISTANCE_FACTOR = 0.5;
+const RESISTANCE_FACTOR = 0.35;
 
 @Injectable({ providedIn: 'root' })
 export class PullToRefreshService {
