@@ -70,12 +70,18 @@ export class AppointmentsListComponent implements OnInit {
   ngOnInit(): void {
     // Always prefetch the current month on load — this page is highly
     // visited and should feel instant, not wait for a click before fetching.
+    // Auto-select today so the entries panel below the grid is never empty
+    // on arrival — same pattern as the booking modals' day auto-selection.
+    this.selectedDate.set(toIsoDate(new Date()));
     this._loadMonth(this.viewedMonth());
   }
 
   protected onMonthChange(month: Date): void {
     this.viewedMonth.set(month);
-    this.selectedDate.set(null);
+    // Auto-select the 1st of the newly-viewed month, same reasoning as
+    // ngOnInit above — keeps the entries panel populated after navigating
+    // months instead of requiring a manual day tap.
+    this.selectedDate.set(toIsoDate(new Date(month.getFullYear(), month.getMonth(), 1)));
     this._loadMonth(month);
   }
 

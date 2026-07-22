@@ -20,6 +20,18 @@ import { QueueSocketService } from '../socket/queue-socket.service';
 // instantiated eagerly at app bootstrap (injected by App) and runs for the
 // app's lifetime; the socket's own refcounting lets this overlap harmlessly
 // with QueueConsoleService when the barber is on their own console page.
+//
+// **FIXME (known bug, not yet root-caused): in practice the chime is still
+// only heard after visiting the queue-console page at least once — landing
+// straight on a page like Salon Overview and never opening the console gets
+// the OS push notification but NOT the in-app sound, even though this
+// service's watch should be independent of the console page entirely. Root
+// cause not yet found (candidates: this effect firing before the socket/
+// membership are actually ready on a cold load, or a change-detection timing
+// gap that only gets flushed by the extra navigation/HTTP activity visiting
+// the console causes). Revisit with console.log tracing on effect firing +
+// _maybePlaySound + the socket's connect/disconnect events to find the real
+// break point before attempting another fix.**
 @Injectable({ providedIn: 'root' })
 export class QueueSoundWatcherService {
   private readonly _salonContext = inject(SalonContextService);
