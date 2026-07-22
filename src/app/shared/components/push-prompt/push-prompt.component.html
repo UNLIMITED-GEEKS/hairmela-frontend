@@ -6,9 +6,9 @@
           d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
       </svg>
       <div class="min-w-0 flex-1">
-        <p class="text-sm font-semibold text-text-primary">Get notified when it's your turn?</p>
+        <p class="text-sm font-semibold text-text-primary">{{ title() }}</p>
         <p class="mt-0.5 text-sm text-text-secondary">
-          We'll send a notification when the staff is ready for you — even if this tab is closed.
+          {{ body() }}
         </p>
         <div class="mt-3 flex gap-2">
           <button type="button" (click)="enable()" [disabled]="busy()"

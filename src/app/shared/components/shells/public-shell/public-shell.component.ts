@@ -1,9 +1,11 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { NavItem } from '../nav-item.types';
 import { PublicNavComponent } from '../public-nav/public-nav.component';
 import { PublicFooterComponent } from '../public-footer/public-footer.component';
 import { InstallBannerComponent } from '../../install-banner/install-banner.component';
+import { PullToRefreshIndicatorComponent } from '../../pull-to-refresh-indicator/pull-to-refresh-indicator.component';
+import { PullToRefreshService } from '../../../../core/pwa/pull-to-refresh.service';
 import { CurrentUserStore } from '../../../../core/auth/current-user.store';
 import { GuestStore } from '../../../../core/guest/guest-store';
 import { RoutePath } from '../../../../core/routing/route-paths';
@@ -11,11 +13,18 @@ import { RoutePath } from '../../../../core/routing/route-paths';
 @Component({
   selector: 'app-public-shell',
   templateUrl: './public-shell.component.html',
-  imports: [RouterOutlet, PublicNavComponent, PublicFooterComponent, InstallBannerComponent],
+  imports: [
+    RouterOutlet,
+    PublicNavComponent,
+    PublicFooterComponent,
+    InstallBannerComponent,
+    PullToRefreshIndicatorComponent,
+  ],
 })
-export class PublicShellComponent {
+export class PublicShellComponent implements OnInit, OnDestroy {
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _guestStore = inject(GuestStore);
+  private readonly _pullToRefresh = inject(PullToRefreshService);
 
   protected readonly sheetOpen = signal(false);
 
@@ -47,4 +56,16 @@ export class PublicShellComponent {
       { label: 'Sign Up', icon: 'person-add', url: RoutePath.register()[0], sheet: true, cta: true },
     ];
   });
+
+  ngOnInit(): void {
+    // This shell's <main> is min-h-screen (no overflow trap) — the WINDOW
+    // scrolls here, unlike auth-shell/guest-shell's trapped inner <main>. No
+    // element ref needed; see PullToRefreshService's class doc for why the
+    // two shell families need different scroll-source modes.
+    this._pullToRefresh.init({ window: true });
+  }
+
+  ngOnDestroy(): void {
+    this._pullToRefresh.teardown();
+  }
 }

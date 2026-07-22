@@ -1,0 +1,22 @@
+@if (pullState() !== 'idle') {
+  <div
+    class="fixed left-0 right-0 top-0 z-50 flex items-center justify-center pointer-events-none transition-[height] duration-150 ease-out"
+    [style.height.px]="pullOffset()"
+    role="status"
+    [attr.aria-label]="pullState() === 'refreshing' ? 'Refreshing' : 'Pull to refresh'">
+    <div
+      class="flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-md border border-gray-200 transition-transform duration-150"
+      [class.rotate-180]="pullState() === 'ready' || pullState() === 'refreshing'">
+      @if (pullState() === 'refreshing') {
+        <svg class="w-4 h-4 animate-spin text-primary" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-90" fill="currentColor" d="M12 2a10 10 0 0 1 10 10h-4a6 6 0 0 0-6-6V2z"></path>
+        </svg>
+      } @else {
+        <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        </svg>
+      }
+    </div>
+  </div>
+}

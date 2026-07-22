@@ -6,12 +6,13 @@ import { AddClientModalComponent } from '../add-client-modal/add-client-modal.co
 import { ToastService } from '../../../core/toast/toast.service';
 import { QueueSoundPreferenceService } from '../../../core/queue/queue-sound-preference.service';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
+import { PushPromptComponent } from '../../../shared/components/push-prompt/push-prompt.component';
 import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-queue-list',
   templateUrl: './queue-list.component.html',
-  imports: [InlineSpinnerComponent, AddClientModalComponent, DatePipe, RouterLink],
+  imports: [InlineSpinnerComponent, AddClientModalComponent, DatePipe, RouterLink, PushPromptComponent],
 })
 export class QueueListComponent {
   protected readonly console = inject(QueueConsoleService);

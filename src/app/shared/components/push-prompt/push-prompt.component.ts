@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, input, signal } from '@angular/core';
 import { PushService } from '../../../core/push/push.service';
 import { ToastService } from '../../../core/toast/toast.service';
 
@@ -7,6 +7,11 @@ import { ToastService } from '../../../core/toast/toast.service';
 // NEVER shown on page load: browsers penalise unprompted permission requests.
 // Self-gating: renders only when push can run, permission hasn't been decided,
 // and we haven't already asked on this device.
+//
+// title/body default to the customer-facing copy above; the barber-facing
+// queue console passes its own text (see queue-list.component.html) since
+// "when it's your turn" doesn't make sense for someone running the queue,
+// not waiting in it.
 @Component({
   selector: 'app-push-prompt',
   templateUrl: './push-prompt.component.html',
@@ -14,6 +19,9 @@ import { ToastService } from '../../../core/toast/toast.service';
 export class PushPromptComponent {
   private readonly _push = inject(PushService);
   private readonly _toast = inject(ToastService);
+
+  readonly title = input("Get notified when it's your turn?");
+  readonly body = input("We'll send a notification when the staff is ready for you — even if this tab is closed.");
 
   private readonly _dismissed = signal(false);
   protected readonly busy = signal(false);

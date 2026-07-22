@@ -36,7 +36,8 @@
     </div>
 
     <!-- Content -->
-    <main class="flex-1 overflow-y-auto pt-8 md:pt-0 pb-bottom-nav print:overflow-visible print:pt-0 print:pb-0">
+    <main #mainScroll class="flex-1 overflow-y-auto pt-8 md:pt-0 pb-bottom-nav print:overflow-visible print:pt-0 print:pb-0">
+      <app-pull-to-refresh-indicator />
       <div class="w-[95%] mx-auto py-6 md:py-2 print:w-full print:p-0 print:m-0">
         <router-outlet />
       </div>

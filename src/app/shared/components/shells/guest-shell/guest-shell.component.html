@@ -19,7 +19,8 @@
     </app-mobile-top-bar>
 
     <!-- Content -->
-    <main class="flex-1 overflow-y-auto pt-8 md:pt-0 pb-bottom-nav">
+    <main #mainScroll class="flex-1 overflow-y-auto pt-8 md:pt-0 pb-bottom-nav">
+      <app-pull-to-refresh-indicator />
       <div class="w-[95%] mx-auto py-6 md:py-2">
         <router-outlet />
       </div>

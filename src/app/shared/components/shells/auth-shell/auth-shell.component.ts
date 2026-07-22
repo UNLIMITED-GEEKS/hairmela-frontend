@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, viewChild, ElementRef, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { CurrentUserStore } from '../../../../core/auth/current-user.store';
 import { SalonContextService } from '../../../../core/salon-context/salon-context.service';
@@ -11,6 +11,8 @@ import { TopBarComponent } from '../top-bar/top-bar.component';
 import { MobileTopBarComponent } from '../mobile-top-bar/mobile-top-bar.component';
 import { BottomNavComponent } from '../bottom-nav/bottom-nav.component';
 import { MobileSheetComponent } from '../mobile-sheet/mobile-sheet.component';
+import { PullToRefreshIndicatorComponent } from '../../pull-to-refresh-indicator/pull-to-refresh-indicator.component';
+import { PullToRefreshService } from '../../../../core/pwa/pull-to-refresh.service';
 import { OrgContextService } from '../../../../core/salon-context/org-context.service';
 import { RoutePath } from '../../../../core/routing/route-paths';
 
@@ -24,15 +26,21 @@ import { RoutePath } from '../../../../core/routing/route-paths';
     MobileTopBarComponent,
     BottomNavComponent,
     MobileSheetComponent,
+    PullToRefreshIndicatorComponent,
   ],
 })
-export class AuthShellComponent implements OnInit {
+export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly _invites = inject(InvitesService);
   private readonly _auth = inject(AuthService);
   private readonly _dashboardService = inject(SalonsStore);
   private readonly _salonContext = inject(SalonContextService);
   private readonly _orgContext = inject(OrgContextService);
+  private readonly _pullToRefresh = inject(PullToRefreshService);
   protected readonly _currentUser = inject(CurrentUserStore);
+
+  // This shell's scroll region is the inner <main>, not the window (see
+  // PullToRefreshService's class doc for why that distinction matters).
+  private readonly _mainEl = viewChild.required<ElementRef<HTMLElement>>('mainScroll');
 
   protected readonly sheetOpen = signal(false);
 
@@ -71,5 +79,13 @@ export class AuthShellComponent implements OnInit {
     // Resolve the user's owned org once so the tier banner's Upgrade CTA links
     // to /org/:orgId/billing; billing + orgOwnerGuard read the same cache.
     this._orgContext.ensureLoaded().subscribe();
+  }
+
+  ngAfterViewInit(): void {
+    this._pullToRefresh.init({ scrollEl: this._mainEl().nativeElement });
+  }
+
+  ngOnDestroy(): void {
+    this._pullToRefresh.teardown();
   }
 }
