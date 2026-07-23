@@ -204,6 +204,11 @@ export class ServicesService {
         }),
       errorMessage: 'Could not assign service. Reverted.',
     });
+    // NOTE: this mutates _staffServices (the per-staff view). It does NOT touch
+    // _services' assignedStaffIds (the per-service view) — those go stale here.
+    // The service-form edit page refresh()es the list on open precisely so its
+    // staff pre-check reads fresh assignedStaffIds rather than trusting this
+    // cache to be kept in sync from the staff side.
   }
 
   removeService(salonId: string, staffId: string, serviceId: string): void {
@@ -224,6 +229,7 @@ export class ServicesService {
         }),
       errorMessage: 'Could not remove service. Reverted.',
     });
+    // See assignService's note — _services' assignedStaffIds is not synced here.
   }
 
   setDefaultService(

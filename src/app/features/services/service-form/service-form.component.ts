@@ -99,7 +99,14 @@ export class ServiceFormComponent implements OnInit {
   ngOnInit(): void {
     this.categoriesService.load();
     this._staffService.load(this._salonId);
-    if (this._serviceId) this._servicesService.load(this._salonId);
+    // Edit mode: refresh() (a forced fetch bypassing cache), not load(). The
+    // staff pre-check below reads service.assignedStaffIds, which the list
+    // cache can hold stale — assigning/unassigning a service from a staff
+    // member's own page mutates a different cache and never updates this one.
+    // Reading fresh at open is why there's no cross-cache sync to maintain:
+    // this page reads the source of truth at the point of use instead of
+    // trusting a second copy to be kept current. See ServicesService.assignService.
+    if (this._serviceId) this._servicesService.refresh(this._salonId);
   }
 
   protected isStaffChecked(staffId: string): boolean {
