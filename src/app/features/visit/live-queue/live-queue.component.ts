@@ -10,6 +10,7 @@ import { GalleryModalComponent } from '../../../shared/components/gallery-modal/
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { BackButtonComponent } from '../../../shared/components/back-button/back-button.component';
 import { PushPromptComponent } from '../../../shared/components/push-prompt/push-prompt.component';
+import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 
@@ -24,6 +25,7 @@ import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/ro
     GalleryModalComponent,
     IconComponent,
     PushPromptComponent,
+    InlineSpinnerComponent,
     DatePipe,
     // BackButtonComponent,
   ],
@@ -70,6 +72,15 @@ export class LiveQueueComponent {
     effect(() => this.visit.watchQueue(this._queueId()));
   }
 
+  // "Getting the latest queue status" banner — shown exactly while the
+  // timeline on screen is a not-yet-confirmed stale replay. See
+  // SalonVisitService.timelineConfirmed's doc comment for why this isn't
+  // just `!timelineLoaded` (that would also fire during a cold first visit,
+  // which has nothing stale to explain and gets a skeleton/empty state instead).
+  protected readonly refreshing = computed(
+    () => this.visit.timelineLoaded() && !this.visit.timelineConfirmed(),
+  );
+
   /** True when any of the caller's own entries are in this queue. */
   protected hasMyEntries(): boolean {
     return this.visit.waitingEntries().some((e) => this.visit.isMine(e.entryId));
@@ -89,8 +100,12 @@ export class LiveQueueComponent {
 
   // People ahead: everyone currently waiting/serving when there's no entry
   // of my own yet; otherwise my position's index in the ordered list.
+  // Excludes isUpcoming appointments — a not-yet-due booking (>10min out on
+  // the public view) is shown in the list but takes no live-line position, so
+  // it must not count as someone "ahead" (backend gives it position null and
+  // 0 wait; this keeps the count consistent with that).
   protected readonly peopleAheadOfMe = computed(() => {
-    const entries = this.visit.waitingEntries();
+    const entries = this.visit.waitingEntries().filter((e) => !e.isUpcoming);
     const myIndex = entries.findIndex((e) => this.visit.isMine(e.entryId));
     return myIndex >= 0 ? myIndex : entries.length;
   });

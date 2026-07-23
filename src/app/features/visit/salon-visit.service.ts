@@ -105,6 +105,17 @@ export class SalonVisitService {
   readonly salonData = signal<SalonPublicDto | null>(null);
   readonly services = signal<Service[]>([]);
   readonly timeline = signal<TimelineEntryDto[]>([]);
+  // timelineLoaded means "there is something to render" — it goes true even
+  // when timeline was seeded from a stale cached socket frame (see
+  // watchQueue()'s cached-seed branch). timelineConfirmed means "what's on
+  // screen is confirmed current for this queue, this visit" — it only goes
+  // true at a genuine fetch/socket landing point. The live-queue page's
+  // "getting the latest queue status" banner is `timelineLoaded &&
+  // !timelineConfirmed`: the exact window where a stale replay is on screen
+  // and hasn't been confirmed yet. A cold load with nothing cached has
+  // timelineLoaded === false the whole time, so it renders a skeleton/empty
+  // state instead of this banner — there's no stale flash to explain there.
+  readonly timelineConfirmed = signal(false);
   readonly queueStatus = signal<Queue['status'] | null>(null);
   // A customer can hold several entries in one queue (added-while-waiting creates
   // a new one at the back). Tracked as an array; views address a single entry by id.
@@ -258,6 +269,7 @@ export class SalonVisitService {
     this.activeEntries.set([]);
     this.loading.set(true);
     this.timelineLoaded.set(false);
+    this.timelineConfirmed.set(false);
     this.joining.set(false);
     this.leaving.set(false);
     this.addingKids.set(false);
@@ -281,6 +293,20 @@ export class SalonVisitService {
       // queue) or a fresh server push then keeps it current.
       this._activeQueueId = queueId;
       const cached = this._socket.lastTimeline(queueId);
+      // Neither branch is confirmed-current — the cached branch is a replay
+      // from some earlier point this session; the empty branch has nothing
+      // yet. Real confirmation only happens at the socket subscription below
+      // or _loadInitialTimeline's landing points.
+      this.timelineConfirmed.set(false);
+      // Reset the per-visit "socket already delivered" race guard so the
+      // fresh timeline fetch below (which _loadInitialTimeline gates on this
+      // flag) is allowed to land on re-entry. Without this, a queue watched
+      // earlier this session still has the flag set from that past visit, and
+      // the re-entry fetch would be skipped — leaving a session-old replay on
+      // screen with the banner unable to clear. A genuinely fresher live push
+      // arriving during this visit's load race still re-sets the flag and wins
+      // (its handler runs and re-adds the id), same as on a first visit.
+      this._socketInitialReceived.delete(queueId);
       if (cached) {
         this.timeline.set(cached);
         this.timelineLoaded.set(true);
@@ -288,15 +314,25 @@ export class SalonVisitService {
         this.timeline.set([]);
         this.timelineLoaded.set(false);
       }
+
+      // Refresh status + timeline whenever this queue becomes the displayed
+      // one — including re-entry to a queue watched earlier this session
+      // (navigate away -> back). Without a fetch here, re-entry hits the
+      // _watchedQueueIds early-return below and nothing re-confirms the
+      // banner except a brand-new server push, which "may never come while
+      // the user is looking" (see the seed comment above). Placed inside this
+      // branch (not unconditionally) so a redundant same-queue watchQueue()
+      // call — e.g. _loadSalon's entry-recovery watch followed by the
+      // component effect's watch for the same queueId — doesn't double-fetch.
+      this._socket.connect();
+      this._loadQueueStatus(queueId);
+      this._loadInitialTimeline(queueId);
     }
 
     if (this._watchedQueueIds.has(queueId)) return;
     this._watchedQueueIds.add(queueId);
 
-    this._socket.connect();
     this._socket.watchQueue(queueId);
-    this._loadQueueStatus(queueId);
-    this._loadInitialTimeline(queueId);
 
     this._socket
       .queueTimeline$(queueId)
@@ -308,6 +344,7 @@ export class SalonVisitService {
         this._reconcileEntries(queueId, entries, isFirstMessage);
         this.timeline.set(entries);
         this.timelineLoaded.set(true);
+        this.timelineConfirmed.set(true);
       });
 
     this._socket
@@ -578,7 +615,12 @@ export class SalonVisitService {
    * plus the duration of its still-pending members.
    */
   backOfLineWait(): string {
-    const entries = this.waitingEntries();
+    // Exclude isUpcoming appointments — a not-yet-due booking (>10min out on
+    // the public view) isn't in the live line, so a fresh joiner doesn't wait
+    // behind it. Its liveWait is already 0, but its members' serviceDuration
+    // would still get added as lastPending below if it were the max-wait
+    // entry, wrongly inflating the joiner's estimate by the booking's length.
+    const entries = this.waitingEntries().filter((e) => !e.isUpcoming);
     if (entries.length === 0) return this.formatWait(0);
     const liveWaits = this.liveWaitMinutes();
     const last = entries.reduce((a, b) =>
@@ -640,9 +682,12 @@ export class SalonVisitService {
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe({
         next: (res) => {
-          // Skip if the socket already delivered a fresher frame — the socket is
-          // the authoritative source. The _socketInitialReceived Set is populated
-          // in watchQueue()'s socket subscription.
+          // Skip if the socket already delivered a fresher frame during this
+          // visit's load race — the socket is the authoritative source. The
+          // _socketInitialReceived Set is populated in watchQueue()'s socket
+          // subscription and reset per-visit in the seed branch, so on
+          // re-entry (no new push yet) this fetch is allowed through to
+          // refresh the stale replay and clear the banner.
           if (this._socketInitialReceived.has(queueId)) return;
           // Skip if the caller has since switched to a different queue — this
           // response would otherwise overwrite the new queue's timeline with
@@ -655,6 +700,7 @@ export class SalonVisitService {
             this._reconcileEntries(queueId, entries, true);
             this.timeline.set(entries);
             this.timelineLoaded.set(true);
+            this.timelineConfirmed.set(true);
             return;
           }
           // No stored entries — recover all of the caller's entries for this queue.
@@ -672,6 +718,7 @@ export class SalonVisitService {
           if (!recover$) {
             this.timeline.set(entries);
             this.timelineLoaded.set(true);
+            this.timelineConfirmed.set(true);
             return;
           }
           recover$.pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
@@ -697,11 +744,13 @@ export class SalonVisitService {
               }
               this.timeline.set(entries);
               this.timelineLoaded.set(true);
+              this.timelineConfirmed.set(true);
             },
             error: () => {
               if (this._activeQueueId !== queueId) return;
               this.timeline.set(entries);
               this.timelineLoaded.set(true);
+              this.timelineConfirmed.set(true);
             },
           });
         },

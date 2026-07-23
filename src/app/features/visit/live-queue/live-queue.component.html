@@ -1,6 +1,17 @@
 <div class="h-mobile-content bg-surface flex flex-col">
   <div class="max-w-md mx-auto w-full flex flex-col h-full pt-6">
 
+    <!-- Refreshing notice — shown only while the timeline on screen is a
+         stale replay (seeded from a cached socket frame on re-entry) that
+         hasn't been confirmed current yet. A cold first visit has nothing
+         cached, so timelineLoaded is false and this never shows there. -->
+    @if (refreshing()) {
+      <div class="shrink-0 w-full bg-secondary-light border-b border-primary/10 px-4 py-2 flex items-center justify-center gap-2">
+        <app-inline-spinner sizeClass="w-3.5 h-3.5 text-primary" label="Getting the latest queue status" />
+        <span class="text-xs font-medium text-primary" aria-hidden="true">Getting the latest queue status</span>
+      </div>
+    }
+
     <!-- Back -->
     <!-- <div class="shrink-0 px-5 pt-4">
       <app-back-button variant="glass"></app-back-button>
@@ -76,15 +87,22 @@
 
     <!-- Scrollable queue list -->
     <div class="flex-1 overflow-y-auto px-3 pb-2 space-y-2 themed-scrollbar" aria-live="polite">
-      @for (entry of visit.waitingEntries(); track entry.entryId; let i = $index) {
+      @for (entry of visit.waitingEntries(); track entry.entryId) {
         @let isServing = entry.members.some(m => m.status === 'SERVING');
         @let isMe = visit.isMine(entry.entryId);
         <div class="flex items-center justify-between border border-primary/10 rounded-2xl px-4 py-3 min-h-14"
           [class.bg-secondary-light]="isMe"
           [class.bg-white]="!isMe">
           <span class="text-sm text-text-primary">
-            <span class="font-semibold mr-3">{{ i + 1 }}</span>
-            {{ isMe ? 'Me' : 'Client ' + (i + 1) }}
+            <!-- Live entries show their true queue position (entry.position,
+                 from the backend). An isUpcoming appointment (>10min out on
+                 the public view) has position null — it's shown for context
+                 but isn't in the live line, so it gets no number and doesn't
+                 shift the numbers of walk-ins behind it. -->
+            @if (entry.position !== null) {
+              <span class="font-semibold mr-3">{{ entry.position }}</span>
+            }
+            {{ isMe ? 'Me' : (entry.position !== null ? 'Client ' + entry.position : 'Booking') }}
             @if (entry.members.length > 1) {
               <span class="text-xs text-gray-500"> + {{ entry.members.length - 1 }}  {{ entry.members.length - 1 === 1 ? 'more person' : 'more persons' }}</span>
             }
@@ -98,7 +116,14 @@
             }
           </span>
           <span class="text-right">
-            @if (isServing) {
+            @if (entry.isUpcoming) {
+              <!-- Not yet in the live line — show its booked time, not a
+                   "Waiting / 0m" label (which would misrepresent it). -->
+              <span class="block text-sm font-medium text-gray-400" aria-live="polite">Booked</span>
+              @if (entry.scheduledAt) {
+                <span class="block text-xs text-gray-400">for {{ entry.scheduledAt | date: 'shortTime' }}</span>
+              }
+            } @else if (isServing) {
               <span class="block text-sm font-medium text-success" aria-live="polite">In Service</span>
             } @else {
               <span class="block text-sm font-medium text-primary" aria-live="polite">Waiting</span>
