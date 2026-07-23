@@ -72,14 +72,13 @@ export class LiveQueueComponent {
     effect(() => this.visit.watchQueue(this._queueId()));
   }
 
-  // "Getting the latest queue status" banner — shown exactly while the
-  // timeline on screen is a not-yet-confirmed stale replay. See
-  // SalonVisitService.timelineConfirmed's doc comment for why this isn't
-  // just `!timelineLoaded` (that would also fire during a cold first visit,
-  // which has nothing stale to explain and gets a skeleton/empty state instead).
-  protected readonly refreshing = computed(
-    () => this.visit.timelineLoaded() && !this.visit.timelineConfirmed(),
-  );
+  // "Getting the latest queue status" banner — shown whenever what's on
+  // screen isn't confirmed current for this queue, this visit. That covers
+  // both cases: a cold first load (nothing rendered yet, fetch in flight) and
+  // a re-entry showing a stale cached replay while it re-confirms. Both need
+  // the same "hang on, we're fetching" affordance — without it a cold load is
+  // just a blank queue with no feedback at all.
+  protected readonly refreshing = computed(() => !this.visit.timelineConfirmed());
 
   /** True when any of the caller's own entries are in this queue. */
   protected hasMyEntries(): boolean {

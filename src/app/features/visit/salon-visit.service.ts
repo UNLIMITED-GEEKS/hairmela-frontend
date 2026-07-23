@@ -109,12 +109,11 @@ export class SalonVisitService {
   // when timeline was seeded from a stale cached socket frame (see
   // watchQueue()'s cached-seed branch). timelineConfirmed means "what's on
   // screen is confirmed current for this queue, this visit" — it only goes
-  // true at a genuine fetch/socket landing point. The live-queue page's
-  // "getting the latest queue status" banner is `timelineLoaded &&
-  // !timelineConfirmed`: the exact window where a stale replay is on screen
-  // and hasn't been confirmed yet. A cold load with nothing cached has
-  // timelineLoaded === false the whole time, so it renders a skeleton/empty
-  // state instead of this banner — there's no stale flash to explain there.
+  // true at a genuine fetch/socket landing point, and is reset to false on
+  // every switch to a queue (including the first). The live-queue page's
+  // "getting the latest queue status" banner is simply !timelineConfirmed,
+  // which covers both a cold first load (nothing rendered yet) and a
+  // re-entry showing a stale replay — both are "we're fetching, hang on".
   readonly timelineConfirmed = signal(false);
   readonly queueStatus = signal<Queue['status'] | null>(null);
   // A customer can hold several entries in one queue (added-while-waiting creates

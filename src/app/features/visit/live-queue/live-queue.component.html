@@ -1,10 +1,10 @@
 <div class="h-mobile-content bg-surface flex flex-col">
   <div class="max-w-md mx-auto w-full flex flex-col h-full pt-6">
 
-    <!-- Refreshing notice — shown only while the timeline on screen is a
-         stale replay (seeded from a cached socket frame on re-entry) that
-         hasn't been confirmed current yet. A cold first visit has nothing
-         cached, so timelineLoaded is false and this never shows there. -->
+    <!-- Refreshing notice — shown whenever the timeline isn't confirmed
+         current yet: both a cold first load (nothing rendered, fetch in
+         flight) and a re-entry showing a stale cached replay. Clears the
+         moment a real fetch/socket frame lands. -->
     @if (refreshing()) {
       <div class="shrink-0 w-full bg-secondary-light border-b border-primary/10 px-4 py-2 flex items-center justify-center gap-2">
         <app-inline-spinner sizeClass="w-3.5 h-3.5 text-primary" label="Getting the latest queue status" />
