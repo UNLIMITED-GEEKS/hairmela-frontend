@@ -6,10 +6,28 @@
         One tap and your queue is with you all day. No app store, nothing to download.
       </p>
       <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
-        <a [routerLink]="howToInstallLink"
-          class="min-h-12 px-8 rounded-full bg-white text-primary font-bold text-sm flex items-center justify-center hover:bg-white/90 transition-colors">
-          How to install
-        </a>
+        <!-- Real one-tap install — only when the browser has actually offered
+             it (Android/Chromium, beforeinstallprompt fired). Tapping calls
+             the native OS install dialog. iOS never fires the event, so this
+             just doesn't render there and the "How to install" link below
+             remains the path. -->
+        @if (install.canPromptInstall()) {
+          <button type="button" (click)="install.promptInstall()"
+            class="min-h-12 px-8 rounded-full bg-white text-primary font-bold text-sm flex items-center justify-center hover:bg-white/90 transition-colors">
+            Install now
+          </button>
+          <!-- Secondary once a real Install button is present — outline style
+               so the one-tap install reads as the primary action. -->
+          <a [routerLink]="howToInstallLink"
+            class="min-h-12 px-8 rounded-full border border-white/60 text-white font-bold text-sm flex items-center justify-center hover:bg-white/10 transition-colors">
+            How to install
+          </a>
+        } @else {
+          <a [routerLink]="howToInstallLink"
+            class="min-h-12 px-8 rounded-full bg-white text-primary font-bold text-sm flex items-center justify-center hover:bg-white/90 transition-colors">
+            How to install
+          </a>
+        }
       </div>
     </div>
   </div>
