@@ -7,4 +7,5 @@ export interface CreateServiceDto {
   duration: number;
   name: string;
   price: string;
+  staffIds?: Array<string>;
 }

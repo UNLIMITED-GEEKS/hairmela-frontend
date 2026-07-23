@@ -2,7 +2,7 @@
 
   <!-- "Current Client" header pill -->
   <div class="shrink-0 mb-4">
-    <div class="w-full rounded-2xl bg-white border border-primary px-4 py-2.5 text-center">
+    <div class="w-full  bg-white border-b border-primary px-4 py-2.5 text-center">
       <span class="text-sm font-bold tracking-wide text-primary uppercase">Current Client</span>
     </div>
   </div>
@@ -61,33 +61,37 @@
   @if (!console.callNextWaiting() && console.servingPartyMembers().length > 0) {
     <div class="flex-1 min-h-0 overflow-y-auto space-y-2 mt-3 pb-24">
       @for (member of console.servingPartyMembers(); track member.memberId) {
-        <div class="flex items-center gap-2 bg-white border border-primary/20 rounded-2xl px-3 py-2.5 min-h-12">
-          <span class="flex-1 min-w-0">
-            <span class="block text-sm font-medium text-primary truncate">{{ member.memberName }}</span>
-            @if (member.serviceName) {
-              <span class="block text-xs text-primary/70 truncate">{{ member.serviceName }}</span>
+        <div class="bg-white border border-primary/20 rounded-2xl px-3 py-2.5">
+          <div class="flex items-center gap-2">
+            <span class="flex-1 min-w-0">
+              <span class="block text-sm font-medium text-primary truncate">{{ member.memberName }}</span>
+              @if (member.serviceName) {
+                <span class="block text-xs text-primary/70 truncate">{{ member.serviceName }}</span>
+              }
+            </span>
+            <span [class]="'text-xs text-black/90 min-h-8 inline-flex items-center font-semibold px-2 py-0.5 rounded-xl shrink-0 ' +
+              (member.status === 'SERVING' ? 'bg-success-light text-success' : 'bg-gray-100 text-gray-500')">
+              {{ member.status === 'SERVING' ? 'Serving' : 'Waiting' }}
+            </span>
+            @if (member.status === 'WAITING') {
+              <span class="text-xs min-h-8 rounded-xl inline-flex items-center text-black/90 shrink-0" aria-live="polite">{{ console.memberWait(member.memberId) }}</span>
             }
-          </span>
-          <span [class]="'text-xs text-black/90 min-h-8 inline-flex items-center font-semibold px-2 py-0.5 rounded-xl shrink-0 ' +
-            (member.status === 'SERVING' ? 'bg-success-light text-success' : 'bg-gray-100 text-gray-500')">
-            {{ member.status === 'SERVING' ? 'Serving' : 'Waiting' }}
-          </span>
-          @if (member.status === 'WAITING') {
-            <span class="text-xs min-h-8 rounded-xl inline-flex items-center text-black/90 shrink-0" aria-live="polite">{{ console.memberWait(member.memberId) }}</span>
-          }
+            @if (member.status === 'SERVING') {
+              @if (console.isLocked(member.memberId)) {
+                <app-inline-spinner class="text-primary" />
+              }
+              <button (click)="completeMember(console.servingEntry()!.entryId, member.memberId)"
+                [disabled]="console.isLocked(member.memberId)"
+                class="min-w-9 min-h-8 px-2 rounded-xl bg-primary text-white text-xs font-bold disabled:opacity-40 shrink-0">
+                Done
+              </button>
+            }
+          </div>
           @if (member.status === 'SERVING') {
-            @if (console.isLocked(member.memberId)) {
-              <app-inline-spinner class="text-primary" />
-            }
             <button (click)="openExtendModal(console.servingEntry()!.entryId, member.memberId)"
               [disabled]="console.isLocked(member.memberId)"
-              class="min-w-9 min-h-8 px-2 rounded-xl border border-primary text-primary text-xs font-bold disabled:opacity-40 shrink-0">
-              +mins
-            </button>
-            <button (click)="completeMember(console.servingEntry()!.entryId, member.memberId)"
-              [disabled]="console.isLocked(member.memberId)"
-              class="min-w-9 min-h-8 px-2 rounded-xl bg-primary text-white text-xs font-bold disabled:opacity-40 shrink-0">
-              Done
+              class="mt-2 w-full min-h-8 px-2 rounded-xl border border-primary text-primary text-xs font-bold disabled:opacity-40">
+              Extend session
             </button>
           }
         </div>
@@ -192,15 +196,15 @@
           <button (click)="extendMinutes.set(chip)"
             [class]="'flex-1 min-h-10 rounded-xl text-sm font-bold transition-colors ' +
               (extendMinutes() === chip
-                ? 'bg-warning text-white'
-                : 'bg-warning-light text-warning border border-warning/30 hover:bg-warning/20')">
+                ? 'bg-primary/90 text-white'
+                : 'bg-primary/90 text-white border border-warning/30 hover:bg-primary-hover')">
             {{ chip }}m
           </button>
         }
       </div>
       <button (click)="confirmExtend()"
         [disabled]="!extendMinutes() || console.isLocked(extendTargetMemberId())"
-        class="w-full min-h-12 rounded-2xl bg-warning-light border-2 border-warning/30 text-warning font-bold text-sm disabled:opacity-40 hover:bg-warning/20 transition-colors flex items-center justify-center gap-2">
+        class="w-full min-h-12 rounded-2xl bg-primary border-2 border-warning/30 text-white font-bold text-sm disabled:opacity-40 hover:bg-primary-hover transition-colors flex items-center justify-center gap-2">
         @if (console.isLocked(extendTargetMemberId())) {
           <app-inline-spinner />
         }

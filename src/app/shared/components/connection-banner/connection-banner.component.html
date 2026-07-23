@@ -1,9 +1,18 @@
 @if (connectionState() === 'reconnecting') {
-  <div class="w-full bg-warning-light border-b border-warning/30 px-4 py-2.5 flex items-center justify-center gap-2" role="alert" aria-live="polite">
-    <svg class="w-4 h-4 text-warning shrink-0 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+  <!-- Height-collapsing enter/leave so appearing/disappearing doesn't snap the
+       page height (see status-banner-* in styles.css for why height, not just
+       opacity, has to animate). The extra top padding sits INSIDE the animated
+       element rather than being a margin, so the offset collapses with it — a
+       margin would linger through the leave animation and still jolt. -->
+  <div class="w-full bg-secondary-light border-b border-primary/10 px-4 pt-5 pb-2.5 flex items-center justify-center gap-2 overflow-hidden"
+    style="--status-banner-height: 3.5rem"
+    animate.enter="status-banner-enter"
+    animate.leave="status-banner-leave"
+    role="alert" aria-live="polite">
+    <svg class="w-4 h-4 text-primary shrink-0 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
     </svg>
-    <span class="text-sm font-medium text-warning">No internet connection — queue may not be up to date</span>
+    <span class="text-sm font-medium text-primary">No internet connection — queue may not be up to date</span>
   </div>
 }

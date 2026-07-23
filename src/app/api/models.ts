@@ -58,6 +58,7 @@ export type { SalonStaff } from './models/salon-staff';
 export type { Service } from './models/service';
 export type { ServiceBreakdownItemDto } from './models/service-breakdown-item-dto';
 export type { ServiceCategory } from './models/service-category';
+export type { ServiceResponseDto } from './models/service-response-dto';
 export type { SetDefaultServiceDto } from './models/set-default-service-dto';
 export type { SetQueueStatusDto } from './models/set-queue-status-dto';
 export type { StaffPerformanceItemDto } from './models/staff-performance-item-dto';

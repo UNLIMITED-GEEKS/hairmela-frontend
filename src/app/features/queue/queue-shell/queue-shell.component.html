@@ -30,22 +30,23 @@
   <div class="h-screen-minus-topbar bg-surface flex flex-col">
 
     <!-- Top bar: back + status pills + call next -->
-    <div class="shrink-0 bg-surface border-b border-gray-100 px-4 pt-2 pb-3 space-y-2">
+    <div class="shrink-0 bg-surface border-b border-gray-100 px-4 pt-4 md:pt-2  space-y-2">
 
+      <p class="text-xs text-gray-400 mb-1 ml-11">Tap to open, pause, or close your queue</p>
       <div class="flex items-center gap-2">
         <app-back-button variant="plain" />
-        <div class="flex items-center gap-1.5 flex-1 flex-wrap">
+        <div class="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
           @for (s of statusOptions; track s) {
             <button
               (click)="setStatus(s)"
-              [disabled]="console.acting() || console.queueStatus() === s"
-              [class]="'px-3 min-h-9 rounded-full text-xs font-semibold transition-colors disabled:cursor-not-allowed ' +
+              [disabled]="console.acting() || console.queueStatus() === null || console.queueStatus() === s"
+              [class]="'px-3 min-h-9 rounded-xl border text-xs font-semibold transition-colors disabled:cursor-not-allowed ' +
                 (console.queueStatus() === s
-                  ? (s === 'OPEN'   ? 'bg-success-light text-success'
-                   : s === 'PAUSED' ? 'bg-warning-light text-warning'
-                                    : 'bg-red-200 text-red-950')
-                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200 disabled:opacity-40')">
-              {{ s === 'OPEN' ? 'Open' : s === 'PAUSED' ? 'Paused' : 'Closed' }}
+                  ? (s === 'OPEN'   ? 'bg-primary text-white  shadow-sm'
+                   : s === 'PAUSED' ? 'bg-warning text-white border-warning shadow-sm'
+                                    : 'bg-red-600 text-white border-red-600 shadow-sm')
+                  : 'bg-white text-gray-500 border-gray-300 hover:bg-gray-50 hover:border-gray-400 disabled:opacity-40')">
+              {{ s === 'OPEN' ? 'Open' : s === 'PAUSED' ? 'Pause' : 'Close' }}
             </button>
           }
         </div>
@@ -54,8 +55,8 @@
       <button
         (click)="callNext()"
         [disabled]="console.queueStatus() !== 'OPEN' || console.waitingEntries().length === 0 || console.hasServingEntry() || console.nextIsLocked()"
-        class="w-full py-2.5 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-40 transition-opacity whitespace-nowrap">
-        Click to serve next client
+        class="w-full py-2.5 mt-2 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-40 transition-opacity whitespace-nowrap">
+        Click To Serve Next Client
       </button>
     </div>
 

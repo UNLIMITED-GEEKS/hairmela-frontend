@@ -7,7 +7,7 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { Service } from '../../models/service';
+import { ServiceResponseDto } from '../../models/service-response-dto';
 
 export interface PublicServicesControllerFindBySalon$Params {
 
@@ -17,7 +17,7 @@ export interface PublicServicesControllerFindBySalon$Params {
   salonId: string;
 }
 
-export function publicServicesControllerFindBySalon(http: HttpClient, rootUrl: string, params: PublicServicesControllerFindBySalon$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<Service>>> {
+export function publicServicesControllerFindBySalon(http: HttpClient, rootUrl: string, params: PublicServicesControllerFindBySalon$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<ServiceResponseDto>>> {
   const rb = new RequestBuilder(rootUrl, publicServicesControllerFindBySalon.PATH, 'get');
   if (params) {
     rb.path('salonId', params.salonId, {});
@@ -28,7 +28,7 @@ export function publicServicesControllerFindBySalon(http: HttpClient, rootUrl: s
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<Array<Service>>;
+      return r as StrictHttpResponse<Array<ServiceResponseDto>>;
     })
   );
 }

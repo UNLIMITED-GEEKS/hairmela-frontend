@@ -11,6 +11,7 @@ export interface Salon {
   defaultSlotDuration: number;
   deletedAt: string | null;
   id: string;
+  lastDigestDate: string | null;
   name: string;
   operatingHours: Array<{
 }>;

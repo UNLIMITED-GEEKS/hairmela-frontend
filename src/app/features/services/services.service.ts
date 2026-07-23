@@ -3,7 +3,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { map } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { ApiConfiguration } from '../../api/api-configuration';
-import { Service } from '../../api/models/service';
+import { ServiceResponseDto } from '../../api/models/service-response-dto';
 import { StaffService as StaffServiceModel } from '../../api/models/staff-service';
 import { CreateServiceDto } from '../../api/models/create-service-dto';
 import { UpdateServiceDto } from '../../api/models/update-service-dto';
@@ -32,10 +32,10 @@ export class ServicesService {
     this._cacheRegistry.register(this);
   }
 
-  private readonly _cache = new Map<string, Service[]>();
+  private readonly _cache = new Map<string, ServiceResponseDto[]>();
   private readonly _staffServicesCache = new Map<string, StaffServiceModel[]>();
 
-  private readonly _services = signal<Service[]>([]);
+  private readonly _services = signal<ServiceResponseDto[]>([]);
   private readonly _staffServices = signal<StaffServiceModel[]>([]);
 
   // Two independent loaders — salon services and staff services are separate
@@ -89,17 +89,28 @@ export class ServicesService {
 
   create(salonId: string, body: CreateServiceDto, onSuccess?: () => void): void {
     const tempId = `temp_${crypto.randomUUID()}`;
-    const optimisticRow = { id: tempId, ...body, isActive: true } as Service;
-    // The backend returns the real Service (201 body) — swap the temp row for
-    // it so the row's real id is in place before the user can act on it again
-    // (delete/edit/assign would otherwise send the fake temp_ id to the server).
+    const optimisticRow = {
+      id: tempId,
+      ...body,
+      isActive: true,
+      assignedStaffIds: body.staffIds ?? [],
+    } as ServiceResponseDto;
+    // The backend returns the real Service (201 body), which — unlike the
+    // list endpoint's ServiceResponseDto — has no assignedStaffIds field. We
+    // asked the backend to assign body.staffIds atomically with the create, so
+    // it's safe to carry that forward here rather than lose it until the next
+    // full list refresh (the row would otherwise show 0 assigned staff right
+    // after a create that DID assign some).
     const accepted = this._optimistic.run({
       signal: this._services,
       // apply is REPLAYED on every recompute (e.g. a concurrent load()'s
       // commitRead landing while this create is still pending) — must be
       // idempotent or a replay duplicates the row. Guard by tempId.
       apply: (list) => (list.some((s) => s.id === tempId) ? list : [...list, optimisticRow]),
-      reconcile: (list, res) => list.map((s) => (s.id === tempId ? res.body : s)),
+      reconcile: (list, res) =>
+        list.map((s) =>
+          s.id === tempId ? { ...res.body, assignedStaffIds: body.staffIds ?? [] } : s,
+        ),
       tempId,
       dedupeKey: `ServicesService.create:${salonId}:${body.name}`,
       mirror: this._servicesLoader.mirrorFn(salonId),
@@ -117,8 +128,24 @@ export class ServicesService {
   update(salonId: string, serviceId: string, body: UpdateServiceDto, onSuccess?: () => void): void {
     const accepted = this._optimistic.run({
       signal: this._services,
-      apply: (list) => list.map((s) => (s.id === serviceId ? { ...s, ...body } : s)),
-      reconcile: (list, res) => list.map((s) => (s.id === serviceId ? res.body : s)),
+      // body.staffIds omitted means "leave assignments untouched" (the
+      // backend's contract) — keep the row's existing assignedStaffIds in
+      // that case rather than defaulting to [] and wiping the checklist's
+      // display until the next full list refresh.
+      apply: (list) =>
+        list.map((s) =>
+          s.id === serviceId
+            ? { ...s, ...body, assignedStaffIds: body.staffIds ?? s.assignedStaffIds }
+            : s,
+        ),
+      // res.body (plain Service) has no assignedStaffIds — same reasoning as
+      // create()'s reconcile above.
+      reconcile: (list, res) =>
+        list.map((s) =>
+          s.id === serviceId
+            ? { ...res.body, assignedStaffIds: body.staffIds ?? s.assignedStaffIds }
+            : s,
+        ),
       mirror: this._servicesLoader.mirrorFn(salonId),
       contextKey: salonId,
       targetId: serviceId,

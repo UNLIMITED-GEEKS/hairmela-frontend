@@ -1,8 +1,11 @@
 import { Component, effect, inject, OnInit, computed, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Location } from '@angular/common';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ServicesService } from '../services.service';
+import { StaffService } from '../../staff/staff.service';
+import { SalonStaff } from '../../../api/models/salon-staff';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { CategoriesService } from '../../../core/categories/categories.service';
 import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/frozen-banner.component';
@@ -28,12 +31,15 @@ import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 export class ServiceFormComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
+  protected readonly _location = inject(Location);
   private readonly _fb = inject(FormBuilder);
   private readonly _servicesService = inject(ServicesService);
+  private readonly _staffService = inject(StaffService);
   protected readonly salonContext = inject(SalonContextService);
   protected readonly categoriesService = inject(CategoriesService);
 
   protected readonly loading = this._servicesService.loading;
+  protected readonly staffLoading = this._staffService.loading;
   // Guards against a double-tap firing two ngSubmits before navigation away
   // completes — each would create its own optimistic op + a real duplicate
   // server-side create (nothing else in the form/service call chain blocks it).
@@ -41,12 +47,20 @@ export class ServiceFormComponent implements OnInit {
 
   protected readonly isEdit = computed(() => !!this._serviceId);
 
+  // Only ACTIVE staff are offered — the backend's create/update validation
+  // requires an assigned staff id to belong to an ACTIVE staff record, so a
+  // PENDING/INACTIVE row would just 404 on save if it were checkable here.
+  protected readonly assignableStaff = computed(() =>
+    this._staffService.staffList().filter((s) => s.staff.status === 'ACTIVE'),
+  );
+
   protected readonly form = this._fb.group({
     categoryId: ['', Validators.required],
     name: ['', [Validators.required, Validators.maxLength(100)]],
     duration: [30, [Validators.required, Validators.min(1)]],
     price: [0, [Validators.required, Validators.min(0)]],
     description: [''],
+    staffIds: this._fb.nonNullable.control<string[]>([]),
   });
 
   private get _salonId(): string {
@@ -74,6 +88,7 @@ export class ServiceFormComponent implements OnInit {
             duration: service.duration,
             price: Number(service.price),
             description: service.description ?? '',
+            staffIds: service.assignedStaffIds,
           });
         }
       },
@@ -83,25 +98,49 @@ export class ServiceFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.categoriesService.load();
+    this._staffService.load(this._salonId);
     if (this._serviceId) this._servicesService.load(this._salonId);
+  }
+
+  protected isStaffChecked(staffId: string): boolean {
+    return this.form.controls.staffIds.value.includes(staffId);
+  }
+
+  protected toggleStaff(staffId: string, checked: boolean): void {
+    const current = this.form.controls.staffIds.value;
+    const next = checked ? [...current, staffId] : current.filter((id) => id !== staffId);
+    this.form.controls.staffIds.setValue(next);
+    this.form.controls.staffIds.markAsDirty();
+  }
+
+  protected staffName(s: SalonStaff): string {
+    return s.user ? `${s.user.firstName} ${s.user.lastName}` : s.email;
   }
 
   protected save(): void {
     if (this.form.invalid || this.submitting()) return;
     this.submitting.set(true);
-    const { categoryId, name, duration, price, description } = this.form.getRawValue();
-    const body = {
+    const { categoryId, name, duration, price, description, staffIds } = this.form.getRawValue();
+    const sid = this._serviceId;
+    const baseBody = {
       categoryId: categoryId!,
       name: name!,
       duration: duration!,
       price: String(price!),
       description: description || undefined,
     };
-    const sid = this._serviceId;
     if (sid) {
-      this._servicesService.update(this._salonId, sid, body);
+      // staffIds is only included when the checklist was actually touched —
+      // the backend's contract is "omitted = leave assignments untouched",
+      // and an edit that never touches the checklist shouldn't silently wipe
+      // existing assignments just because the untouched control's value is [].
+      const staffIdsChanged = this.form.controls.staffIds.dirty;
+      this._servicesService.update(this._salonId, sid, {
+        ...baseBody,
+        ...(staffIdsChanged ? { staffIds } : {}),
+      });
     } else {
-      this._servicesService.create(this._salonId, body);
+      this._servicesService.create(this._salonId, { ...baseBody, staffIds });
     }
     // Navigate immediately — signal is already updated optimistically.
     // If the request fails, OptimisticService reverts the list + toasts the error.

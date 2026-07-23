@@ -276,6 +276,37 @@ body {
   animation: tab-content-enter 0.2s ease-out;
 }
 
+/* Slim status banner slide/collapse (Angular animate.enter/animate.leave) —
+   the live-queue "getting the latest queue status" notice and the app-wide
+   "no internet connection" banner. Unlike the row/tab animations above
+   (opacity+transform only), this animates HEIGHT as well: these banners are
+   inserted/removed at the top of a column layout, so fading alone still snaps
+   the page height as everything below jumps. A fixed single-line banner has a
+   known height, so animating height directly is safe here — no max-height
+   guesswork of the kind that fought the row slide.
+
+   Each user sets its own --status-banner-height (they differ in font size and
+   padding). The keyframes deliberately omit padding on the settled frame so it
+   resolves to whatever padding that element actually carries — which is why
+   asymmetric padding (e.g. the connection banner's pt-5 pb-2.5 offset) still
+   animates correctly. */
+@keyframes status-banner-enter {
+  from { height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; }
+  to   { height: var(--status-banner-height); opacity: 1; }
+}
+@keyframes status-banner-leave {
+  from { height: var(--status-banner-height); opacity: 1; }
+  to   { height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; }
+}
+.status-banner-enter {
+  animation: status-banner-enter 0.25s ease-out;
+  overflow: hidden;
+}
+.status-banner-leave {
+  animation: status-banner-leave 0.2s ease-in forwards;
+  overflow: hidden;
+}
+
 /* Bottom-nav active-tab glow fade+scale (Angular animate.enter/animate.leave).
    Positioning is handled entirely by inset-0 (no transform) so this
    animation's transform is pure scale — mixing it with a translate-based

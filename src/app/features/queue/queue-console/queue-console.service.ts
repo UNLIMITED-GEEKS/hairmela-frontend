@@ -191,6 +191,33 @@ export class QueueConsoleService {
     this._clearPending(tempEntryId, ...memberIds);
   }
 
+  // Clears every piece of per-visit state so re-entering the console behaves
+  // exactly like a first visit. This service outlives the console page, so
+  // without it `loading` stays false from the prior visit and _serverTimeline
+  // still holds that visit's entries — a re-entry would render the PREVIOUS
+  // queue's state as if current, with no loading affordance (most visible when
+  // an owner/admin switches between two barbers' consoles). The barber acts on
+  // this data (call next, no-show), so a brief honest skeleton beats
+  // instantly-rendered possibly-stale entries.
+  //
+  // The optimistic-overlay state must be cleared TOGETHER with _serverTimeline,
+  // not after it: the `timeline` computed falls back to `server.length >
+  // baseline` for a temp whose real id hasn't resolved yet, and an emptied
+  // server timeline can never satisfy that — so any surviving temp would be
+  // stranded permanently visible as a phantom row on the fresh queue.
+  private _resetForNewVisit(): void {
+    this.loading.set(true);
+    this.error.set(false);
+    this._serverTimeline.set([]);
+    this._optimisticAdds.set([]);
+    this._addRealIds.set(new Map());
+    this._addBaselineCounts.clear();
+    this._pendingIds.set(new Set());
+    this.acting.set(false);
+    this.callNextWaiting.set(false);
+    this._callNextTargetEntryId.set(null);
+  }
+
   // Writes the authoritative server timeline, then prunes any temp add the new
   // frame has now confirmed. The single funnel for every server write (socket
   // frame, REST fallback, _runLocked's paint, _refetchTimeline) — so pruning
@@ -297,7 +324,12 @@ export class QueueConsoleService {
     );
   }
 
-  readonly queueStatus = computed(() => this.queue()?.status ?? 'CLOSED');
+  // null while the queue hasn't loaded yet — deliberately NOT defaulted to
+  // 'CLOSED', which made the status buttons paint "Close" as selected for the
+  // moment before the real status arrived (a visible flicker to Open). null
+  // matches no button, so none is highlighted until the truth lands, and
+  // Call Next stays disabled (its check is `!== 'OPEN'`) meanwhile.
+  readonly queueStatus = computed<Queue['status'] | null>(() => this.queue()?.status ?? null);
 
   readonly servingEntry = computed(() =>
     this.timeline().find((e) => e.members.some((m) => m.status === 'SERVING')),
@@ -457,6 +489,7 @@ export class QueueConsoleService {
   init(salonId: string, queueId: string): void {
     this._socketInitialReceived = false;
     this._activeQueueId = queueId;
+    this._resetForNewVisit();
     this._loadQueueStatus(salonId, queueId);
     // connect() is idempotent (no-op if already connected) — this console must
     // not depend on something else having opened the socket first.
@@ -785,6 +818,47 @@ export class QueueConsoleService {
     });
   }
 
+  // Best-guess wait for a client arriving right now, used only to paint the
+  // optimistic temp entry before the server confirms. Math.max over already-
+  // reported estimatedWaitMinutes is wrong when the queue has a SERVING entry
+  // but no WAITING ones yet: a SERVING entry always reports 0 for itself (see
+  // the backend's buildTimeline — "wait is 0 for this entry itself"), so
+  // Math.max saw an all-zero set and painted the new arrival with 0 wait,
+  // ignoring the barber's remaining time on the client actually being served.
+  //
+  // If there IS at least one real WAITING entry, its own estimatedWaitMinutes
+  // already includes any serving remainder (the backend accumulates it), so
+  // Math.max over those is correct and the serving-remainder path below is
+  // only the no-WAITING-entries fallback.
+  private _optimisticBaselineWaitMinutes(): number {
+    const waitingWaits = this.waitingEntries().map((e) => e.estimatedWaitMinutes);
+    if (waitingWaits.length > 0) return Math.max(...waitingWaits);
+
+    const now = Date.now();
+    return this.timeline()
+      .filter((e) => e.members.some((m) => m.status === 'SERVING'))
+      .reduce((sum, entry) => sum + this._entryRemainingMinutes(entry, now), 0);
+  }
+
+  // Minutes a SERVING entry still needs from the barber. Deliberately mirrors
+  // the backend's remainingDurationOf (timeline.service.ts) exactly, because
+  // this value feeds an optimistic paint that the server's own number replaces
+  // moments later — any divergence shows up as a visible jump:
+  //   full duration of the WHOLE entry (every member, since a party occupies
+  //   the chair until its last member is done — NOT just the one currently in
+  //   it), minus minutes elapsed since the party ENTERED the chair (earliest
+  //   servedAt across its members, not each member's own), floored at 0.
+  // A SERVING entry with no servedAt anywhere is treated as just-started.
+  private _entryRemainingMinutes(entry: TimelineEntryDto, nowMs: number): number {
+    const full = entry.members.reduce((sum, m) => sum + m.serviceDuration, 0);
+    const servedAtMs = entry.members
+      .map((m) => (m.servedAt ? new Date(m.servedAt).getTime() : null))
+      .filter((t): t is number => t !== null)
+      .sort((a, b) => a - b)[0];
+    if (servedAtMs === undefined) return full;
+    return Math.max(0, full - (nowMs - servedAtMs) / 60_000);
+  }
+
   staffAddToQueue(
     salonId: string,
     queueId: string,
@@ -799,8 +873,7 @@ export class QueueConsoleService {
     const current = this.timeline();
     const positions = current.map((e) => e.position).filter((p): p is number => p !== null);
     const lastPosition = positions.length > 0 ? Math.max(...positions) : 0;
-    const lastWait =
-      current.length > 0 ? Math.max(...current.map((e) => e.estimatedWaitMinutes)) : 0;
+    const lastWait = this._optimisticBaselineWaitMinutes();
     const now = new Date().toISOString();
     const tempEntry: TimelineEntryDto = {
       entryId: `temp_${crypto.randomUUID()}`,
@@ -903,8 +976,7 @@ export class QueueConsoleService {
     const current = this.timeline();
     const positions = current.map((e) => e.position).filter((p): p is number => p !== null);
     const lastPosition = positions.length > 0 ? Math.max(...positions) : 0;
-    const lastWait =
-      current.length > 0 ? Math.max(...current.map((e) => e.estimatedWaitMinutes)) : 0;
+    const lastWait = this._optimisticBaselineWaitMinutes();
     const now = new Date().toISOString();
     // Optimistic-paint only — a slightly-off timezone interpretation here is
     // cosmetic (this temp entry is immediately replaced by the real server
