@@ -6,6 +6,7 @@ export interface StaffPerformanceItemDto {
   staffName: string;
   totalAppointments: number;
   totalNoShows: number;
+  totalRevenue: string;
   totalServed: number;
   totalWalkIns: number;
 }

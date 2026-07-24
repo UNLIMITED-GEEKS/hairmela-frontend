@@ -5,5 +5,6 @@ export interface TrendDataPointDto {
   cancelled: number;
   date: string;
   noShows: number;
+  revenue: string;
   served: number;
 }

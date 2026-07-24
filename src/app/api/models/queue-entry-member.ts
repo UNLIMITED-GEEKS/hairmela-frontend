@@ -11,6 +11,7 @@ export interface QueueEntryMember {
   isLeader: boolean;
   memberName: string;
   phone: string | null;
+  priceSnapshot: string;
   queueEntryId: string;
   servedAt: string | null;
   service: (Service & {

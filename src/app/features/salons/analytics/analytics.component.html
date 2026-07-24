@@ -6,20 +6,95 @@
   <div class="flex items-start justify-between gap-4 flex-wrap">
     <p class="text-base text-black/90">Salon performance and customer insights.</p>
 
-    <!-- Date range filter -->
-    <div class="flex items-center gap-2 bg-white border border-border rounded-xl p-1">
-      @for (r of ranges; track r.value) {
-        <button
-          (click)="setRange(r.value)"
-          class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors min-h-8"
-          [class]="analytics.filters().range === r.value
-            ? 'bg-primary text-white'
-            : 'text-text-secondary hover:text-text-primary hover:bg-surface-overlay'">
-          {{ r.label }}
+    <div class="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
+      <!-- Date range pills — mutually exclusive with the calendar day-picker
+           below; picking a pill here always clears any picked day. Full-width
+           on mobile so it lines up with the filter grid below it. -->
+      <div class="flex items-center gap-2 bg-white border border-border rounded-xl p-1 w-full md:w-auto">
+        @for (r of ranges; track r.value) {
+          <button
+            (click)="setRange(r.value)"
+            class="flex-1 md:flex-none px-3 py-1.5 rounded-lg text-sm font-medium transition-colors min-h-8"
+            [class]="analytics.filters().range === r.value
+              ? 'bg-primary text-white'
+              : 'text-text-secondary hover:text-text-primary hover:bg-surface-overlay'">
+            {{ r.label }}
+          </button>
+        }
+      </div>
+
+      <!-- Pick-a-day / staff / service — an even 2-col grid on mobile so
+           nothing is orphaned alone on its own row; a single flowing row on
+           desktop. -->
+      <div class="grid grid-cols-2 md:flex md:items-center gap-2">
+        <!-- Calendar toggle — a picked day is its own mutually-exclusive mode,
+             shown as its own pill so the active filter is visible even with
+             the grid collapsed. -->
+        <button type="button" (click)="toggleCalendar()"
+          class="flex items-center justify-between rounded-xl border min-h-8 transition-colors col-span-2 md:col-span-1 w-full"
+          [class]="analytics.filters().range === 'day'
+            ? 'bg-primary border-primary active:bg-primary-hover'
+            : 'bg-white border-border hover:bg-surface-overlay active:bg-surface-overlay'">
+          <span
+            class="px-3 py-1.5 text-sm font-medium flex items-center gap-1.5 min-h-8"
+            [class]="analytics.filters().range === 'day'
+              ? 'text-white'
+              : 'text-text-secondary hover:text-text-primary'">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            {{ analytics.filters().range === 'day' ? analytics.filters().from : 'Pick a day' }}
+          </span>
+          @if (analytics.filters().range === 'day') {
+            <span (click)="$event.stopPropagation(); clearDay()" aria-label="Clear picked day"
+              class="pr-2.5 pl-1 min-h-8 flex items-center text-white/80 hover:text-white">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </span>
+          }
         </button>
-      }
+
+        <!-- Staff filter -->
+        <select
+          class="min-h-8 px-3 rounded-xl border border-border bg-white text-sm text-text-secondary
+                 focus:outline-none focus:ring-2 focus:ring-primary/30 w-full md:w-auto"
+          [value]="analytics.filters().staffId ?? ''"
+          (change)="onStaffFilterChange($any($event.target).value)">
+          <option value="">All staff</option>
+          @for (s of staffService.staffList(); track s.staff.id) {
+            <option [value]="s.staff.id">{{ staffName(s.staff) }}</option>
+          }
+        </select>
+
+        <!-- Service filter -->
+        <select
+          class="min-h-8 px-3 rounded-xl border border-border bg-white text-sm text-text-secondary
+                 focus:outline-none focus:ring-2 focus:ring-primary/30 w-full md:w-auto"
+          [value]="analytics.filters().serviceId ?? ''"
+          (change)="onServiceFilterChange($any($event.target).value)">
+          <option value="">All services</option>
+          @for (svc of servicesService.services(); track svc.id) {
+            <option [value]="svc.id">{{ svc.name }}</option>
+          }
+        </select>
+      </div>
     </div>
   </div>
+
+  <!-- Calendar day-picker — collapsed by default, expands below the header.
+       Selecting a day is what actually changes the filter (setDay()); simply
+       opening the grid does not. -->
+  @if (calendarOpen()) {
+    <div class="bg-white rounded-2xl border border-border p-4 w-full max-w-sm md:w-fit">
+      <app-mini-month-calendar
+        [viewedMonth]="viewedMonth()"
+        [selectedDate]="selectedDateForCalendar()"
+        (monthChange)="onMonthChange($event)"
+        (daySelect)="onDaySelect($event)" />
+    </div>
+  }
 
   @if (analytics.loading()) {
     <div class="flex justify-center py-16">
@@ -30,35 +105,35 @@
     <!-- Summary cards (live data) -->
     @if (analytics.summary(); as s) {
       <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div class="bg-white rounded-2xl border border-border p-4 flex flex-col gap-1">
-          <span class="text-xs font-semibold text-text-secondary uppercase tracking-wide">Total Served</span>
-          <span class="text-2xl font-bold text-text-primary">{{ s.totalServed }}</span>
-          <span class="text-xs text-text-secondary">{{ s.date }}</span>
+        <div class="bg-white rounded-2xl border border-border p-4 flex flex-col gap-1 min-w-0">
+          <span class="text-xs font-semibold text-text-secondary uppercase tracking-wide md:truncate">Revenue</span>
+          <span class="text-2xl font-bold text-text-primary break-all">₦{{ s.totalRevenue }}</span>
+          <span class="text-xs text-text-secondary md:truncate">{{ s.from === s.to ? s.from : s.from + ' — ' + s.to }}</span>
         </div>
-        <!-- <div class="bg-white rounded-2xl border border-border p-4 flex flex-col gap-1"> -->
-          <!-- <span class="text-xs font-semibold text-text-secondary uppercase tracking-wide">Avg Wait</span> --> 
-          <!-- <span class="text-2xl font-bold text-text-primary">{{ s.averageWaitMinutes }}m</span> -->
-          <!-- <span class="text-xs text-text-secondary">Per client</span> -->
-        <!-- </div> -->
-        <div class="bg-white rounded-2xl border border-border p-4 flex flex-col gap-1">
-          <span class="text-xs font-semibold text-text-secondary uppercase tracking-wide">No-shows</span>
-          <span class="text-2xl font-bold text-text-primary">{{ s.totalNoShows }}</span>
-          <span class="text-xs text-text-secondary">Today</span>
+        <div class="bg-white rounded-2xl border border-border p-4 flex flex-col gap-1 min-w-0">
+          <span class="text-xs font-semibold text-text-secondary uppercase tracking-wide md:truncate">Total Served</span>
+          <span class="text-2xl font-bold text-text-primary break-all">{{ s.totalServed }}</span>
+          <span class="text-xs text-text-secondary md:truncate">{{ s.from === s.to ? s.from : s.from + ' — ' + s.to }}</span>
         </div>
-        <div class="bg-white rounded-2xl border border-border p-4 flex flex-col gap-1">
-          <span class="text-xs font-semibold text-text-secondary uppercase tracking-wide">Walk-ins</span>
-          <span class="text-2xl font-bold text-text-primary">{{ s.walkIns }}</span>
-          <span class="text-xs text-text-secondary">Today</span>
+        <div class="bg-white rounded-2xl border border-border p-4 flex flex-col gap-1 min-w-0">
+          <span class="text-xs font-semibold text-text-secondary uppercase tracking-wide md:truncate">No-shows</span>
+          <span class="text-2xl font-bold text-text-primary break-all">{{ s.totalNoShows }}</span>
+          <span class="text-xs text-text-secondary md:truncate">In range</span>
         </div>
-        <div class="bg-white rounded-2xl border border-border p-4 flex flex-col gap-1">
-          <span class="text-xs font-semibold text-text-secondary uppercase tracking-wide">Waiting Now</span>
-          <span class="text-2xl font-bold text-text-primary">{{ s.currentlyWaiting }}</span>
-          <span class="text-xs text-text-secondary">In queue</span>
+        <div class="bg-white rounded-2xl border border-border p-4 flex flex-col gap-1 min-w-0">
+          <span class="text-xs font-semibold text-text-secondary uppercase tracking-wide md:truncate">Walk-ins</span>
+          <span class="text-2xl font-bold text-text-primary break-all">{{ s.walkIns }}</span>
+          <span class="text-xs text-text-secondary md:truncate">In range</span>
         </div>
-        <div class="bg-white rounded-2xl border border-border p-4 flex flex-col gap-1">
-          <span class="text-xs font-semibold text-text-secondary uppercase tracking-wide">Cancelled</span>
-          <span class="text-2xl font-bold text-text-primary">{{ s.totalCancelled }}</span>
-          <span class="text-xs text-text-secondary">Today</span>
+        <div class="bg-white rounded-2xl border border-border p-4 flex flex-col gap-1 min-w-0">
+          <span class="text-xs font-semibold text-text-secondary uppercase tracking-wide md:truncate">Waiting Now</span>
+          <span class="text-2xl font-bold text-text-primary break-all">{{ s.currentlyWaiting }}</span>
+          <span class="text-xs text-text-secondary md:truncate">In queue</span>
+        </div>
+        <div class="bg-white rounded-2xl border border-border p-4 flex flex-col gap-1 min-w-0">
+          <span class="text-xs font-semibold text-text-secondary uppercase tracking-wide md:truncate">Cancelled</span>
+          <span class="text-2xl font-bold text-text-primary break-all">{{ s.totalCancelled }}</span>
+          <span class="text-xs text-text-secondary md:truncate">In range</span>
         </div>
         <!-- Dummy cards — no endpoint
         @for (card of dummySummaryCards; track card.label) {
@@ -75,7 +150,7 @@
 
     <!-- Bar chart — daily trends (live data) -->
     @if (analytics.trends().length > 0) {
-      <div class="bg-white rounded-2xl border border-border p-6">
+      <div class="bg-white rounded-2xl border border-border p-6 overflow-hidden">
         <h2 class="text-sm font-semibold text-text-primary mb-1">Daily Queue Volume</h2>
         <p class="text-xs text-text-secondary mb-4">{{ analytics.filters().from }} — {{ analytics.filters().to }}</p>
         <div class="relative h-56">
@@ -90,7 +165,7 @@
 
     <!-- Pie chart + table — service breakdown (live data) -->
     @if (analytics.serviceBreakdown().length > 0) {
-      <div class="bg-white rounded-2xl border border-border p-6">
+      <div class="bg-white rounded-2xl border border-border p-6 overflow-hidden">
         <h2 class="text-sm font-semibold text-text-primary mb-4">Service Breakdown</h2>
         <div class="flex flex-col md:flex-row gap-6 items-center">
           <div class="relative w-48 h-48 shrink-0">
@@ -100,17 +175,21 @@
               [options]="pieChartOptions">
             </canvas>
           </div>
-          <div class="flex-1 w-full space-y-2.5">
+          <div class="flex-1 w-full min-w-0 space-y-3">
             @for (svc of analytics.serviceBreakdown(); track svc.serviceName) {
-              <div class="flex items-center gap-3">
-                <span class="text-sm text-text-primary w-36 truncate shrink-0">{{ svc.serviceName }}</span>
-                <div class="flex-1 h-2 bg-surface-raised rounded-full overflow-hidden">
-                  <div class="h-full bg-primary rounded-full"
-                    [style.width.%]="(svc.totalMembers / maxBreakdown()) * 100">
-                  </div>
+              <div class="min-w-0">
+                <div class="flex items-center justify-between gap-2 mb-1">
+                  <span class="text-sm text-text-primary md:truncate min-w-0">{{ svc.serviceName }}</span>
+                  <span class="text-xs font-medium text-text-primary shrink-0">₦{{ svc.totalRevenue }}</span>
                 </div>
-                <span class="text-xs text-text-secondary w-6 text-right shrink-0">{{ svc.totalMembers }}</span>
-                <span class="text-xs text-text-secondary/60 w-14 text-right shrink-0">{{ svc.totalMinutes }}m</span>
+                <div class="flex items-center gap-2">
+                  <div class="flex-1 h-2 bg-surface-raised rounded-full overflow-hidden min-w-0">
+                    <div class="h-full bg-primary rounded-full"
+                      [style.width.%]="(svc.totalMembers / maxBreakdown()) * 100">
+                    </div>
+                  </div>
+                  <span class="text-xs text-text-secondary shrink-0 whitespace-nowrap">{{ svc.totalMembers }} · {{ svc.totalMinutes }}m</span>
+                </div>
               </div>
             }
           </div>
@@ -120,7 +199,7 @@
 
     <!-- Staff performance (live data) -->
     @if (analytics.staffPerformance().length > 0) {
-      <div class="bg-white rounded-2xl border border-border p-6">
+      <div class="bg-white rounded-2xl border border-border p-6 overflow-hidden">
         <div class="flex items-center justify-between gap-3 flex-wrap mb-4">
           <h2 class="text-sm font-semibold text-text-primary">Staff Performance</h2>
           <!-- Sort buttons -->
@@ -140,20 +219,26 @@
         </div>
         <div class="space-y-2">
           @for (staff of analytics.staffPerformance(); track staff.staffId; let i = $index) {
-            <div class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-overlay transition-colors">
-              <span class="text-xs font-bold text-text-secondary/60 w-5 shrink-0">{{ i + 1 }}</span>
-              <span class="text-sm font-medium text-text-primary flex-1 truncate">{{ staff.staffName }}</span>
-              <div class="flex items-center gap-4 shrink-0">
-                <div class="text-center">
-                  <p class="text-sm font-bold text-text-primary">{{ staff.totalServed }}</p>
+            <div class="px-3 py-2.5 rounded-xl hover:bg-surface-overlay transition-colors">
+              <div class="flex items-center gap-2 mb-2 min-w-0">
+                <span class="text-xs font-bold text-text-secondary/60 shrink-0">{{ i + 1 }}</span>
+                <span class="text-sm font-medium text-text-primary md:truncate min-w-0">{{ staff.staffName }}</span>
+              </div>
+              <div class="grid grid-cols-4 gap-2 text-center">
+                <div class="min-w-0">
+                  <p class="text-sm font-bold text-text-primary break-all">₦{{ staff.totalRevenue }}</p>
+                  <p class="text-[10px] text-text-secondary">revenue</p>
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm font-bold text-text-primary break-all">{{ staff.totalServed }}</p>
                   <p class="text-[10px] text-text-secondary">served</p>
                 </div>
-                <div class="text-center">
-                  <p class="text-sm font-bold text-text-primary">{{ staff.totalWalkIns }}</p>
+                <div class="min-w-0">
+                  <p class="text-sm font-bold text-text-primary break-all">{{ staff.totalWalkIns }}</p>
                   <p class="text-[10px] text-text-secondary">walk-ins</p>
                 </div>
-                <div class="text-center">
-                  <p class="text-sm font-bold text-amber-500">{{ staff.totalNoShows }}</p>
+                <div class="min-w-0">
+                  <p class="text-sm font-bold text-amber-500 break-all">{{ staff.totalNoShows }}</p>
                   <p class="text-[10px] text-text-secondary">no-shows</p>
                 </div>
               </div>

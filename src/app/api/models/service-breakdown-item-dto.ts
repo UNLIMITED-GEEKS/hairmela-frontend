@@ -6,4 +6,5 @@ export interface ServiceBreakdownItemDto {
   serviceName: string;
   totalMembers: number;
   totalMinutes: number;
+  totalRevenue: string;
 }

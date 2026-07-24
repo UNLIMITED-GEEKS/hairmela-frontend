@@ -17,14 +17,34 @@ export interface AnalyticsControllerGetSummary$Params {
   salonId: string;
 
 /**
- * YYYY-MM-DD (defaults to today in UTC)
+ * YYYY-MM-DD — single-day mode (defaults to today in UTC). Ignored if from/to are present.
  */
   date?: string;
+
+/**
+ * YYYY-MM-DD — range mode start (inclusive).
+ */
+  from?: string;
+
+/**
+ * YYYY-MM-DD — range mode end (inclusive).
+ */
+  to?: string;
 
 /**
  * IANA timezone (defaults to UTC)
  */
   timezone?: string;
+
+/**
+ * Filter to a single staff member (SalonStaff.id).
+ */
+  staffId?: string;
+
+/**
+ * Filter to a single service. Switches counts to MEMBER-level (see class doc comment) so party entries with mixed services are attributed correctly.
+ */
+  serviceId?: string;
 }
 
 export function analyticsControllerGetSummary(http: HttpClient, rootUrl: string, params: AnalyticsControllerGetSummary$Params, context?: HttpContext): Observable<StrictHttpResponse<QueueSummaryDto>> {
@@ -32,7 +52,11 @@ export function analyticsControllerGetSummary(http: HttpClient, rootUrl: string,
   if (params) {
     rb.path('salonId', params.salonId, {});
     rb.query('date', params.date, {});
+    rb.query('from', params.from, {});
+    rb.query('to', params.to, {});
     rb.query('timezone', params.timezone, {});
+    rb.query('staffId', params.staffId, {});
+    rb.query('serviceId', params.serviceId, {});
   }
 
   return http.request(

@@ -30,6 +30,16 @@ export interface AnalyticsControllerGetStaffPerformance$Params {
  * IANA timezone (defaults to UTC)
  */
   timezone?: string;
+
+/**
+ * Narrow to a single staff member — returns just that one row instead of the full leaderboard.
+ */
+  staffId?: string;
+
+/**
+ * Filter to a single service. Switches counts to MEMBER-level (see class doc comment) so party entries with mixed services are attributed correctly.
+ */
+  serviceId?: string;
 }
 
 export function analyticsControllerGetStaffPerformance(http: HttpClient, rootUrl: string, params: AnalyticsControllerGetStaffPerformance$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<StaffPerformanceItemDto>>> {
@@ -39,6 +49,8 @@ export function analyticsControllerGetStaffPerformance(http: HttpClient, rootUrl
     rb.query('from', params.from, {});
     rb.query('to', params.to, {});
     rb.query('timezone', params.timezone, {});
+    rb.query('staffId', params.staffId, {});
+    rb.query('serviceId', params.serviceId, {});
   }
 
   return http.request(

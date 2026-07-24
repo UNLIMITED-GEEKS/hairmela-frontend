@@ -3,11 +3,13 @@
 
 export interface QueueSummaryDto {
   appointments: number;
-  averageWaitMinutes: number;
   currentlyWaiting: number;
   date: string;
+  from: string;
+  to: string;
   totalCancelled: number;
   totalNoShows: number;
+  totalRevenue: string;
   totalServed: number;
   walkIns: number;
 }

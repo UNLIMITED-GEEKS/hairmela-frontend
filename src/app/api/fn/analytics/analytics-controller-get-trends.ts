@@ -30,6 +30,16 @@ export interface AnalyticsControllerGetTrends$Params {
  * IANA timezone (defaults to UTC)
  */
   timezone?: string;
+
+/**
+ * Filter to a single staff member (SalonStaff.id).
+ */
+  staffId?: string;
+
+/**
+ * Filter to a single service. Switches counts to MEMBER-level (see class doc comment) so party entries with mixed services are attributed correctly.
+ */
+  serviceId?: string;
 }
 
 export function analyticsControllerGetTrends(http: HttpClient, rootUrl: string, params: AnalyticsControllerGetTrends$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<TrendDataPointDto>>> {
@@ -39,6 +49,8 @@ export function analyticsControllerGetTrends(http: HttpClient, rootUrl: string, 
     rb.query('from', params.from, {});
     rb.query('to', params.to, {});
     rb.query('timezone', params.timezone, {});
+    rb.query('staffId', params.staffId, {});
+    rb.query('serviceId', params.serviceId, {});
   }
 
   return http.request(

@@ -30,6 +30,16 @@ export interface AnalyticsControllerGetServiceBreakdown$Params {
  * IANA timezone (defaults to UTC)
  */
   timezone?: string;
+
+/**
+ * Filter to a single staff member (SalonStaff.id).
+ */
+  staffId?: string;
+
+/**
+ * Narrow to a single service — returns just that one row instead of the full breakdown.
+ */
+  serviceId?: string;
 }
 
 export function analyticsControllerGetServiceBreakdown(http: HttpClient, rootUrl: string, params: AnalyticsControllerGetServiceBreakdown$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<ServiceBreakdownItemDto>>> {
@@ -39,6 +49,8 @@ export function analyticsControllerGetServiceBreakdown(http: HttpClient, rootUrl
     rb.query('from', params.from, {});
     rb.query('to', params.to, {});
     rb.query('timezone', params.timezone, {});
+    rb.query('staffId', params.staffId, {});
+    rb.query('serviceId', params.serviceId, {});
   }
 
   return http.request(
