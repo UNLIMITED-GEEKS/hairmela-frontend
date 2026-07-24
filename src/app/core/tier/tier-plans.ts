@@ -28,7 +28,7 @@ export const PLAN_CARDS: readonly PlanCard[] = [
     salons: '1 salon',
     staff: 'Unlimited staff',
     price: 2900,
-    features: ['Walk-in queue', 'Appointments (coming soon)', 'Analytics'],
+    features: ['Walk-in queue', 'Appointments (bookings)', 'Analytics'],
   },
   {
     tier: 2,
@@ -37,7 +37,7 @@ export const PLAN_CARDS: readonly PlanCard[] = [
     tagline: 'For up to 3 salons.',
     salons: 'Up to 3 salons',
     staff: 'Unlimited staff',
-    features: ['Walk-in queue', 'Appointments (coming soon)', 'Analytics'],
+    features: ['Walk-in queue', 'Appointments (bookings)', 'Analytics'],
   },
   {
     tier: 3,
