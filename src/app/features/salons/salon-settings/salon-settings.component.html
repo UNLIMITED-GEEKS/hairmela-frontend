@@ -40,10 +40,16 @@
           <h2 class="text-sm font-semibold text-gray-700">General</h2>
 
           <div>
-            <label for="s-name" class="block text-sm font-medium text-gray-700 mb-1.5">Salon name</label>
+            <label for="s-name" class="block text-sm font-medium text-gray-700 mb-1.5">
+              Salon name
+              @if (isBranch()) {
+                <span class="text-gray-400 font-normal">(locked while this is a branch)</span>
+              }
+            </label>
             <input id="s-name" type="text" formControlName="name"
               class="w-full min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg
-                     focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors" />
+                     focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors
+                     disabled:opacity-50 disabled:bg-gray-50" />
             <app-field-error [control]="form.controls.name" />
           </div>
 
@@ -161,6 +167,47 @@
         </div>
 
       </form>
+
+      <!-- Branch — a separate action from the form above, not part of Save. -->
+      <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-4 mt-6">
+        @if (isBranch()) {
+          <h2 class="text-sm font-semibold text-gray-700">Branch</h2>
+          <p class="text-sm text-gray-500">
+            This salon is a branch — its name is locked to match the main branch. Remove it from the
+            branch group to rename it again.
+          </p>
+          <button type="button" (click)="unbranch()"
+            class="min-h-11 px-4 border border-gray-300 text-gray-700 text-sm font-medium
+                   rounded-lg hover:bg-gray-50 transition-colors">
+            Remove from branch group
+          </button>
+        } @else {
+          <h2 class="text-sm font-semibold text-gray-700">Branch</h2>
+          <p class="text-sm text-gray-500">Mark this salon as a branch of one of your other salons.</p>
+          @if (eligibleParentSalons().length === 0) {
+            <p class="text-sm text-gray-400">You have no other eligible salons.</p>
+          } @else {
+            <div class="flex flex-col sm:flex-row gap-3">
+              <select
+                [value]="selectedParentId() ?? ''"
+                (change)="selectedParentId.set($any($event.target).value || null)"
+                class="flex-1 min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg bg-white
+                       focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors">
+                <option value="">Select a salon…</option>
+                @for (s of eligibleParentSalons(); track s.id) {
+                  <option [value]="s.id">{{ s.name }}</option>
+                }
+              </select>
+              <button type="button" (click)="markAsBranch()" [disabled]="!selectedParentId()"
+                class="min-h-11 px-4 bg-primary text-white text-sm font-medium rounded-lg
+                       hover:bg-primary-dark disabled:opacity-50 transition-colors">
+                Mark as branch
+              </button>
+            </div>
+          }
+        }
+      </div>
+
     </div>
   </div>
 }

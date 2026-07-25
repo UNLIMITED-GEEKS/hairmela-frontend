@@ -4,6 +4,8 @@
 import { SalonCardAddressDto } from '../models/salon-card-address-dto';
 export interface SalonListingItemDto {
   address: SalonCardAddressDto;
+  branchCount: number | null;
+  hasBranches: boolean;
   id: string;
   isOpen: boolean;
   name: string;

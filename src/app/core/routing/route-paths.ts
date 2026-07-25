@@ -22,6 +22,11 @@ export const RouteQueryParam = {
   SALON: 'salon',
   SERVICE_ID: 'serviceId',
   SEARCH: 'search',
+  // Carries the root salon's id/name into the create-salon form when opened
+  // via Salon Overview's "Create a new branch" — lets the form lock the name
+  // field to the root's without an extra fetch.
+  PARENT_SALON_ID: 'parentSalonId',
+  PARENT_SALON_NAME: 'parentSalonName',
   // Flutterwave checkout redirect params (payment callback route).
   STATUS: 'status',
   TX_REF: 'tx_ref',
@@ -70,6 +75,7 @@ export const RouteSegment = {
   E: 'e',
   JOINING: 'joining',
   POSITION: 'position',
+  BRANCHES: 'branches',
 
   LOGIN: 'login',
   REGISTER: 'register',
@@ -118,36 +124,87 @@ export const RoutePath = {
   salonClosures: (salonId: string) => ['/salons', salonId, RouteSegment.CLOSURES],
   salonAppointments: (salonId: string) => ['/salons', salonId, RouteSegment.APPOINTMENTS],
   salonServices: (salonId: string) => ['/salons', salonId, RouteSegment.SERVICES],
-  salonServiceNew: (salonId: string) => ['/salons', salonId, RouteSegment.SERVICES, RouteSegment.NEW],
+  salonServiceNew: (salonId: string) => [
+    '/salons',
+    salonId,
+    RouteSegment.SERVICES,
+    RouteSegment.NEW,
+  ],
   salonServiceEdit: (salonId: string, serviceId: string) => [
-    '/salons', salonId, RouteSegment.SERVICES, serviceId, RouteSegment.EDIT,
+    '/salons',
+    salonId,
+    RouteSegment.SERVICES,
+    serviceId,
+    RouteSegment.EDIT,
   ],
   salonStaff: (salonId: string) => ['/salons', salonId, RouteSegment.STAFF],
-  salonStaffInvite: (salonId: string) => ['/salons', salonId, RouteSegment.STAFF, RouteSegment.INVITE],
-  salonStaffTransferOwnership: (salonId: string) => [
-    '/salons', salonId, RouteSegment.STAFF, RouteSegment.TRANSFER_OWNERSHIP,
+  salonStaffInvite: (salonId: string) => [
+    '/salons',
+    salonId,
+    RouteSegment.STAFF,
+    RouteSegment.INVITE,
   ],
-  salonStaffDetail: (salonId: string, staffId: string) => ['/salons', salonId, RouteSegment.STAFF, staffId],
+  salonStaffTransferOwnership: (salonId: string) => [
+    '/salons',
+    salonId,
+    RouteSegment.STAFF,
+    RouteSegment.TRANSFER_OWNERSHIP,
+  ],
+  salonStaffDetail: (salonId: string, staffId: string) => [
+    '/salons',
+    salonId,
+    RouteSegment.STAFF,
+    staffId,
+  ],
   salonStaffMedia: (salonId: string, staffId: string) => [
-    '/salons', salonId, RouteSegment.STAFF, staffId, RouteSegment.MEDIA,
+    '/salons',
+    salonId,
+    RouteSegment.STAFF,
+    staffId,
+    RouteSegment.MEDIA,
   ],
   salonStaffServices: (salonId: string, staffId: string) => [
-    '/salons', salonId, RouteSegment.STAFF, staffId, RouteSegment.SERVICES,
+    '/salons',
+    salonId,
+    RouteSegment.STAFF,
+    staffId,
+    RouteSegment.SERVICES,
   ],
   salonStaffSchedules: (salonId: string, staffId: string) => [
-    '/salons', salonId, RouteSegment.STAFF, staffId, RouteSegment.SCHEDULES,
+    '/salons',
+    salonId,
+    RouteSegment.STAFF,
+    staffId,
+    RouteSegment.SCHEDULES,
   ],
   salonStaffClosures: (salonId: string, staffId: string) => [
-    '/salons', salonId, RouteSegment.STAFF, staffId, RouteSegment.CLOSURES,
+    '/salons',
+    salonId,
+    RouteSegment.STAFF,
+    staffId,
+    RouteSegment.CLOSURES,
   ],
   salonStaffAppointments: (salonId: string, staffId: string) => [
-    '/salons', salonId, RouteSegment.STAFF, staffId, RouteSegment.APPOINTMENTS,
+    '/salons',
+    salonId,
+    RouteSegment.STAFF,
+    staffId,
+    RouteSegment.APPOINTMENTS,
   ],
   salonQueueConsole: (salonId: string, queueId: string) => [
-    '/salons', salonId, RouteSegment.QUEUES, queueId, RouteSegment.CONSOLE,
+    '/salons',
+    salonId,
+    RouteSegment.QUEUES,
+    queueId,
+    RouteSegment.CONSOLE,
   ],
   salonQueueConsoleQueue: (salonId: string, queueId: string) => [
-    '/salons', salonId, RouteSegment.QUEUES, queueId, RouteSegment.CONSOLE, RouteSegment.QUEUE,
+    '/salons',
+    salonId,
+    RouteSegment.QUEUES,
+    queueId,
+    RouteSegment.CONSOLE,
+    RouteSegment.QUEUE,
   ],
 
   org: (orgId: string) => ['/org', orgId],
@@ -155,17 +212,43 @@ export const RoutePath = {
   orgPlan: (orgId: string) => ['/org', orgId, RouteSegment.PLAN],
   orgBilling: (orgId: string) => ['/org', orgId, RouteSegment.BILLING],
   orgBillingPaymentCallback: (orgId: string) => [
-    '/org', orgId, RouteSegment.BILLING, RouteSegment.PAYMENT, RouteSegment.CALLBACK,
+    '/org',
+    orgId,
+    RouteSegment.BILLING,
+    RouteSegment.PAYMENT,
+    RouteSegment.CALLBACK,
   ],
 
   // Visit flow — `base` is '' (auth shell) or '/g' (guest shell), matching shellPrefix.
   visitSalon: (base: string, slug: string) => [`${base}/s`, slug],
-  visitQueue: (base: string, slug: string, queueId: string) => [`${base}/s`, slug, RouteSegment.Q, queueId],
+  // Multi-branch root's location picker — its own top-level page, not part of
+  // the /s/:slug visit flow. /s/:slug always shows that salon's own real page
+  // (root or branch, no exceptions); listing cards link here instead,
+  // whenever SalonListingItemDto.hasBranches is true, so the picker-vs-real-
+  // page decision is made client-side from data already on the card, not by
+  // the slug endpoint's response shape.
+  visitBranches: (base: string, slug: string) => [`${base}/${RouteSegment.BRANCHES}`, slug],
+  visitQueue: (base: string, slug: string, queueId: string) => [
+    `${base}/s`,
+    slug,
+    RouteSegment.Q,
+    queueId,
+  ],
   visitJoining: (base: string, slug: string, queueId: string) => [
-    `${base}/s`, slug, RouteSegment.Q, queueId, RouteSegment.JOINING,
+    `${base}/s`,
+    slug,
+    RouteSegment.Q,
+    queueId,
+    RouteSegment.JOINING,
   ],
   visitPosition: (base: string, slug: string, queueId: string, entryId: string) => [
-    `${base}/s`, slug, RouteSegment.Q, queueId, RouteSegment.E, entryId, RouteSegment.POSITION,
+    `${base}/s`,
+    slug,
+    RouteSegment.Q,
+    queueId,
+    RouteSegment.E,
+    entryId,
+    RouteSegment.POSITION,
   ],
   guestQueues: () => ['/g/queues'],
 } as const;

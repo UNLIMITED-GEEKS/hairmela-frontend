@@ -131,6 +131,10 @@ export const routes: Routes = [
         data: { shellPrefix: '/g' },
         loadChildren: () => import('./features/visit/visit.routes').then((m) => m.visitRoutes),
       },
+      {
+        path: `${RouteSegment.BRANCHES}/:${RouteParam.SLUG}`,
+        loadChildren: () => import('./features/visit/branches.routes').then((m) => m.branchesRoutes),
+      },
     ],
   },
 
@@ -190,6 +194,10 @@ export const routes: Routes = [
         path: `${RouteSegment.S}/:${RouteParam.SLUG}`,
         data: { shellPrefix: '' },
         loadChildren: () => import('./features/visit/visit.routes').then((m) => m.visitRoutes),
+      },
+      {
+        path: `${RouteSegment.BRANCHES}/:${RouteParam.SLUG}`,
+        loadChildren: () => import('./features/visit/branches.routes').then((m) => m.branchesRoutes),
       },
       {
         path: `${RouteSegment.ORG}/:${RouteParam.ORG_ID}`,

@@ -51,6 +51,10 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           toast.error('Cannot remove the owner. Use Transfer Ownership instead.');
           break;
 
+        case ErrorCodes.SALON_HAS_BRANCHES:
+          toast.error('Detach all branches before deleting this salon.');
+          break;
+
         case ErrorCodes.QUEUE_NOT_OPEN:
         case ErrorCodes.QUEUE_ALREADY_CLOSED:
           toast.error('The queue is not available right now.');

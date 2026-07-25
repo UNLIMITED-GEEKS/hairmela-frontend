@@ -7,6 +7,7 @@ export interface Salon {
   about: string | null;
   address: Address;
   addressId: string;
+  children: Array<Salon>;
   createdAt: string;
   defaultSlotDuration: number;
   deletedAt: string | null;
@@ -17,6 +18,9 @@ export interface Salon {
 }>;
   orgId: string;
   organization: Organization;
+  parent: (Salon & {
+}) | null;
+  parentId: string | null;
   phone: string | null;
   settings: {
 };

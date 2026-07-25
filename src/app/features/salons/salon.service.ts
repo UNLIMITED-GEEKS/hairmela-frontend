@@ -8,12 +8,15 @@ import { CreateSalonDto } from '../../api/models/create-salon-dto';
 import { userSalonsControllerCreate } from '../../api/fn/salons/user-salons-controller-create';
 import { salonsControllerFindOne } from '../../api/fn/salons/salons-controller-find-one';
 import { salonsControllerSoftDelete } from '../../api/fn/salons/salons-controller-soft-delete';
+import { salonsControllerBranch } from '../../api/fn/salons/salons-controller-branch';
+import { salonsControllerUnbranch } from '../../api/fn/salons/salons-controller-unbranch';
 import { CreateSalonResponseDto } from '../../api/models/create-salon-response-dto';
+import { Salon } from '../../api/models/salon';
 import { ToastService } from '../../core/toast/toast.service';
 import { SalonContextService } from '../../core/salon-context/salon-context.service';
 import { ConfirmDialogService } from '../../shared/components/confirm-dialog/confirm-dialog.service';
 import { isApiError } from '../../core/errors/api-error.types';
-import { ErrorCodes } from '../../core/errors/error-codes';
+import { ErrorCodes, ErrorCode } from '../../core/errors/error-codes';
 
 @Injectable({ providedIn: 'root' })
 export class SalonService {
@@ -41,6 +44,57 @@ export class SalonService {
             this._toast.error('Plan limit reached — upgrade to create more salons');
             onLimitReached?.();
           }
+        },
+      });
+  }
+
+  // Attaches salonId as a branch of parentSalonId. Shared by the create-branch
+  // flow (create-salon.component.ts, called right after the salon itself is
+  // created) and Settings' "mark as branch" section (an existing salon
+  // choosing a parent). onError gets the raw error code so each caller can
+  // show its own targeted message for ALREADY_A_BRANCH/BRANCH_DIFFERENT_ORG/
+  // INVALID_BRANCH — see error-codes.ts.
+  attachBranch(
+    salonId: string,
+    parentSalonId: string,
+    destroyRef: DestroyRef,
+    onSuccess?: (salon: Salon) => void,
+    onError?: (code: ErrorCode | null) => void,
+  ): void {
+    salonsControllerBranch(this._http, this._apiConfig.rootUrl, {
+      salonId,
+      body: { parentSalonId },
+    })
+      .pipe(takeUntilDestroyed(destroyRef))
+      .subscribe({
+        next: (res) => {
+          this._toast.success('Branch linked');
+          onSuccess?.(res.body);
+        },
+        error: (err: unknown) => {
+          const body = (err as { error?: unknown })?.error;
+          onError?.(isApiError(body) ? body.code : null);
+        },
+      });
+  }
+
+  // Detaches a branch back to standalone — requires a fresh name since rename
+  // is blocked while branched (see salon-settings.component.ts's isBranch lock).
+  detachBranch(
+    salonId: string,
+    newName: string,
+    destroyRef: DestroyRef,
+    onSuccess?: (salon: Salon) => void,
+  ): void {
+    salonsControllerUnbranch(this._http, this._apiConfig.rootUrl, {
+      salonId,
+      body: { name: newName },
+    })
+      .pipe(takeUntilDestroyed(destroyRef))
+      .subscribe({
+        next: (res) => {
+          this._toast.success('Branch removed — salon is now standalone');
+          onSuccess?.(res.body);
         },
       });
   }

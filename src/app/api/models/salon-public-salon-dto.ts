@@ -3,10 +3,12 @@
 
 import { Address } from '../models/address';
 import { Organization } from '../models/organization';
+import { Salon } from '../models/salon';
 export interface SalonPublicSalonDto {
   about: string | null;
   address: Address;
   addressId: string;
+  children: Array<Salon>;
   createdAt: string;
   defaultSlotDuration: number;
   deletedAt: string | null;
@@ -17,6 +19,9 @@ export interface SalonPublicSalonDto {
 }>;
   orgId: string;
   organization: Organization;
+  parent: (Salon & {
+}) | null;
+  parentId: string | null;
   phone: string | null;
   photoUrl: string | null;
   settings: {

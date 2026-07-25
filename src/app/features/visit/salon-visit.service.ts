@@ -641,10 +641,11 @@ export class SalonVisitService {
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe({
         next: (res) => {
-          this.salonData.set(res.body);
+          const body = res.body;
+          this.salonData.set(body);
           this.loading.set(false);
           publicServicesControllerFindBySalon(this._http, this._apiConfig.rootUrl, {
-            salonId: res.body.salon.id,
+            salonId: body.salon.id,
           })
             .pipe(takeUntilDestroyed(this._destroyRef))
             .subscribe({
@@ -655,7 +656,7 @@ export class SalonVisitService {
               error: () => this.servicesLoading.set(false),
             });
           for (const stored of storedEntries) {
-            const matchesStaff = res.body.staff.some((s) => s.queueId === stored.queueId);
+            const matchesStaff = body.staff.some((s) => s.queueId === stored.queueId);
             if (matchesStaff) {
               this.watchQueue(stored.queueId);
               break;

@@ -9,12 +9,20 @@
     [alt]="salon().name" loading="lazy"
     class="h-full w-full object-cover" />
 
-  <!-- Open/closed badge — glassmorphic (neutral glass, colored text) -->
-  <span class="absolute top-3 left-3 rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-md bg-secondary-100/70 border border-white/20"
-    [class.text-open]="salon().isOpen"
-    [class.text-white]="!salon().isOpen">
-    {{ salon().isOpen ? 'Open' : 'Closed' }}
-  </span>
+  <!-- Open/closed badge — glassmorphic (neutral glass, colored text). A
+       multi-branch root isn't open/closed or at one address itself (each
+       branch has its own), so it gets a locations-count badge instead. -->
+  @if (salon().hasBranches) {
+    <span class="absolute top-3 left-3 rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-md bg-secondary-100/70 border border-white/20 text-white">
+      {{ branchCountLabel() }}
+    </span>
+  } @else {
+    <span class="absolute top-3 left-3 rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-md bg-secondary-100/70 border border-white/20"
+      [class.text-open]="salon().isOpen"
+      [class.text-white]="!salon().isOpen">
+      {{ salon().isOpen ? 'Open' : 'Closed' }}
+    </span>
+  }
 
   <!-- Heart — glassmorphic (auth-gated, absent for anonymous/guest) -->
   @if (showHeart()) {
@@ -31,12 +39,23 @@
 
   <!-- Name/location — glassmorphic bar pinned to the bottom of the photo -->
   <div class="absolute inset-x-0 bottom-0 px-4 py-3 bg-gray-900/40 backdrop-blur-md">
-    <p class="text-xs font-medium text-open">{{ salon().isOpen ? 'Open' : 'Closed' }}</p>
-    <h3 class="mt-0.5 text-base font-bold text-white truncate">{{ salon().name }}</h3>
-    <p class="mt-0.5 flex items-center gap-1 text-xs text-white/80 truncate">
-      <app-icon name="location-pin" class="h-3.5 w-3.5 shrink-0" />
-      {{ salon().address.city }}, {{ salon().address.state }}
-    </p>
+    @if (salon().hasBranches) {
+      <p class="text-xs font-medium text-white/80">Multiple locations</p>
+      <h3 class="mt-0.5 text-base font-bold text-white truncate">{{ salon().name }}</h3>
+    } @else {
+      <p class="text-xs font-medium text-open">{{ salon().isOpen ? 'Open' : 'Closed' }}</p>
+      <h3 class="mt-0.5 text-base font-bold text-white truncate">{{ salon().name }}</h3>
+      <p class="mt-0.5 flex items-center gap-1 text-xs text-white/80">
+        <app-icon name="location-pin" class="h-3.5 w-3.5 shrink-0" />
+        <span class="min-w-0 truncate">
+          @if (showStreet() && salon().address.street) {
+            {{ salon().address.street }}, {{ salon().address.city }}, {{ salon().address.state }}
+          } @else {
+            {{ salon().address.city }}, {{ salon().address.state }}
+          }
+        </span>
+      </p>
+    }
   </div>
 
 </a>

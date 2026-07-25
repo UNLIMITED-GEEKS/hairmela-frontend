@@ -2,13 +2,14 @@ import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ToastComponent } from './core/toast/toast.component';
 import { ConfirmDialogComponent } from './shared/components/confirm-dialog/confirm-dialog.component';
+import { RenameDialogComponent } from './shared/components/rename-dialog/rename-dialog.component';
 import { CookieConsentComponent } from './shared/components/cookie-consent/cookie-consent.component';
 import { QueueSoundService } from './core/queue/queue-sound.service';
 import { QueueSoundWatcherService } from './core/queue/queue-sound-watcher.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, ToastComponent, ConfirmDialogComponent, CookieConsentComponent],
+  imports: [RouterOutlet, ToastComponent, ConfirmDialogComponent, RenameDialogComponent, CookieConsentComponent],
   templateUrl: './app.html',
   // Warms up the queue-sound Audio element on the very first tap/click
   // anywhere in the app — not scoped to the queue console page, since a

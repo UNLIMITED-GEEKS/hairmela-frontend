@@ -25,6 +25,22 @@ export class MobileTopBarComponent {
     () => this.salons().find((s) => s.salon.id === this.activeSalonId()) ?? this.salons()[0] ?? null,
   );
 
+  // Branches share their root's name exactly, so a chain's salons are
+  // indistinguishable in this list by name alone. Show the slug alongside the
+  // name only for the names that actually repeat — a user with uniquely-named
+  // salons sees no change.
+  private readonly _duplicateNames = computed(() => {
+    const counts = new Map<string, number>();
+    for (const s of this.salons()) {
+      counts.set(s.salon.name, (counts.get(s.salon.name) ?? 0) + 1);
+    }
+    return new Set([...counts].filter(([, n]) => n > 1).map(([name]) => name));
+  });
+
+  protected isAmbiguous(name: string): boolean {
+    return this._duplicateNames().has(name);
+  }
+
   protected toggleDropdown(): void {
     this.dropdownOpen.update((v) => !v);
   }

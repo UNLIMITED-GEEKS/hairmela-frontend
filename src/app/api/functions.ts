@@ -55,6 +55,8 @@ export type { UserSalonsControllerRemoveFavorite$Params as UserSalonsControllerR
 export { userSalonsControllerRemoveFavorite as userSalonsControllerRemoveFavorite } from './fn/salons/user-salons-controller-remove-favorite';
 export type { PublicSalonsControllerFindBySlug$Params as PublicSalonsControllerFindBySlug$Params } from './fn/salons/public-salons-controller-find-by-slug';
 export { publicSalonsControllerFindBySlug as publicSalonsControllerFindBySlug } from './fn/salons/public-salons-controller-find-by-slug';
+export type { PublicSalonsControllerFindBranchesBySlug$Params as PublicSalonsControllerFindBranchesBySlug$Params } from './fn/salons/public-salons-controller-find-branches-by-slug';
+export { publicSalonsControllerFindBranchesBySlug as publicSalonsControllerFindBranchesBySlug } from './fn/salons/public-salons-controller-find-branches-by-slug';
 export type { UserFavoritesControllerFindMyFavorites$Params as UserFavoritesControllerFindMyFavorites$Params } from './fn/salons/user-favorites-controller-find-my-favorites';
 export { userFavoritesControllerFindMyFavorites as userFavoritesControllerFindMyFavorites } from './fn/salons/user-favorites-controller-find-my-favorites';
 export type { OrgSalonsControllerFindByOrg$Params as OrgSalonsControllerFindByOrg$Params } from './fn/salons/org-salons-controller-find-by-org';
@@ -71,6 +73,10 @@ export type { SalonsControllerUpdateSettings$Params as SalonsControllerUpdateSet
 export { salonsControllerUpdateSettings as salonsControllerUpdateSettings } from './fn/salons/salons-controller-update-settings';
 export type { SalonsControllerUpdateSlug$Params as SalonsControllerUpdateSlug$Params } from './fn/salons/salons-controller-update-slug';
 export { salonsControllerUpdateSlug as salonsControllerUpdateSlug } from './fn/salons/salons-controller-update-slug';
+export type { SalonsControllerBranch$Params as SalonsControllerBranch$Params } from './fn/salons/salons-controller-branch';
+export { salonsControllerBranch as salonsControllerBranch } from './fn/salons/salons-controller-branch';
+export type { SalonsControllerUnbranch$Params as SalonsControllerUnbranch$Params } from './fn/salons/salons-controller-unbranch';
+export { salonsControllerUnbranch as salonsControllerUnbranch } from './fn/salons/salons-controller-unbranch';
 export type { SalonMembershipControllerGetMyMembership$Params as SalonMembershipControllerGetMyMembership$Params } from './fn/staff/salon-membership-controller-get-my-membership';
 export { salonMembershipControllerGetMyMembership as salonMembershipControllerGetMyMembership } from './fn/staff/salon-membership-controller-get-my-membership';
 export type { StaffControllerFindAll$Params as StaffControllerFindAll$Params } from './fn/staff/staff-controller-find-all';

@@ -43,7 +43,12 @@
                     <span class="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
                       {{ item.salon.name.charAt(0).toUpperCase() }}
                     </span>
-                    <span class="truncate">{{ item.salon.name }}</span>
+                    <span class="min-w-0 flex-1">
+                      <span class="block truncate">{{ item.salon.name }}</span>
+                      @if (isAmbiguous(item.salon.name)) {
+                        <span class="block text-xs text-text-secondary font-normal truncate">{{ item.salon.slug }}</span>
+                      }
+                    </span>
                     @if (item.salon.id === activeSalonId()) {
                       <svg class="w-4 h-4 ml-auto shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>

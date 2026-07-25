@@ -8,7 +8,7 @@ import { SalonRole } from '../../../core/salon-context/membership.types';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/frozen-banner.component';
 import { TierBannerComponent } from '../../../shared/components/tier-banner/tier-banner.component';
-import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
+import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-salon-overview',
@@ -98,5 +98,16 @@ export class SalonOverviewComponent implements OnInit {
 
   protected staffAppointmentsLink(salonId: string, staffId: string): string[] {
     return RoutePath.salonStaffAppointments(salonId, staffId);
+  }
+
+  protected newBranchLink(): string[] {
+    return RoutePath.newSalon();
+  }
+
+  protected newBranchQueryParams(salonId: string, salonName: string): Record<string, string> {
+    return {
+      [RouteQueryParam.PARENT_SALON_ID]: salonId,
+      [RouteQueryParam.PARENT_SALON_NAME]: salonName,
+    };
   }
 }

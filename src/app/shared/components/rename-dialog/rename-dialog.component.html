@@ -1,0 +1,46 @@
+@if (dialog.state(); as state) {
+  <!-- Backdrop -->
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center px-4"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="'rename-dialog-title'">
+
+    <!-- Overlay -->
+    <div class="fixed inset-0 bg-black/50 transition-opacity" (click)="cancel()"></div>
+
+    <!-- Panel -->
+    <div class="relative w-full sm:max-w-sm bg-white rounded-2xl shadow-xl p-6 space-y-4 animate-fade-in">
+
+      <h2 id="rename-dialog-title" class="text-base font-semibold text-gray-900">{{ state.title }}</h2>
+      <p class="text-sm text-gray-500 leading-relaxed">{{ state.message }}</p>
+
+      <input
+        type="text"
+        [ngModel]="value()"
+        (ngModelChange)="value.set($event)"
+        (keydown.enter)="confirm(state.minLength)"
+        class="w-full min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg
+               focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors" />
+
+      <div class="flex gap-3 pt-1">
+        <button
+          type="button"
+          (click)="cancel()"
+          class="flex-1 min-h-11 border border-gray-300 text-gray-700 text-sm font-medium
+                 rounded-lg hover:bg-gray-50 active:scale-95 transition-all">
+          {{ state.cancelLabel ?? 'Cancel' }}
+        </button>
+        <button
+          type="button"
+          (click)="confirm(state.minLength)"
+          [disabled]="!isValid(state.minLength)"
+          class="flex-1 min-h-11 text-sm font-medium rounded-lg active:scale-95 transition-all
+                 bg-primary text-white hover:bg-primary-dark disabled:opacity-50">
+          {{ state.confirmLabel ?? 'Confirm' }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+}

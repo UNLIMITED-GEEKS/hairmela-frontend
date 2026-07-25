@@ -78,6 +78,13 @@
             <span class="text-xs text-text-secondary">View your bookings</span>
           </a>
         }
+        @if (!salon.parentId) {
+          <a [routerLink]="newBranchLink()" [queryParams]="newBranchQueryParams(salon.id, salon.name)"
+            class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+            <span class="text-sm font-semibold text-text-primary">Create a new branch</span>
+            <span class="text-xs text-text-secondary">Open another location</span>
+          </a>
+        }
         <a [routerLink]="shareLink(salon.id)"
           class="col-span-2 flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
           <span class="text-sm font-semibold text-text-primary">Share</span>
