@@ -25,10 +25,14 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => err);
       }
 
-      // Handled by the refresh interceptor — don't double-toast
+      // Handled by the refresh interceptor — don't double-toast.
+      // TOKEN_MISSING included: it's usually a request that raced session
+      // restore and is about to be retried transparently, so surfacing an
+      // error toast for it would flash a failure the user never had.
       if (
         body.code === ErrorCodes.TOKEN_EXPIRED ||
-        body.code === ErrorCodes.TOKEN_INVALID
+        body.code === ErrorCodes.TOKEN_INVALID ||
+        body.code === ErrorCodes.TOKEN_MISSING
       ) {
         return throwError(() => err);
       }

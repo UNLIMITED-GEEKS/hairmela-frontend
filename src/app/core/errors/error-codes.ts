@@ -4,6 +4,10 @@ export const ErrorCodes = {
   EMAIL_NOT_VERIFIED: 'EMAIL_NOT_VERIFIED',
   TOKEN_EXPIRED: 'TOKEN_EXPIRED',
   TOKEN_INVALID: 'TOKEN_INVALID',
+  // No Authorization header at all — distinct from TOKEN_INVALID (a bad one).
+  // Recoverable: usually a request that raced session restore before the
+  // in-memory access token was set, so refresh-and-retry rather than log out.
+  TOKEN_MISSING: 'TOKEN_MISSING',
 
   // ── Users ─────────────────────────────────────────────────────────────────────
   USER_NOT_FOUND: 'USER_NOT_FOUND',
