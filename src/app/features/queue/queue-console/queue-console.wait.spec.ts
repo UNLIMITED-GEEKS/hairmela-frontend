@@ -82,9 +82,8 @@ describe('QueueConsoleService — optimistic wait baseline', () => {
       expect(asAny._entryRemainingMinutes(e, now)).toBeCloseTo(25, 5);
     });
 
-    // The defect this suite exists for: a party occupies the chair until its
-    // LAST member is done, so the whole party's duration counts — not just the
-    // member currently being served.
+    // A party occupies the chair until its LAST member is done, so members
+    // still waiting behind the one in the chair count in full.
     it('counts the whole party, not only the member in the chair', () => {
       const now = Date.now();
       const e = entry({
@@ -94,11 +93,16 @@ describe('QueueConsoleService — optimistic wait baseline', () => {
           member({ memberId: 'm3', status: 'WAITING', serviceDuration: 30 }),
         ],
       });
-      // 90 total − 5 elapsed = 85, NOT 30 − 5 = 25.
+      // Per member: (30 − 5) + 30 + 30 = 85, NOT just the in-chair 25.
       expect(asAny._entryRemainingMinutes(e, now)).toBeCloseTo(85, 5);
     });
 
-    it('uses the earliest servedAt across members, not the latest', () => {
+    // Per-member accounting: each member runs on their own clock (the backend
+    // stamps a fresh servedAt as each takes the chair), and a SERVED member
+    // contributes nothing. Previously this used the party's earliest servedAt
+    // against the party total — changed in step with the backend's
+    // remainingDurationOf, which zeroed out untouched members on an overrun.
+    it('measures the in-chair member from their own servedAt and ignores finished ones', () => {
       const now = Date.now();
       const e = entry({
         members: [
@@ -106,8 +110,22 @@ describe('QueueConsoleService — optimistic wait baseline', () => {
           member({ memberId: 'm2', status: 'SERVING', servedAt: new Date(now - 2 * 60_000).toISOString(), serviceDuration: 30 }),
         ],
       });
-      // Party entered the chair 20m ago: 60 total − 20 = 40.
-      expect(asAny._entryRemainingMinutes(e, now)).toBeCloseTo(40, 5);
+      // m1 done → 0; m2 in the chair 2m into its own 30m → 28.
+      expect(asAny._entryRemainingMinutes(e, now)).toBeCloseTo(28, 5);
+    });
+
+    // The reported bug, at the layer that feeds the optimistic paint.
+    it('keeps untouched members\' time when the in-chair member overruns', () => {
+      const now = Date.now();
+      const e = entry({
+        members: [
+          member({ memberId: 'm1', status: 'SERVING', servedAt: new Date(now - 120 * 60_000).toISOString(), serviceDuration: 30 }),
+          member({ memberId: 'm2', status: 'WAITING', serviceDuration: 30 }),
+          member({ memberId: 'm3', status: 'WAITING', serviceDuration: 30 }),
+        ],
+      });
+      // 0 (overrun, floored) + 30 + 30 = 60 — never 0 for the whole party.
+      expect(asAny._entryRemainingMinutes(e, now)).toBe(60);
     });
 
     it('floors at 0 for an over-running service', () => {

@@ -27,6 +27,16 @@ import { staffServicesControllerGetStaffServices } from '../../../api/fn/service
 import { StaffService } from '../../../api/models/staff-service';
 import { BookAppointmentDto } from '../../../api/models/book-appointment-dto';
 import { SocketPredictService } from '../../../core/caching/socket-predict/socket-predict.service';
+import {
+  WaitContext,
+  computeLiveWaitMinutes,
+  computeMemberWaitMinutes,
+  effectiveSinceSnapshotMs,
+  entryRemainingMinutes,
+  formatWait as formatWaitShared,
+  servingBookedMinutesFor,
+  servingElapsedMsFor,
+} from '../../../core/queue/wait-time';
 
 // Ring geometry — matches the same r="125" circle convention used by the
 // customer-facing my-position ring (see that component for the tick-mark
@@ -225,7 +235,25 @@ export class QueueConsoleService {
   // which cannot write the signals prune touches).
   private _setServerTimeline(entries: TimelineEntryDto[]): void {
     this._serverTimeline.set(entries);
+    this._markSnapshot();
     this._pruneConfirmedAdds();
+  }
+
+  // Anchors wait-time math to WHEN THE LAST FRAME LANDED, not to servedAt —
+  // see core/queue/wait-time.ts's header comment for why: estimatedWaitMinutes
+  // already has elapsed-since-servedAt subtracted by the backend, so
+  // subtracting it again here would double-count. Marked only in
+  // _setServerTimeline (the single funnel for genuine server writes) — NOT on
+  // _runLocked's optimistic paint (line ~312), which predicts a value rather
+  // than reporting a fresh backend snapshot.
+  // Written only here, at genuine fresh-frame landing points; never mutated
+  // during a computed's evaluation. The overrun freeze is derived (see
+  // effectiveSinceSnapshotMs), not latched, so _waitContext stays a pure
+  // function of signals + this value.
+  private _snapshotAt = signal<number | null>(null);
+
+  private _markSnapshot(): void {
+    this._snapshotAt.set(Date.now());
   }
 
   // ── Paint + lock ─────────────────────────────────────────────────────────
@@ -448,43 +476,42 @@ export class QueueConsoleService {
 
   readonly ringDashOffset = computed(() => RING_CIRCUMFERENCE * (1 - this.ringProgress()));
 
-  readonly liveWaitMinutes = computed((): Map<string, number> => {
+  // NOTE: deliberately independent of _elapsedSeconds/displayServingMember
+  // above (the ring/timer/finish-time trio) — those track the OPTIMISTIC
+  // display state (null during the Call Next spinner window), while wait
+  // projections must track the ACTUAL serving entry so a still-in-flight
+  // Call Next doesn't reset every wait number to "nobody serving" for a
+  // moment. servingEntry()/servingMember() are the real, non-optimistic pair.
+  private readonly _waitContext = computed((): WaitContext => {
     this._tick();
-    const elapsedMinutes = Math.floor(this._elapsedSeconds() / 60);
-    const map = new Map<string, number>();
-    for (const entry of this.timeline()) {
-      map.set(entry.entryId, Math.max(0, entry.estimatedWaitMinutes - elapsedMinutes));
-    }
-    return map;
+    const timeline = this.timeline();
+    const entry = this.servingEntry();
+    const nowMs = Date.now();
+
+    // Deliberately does NOT reuse servingMember() for the elapsed anchor —
+    // that computed tracks the single SERVING-status member for other UI
+    // (ring/timer), while servingElapsedMsFor needs the whole party's
+    // earliest servedAt (see its doc comment in wait-time.ts).
+    const servingElapsedMs = entry ? servingElapsedMsFor(entry, nowMs) : null;
+    const servingBookedMinutes = entry ? servingBookedMinutesFor(entry) : null;
+
+    const sinceSnapshotMs = effectiveSinceSnapshotMs({
+      nowMs,
+      snapshotAtMs: this._snapshotAt(),
+      servingElapsedMs,
+      servingBookedMinutes,
+    });
+
+    return { timeline, sinceSnapshotMs, servingElapsedMs, servingBookedMinutes };
   });
 
-  readonly memberWaitMinutes = computed((): Map<string, number> => {
-    this._tick();
-    const elapsedMinutes = Math.floor(this._elapsedSeconds() / 60);
-    const map = new Map<string, number>();
-    for (const entry of this.timeline()) {
-      const isServing = entry.members.some((m) => m.status === 'SERVING');
-      let pendingDuration = 0;
-      for (const member of entry.members) {
-        if (member.status === 'SERVED') {
-          map.set(member.memberId, 0);
-          continue;
-        }
-        if (member.status === 'SERVING') {
-          map.set(member.memberId, 0);
-          pendingDuration = member.serviceDuration - elapsedMinutes;
-          continue;
-        }
-        // WAITING
-        const wait = isServing
-          ? Math.max(0, pendingDuration)
-          : Math.max(0, entry.estimatedWaitMinutes + pendingDuration);
-        map.set(member.memberId, wait);
-        pendingDuration += member.serviceDuration;
-      }
-    }
-    return map;
-  });
+  readonly liveWaitMinutes = computed((): Map<string, number> =>
+    computeLiveWaitMinutes(this._waitContext()),
+  );
+
+  readonly memberWaitMinutes = computed((): Map<string, number> =>
+    computeMemberWaitMinutes(this._waitContext()),
+  );
 
   init(salonId: string, queueId: string): void {
     this._socketInitialReceived = false;
@@ -840,23 +867,12 @@ export class QueueConsoleService {
       .reduce((sum, entry) => sum + this._entryRemainingMinutes(entry, now), 0);
   }
 
-  // Minutes a SERVING entry still needs from the barber. Deliberately mirrors
-  // the backend's remainingDurationOf (timeline.service.ts) exactly, because
-  // this value feeds an optimistic paint that the server's own number replaces
-  // moments later — any divergence shows up as a visible jump:
-  //   full duration of the WHOLE entry (every member, since a party occupies
-  //   the chair until its last member is done — NOT just the one currently in
-  //   it), minus minutes elapsed since the party ENTERED the chair (earliest
-  //   servedAt across its members, not each member's own), floored at 0.
-  // A SERVING entry with no servedAt anywhere is treated as just-started.
+  // Minutes a SERVING entry still needs from the barber — see
+  // entryRemainingMinutes in core/queue/wait-time.ts, which mirrors the
+  // backend's remainingDurationOf. Kept as a thin wrapper because the
+  // optimistic-add baseline below is the only caller and reads better named.
   private _entryRemainingMinutes(entry: TimelineEntryDto, nowMs: number): number {
-    const full = entry.members.reduce((sum, m) => sum + m.serviceDuration, 0);
-    const servedAtMs = entry.members
-      .map((m) => (m.servedAt ? new Date(m.servedAt).getTime() : null))
-      .filter((t): t is number => t !== null)
-      .sort((a, b) => a - b)[0];
-    if (servedAtMs === undefined) return full;
-    return Math.max(0, full - (nowMs - servedAtMs) / 60_000);
+    return entryRemainingMinutes(entry, nowMs);
   }
 
   staffAddToQueue(
@@ -1045,10 +1061,7 @@ export class QueueConsoleService {
   }
 
   formatWait(minutes: number): string {
-    if (minutes < 1) return '< 1m';
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+    return formatWaitShared(minutes);
   }
 
   liveWait(entryId: string): string {

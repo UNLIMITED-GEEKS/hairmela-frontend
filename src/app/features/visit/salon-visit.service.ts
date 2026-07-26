@@ -14,6 +14,15 @@ import { ToastService } from '../../core/toast/toast.service';
 import { ErrorCodes } from '../../core/errors/error-codes';
 import { isApiError } from '../../core/errors/api-error.types';
 import { TimelineEntryDto } from '../../core/socket/socket.types';
+import {
+  WaitContext,
+  computeLiveWaitMinutes,
+  computeMemberWaitMinutes,
+  effectiveSinceSnapshotMs,
+  formatWait as formatWaitShared,
+  servingBookedMinutesFor,
+  servingElapsedMsFor,
+} from '../../core/queue/wait-time';
 import { SalonPublicDto } from '../../api/models/salon-public-dto';
 import { SalonPublicStaffDto } from '../../api/models/salon-public-staff-dto';
 import { Service } from '../../api/models/service';
@@ -178,63 +187,53 @@ export class SalonVisitService {
     return this.myEntry(entryId)?.members ?? [];
   }
 
-  private readonly _servingMember = computed(() => {
-    for (const entry of this.timeline()) {
-      const m = entry.members.find((m) => m.status === 'SERVING');
-      if (m) return m;
-    }
-    return null;
-  });
+  private readonly _servingEntry = computed(() =>
+    this.timeline().find((e) => e.members.some((m) => m.status === 'SERVING')) ?? null,
+  );
 
-  private readonly _elapsedSeconds = computed(() => {
+  // Anchors wait-time math to WHEN THE LAST FRAME LANDED, not to servedAt —
+  // see core/queue/wait-time.ts's header comment for why: estimatedWaitMinutes
+  // already has elapsed-since-servedAt subtracted by the backend, so
+  // subtracting it again here would double-count. _snapshotAt is set at every
+  // genuine fresh-timeline landing point (see the timeline.set() call sites
+  // below and in _loadInitialTimeline); it deliberately does NOT move on
+  // watchQueue()'s cache-seed/reset writes, which carry no new server data.
+  // Written only at genuine fresh-frame landing points via _markSnapshot();
+  // never mutated during a computed's evaluation. The overrun freeze is
+  // derived (see effectiveSinceSnapshotMs), not latched, so _waitContext
+  // stays a pure function of signals + this value.
+  private _snapshotAt = signal<number | null>(null);
+
+  private _markSnapshot(): void {
+    this._snapshotAt.set(this._clock.now());
+  }
+
+  private readonly _waitContext = computed((): WaitContext => {
     this._clock.tick();
-    const servedAt = this._servingMember()?.servedAt;
-    if (!servedAt) return 0;
-    return Math.floor((this._clock.now() - new Date(servedAt).getTime()) / 1000);
+    const timeline = this.timeline();
+    const servingEntry = this._servingEntry();
+    const nowMs = this._clock.now();
+
+    const servingElapsedMs = servingEntry ? servingElapsedMsFor(servingEntry, nowMs) : null;
+    const servingBookedMinutes = servingEntry ? servingBookedMinutesFor(servingEntry) : null;
+
+    const sinceSnapshotMs = effectiveSinceSnapshotMs({
+      nowMs,
+      snapshotAtMs: this._snapshotAt(),
+      servingElapsedMs,
+      servingBookedMinutes,
+    });
+
+    return { timeline, sinceSnapshotMs, servingElapsedMs, servingBookedMinutes };
   });
 
-  readonly liveWaitMinutes = computed((): Map<string, number> => {
-    const elapsedMinutes = Math.floor(this._elapsedSeconds() / 60);
-    const map = new Map<string, number>();
-    for (const entry of this.timeline()) {
-      map.set(entry.entryId, Math.max(0, entry.estimatedWaitMinutes - elapsedMinutes));
-    }
-    return map;
-  });
+  readonly liveWaitMinutes = computed((): Map<string, number> =>
+    computeLiveWaitMinutes(this._waitContext()),
+  );
 
-  readonly memberWaitMinutes = computed((): Map<string, number> => {
-    const elapsedMinutes = Math.floor(this._elapsedSeconds() / 60);
-    const map = new Map<string, number>();
-    for (const entry of this.timeline()) {
-      const isServing = entry.members.some((m) => m.status === 'SERVING');
-      // The first waiting member's wait is the entry's live wait (until the
-      // entry reaches the front) — the same elapsed-adjusted value the entry
-      // card shows via liveWaitMinutes(). Each later member additionally waits
-      // for the earlier members ahead of them to finish (pendingDuration). The
-      // non-serving branch previously used the raw estimatedWaitMinutes without
-      // subtracting elapsed, so member rows read higher than the entry's own
-      // wait (e.g. entry 1h23m but its first member 2h0m).
-      const liveEntryWait = Math.max(0, entry.estimatedWaitMinutes - elapsedMinutes);
-      let pendingDuration = 0;
-      for (const member of entry.members) {
-        if (member.status === 'SERVED') {
-          map.set(member.memberId, 0);
-          continue;
-        }
-        if (member.status === 'SERVING') {
-          map.set(member.memberId, 0);
-          pendingDuration = member.serviceDuration - elapsedMinutes;
-          continue;
-        }
-        const wait = isServing
-          ? Math.max(0, pendingDuration)
-          : Math.max(0, liveEntryWait + pendingDuration);
-        map.set(member.memberId, wait);
-        pendingDuration += member.serviceDuration;
-      }
-    }
-    return map;
-  });
+  readonly memberWaitMinutes = computed((): Map<string, number> =>
+    computeMemberWaitMinutes(this._waitContext()),
+  );
 
   init(slug: string, shellPrefix = ''): void {
     this._shellPrefix = shellPrefix;
@@ -342,6 +341,7 @@ export class SalonVisitService {
         this._socketInitialReceived.add(queueId);
         this._reconcileEntries(queueId, entries, isFirstMessage);
         this.timeline.set(entries);
+        this._markSnapshot();
         this.timelineLoaded.set(true);
         this.timelineConfirmed.set(true);
       });
@@ -594,10 +594,7 @@ export class SalonVisitService {
   }
 
   formatWait(minutes: number): string {
-    if (minutes < 1) return '< 1m';
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+    return formatWaitShared(minutes);
   }
 
   liveWait(entryId: string): string {
@@ -695,6 +692,11 @@ export class SalonVisitService {
           if (this._activeQueueId !== queueId) return;
           const { timeline: entries, serverTime } = res.body;
           this._clock.sync(serverTime);
+          // One mark covers all three timeline.set() branches below — they
+          // all derive from this same response's entries/serverTime, so one
+          // call here can't be missed the way three separately-placed calls
+          // could on a future edit to this method.
+          this._markSnapshot();
           const stored = this._activeEntryStore.getAllForQueue(queueId);
           if (stored.length > 0) {
             this._reconcileEntries(queueId, entries, true);

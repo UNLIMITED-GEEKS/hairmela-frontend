@@ -71,8 +71,9 @@
       </div>
 
       <!-- Estimated wait — same reliable minute-granularity source the
-           live-queue page uses (liveWaitMinutes, anchored to servedAt), not a
-           local per-second countdown that could get stuck at 00:00:00. -->
+           live-queue page uses (liveWaitMinutes, anchored to when the last
+           server frame landed), not a local per-second countdown that could
+           get stuck at 00:00:00. -->
       @if (!serviceComplete() && visit.myEntry(_entryId())) {
         <p class="text-2xl font-semibold text-text-secondary mb-4" aria-live="polite">
           {{ visit.liveWait(_entryId()) }}
