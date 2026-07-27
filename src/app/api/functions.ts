@@ -181,6 +181,8 @@ export type { QueueManagementControllerCompleteMember$Params as QueueManagementC
 export { queueManagementControllerCompleteMember as queueManagementControllerCompleteMember } from './fn/queues/queue-management-controller-complete-member';
 export type { QueueManagementControllerExtendMember$Params as QueueManagementControllerExtendMember$Params } from './fn/queues/queue-management-controller-extend-member';
 export { queueManagementControllerExtendMember as queueManagementControllerExtendMember } from './fn/queues/queue-management-controller-extend-member';
+export type { QueueManagementControllerCancelMember$Params as QueueManagementControllerCancelMember$Params } from './fn/queues/queue-management-controller-cancel-member';
+export { queueManagementControllerCancelMember as queueManagementControllerCancelMember } from './fn/queues/queue-management-controller-cancel-member';
 export type { QueueManagementControllerCompleteAllMembers$Params as QueueManagementControllerCompleteAllMembers$Params } from './fn/queues/queue-management-controller-complete-all-members';
 export { queueManagementControllerCompleteAllMembers as queueManagementControllerCompleteAllMembers } from './fn/queues/queue-management-controller-complete-all-members';
 export type { QueueManagementControllerMarkNoShow$Params as QueueManagementControllerMarkNoShow$Params } from './fn/queues/queue-management-controller-mark-no-show';
@@ -193,6 +195,8 @@ export type { WalkInControllerStaffAddToQueue$Params as WalkInControllerStaffAdd
 export { walkInControllerStaffAddToQueue as walkInControllerStaffAddToQueue } from './fn/queues/walk-in-controller-staff-add-to-queue';
 export type { WalkInControllerLeaveQueue$Params as WalkInControllerLeaveQueue$Params } from './fn/queues/walk-in-controller-leave-queue';
 export { walkInControllerLeaveQueue as walkInControllerLeaveQueue } from './fn/queues/walk-in-controller-leave-queue';
+export type { WalkInControllerCancelMyMember$Params as WalkInControllerCancelMyMember$Params } from './fn/queues/walk-in-controller-cancel-my-member';
+export { walkInControllerCancelMyMember as walkInControllerCancelMyMember } from './fn/queues/walk-in-controller-cancel-my-member';
 export type { BookingControllerBookAppointment$Params as BookingControllerBookAppointment$Params } from './fn/queues/booking-controller-book-appointment';
 export { bookingControllerBookAppointment as bookingControllerBookAppointment } from './fn/queues/booking-controller-book-appointment';
 export type { BookingControllerCancelAppointment$Params as BookingControllerCancelAppointment$Params } from './fn/queues/booking-controller-cancel-appointment';

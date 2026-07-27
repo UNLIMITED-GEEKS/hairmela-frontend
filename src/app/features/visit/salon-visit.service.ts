@@ -34,6 +34,7 @@ import { publicQueueControllerGetTimeline } from '../../api/fn/queues/public-que
 import { publicQueueControllerGetQueue } from '../../api/fn/queues/public-queue-controller-get-queue';
 import { walkInControllerJoinQueue } from '../../api/fn/queues/walk-in-controller-join-queue';
 import { walkInControllerLeaveQueue } from '../../api/fn/queues/walk-in-controller-leave-queue';
+import { walkInControllerCancelMyMember } from '../../api/fn/queues/walk-in-controller-cancel-my-member';
 import { availabilityControllerGetSlots } from '../../api/fn/schedules/availability-controller-get-slots';
 import { bookingControllerBookAppointment } from '../../api/fn/queues/booking-controller-book-appointment';
 import { AvailableSlotDto } from '../../api/models/available-slot-dto';
@@ -64,6 +65,26 @@ export interface BookMemberRow {
 export type BookingResult =
   | { status: 'booked' }
   | { status: 'failed'; reason: 'slot-taken' | 'slot-in-past' | 'generic' };
+
+// The public timeline redacts memberName for every entry, including the
+// caller's own (see ActiveEntry.memberNames' doc comment). Captured from the
+// names WE SENT in the request — not from the response's `entry.members`,
+// which the generated type claims is always populated but isn't on the wire
+// for walk-in joins (the backend returns the entry row before it creates the
+// member records, so `.members` is undefined at runtime despite the model —
+// confirmed live, not just in the types). We already know every name; no
+// server round-trip needed to learn it back.
+//
+// Position-keyed only because member ids don't exist yet at this point.
+// ActiveEntryStore.bindMemberNames re-keys these to real member ids on the
+// first timeline frame — positions are NOT safe to hold long-term, since a
+// member removed from the party disappears from the timeline array and shifts
+// everyone behind them down an index.
+function captureMemberNames(names: string[]): Record<number, string> {
+  const byPosition: Record<number, string> = {};
+  names.forEach((name, i) => (byPosition[i] = name));
+  return byPosition;
+}
 
 @Injectable({ providedIn: 'root' })
 export class SalonVisitService {
@@ -134,6 +155,10 @@ export class SalonVisitService {
   readonly joining = signal(false);
   readonly leaving = signal(false);
   readonly addingKids = signal(false);
+  // memberIds currently mid-removal (cancelMember) — my-position disables
+  // that row's button and shows a spinner while set, same lock-during-flight
+  // idea as the console's isLocked(), just scoped to this one action.
+  readonly cancellingMemberIds = signal<ReadonlySet<string>>(new Set());
   readonly calledVisible = signal(false);
   readonly booking = signal(false);
   readonly bookingResult = signal<BookingResult | null>(null);
@@ -183,12 +208,37 @@ export class SalonVisitService {
     return settings?.maxPartySize ?? 5;
   });
 
+  // The public timeline blanks memberName for every entry (see
+  // ActiveEntry.memberNames' doc comment) — including this one, the caller's
+  // own. Overlays the name captured at join/book time, matched by memberId,
+  // whenever the server sent a blank.
+  //
+  // By memberId, not position: a member can be REMOVED from a party, and a
+  // removed member vanishes from the timeline's members array, shifting
+  // everyone behind them down an index — positional matching would then paste
+  // names onto the wrong people with no error. Ids are bound from the first
+  // timeline frame (ActiveEntryStore.bindMemberNames, driven by
+  // _reconcileEntries), which lands well before any removal is possible.
+  //
+  // A genuinely-blank name from the server (not just redaction) is
+  // indistinguishable from redaction here, but the fallback is the same
+  // either way — worst case an already-empty field stays empty. Leaves a real
+  // (non-blank) memberName alone, so this is inert if the backend contract
+  // ever changes to stop redacting the caller's own entry.
   partyMembers(entryId: string): TimelineEntryDto['members'] {
-    return this.myEntry(entryId)?.members ?? [];
+    const members = this.myEntry(entryId)?.members ?? [];
+    return members.map((m) =>
+      m.memberName
+        ? m
+        : {
+            ...m,
+            memberName: this._activeEntryStore.getMemberName(entryId, m.memberId) ?? m.memberName,
+          },
+    );
   }
 
-  private readonly _servingEntry = computed(() =>
-    this.timeline().find((e) => e.members.some((m) => m.status === 'SERVING')) ?? null,
+  private readonly _servingEntry = computed(
+    () => this.timeline().find((e) => e.members.some((m) => m.status === 'SERVING')) ?? null,
   );
 
   // Anchors wait-time math to WHEN THE LAST FRAME LANDED, not to servedAt —
@@ -227,12 +277,12 @@ export class SalonVisitService {
     return { timeline, sinceSnapshotMs, servingElapsedMs, servingBookedMinutes };
   });
 
-  readonly liveWaitMinutes = computed((): Map<string, number> =>
-    computeLiveWaitMinutes(this._waitContext()),
+  readonly liveWaitMinutes = computed(
+    (): Map<string, number> => computeLiveWaitMinutes(this._waitContext()),
   );
 
-  readonly memberWaitMinutes = computed((): Map<string, number> =>
-    computeMemberWaitMinutes(this._waitContext()),
+  readonly memberWaitMinutes = computed(
+    (): Map<string, number> => computeMemberWaitMinutes(this._waitContext()),
   );
 
   init(slug: string, shellPrefix = ''): void {
@@ -363,7 +413,9 @@ export class SalonVisitService {
     const isGuest = !!this._shellPrefix;
     if (!isGuest && !this._currentUser.user() && !this._guestStore.hasToken()) {
       const returnUrl = RoutePath.visitSalon('', slug).join('/');
-      this._router.navigate(RoutePath.register(), { queryParams: { [RouteQueryParam.RETURN_URL]: returnUrl } });
+      this._router.navigate(RoutePath.register(), {
+        queryParams: { [RouteQueryParam.RETURN_URL]: returnUrl },
+      });
       return false;
     }
     const myEntries = this._activeEntryStore.getAllForQueue(staff.queueId!);
@@ -387,7 +439,13 @@ export class SalonVisitService {
         next: (res) => {
           const entryId = res.body.entry.id;
           const guestToken = res.body.guestToken ?? null;
-          const entry: ActiveEntry = { queueId, entryId, salonId, salonSlug };
+          const entry: ActiveEntry = {
+            queueId,
+            entryId,
+            salonId,
+            salonSlug,
+            pendingMemberNames: captureMemberNames(body.members.map((m) => m.memberName)),
+          };
           this.activeEntries.update((list) => [
             ...list.filter((e) => e.entryId !== entryId),
             entry,
@@ -458,11 +516,21 @@ export class SalonVisitService {
       notes,
     };
 
-    bookingControllerBookAppointment(this._http, this._apiConfig.rootUrl, { salonId, queueId, body })
+    bookingControllerBookAppointment(this._http, this._apiConfig.rootUrl, {
+      salonId,
+      queueId,
+      body,
+    })
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe({
         next: (res) => {
-          const entry: ActiveEntry = { queueId, entryId: res.body.id, salonId, salonSlug };
+          const entry: ActiveEntry = {
+            queueId,
+            entryId: res.body.id,
+            salonId,
+            salonSlug,
+            pendingMemberNames: captureMemberNames(body.members.map((m) => m.memberName)),
+          };
           this.activeEntries.update((list) => [
             ...list.filter((e) => e.entryId !== entry.entryId),
             entry,
@@ -477,7 +545,8 @@ export class SalonVisitService {
           const apiBody = (err as { error?: unknown })?.error;
           if (
             isApiError(apiBody) &&
-            (apiBody.code === ErrorCodes.SLOT_NOT_AVAILABLE || apiBody.code === ErrorCodes.SLOT_ALREADY_BOOKED)
+            (apiBody.code === ErrorCodes.SLOT_NOT_AVAILABLE ||
+              apiBody.code === ErrorCodes.SLOT_ALREADY_BOOKED)
           ) {
             this.bookingResult.set({ status: 'failed', reason: 'slot-taken' });
             this._toast.error('That slot was just taken — pick another.');
@@ -534,6 +603,76 @@ export class SalonVisitService {
       });
   }
 
+  // Removes ONE member from the caller's own party without cancelling the
+  // whole entry (backend: sets that member to CANCELLED). Never offered for a
+  // SERVING member — my-position only wires the button to WAITING rows,
+  // matching the backend's own rule.
+  //
+  // No optimistic paint: the confirming socket frame (queue.updated, emitted
+  // after the backend's transaction commits — including any auto-close if
+  // this was the last active member) is what actually updates `timeline`.
+  // This just locks the row (cancellingMemberIds → spinner/disabled) and
+  // fires the request; on error, refetch re-asserts truth.
+  //
+  // If this was the last WAITING/SERVING member, the backend auto-closes the
+  // whole entry — once that's confirmed, this ALSO removes the ActiveEntry
+  // from storage exactly like leaveQueue does, since there's nothing left of
+  // it to hold a position for.
+  cancelMember(entryId: string, memberId: string, onSuccess: () => void): void {
+    const entry = this._activeEntryStore.getByEntryId(entryId);
+    const salon = this.salon();
+    if (!entry || !salon) return;
+    this._confirmDialog
+      .open({
+        title: 'Remove this person?',
+        message: 'They will be removed from your party.',
+        confirmLabel: 'Remove',
+        danger: true,
+      })
+      .pipe(
+        filter((ok) => ok),
+        takeUntilDestroyed(this._destroyRef),
+      )
+      .subscribe(() => {
+        const timelineEntry = this.myEntry(entryId);
+        const wasLastActive =
+          timelineEntry?.members.filter((m) => m.status === 'WAITING' || m.status === 'SERVING')
+            .length === 1;
+
+        this.cancellingMemberIds.update((s) => new Set([...s, memberId]));
+        walkInControllerCancelMyMember(this._http, this._apiConfig.rootUrl, {
+          salonId: salon.id,
+          queueId: entry.queueId,
+          entryId,
+          memberId,
+        })
+          .pipe(takeUntilDestroyed(this._destroyRef))
+          .subscribe({
+            next: () => {
+              this.cancellingMemberIds.update((s) => {
+                const next = new Set(s);
+                next.delete(memberId);
+                return next;
+              });
+              if (wasLastActive) {
+                this._activeEntryStore.remove(entryId);
+                this.activeEntries.update((list) => list.filter((e) => e.entryId !== entryId));
+              }
+              onSuccess();
+            },
+            error: () => {
+              this.cancellingMemberIds.update((s) => {
+                const next = new Set(s);
+                next.delete(memberId);
+                return next;
+              });
+              this._loadInitialTimeline(entry.queueId);
+              this._toast.error('Failed to remove — please try again.');
+            },
+          });
+      });
+  }
+
   // "Add someone while waiting" is just another join: it creates a NEW entry at
   // the back of the line (the leader of the new slot is the first added person).
   // The interceptor attaches the guest token, so there is no guest/auth fork.
@@ -567,6 +706,7 @@ export class SalonVisitService {
             entryId: res.body.entry.id,
             salonId: salon.id,
             salonSlug: entry.salonSlug,
+            pendingMemberNames: captureMemberNames(body.members.map((m) => m.memberName)),
           };
           if (res.body.guestToken) this._guestStore.setToken(res.body.guestToken);
           this._activeEntryStore.save(newEntry);
@@ -775,7 +915,19 @@ export class SalonVisitService {
     for (const entry of stored) {
       const timelineEntry = entries.find((e) => e.entryId === entry.entryId);
       if (timelineEntry) {
-        live.push(entry);
+        // Bind creation-time names (position-keyed, since member ids don't
+        // exist yet at join/book time) to real member ids, using this frame's
+        // ordering. No-op after the first frame. Done here because positions
+        // are only trustworthy until a member is removed from the party, and
+        // this runs on every frame — so binding happens immediately, long
+        // before a removal could shift them. Re-read afterwards so `live`
+        // (which feeds the activeEntries signal) carries the bound copy, not
+        // the stale pre-binding one.
+        this._activeEntryStore.bindMemberNames(
+          entry.entryId,
+          timelineEntry.members.map((m) => m.memberId),
+        );
+        live.push(this._activeEntryStore.getByEntryId(entry.entryId) ?? entry);
         if (!isFirstMessage && timelineEntry.members.some((m) => m.status === 'SERVING')) {
           this.calledVisible.set(true);
           setTimeout(() => this.calledVisible.set(false), 5000);
@@ -790,5 +942,4 @@ export class SalonVisitService {
       return [...others, ...live];
     });
   }
-
 }

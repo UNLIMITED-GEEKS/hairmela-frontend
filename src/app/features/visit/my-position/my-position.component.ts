@@ -8,6 +8,7 @@ import { PushPromptComponent } from '../../../shared/components/push-prompt/push
 import { PushService } from '../../../core/push/push.service';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { BackButtonComponent } from '../../../shared/components/back-button/back-button.component';
+import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
 import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 import { ordinalSuffix } from '../../../core/utils/queue-format';
@@ -28,6 +29,7 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
     PushPromptComponent,
     FieldErrorComponent,
     BackButtonComponent,
+    InlineSpinnerComponent,
     MediaUrlPipe,
     DatePipe,
   ],
@@ -144,6 +146,15 @@ export class MyPositionComponent {
       this.membersArray.clear();
       this.closeAddKids();
     });
+  }
+
+  // Unlike leaveQueue(), no navigation on success: removing one non-leader
+  // member just updates this same page's party list. If it happened to be
+  // the LAST member (auto-closing the whole entry), the existing
+  // serviceComplete/myEntry() handling already covers "entry no longer
+  // exists" — no separate redirect needed here.
+  protected cancelMember(memberId: string): void {
+    this.visit.cancelMember(this._entryId(), memberId, () => {});
   }
 
   protected leaveQueue(): void {

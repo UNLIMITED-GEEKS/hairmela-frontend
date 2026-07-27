@@ -72,6 +72,10 @@ export class CurrentClientComponent {
     this.console.completeMember(this._salonId, this._queueId, entryId, memberId);
   }
 
+  protected cancelMember(entryId: string, memberId: string): void {
+    this.console.cancelMember(this._salonId, this._queueId, entryId, memberId);
+  }
+
   protected openExtendModal(entryId: string, memberId: string): void {
     this.extendTargetEntryId.set(entryId);
     this.extendTargetMemberId.set(memberId);

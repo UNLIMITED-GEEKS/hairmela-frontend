@@ -21,6 +21,7 @@ import { queueManagementControllerCompleteMember } from '../../../api/fn/queues/
 import { queueManagementControllerExtendMember } from '../../../api/fn/queues/queue-management-controller-extend-member';
 import { queueManagementControllerMarkNoShow } from '../../../api/fn/queues/queue-management-controller-mark-no-show';
 import { queueManagementControllerCancelEntry } from '../../../api/fn/queues/queue-management-controller-cancel-entry';
+import { queueManagementControllerCancelMember } from '../../../api/fn/queues/queue-management-controller-cancel-member';
 import { walkInControllerStaffAddToQueue } from '../../../api/fn/queues/walk-in-controller-staff-add-to-queue';
 import { staffBookingControllerStaffBookAppointment } from '../../../api/fn/queues/staff-booking-controller-staff-book-appointment';
 import { staffServicesControllerGetStaffServices } from '../../../api/fn/services/staff-services-controller-get-staff-services';
@@ -843,6 +844,49 @@ export class QueueConsoleService {
           body,
         }),
     });
+  }
+
+  // Removes one member from a party without cancelling the whole entry
+  // (backend: sets that member to CANCELLED). Never offered for a SERVING
+  // member — the confirm dialog + button are only wired to WAITING rows,
+  // matching the backend's own rule.
+  //
+  // No optimistic paint: the confirming socket frame (queue.updated, emitted
+  // after the backend's transaction commits — including any auto-close if
+  // this was the last active member) is what actually updates the timeline.
+  // This just locks the row (isLocked → spinner/disabled, same as every other
+  // action) and fires the request; on error, refetch re-asserts truth and
+  // clears the lock either way.
+  cancelMember(salonId: string, queueId: string, entryId: string, memberId: string): void {
+    if (this.isLocked(entryId) || this.isLocked(memberId)) return;
+    this._confirmDialog
+      .open({
+        title: 'Remove this person?',
+        message: 'They will be removed from this party.',
+        confirmLabel: 'Remove',
+        danger: true,
+      })
+      .pipe(
+        filter((ok) => ok),
+        takeUntilDestroyed(this._destroyRef),
+      )
+      .subscribe(() => {
+        this._beginPending(entryId, memberId);
+        queueManagementControllerCancelMember(this._http, this._apiConfig.rootUrl, {
+          salonId,
+          queueId,
+          entryId,
+          memberId,
+        })
+          .pipe(takeUntilDestroyed(this._destroyRef))
+          .subscribe({
+            next: () => this._clearPending(entryId, memberId),
+            error: () => {
+              this._clearPending(entryId, memberId);
+              this._refetchTimeline(queueId);
+            },
+          });
+      });
   }
 
   // Best-guess wait for a client arriving right now, used only to paint the

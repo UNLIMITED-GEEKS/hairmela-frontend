@@ -5,6 +5,7 @@ export interface UpdateSalonSettingsDto {
   allowWalkIns?: boolean;
   cancellationWindow?: number;
   maxActiveAppointments?: number;
+  maxActiveWalkIns?: number;
   maxAdvanceBookingDays?: number;
   maxPartySize?: number;
   noShowWindow?: number;

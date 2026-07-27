@@ -75,6 +75,18 @@
             </span>
             @if (member.status === 'WAITING') {
               <span class="text-xs min-h-8 rounded-xl inline-flex items-center text-black/90 shrink-0" aria-live="polite">{{ console.memberWait(member.memberId) }}</span>
+              <!-- @if (console.isLocked(member.memberId)) {
+                <app-inline-spinner class="text-primary shrink-0" />
+              } @else {
+                <button (click)="cancelMember(console.servingEntry()!.entryId, member.memberId)"
+                  [disabled]="console.isLocked(member.memberId)"
+                  class="min-w-8 min-h-8 flex items-center justify-center text-gray-300 hover:text-red-500 shrink-0 disabled:opacity-40"
+                  aria-label="Remove from party">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              } -->
             }
             @if (member.status === 'SERVING') {
               @if (console.isLocked(member.memberId)) {
