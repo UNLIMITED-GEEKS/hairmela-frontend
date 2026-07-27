@@ -442,28 +442,47 @@ describe('wait-time', () => {
             ],
           }),
         ],
-        servingElapsedMs: 10 * 60_000, // 10m elapsed since the PARTY sat down
-        servingBookedMinutes: 50, // whole party: 30 (sm) + 20 (sm2)
+        servingElapsedMs: 10 * 60_000, // 10m elapsed on the SERVING member's own clock
+        servingBookedMinutes: 30, // that member's own booking, not the party total
       });
       const waits = computeMemberWaitMinutes(c);
-      // Whole-party remainder, not just the serving member's own duration:
-      // (30 + 20) - 10 = 40. sm2 is waiting for the ENTIRE party's chair time
-      // to clear, not just sm's individual slice — see the multi-member test
-      // below for why this matters (a single-member entry can't distinguish
-      // "whole party" from "one member's own duration").
-      expect(waits.get('sm2')).toBe(40);
+      // Per-member: sm2 waits only for sm's own remainder — 30 - 10 = 20.
+      // NOT the whole party's total (30+20-10=40); each member is consumed
+      // independently, on their own clock (see wait-time.ts's header comment
+      // and servingElapsedMsFor/servingBookedMinutesFor above).
+      expect(waits.get('sm2')).toBe(20);
     });
 
-    // THE MULTI-MEMBER CASE: only one member is ever actually SERVING at a
-    // time, but a party occupies the chair until its LAST member finishes —
-    // so a 3rd member (m3) waits for the whole party's remaining chair-time
-    // PLUS the one member ahead of them still to be served (m2), not just
-    // the currently-serving member's own individual duration. This is the
-    // scenario a 1-member-serving-entry test can't catch: entryBookedMinutes
-    // there always equals that one member's own serviceDuration by
-    // coincidence, silently hiding a bug that only shows up with 2+ members
-    // sharing one entry.
-    it('uses the WHOLE serving party\'s remaining duration, not just the one member actually being served', () => {
+    // THE REPORTED BUG (party of 3 x 5min, member 1 just started): member 2
+    // showed 15m and member 3 showed 20m — both 10m too high — because the
+    // old code seeded pendingDuration from the WHOLE party's total duration,
+    // then the loop below ALSO added every later member's own duration on
+    // top of that same total, double-counting them. Per-member, only the
+    // in-chair member's own remainder seeds pendingDuration; the loop's own
+    // accumulation is what accounts for members ahead in line.
+    it('does not double-count later members\' own durations into the currently-serving member\'s remainder', () => {
+      const c = ctx({
+        timeline: [
+          entry({
+            entryId: 'serving',
+            estimatedWaitMinutes: 0,
+            members: [
+              member({ memberId: 'm1', status: 'SERVING', serviceDuration: 5 }),
+              member({ memberId: 'm2', status: 'WAITING', serviceDuration: 5 }),
+              member({ memberId: 'm3', status: 'WAITING', serviceDuration: 5 }),
+            ],
+          }),
+        ],
+        servingElapsedMs: 0, // m1 just started
+        servingBookedMinutes: 5, // m1's own booking
+      });
+      const waits = computeMemberWaitMinutes(c);
+      expect(waits.get('m1')).toBe(0); // currently serving
+      expect(waits.get('m2')).toBe(5); // m1's own remainder
+      expect(waits.get('m3')).toBe(10); // plus m2's own duration once m2 starts
+    });
+
+    it('seeds from the in-chair member\'s own remainder even in a mixed-duration party', () => {
       const c = ctx({
         timeline: [
           entry({
@@ -476,15 +495,13 @@ describe('wait-time', () => {
             ],
           }),
         ],
-        servingElapsedMs: 10 * 60_000, // 10m since the party sat down
-        servingBookedMinutes: 60, // whole party: 15 + 20 + 25
+        servingElapsedMs: 10 * 60_000, // 10m into m1's own 15m booking
+        servingBookedMinutes: 15,
       });
       const waits = computeMemberWaitMinutes(c);
-      // Whole party (60) minus elapsed (10) = 50 — NOT m1's own duration (15)
-      // minus elapsed, which would wrongly give a negative/near-0 pendingDuration.
       expect(waits.get('m1')).toBe(0); // currently serving
-      expect(waits.get('m2')).toBe(50); // whole party's remainder
-      expect(waits.get('m3')).toBe(50 + 20); // plus m2's own duration once m2 starts
+      expect(waits.get('m2')).toBe(5); // m1's own remainder: 15 - 10
+      expect(waits.get('m3')).toBe(5 + 20); // plus m2's own duration once m2 starts
     });
 
     it('accounts for members ahead within a waiting entry (pendingDuration accumulation)', () => {

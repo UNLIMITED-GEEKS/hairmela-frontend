@@ -171,25 +171,25 @@ export function computeMemberWaitMinutes(ctx: WaitContext): Map<string, number> 
       }
       if (member.status === 'SERVING') {
         map.set(member.memberId, 0);
-        // A party occupies the chair until its LAST member is done, so what
-        // everyone ELSE in this entry is really waiting on is the WHOLE
-        // party's remaining chair-time — not just this one member's own
-        // serviceDuration, even though only one member is ever actually being
-        // worked on at a time. Matches QueueConsoleService._entryRemainingMinutes
-        // exactly (whole-entry duration minus elapsed since the party's
-        // earliest servedAt), so the optimistic-add baseline and this display
-        // agree on a multi-member party mid-service. For a 1-member entry
-        // (the common case) entryBookedMinutes reduces to this member's own
-        // serviceDuration, unchanged from before.
+        // Seed pendingDuration with the IN-CHAIR member's own remaining time
+        // only — not the whole party's total duration. Per-member accounting
+        // (see servingElapsedMsFor/servingBookedMinutesFor/entryRemainingMinutes
+        // above): exactly one member is ever actually being worked on, and
+        // each member's time is consumed independently, on their own clock.
+        // The loop below already adds every later member's own serviceDuration
+        // on top of this (line "pendingDuration += member.serviceDuration"),
+        // so summing the whole party in here as well double-counted every
+        // waiting member's own duration into the very total they were meant
+        // to be added onto — a party of 3 x 5min reported the second member
+        // waiting 15m (should be 5) and the third 20m (should be 10).
         //
-        // Anchored to servingElapsedMs (elapsed since the party's servedAt),
-        // not sinceSnapshotMinutes (elapsed since the frame arrived) —
-        // different clocks. Floored at 0: an overrun must never leave
-        // pendingDuration negative, which would drag every member behind this
-        // entry down with it (the original memberWaitMinutes bug).
+        // Anchored to servingElapsedMs (elapsed since THIS member's own
+        // servedAt), not sinceSnapshotMinutes (elapsed since the frame
+        // arrived) — different clocks. Floored at 0: an overrun must never
+        // leave pendingDuration negative, which would drag every member
+        // behind this entry down with it (the original memberWaitMinutes bug).
         const servingElapsedMinutes = Math.floor((ctx.servingElapsedMs ?? 0) / 60_000);
-        const entryBookedMinutes = entry.members.reduce((sum, m) => sum + m.serviceDuration, 0);
-        pendingDuration = Math.max(0, entryBookedMinutes - servingElapsedMinutes);
+        pendingDuration = Math.max(0, member.serviceDuration - servingElapsedMinutes);
         continue;
       }
       const wait = isServing
