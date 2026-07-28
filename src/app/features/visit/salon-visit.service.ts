@@ -7,6 +7,7 @@ import { ApiConfiguration } from '../../api/api-configuration';
 import { QueueSocketService } from '../../core/socket/queue-socket.service';
 import { ServerClockService } from '../../core/clock/server-clock.service';
 import { CurrentUserStore } from '../../core/auth/current-user.store';
+import { ActiveQueuesService } from '../queues/auth-queues/active-queues.service';
 import { GuestStore } from '../../core/guest/guest-store';
 import { ActiveEntryStore } from '../../core/queue/active-entry.store';
 import { ConfirmDialogService } from '../../shared/components/confirm-dialog/confirm-dialog.service';
@@ -94,6 +95,7 @@ export class SalonVisitService {
   private readonly _clock = inject(ServerClockService);
   private readonly _router = inject(Router);
   private readonly _currentUser = inject(CurrentUserStore);
+  private readonly _activeQueues = inject(ActiveQueuesService);
   private readonly _guestStore = inject(GuestStore);
   private readonly _activeEntryStore = inject(ActiveEntryStore);
   private readonly _confirmDialog = inject(ConfirmDialogService);
@@ -538,6 +540,16 @@ export class SalonVisitService {
           this._activeEntryStore.save(entry);
           this.booking.set(false);
           this.bookingResult.set({ status: 'booked' });
+          // My Queues is fed by ActiveQueuesService's own cached list, gated
+          // by a 30s TTL only invalidated by the socket noticing an entry get
+          // called — booking a NEW entry is neither, so without this the page
+          // silently shows stale data (the entry missing) until the TTL
+          // happens to expire or the user hard-refreshes. The book dialog
+          // navigates to /queues immediately on submit (before this response
+          // even lands), so the list must be forced fresh here, not just
+          // updated locally — there's nothing local to update, My Queues
+          // reads its own separate signal.
+          this._activeQueues.refresh();
           this._toast.success('Appointment booked.');
         },
         error: (err: unknown) => {
