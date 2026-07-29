@@ -167,15 +167,39 @@ describe('wait-time', () => {
       ).toBe(10 * 60_000);
     });
 
-    it('grows normally when nobody is serving at all', () => {
-      expect(
+    // THE REPORTED BUG: with nobody in the chair, estimatedWaitMinutes from
+    // the backend is a static sum of durations — no servedAt exists to
+    // project elapsed time against, so there is no honest decay to apply.
+    // Ticking it down anyway meant an entirely idle queue's wait numbers
+    // silently drained toward 0 in real time even though nothing was
+    // happening. Must freeze at 0, not grow, and must stay at 0 no matter
+    // how long the queue sits idle (checked across a wide span, same
+    // discipline as the overrun-freeze test below).
+    it('freezes at 0 when nobody is serving — never decays an idle queue\'s wait numbers', () => {
+      const ages = [1, 10, 42, 600].map((mins) =>
         effectiveSinceSnapshotMs({
-          nowMs: 42 * 60_000,
+          nowMs: mins * 60_000,
           snapshotAtMs: 0,
           servingElapsedMs: null,
           servingBookedMinutes: null,
         }),
-      ).toBe(42 * 60_000);
+      );
+      expect(ages).toEqual([0, 0, 0, 0]);
+    });
+
+    // The instant someone IS called, the countdown must resume from a fresh
+    // snapshot rather than staying stuck at the old freeze.
+    it('resumes ticking once a fresh frame reports someone actually serving', () => {
+      const servedAt = 5 * 60_000;
+      const now = 8 * 60_000;
+      expect(
+        effectiveSinceSnapshotMs({
+          nowMs: now,
+          snapshotAtMs: servedAt, // the frame that reported the call landed here
+          servingElapsedMs: now - servedAt,
+          servingBookedMinutes: BOOKED,
+        }),
+      ).toBe(3 * 60_000);
     });
 
     // THE FREEZE: past the booking, the returned age stops growing. Checked

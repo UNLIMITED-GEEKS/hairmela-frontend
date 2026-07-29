@@ -52,7 +52,7 @@
           <div class="h-px bg-border mx-2 mb-2"></div>
         }
 
-        <!-- Salon overview -->
+        <!-- Salon Profile -->
         <a
           [routerLink]="['/' + RouteSegment.SALONS, activeSalonId()]"
           routerLinkActive="bg-primary text-white"
@@ -62,7 +62,7 @@
           [title]="collapsed() ? 'Salon' : ''">
           <app-nav-icon icon="scissors" />
           @if (!collapsed()) {
-            <span class="truncate">Salon Overview</span>
+            <span class="truncate">Salon Profile</span>
           }
         </a>
 

@@ -113,14 +113,29 @@ export function isProjectionStale(params: {
 
 // How much of the snapshot's age actually counts toward the countdown.
 //
-// Normally that's the full age (now - snapshotAt): the projection was valid
-// when it arrived and ticks down in real time. But once the serving party
-// overruns its booking, the projection's premise has failed and the countdown
-// must stop — everyone behind holds their last honest number until a real
+// Only ticks down in real time while someone is actually SERVING: the
+// backend's estimatedWaitMinutes decays for the entries behind a serving
+// party specifically because that party is consuming real, elapsing time
+// (remainingDurationOf subtracts elapsed-since-servedAt). With NOBODY
+// serving, estimatedWaitMinutes is a plain sum of durations — a static
+// snapshot with no clock running against it, since there is no servedAt to
+// project from until a barber actually calls someone. Ticking it down
+// anyway was the bug: a fully-idle queue's wait numbers would silently drain
+// toward 0 in real time even though nothing was actually happening. So
+// servingElapsedMs === null (nobody serving) freezes at age 0 — hold exactly
+// what the snapshot said until a real frame arrives, same "don't extrapolate
+// past what's honest" principle as the overrun freeze below, just for the
+// opposite reason (no clock to project from, rather than a clock that's run
+// out).
+//
+// Once someone genuinely is serving, the countdown resumes as the full age
+// (now - snapshotAt) — until the serving party overruns its booking, at
+// which point the projection's premise has failed and the countdown must
+// stop again — everyone behind holds their last honest number until a real
 // frame arrives.
 //
-// The freeze point is computed, not latched. Staleness begins at exactly
-// `partyServedAt + booked`, so the age to hold is that instant minus
+// The overrun freeze point is computed, not latched. Staleness begins at
+// exactly `partyServedAt + booked`, so the age to hold is that instant minus
 // snapshotAt — no mutable "when did we first notice" state, which would make
 // this a side effect inside a computed() and would drift with tick timing.
 // Verified equal to a per-tick latch up to tick granularity, and consumers
@@ -133,13 +148,16 @@ export function effectiveSinceSnapshotMs(params: {
 }): number {
   const { nowMs, snapshotAtMs, servingElapsedMs, servingBookedMinutes } = params;
   if (snapshotAtMs === null) return 0;
+  if (servingElapsedMs === null) return 0;
+
   const age = Math.max(0, nowMs - snapshotAtMs);
   if (!isProjectionStale({ servingElapsedMs, servingBookedMinutes })) return age;
 
   // Overrun: hold the age as it was at the instant the booking ran out.
-  // Non-null here — isProjectionStale only returns true when both are set.
+  // servingBookedMinutes non-null here — isProjectionStale only returns true
+  // when both params are set, and servingElapsedMs is already known non-null.
   const bookedMs = servingBookedMinutes! * 60_000;
-  const partyServedAtMs = nowMs - servingElapsedMs!;
+  const partyServedAtMs = nowMs - servingElapsedMs;
   const staleFromMs = partyServedAtMs + bookedMs;
   return Math.max(0, staleFromMs - snapshotAtMs);
 }

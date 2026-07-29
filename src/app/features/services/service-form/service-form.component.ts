@@ -58,7 +58,11 @@ export class ServiceFormComponent implements OnInit {
     categoryId: ['', Validators.required],
     name: ['', [Validators.required, Validators.maxLength(100)]],
     duration: [30, [Validators.required, Validators.min(1)]],
-    price: [0, [Validators.required, Validators.min(0)]],
+    // No default — unlike duration, there's no sensible universal starting
+    // price, and a prefilled 0 would silently satisfy `required` even if the
+    // owner never touches the field, publishing a service that looks free by
+    // accident rather than by choice.
+    price: [null as number | null, [Validators.required, Validators.min(0)]],
     description: [''],
     staffIds: this._fb.nonNullable.control<string[]>([]),
   });

@@ -43,7 +43,7 @@
          Salon Controls
         </p>
 
-        <!-- Salon overview -->
+        <!-- Salon Profiles -->
         <a
           [routerLink]="['/' + RouteSegment.SALONS, activeSalonId()]"
           routerLinkActive="bg-primary text-white"
@@ -51,7 +51,7 @@
           (click)="closed.emit()"
           class="flex items-center gap-3 px-3 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors">
           <app-nav-icon icon="scissors" size="w-5 h-5" />
-          <span class="text-sm font-medium">Salon Overview</span>
+          <span class="text-sm font-medium">Salon Profile</span>
         </a>
 
         @for (item of visibleControls(); track item.label) {

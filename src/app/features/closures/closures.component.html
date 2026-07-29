@@ -21,6 +21,13 @@
 
     <div class="space-y-5">
 
+      <!-- mt-2: this page uses [noPadding] on app-screen-layout (no pt-6), so
+           there's otherwise no gap between the header banner and this text. -->
+      <app-page-description extraClass="mt-2 mb-6">
+        Add a specific date your salon won't be open. Users won't be able to join
+        queues or book for that day.
+      </app-page-description>
+
       @if (salonContext.isFrozen()) {
         <app-frozen-banner />
       }

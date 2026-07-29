@@ -99,6 +99,17 @@ export class QueueConsoleService {
 
   readonly queue = signal<Queue | null>(null);
   readonly staffServices = signal<StaffService[]>([]);
+
+  // Whether this salon wants service prices shown, and how many members a
+  // single entry may hold — already on the wire via queue.salon (fetched by
+  // _loadQueueStatus), no separate salon-settings request needed. settings is
+  // an untyped blob (backend doesn't declare its shape in Swagger) — same
+  // bracket-index-and-cast pattern as SalonVisitService.maxPartySize/showPrice
+  // and salon-settings.component.ts.
+  readonly maxPartySize = computed(() => {
+    const settings = this.queue()?.salon?.settings as { maxPartySize?: number } | undefined;
+    return settings?.maxPartySize ?? 5;
+  });
   readonly loading = signal(true);
   readonly error = signal(false);
   // Global lock — for actions with no single entry/member target (status change).

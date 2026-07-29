@@ -61,12 +61,30 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly displayMembership = this._salonContext.displayMembership;
 
   protected readonly navItems: NavItem[] = [
-    { label: 'Home',        icon: 'home',   url: RoutePath.dashboard()[0], bottomNav: true, sidebar: true },
-    { label: 'Search',      icon: 'search', url: RoutePath.search()[0],    bottomNav: true, sidebar: true },
-    { label: 'Queues',      icon: 'queue',  url: RoutePath.queues()[0],    bottomNav: true, sidebar: true },
-    { label: 'Favourites',  icon: 'heart',  url: RoutePath.favorites()[0], bottomNav: false, sidebar: true },
-    { label: 'Profile',     icon: 'profile', url: RoutePath.account()[0],  bottomNav: true, sidebar: true },
-    { label: 'Logout',      icon: 'login',  action: () => this._auth.logout(), sidebar: true },
+    { label: 'Home', icon: 'home', url: RoutePath.dashboard()[0], bottomNav: true, sidebar: true },
+    { label: 'Search', icon: 'search', url: RoutePath.search()[0], bottomNav: true, sidebar: true },
+    {
+      label: 'My Queues',
+      icon: 'queue',
+      url: RoutePath.queues()[0],
+      bottomNav: true,
+      sidebar: true,
+    },
+    {
+      label: 'Favourites',
+      icon: 'heart',
+      url: RoutePath.favorites()[0],
+      bottomNav: false,
+      sidebar: true,
+    },
+    {
+      label: 'My Profile',
+      icon: 'profile',
+      url: RoutePath.account()[0],
+      bottomNav: true,
+      sidebar: true,
+    },
+    { label: 'Logout', icon: 'login', action: () => this._auth.logout(), sidebar: true },
   ];
 
   logout(): void {

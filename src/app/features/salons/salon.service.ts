@@ -85,6 +85,7 @@ export class SalonService {
     newName: string,
     destroyRef: DestroyRef,
     onSuccess?: (salon: Salon) => void,
+    onError?: () => void,
   ): void {
     salonsControllerUnbranch(this._http, this._apiConfig.rootUrl, {
       salonId,
@@ -96,6 +97,11 @@ export class SalonService {
           this._toast.success('Branch removed — salon is now standalone');
           onSuccess?.(res.body);
         },
+        // No local message here — the interceptor's generic body.message
+        // toast already covers this (e.g. SALON_SLUG_TAKEN on the new name).
+        // onError is purely so callers can clear their own pending/loading
+        // state, which previously had nowhere to hook a failure.
+        error: () => onError?.(),
       });
   }
 

@@ -58,6 +58,16 @@ export class AddClientModalComponent {
     return this.addQueueForm.get('members') as FormArray;
   }
 
+  // Every row in addQueueMembers/appointmentMembers IS a real party member
+  // (unlike join-dialog's kidsArray, which excludes the joining customer as
+  // an implicit leader) — so the cap is the salon's full maxPartySize(), no
+  // -1 offset. Plain getters, not computed(): FormArray length isn't a
+  // signal, so this relies on the same template change-detection the
+  // existing `@if (appointmentMembers.length > 1)` check already does.
+  protected get walkInAtMaxPartySize(): boolean {
+    return this.addQueueMembers.length >= this.console.maxPartySize();
+  }
+
   // ── Appointment mode — month-at-a-time availability, refetched only on
   // month change, never cached (live bookable-slot data), matching
   // BookAppointmentDialogComponent's identical pattern ────────────────────
@@ -85,6 +95,10 @@ export class AddClientModalComponent {
 
   protected get appointmentMembers(): FormArray {
     return this.appointmentForm.get('members') as FormArray;
+  }
+
+  protected get appointmentAtMaxPartySize(): boolean {
+    return this.appointmentMembers.length >= this.console.maxPartySize();
   }
 
   constructor() {
@@ -147,6 +161,7 @@ export class AddClientModalComponent {
   }
 
   protected addWalkInRow(): void {
+    if (this.walkInAtMaxPartySize) return;
     this.addQueueMembers.push(this._buildWalkInRow(this.staffServices()[0]?.serviceId ?? ''));
   }
 
@@ -180,6 +195,7 @@ export class AddClientModalComponent {
   }
 
   protected addAppointmentRow(): void {
+    if (this.appointmentAtMaxPartySize) return;
     this.appointmentMembers.push(this._buildAppointmentRow());
   }
 

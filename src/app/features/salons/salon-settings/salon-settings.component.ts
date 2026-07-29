@@ -18,6 +18,7 @@ import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/
 import { TierFreezeDirective } from '../../../shared/directives/tier-freeze.directive';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 import { RouteParam } from '../../../core/routing/route-paths';
 import { ErrorCodes } from '../../../core/errors/error-codes';
 
@@ -47,6 +48,7 @@ const TIMEZONES = [
     TierFreezeDirective,
     FieldErrorComponent,
     PageHeaderComponent,
+    InlineSpinnerComponent,
   ],
 })
 export class SalonSettingsComponent implements OnInit {
@@ -86,6 +88,8 @@ export class SalonSettingsComponent implements OnInit {
   });
 
   protected readonly selectedParentId = signal<string | null>(null);
+  protected readonly markingAsBranch = signal(false);
+  protected readonly unbranching = signal(false);
 
   protected readonly form = this._fb.group({
     name: ['', [Validators.required, Validators.minLength(2)]],
@@ -209,21 +213,24 @@ export class SalonSettingsComponent implements OnInit {
 
   protected markAsBranch(): void {
     const parentId = this.selectedParentId();
-    if (!parentId) return;
+    if (!parentId || this.markingAsBranch()) return;
     // The picker page is cached by the ROOT's slug, so invalidate the parent
     // being attached to — its branch list is about to gain this salon.
     const parentSlug = this.eligibleParentSalons().find((s) => s.id === parentId)?.slug;
+    this.markingAsBranch.set(true);
     this._salonService.attachBranch(
       this._salonId,
       parentId,
       this._destroyRef,
       () => {
+        this.markingAsBranch.set(false);
         this.selectedParentId.set(null);
         if (parentSlug) this._branchPicker.invalidate(parentSlug);
         this._overview.invalidate(this._salonId);
         this._overview.refresh(this._salonId, this._currentUser.user()?.id ?? '');
       },
       (code) => {
+        this.markingAsBranch.set(false);
         if (code === ErrorCodes.ALREADY_A_BRANCH) {
           this._toast.error('This salon is already a branch.');
         } else if (code === ErrorCodes.BRANCH_DIFFERENT_ORG) {
@@ -237,6 +244,7 @@ export class SalonSettingsComponent implements OnInit {
   }
 
   protected unbranch(): void {
+    if (this.unbranching()) return;
     this._renameDialog
       .open({
         title: 'Remove from branch group',
@@ -252,11 +260,19 @@ export class SalonSettingsComponent implements OnInit {
         // Captured before the call — the detach response no longer carries the
         // parent relationship, and the picker cache is keyed by the root's slug.
         const parentSlug = (this._overview.salon() ?? this._settings.salon())?.parent?.slug;
-        this._salonService.detachBranch(this._salonId, newName, this._destroyRef, () => {
-          if (parentSlug) this._branchPicker.invalidate(parentSlug);
-          this._overview.invalidate(this._salonId);
-          this._overview.refresh(this._salonId, this._currentUser.user()?.id ?? '');
-        });
+        this.unbranching.set(true);
+        this._salonService.detachBranch(
+          this._salonId,
+          newName,
+          this._destroyRef,
+          () => {
+            this.unbranching.set(false);
+            if (parentSlug) this._branchPicker.invalidate(parentSlug);
+            this._overview.invalidate(this._salonId);
+            this._overview.refresh(this._salonId, this._currentUser.user()?.id ?? '');
+          },
+          () => this.unbranching.set(false),
+        );
       });
   }
 }

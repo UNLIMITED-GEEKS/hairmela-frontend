@@ -2,6 +2,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { PageDescriptionComponent } from '../../shared/components/page-description/page-description.component';
 import { ScreenLayoutComponent } from '../../shared/components/screen-layout/screen-layout.component';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ToastService } from '../../core/toast/toast.service';
@@ -36,6 +37,7 @@ const SCOPE_TABS: TabItem[] = [
     TabsComponent,
     AnimatedListComponent,
     PageHeaderComponent,
+    PageDescriptionComponent,
     ScreenLayoutComponent,
   ],
 })

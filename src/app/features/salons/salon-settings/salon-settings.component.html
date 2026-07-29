@@ -176,10 +176,14 @@
             This salon is a branch — its name is locked to match the main branch. Remove it from the
             branch group to rename it again.
           </p>
-          <button type="button" (click)="unbranch()"
+          <button type="button" (click)="unbranch()" [disabled]="unbranching()"
             class="min-h-11 px-4 border border-gray-300 text-gray-700 text-sm font-medium
-                   rounded-lg hover:bg-gray-50 transition-colors">
-            Remove from branch group
+                   rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors
+                   inline-flex items-center justify-center gap-2">
+            @if (unbranching()) {
+              <app-inline-spinner />
+            }
+            {{ unbranching() ? 'Removing…' : 'Remove from branch group' }}
           </button>
         } @else {
           <h2 class="text-sm font-semibold text-gray-700">Branch</h2>
@@ -191,17 +195,23 @@
               <select
                 [value]="selectedParentId() ?? ''"
                 (change)="selectedParentId.set($any($event.target).value || null)"
+                [disabled]="markingAsBranch()"
                 class="flex-1 min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg bg-white
-                       focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors">
+                       focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors
+                       disabled:opacity-50 disabled:bg-gray-50">
                 <option value="">Select a salon…</option>
                 @for (s of eligibleParentSalons(); track s.id) {
                   <option [value]="s.id">{{ s.name }}</option>
                 }
               </select>
-              <button type="button" (click)="markAsBranch()" [disabled]="!selectedParentId()"
+              <button type="button" (click)="markAsBranch()" [disabled]="!selectedParentId() || markingAsBranch()"
                 class="min-h-11 px-4 bg-primary text-white text-sm font-medium rounded-lg
-                       hover:bg-primary-dark disabled:opacity-50 transition-colors">
-                Mark as branch
+                       hover:bg-primary-dark disabled:opacity-50 transition-colors
+                       inline-flex items-center justify-center gap-2">
+                @if (markingAsBranch()) {
+                  <app-inline-spinner />
+                }
+                {{ markingAsBranch() ? 'Marking…' : 'Mark as branch' }}
               </button>
             </div>
           }
