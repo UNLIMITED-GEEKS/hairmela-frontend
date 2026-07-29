@@ -45,6 +45,39 @@ import {
 const RING_RADIUS = 125;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
+// Browser-local date, matching add-client-modal.component.ts's own toIsoDate
+// (its `minDate` uses the same convention) — deliberately not a
+// salon-timezone-aware comparison, staying consistent with the rest of this
+// booking flow rather than introducing a stricter check only here.
+//
+// FIXME: this is a duplicate of add-client-modal.component.ts's own
+// toIsoDate — should be a single shared helper (core/utils/queue-format.ts
+// already exists for exactly this kind of thing), not copy-pasted a second
+// time. Left alone for now to match the "surgical changes" rule for this fix,
+// but the third copy should not happen without extracting it.
+//
+// FIXME: browser-local "today" is the wrong comparison for the same-day/
+// future-day BRANCH this function feeds (staffBookAppointment below) — it
+// should be the SALON's local today, not the barber's device's. A barber
+// working in a different timezone than the salon (or just near midnight,
+// salon-local) can get a same-day booking misclassified as "future" (or vice
+// versa): "future" wrongly skips the optimistic paint for a booking that
+// actually belongs in today's live list, or "same-day" wrongly re-triggers
+// the original spinner-never-clears bug this function was added to fix.
+// Fixing this needs the salon's timezone available here (it isn't currently
+// — this service never fetches salon settings beyond what rides along on
+// `queue().salon`, see maxPartySize's identical dependency) and a
+// salon-local "now", mirroring how the backend already does this
+// (salonLocalDate in booking.service.ts) rather than reinventing it
+// client-side. Not fixed now because it requires that data plumbing, which
+// is a bigger change than the bug being fixed here.
+function toIsoDate(d: Date): string {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 @Injectable()
 export class QueueConsoleService {
   private readonly _http = inject(HttpClient);
@@ -1040,6 +1073,19 @@ export class QueueConsoleService {
     onSuccess?: () => void,
     onError?: () => void,
   ): void {
+    // A FUTURE-DAY appointment never appears in _serverTimeline — that's
+    // today's live queue, and this booking isn't due yet. The optimistic path
+    // below relies on _pruneConfirmedAdds() eventually finding the real entry
+    // in _serverTimeline to clear the temp row's pending lock; for a future
+    // date that condition can never become true, so the temp row's spinner
+    // ran forever (the reported bug). There is also no reason to paint a
+    // placeholder row here at all — it wouldn't belong in TODAY's list even
+    // once confirmed. So future-day bookings skip the optimistic-add
+    // machinery entirely: fire the request, toast on success, done.
+    if (date !== toIsoDate(new Date())) {
+      this._staffBookFutureAppointment(salonId, queueId, date, startTime, members, onSuccess, onError);
+      return;
+    }
     // Doesn't route through _runLocked (uses _socketPredict.run directly) —
     // mark it here instead, same reason as _runLocked's own call.
     this._socket.markSelfAction(queueId);
@@ -1113,6 +1159,46 @@ export class QueueConsoleService {
     }
     this._toast.success('Appointment booked.');
     onSuccess?.();
+  }
+
+  // Own tiny in-flight guard for _staffBookFutureAppointment — mirrors
+  // SocketPredictService's dedupeKey gate (same reasoning: stop a double-tap
+  // from firing two identical requests), but that service always paints a
+  // signal, which is exactly the optimistic-list behaviour this path exists
+  // to skip. Not worth reaching for a shared primitive over one Set.
+  private readonly _futureBookingKeysInFlight = new Set<string>();
+
+  private _staffBookFutureAppointment(
+    salonId: string,
+    queueId: string,
+    date: string,
+    startTime: string,
+    members: { memberName: string; serviceId: string }[],
+    onSuccess?: () => void,
+    onError?: () => void,
+  ): void {
+    const key = `${queueId}:${date}:${startTime}:${members.map((m) => `${m.memberName}:${m.serviceId}`).join(',')}`;
+    if (this._futureBookingKeysInFlight.has(key)) return;
+    this._futureBookingKeysInFlight.add(key);
+
+    const body: BookAppointmentDto = { date, startTime, members };
+    staffBookingControllerStaffBookAppointment(this._http, this._apiConfig.rootUrl, {
+      salonId,
+      queueId,
+      body,
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: () => {
+          this._futureBookingKeysInFlight.delete(key);
+          this._toast.success('Appointment booked.');
+          onSuccess?.();
+        },
+        error: () => {
+          this._futureBookingKeysInFlight.delete(key);
+          onError?.();
+        },
+      });
   }
 
   formatWait(minutes: number): string {
