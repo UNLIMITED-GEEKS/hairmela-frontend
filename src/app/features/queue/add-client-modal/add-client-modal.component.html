@@ -56,8 +56,12 @@
                 </div>
                 <select formControlName="serviceId"
                   class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-700">
-                  @for (s of staffServices(); track s.serviceId) {
-                    <option [value]="s.serviceId">{{ s.service.name }}</option>
+                  @for (group of staffServiceGroups(); track group.id) {
+                    <optgroup [label]="group.name">
+                      @for (s of group.items; track s.serviceId) {
+                        <option [value]="s.serviceId">{{ s.service.name }}</option>
+                      }
+                    </optgroup>
                   }
                 </select>
                 <input formControlName="phone" type="tel" placeholder="Phone (optional)"
@@ -137,8 +141,12 @@
                   <select formControlName="serviceId"
                     class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-700">
                     <option value="" disabled>Select a service</option>
-                    @for (s of staffServices(); track s.serviceId) {
-                      <option [value]="s.serviceId">{{ s.service.name }}</option>
+                    @for (group of staffServiceGroups(); track group.id) {
+                      <optgroup [label]="group.name">
+                        @for (s of group.items; track s.serviceId) {
+                          <option [value]="s.serviceId">{{ s.service.name }}</option>
+                        }
+                      </optgroup>
                     }
                   </select>
                   <app-field-error [control]="ctrl.get('serviceId')" [messages]="{ required: 'Select a service.' }" />

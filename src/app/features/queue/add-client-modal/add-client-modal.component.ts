@@ -8,6 +8,8 @@ import { HttpClient } from '@angular/common/http';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { MiniMonthCalendarComponent } from '../../../shared/components/mini-month-calendar/mini-month-calendar.component';
+import { groupByServiceCategory } from '../../../core/utils/group-by-category';
+import { StaffService } from '../../../api/models/staff-service';
 
 function toIsoDate(d: Date): string {
   const yyyy = d.getFullYear();
@@ -46,6 +48,9 @@ export class AddClientModalComponent {
   private readonly _fb = inject(FormBuilder);
 
   protected readonly staffServices = this.console.staffServices;
+  protected readonly staffServiceGroups = computed(() =>
+    groupByServiceCategory(this.staffServices(), (s: StaffService) => s.service),
+  );
 
   protected readonly mode = signal<'walk-in' | 'appointment'>('walk-in');
 

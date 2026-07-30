@@ -34,8 +34,12 @@
             (blur)="leaderServiceTouched.set(true)"
             class="w-full min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors">
             <option value="" disabled>Select a service</option>
-            @for (s of staffServices(); track s.id) {
-              <option [value]="s.id">{{ s.name }}</option>
+            @for (group of staffServiceGroups(); track group.id) {
+              <optgroup [label]="group.name">
+                @for (s of group.items; track s.id) {
+                  <option [value]="s.id">{{ s.name }}</option>
+                }
+              </optgroup>
             }
           </select>
           @if (leaderServiceTouched() && !leaderServiceId()) {
@@ -83,8 +87,12 @@
                   <app-field-error [control]="ctrl.get('name')" [messages]="{ required: 'Enter a name.' }" />
                   <select formControlName="serviceId"
                     class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30">
-                    @for (s of visit.staffServices(staff()); track s.id) {
-                      <option [value]="s.id">{{ s.name }}</option>
+                    @for (group of staffServiceGroups(); track group.id) {
+                      <optgroup [label]="group.name">
+                        @for (s of group.items; track s.id) {
+                          <option [value]="s.id">{{ s.name }}</option>
+                        }
+                      </optgroup>
                     }
                   </select>
                 </div>

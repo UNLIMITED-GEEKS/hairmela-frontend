@@ -594,6 +594,13 @@ export class SalonVisitService {
         // Extra side effects before timeline predict
         this._activeEntryStore.remove(entry.entryId);
         this.activeEntries.update((list) => list.filter((e) => e.entryId !== entry.entryId));
+        // My Queues (ActiveQueuesService) is a separate cached signal, not
+        // touched by anything above — without this it keeps showing the
+        // just-left entry until its own 30s TTL/socket fallback catches up.
+        // Same gap bookAppointment() had; fired here (optimistic-confirm),
+        // not in the HTTP request's own success below, to match this
+        // method's predict-now-revert-on-error shape.
+        this._activeQueues.refresh();
         this._toast.success('You have left the queue.');
         onSuccess();
 

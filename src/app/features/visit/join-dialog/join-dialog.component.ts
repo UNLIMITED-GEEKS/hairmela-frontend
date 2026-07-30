@@ -7,6 +7,8 @@ import { SalonPublicStaffDto } from '../../../api/models/salon-public-staff-dto'
 import { JoinMemberDto } from '../../../api/models/join-member-dto';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { RoutePath } from '../../../core/routing/route-paths';
+import { groupByServiceCategory } from '../../../core/utils/group-by-category';
+import { Service } from '../../../api/models/service';
 
 // Shared join dialog: guest name/phone (guests only), a required service for
 // the leader, + optional party members (kids), submitted as one batch join.
@@ -45,6 +47,9 @@ export class JoinDialogComponent {
   protected readonly leaderServiceTouched = signal(false);
 
   protected readonly staffServices = computed(() => this.visit.staffServices(this.staff()));
+  protected readonly staffServiceGroups = computed(() =>
+    groupByServiceCategory(this.staffServices(), (s: Service) => s),
+  );
 
   protected readonly kidsForm = this._fb.group({
     members: this._fb.array<ReturnType<typeof this._buildKidGroup>>([]),
