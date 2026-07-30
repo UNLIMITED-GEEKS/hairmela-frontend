@@ -14,5 +14,5 @@ import { RoutePath } from '../../../core/routing/route-paths';
 })
 export class InstallBannerComponent {
   protected readonly install = inject(InstallPromptService);
-  protected readonly howToInstallLink = RoutePath.dashboard();
+  protected readonly howToInstallLink = RoutePath.download();
 }

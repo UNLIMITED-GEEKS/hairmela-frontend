@@ -55,7 +55,7 @@ interface SalonStatusBadge {
 export class SalonLandingComponent implements OnInit {
   protected readonly visit = inject(SalonVisitService);
   protected readonly install = inject(InstallPromptService);
-  protected readonly howToInstallLink = RoutePath.dashboard();
+  protected readonly howToInstallLink = RoutePath.download();
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
   private readonly _currentUser = inject(CurrentUserStore);
