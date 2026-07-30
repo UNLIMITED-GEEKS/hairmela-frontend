@@ -229,6 +229,32 @@ export class BookAppointmentDialogComponent {
     // appointment once bookAppointment()'s request resolves; a failure
     // surfaces via the toast bookAppointment() already fires, not a stuck
     // loading state on this page the user has already left.
+    //
+    // FIXME: navigating here, before bookAppointment()'s POST resolves, races
+    // My Queues' own load(). AuthQueuesComponent.ngOnInit fires
+    // ActiveQueuesService.load() as soon as this navigation lands — typically
+    // BEFORE the booking POST has completed server-side — so that fetch is
+    // guaranteed to return a list without the new appointment. The correct
+    // list only arrives via the refresh() bookAppointment() calls on success
+    // (salon-visit.service.ts), which means:
+    //   1. every booking fires two /queues/my-entries requests, the first of
+    //      which is known-stale before it's even sent;
+    //   2. the stale response lands first and paints a list missing the
+    //      appointment the user just made, until the second fetch corrects it
+    //      — brief on a fast connection, not necessarily brief on prod.
+    // ActiveQueuesService was hardened so the success-path refresh() is no
+    // longer silently dropped when it arrives mid-flight (it previously was,
+    // which stretched that window out to the full 30s TTL fallback — the
+    // "appointment appears after a delay" bug). That fix makes this race
+    // recover reliably; it does NOT remove the race.
+    // The real fix is to not navigate until the booking resolves: either
+    // navigate from bookAppointment()'s success callback, or pass the created
+    // entry to My Queues as router state so it renders with no fetch race at
+    // all. Both mean this dialog holds a loading state instead of dismissing
+    // instantly, which reverses the navigation-is-feedback decision above and
+    // diverges from join-dialog's pattern — a UX call, not just a technical
+    // one, which is why it wasn't changed alongside the ActiveQueuesService
+    // fix.
     this._router.navigate(RoutePath.queues());
   }
 

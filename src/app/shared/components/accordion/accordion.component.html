@@ -1,0 +1,16 @@
+<div class="border mb-2 border-border rounded-2xl overflow-hidden">
+  <button type="button" (click)="toggle()" [attr.aria-expanded]="open()"
+    class="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left">
+    <span class="text-sm font-semibold text-text-primary">{{ title() }}</span>
+    <app-icon name="chevron-left" class="w-3.5 h-3.5 text-text-secondary shrink-0 transition-transform duration-200"
+      [class.-rotate-90]="!open()" [class.rotate-90]="open()" />
+  </button>
+  <div class="grid transition-[grid-template-rows] duration-200 ease-out"
+    [style.grid-template-rows]="open() ? '1fr' : '0fr'">
+    <div class="overflow-hidden">
+      <div class="px-4 pb-4">
+        <ng-content />
+      </div>
+    </div>
+  </div>
+</div>

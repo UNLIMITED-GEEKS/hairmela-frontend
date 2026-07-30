@@ -21,6 +21,22 @@ export class ActiveQueuesService {
   private readonly _error = signal(false);
   private readonly _cancelling = signal<string | null>(null);
   private _inflight = false;
+  // Set when refresh() is called while a load() is already in flight — that
+  // in-flight request was started before whatever triggered the refresh (e.g.
+  // a just-completed booking), so it will land without the new data. Without
+  // this, refresh()'s load() call is silently dropped by the _inflight guard
+  // below, and nothing re-fetches until the 30s TTL fallback expires (the
+  // "appears after a delay" bug: book an appointment → navigate to My Queues
+  // → its ngOnInit load() starts and is still running when the booking POST
+  // resolves and calls refresh()).
+  //
+  // This makes that recovery reliable, but the race itself lives at the
+  // booking call site — see the FIXME in book-appointment-dialog.component.ts's
+  // confirmBooking(), which navigates here before its POST resolves.
+  // Note this is a single boolean, not a generation counter: concurrent
+  // invalidations arriving during one in-flight fetch collapse into one
+  // follow-up refresh. Sufficient for the flows that call refresh() today.
+  private _refreshPending = false;
 
   // TTL is a fallback, not the primary staleness signal — SocketInvalidatedTtl
   // invalidates immediately when any of the user's active entries gets
@@ -36,7 +52,8 @@ export class ActiveQueuesService {
   readonly cancelling = this._cancelling.asReadonly();
 
   load(): void {
-    if (this._inflight || this._watch.isFresh()) return;
+    if (this._inflight) return;
+    if (this._watch.isFresh()) return;
     this._inflight = true;
     this._loading.set(true);
     this._error.set(false);
@@ -49,17 +66,29 @@ export class ActiveQueuesService {
           this._loading.set(false);
           this._watch.markFetched();
           this._watch.sync(res.body.map((e) => e.queueId));
+          if (this._refreshPending) {
+            this._refreshPending = false;
+            this.refresh();
+          }
         },
         error: () => {
           this._inflight = false;
           this._error.set(true);
           this._loading.set(false);
+          if (this._refreshPending) {
+            this._refreshPending = false;
+            this.refresh();
+          }
         },
       });
   }
 
   /** Bypasses the TTL — call after an action that changes this list (e.g. leaving a queue). */
   refresh(): void {
+    if (this._inflight) {
+      this._refreshPending = true;
+      return;
+    }
     this._watch.invalidate();
     this.load();
   }

@@ -1,9 +1,4 @@
-import { Component, DestroyRef, inject, input, output, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ApiConfiguration } from '../../../api/api-configuration';
-import { mediaControllerUpload } from '../../../api/fn/media/media-controller-upload';
-import { Media } from '../../../api/models/media';
+import { Component, inject, input, output } from '@angular/core';
 import { ToastService } from '../../../core/toast/toast.service';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -14,54 +9,49 @@ const MAX_BYTES = 5 * 1024 * 1024;
   templateUrl: './image-uploader.component.html',
 })
 export class ImageUploaderComponent {
-  private readonly _http = inject(HttpClient);
-  private readonly _apiConfig = inject(ApiConfiguration);
-  private readonly _destroyRef = inject(DestroyRef);
   private readonly _toast = inject(ToastService);
 
-  readonly entityType = input.required<'USER' | 'SALON' | 'STAFF'>();
-  readonly entityId = input.required<string>();
-  readonly mediaType = input.required<'PROFILE' | 'GALLERY'>();
   readonly label = input('Upload image');
   readonly disabled = input(false);
+  readonly uploading = input(false);
+  readonly multiple = input(false);
+  // Remaining slots the caller has room for. Only enforced when multiple() is
+  // true — single-file (profile) mode has nothing to cap against. null means
+  // no cap (parent doesn't compute one, e.g. profile mode never sets it).
+  readonly maxFiles = input<number | null>(null);
 
-  readonly uploaded = output<Media>();
-
-  protected readonly uploading = signal(false);
+  readonly filesSelected = output<File[]>();
 
   protected onFileChange(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file || this.disabled()) return;
+    const files = input.files ? Array.from(input.files) : [];
+    if (files.length === 0 || this.disabled()) return;
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      this._toast.error('Only JPEG, PNG, or WebP images are allowed');
+    const max = this.maxFiles();
+    if (this.multiple() && max !== null && files.length > max) {
+      this._toast.error(
+        max === 0
+          ? 'You have reached the photo limit.'
+          : `You can only add ${max} more photo${max === 1 ? '' : 's'}.`,
+      );
       input.value = '';
       return;
     }
-    if (file.size > MAX_BYTES) {
-      this._toast.error('Image must be 5 MB or smaller');
-      input.value = '';
-      return;
-    }
 
-    this.uploading.set(true);
-    mediaControllerUpload(this._http, this._apiConfig.rootUrl, {
-      body: {
-        file,
-        entityType: this.entityType(),
-        entityId: this.entityId(),
-        type: this.mediaType(),
-      },
-    }).pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
-      next: (res) => {
-        this.uploading.set(false);
-        this.uploaded.emit(res.body);
-      },
-      error: () => {
-        this.uploading.set(false);
+    for (const file of files) {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        this._toast.error('Only JPEG, PNG, or WebP images are allowed');
         input.value = '';
-      },
-    });
+        return;
+      }
+      if (file.size > MAX_BYTES) {
+        this._toast.error('Image must be 5 MB or smaller');
+        input.value = '';
+        return;
+      }
+    }
+
+    this.filesSelected.emit(files);
+    input.value = '';
   }
 }

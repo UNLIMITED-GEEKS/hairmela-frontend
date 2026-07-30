@@ -122,9 +122,16 @@
             @if (visit.servicesLoading()) {
               <app-skeleton variant="list-item" [count]="4" />
             } @else {
-              <div class="space-y-2">
-                @for (service of visit.services(); track service.id) {
-                  <app-service-list-item [service]="service" [showPrice]="visit.showPrice()" (select)="selectService(service.id)" />
+              <div class="space-y-3">
+                @for (category of serviceCategories(); track category.id) {
+                  <app-accordion [title]="category.name" [open]="isCategoryOpen(category.id)"
+                    (openChange)="setCategoryOpen(category.id, $event)">
+                    <div class="space-y-2">
+                      @for (service of category.services; track service.id) {
+                        <app-service-list-item [service]="service" [showPrice]="visit.showPrice()" (select)="selectService(service.id)" />
+                      }
+                    </div>
+                  </app-accordion>
                 }
               </div>
             }

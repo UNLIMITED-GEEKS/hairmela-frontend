@@ -27,11 +27,8 @@
           <app-avatar [src]="profilePhoto()?.url" size="xl" />
           @if (canEdit()) {
             <app-image-uploader
-              entityType="SALON"
-              [entityId]="_salonId"
-              mediaType="PROFILE"
               label="Change photo"
-              (uploaded)="onProfileUploaded($event)" />
+              (filesSelected)="onProfileFilesSelected($event)" />
           }
         </div>
       </div>
@@ -44,7 +41,7 @@
         <div class="flex items-center justify-between">
           <h2 class="text-sm font-semibold text-gray-700">Gallery</h2>
           <div class="flex items-center gap-3">
-            <span class="text-xs text-gray-400">{{ galleryPhotos().length }} photo{{ galleryPhotos().length === 1 ? '' : 's' }}</span>
+            <span class="text-xs text-gray-400">{{ galleryPhotos().length }}/12 photos</span>
             @if (canEdit() && galleryPhotos().length > 0) {
               <button type="button" (click)="editOpen.set(true)" aria-label="Edit photos"
                 class="w-8 h-8 rounded-full flex items-center justify-center bg-primary text-white hover:bg-primary-hover transition-colors">
@@ -69,12 +66,11 @@
 
         @if (canEdit()) {
           <app-image-uploader
-            entityType="SALON"
-            [entityId]="_salonId"
-            mediaType="GALLERY"
             label="Add photo"
-            [disabled]="galleryPhotos().length >= 12"
-            (uploaded)="onGalleryUploaded($event)" />
+            [multiple]="true"
+            [maxFiles]="remainingGallerySlots()"
+            [disabled]="remainingGallerySlots() === 0"
+            (filesSelected)="onGalleryFilesSelected($event)" />
         }
       </div>
 

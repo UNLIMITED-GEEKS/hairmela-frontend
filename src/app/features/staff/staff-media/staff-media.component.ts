@@ -38,6 +38,8 @@ export class StaffMediaComponent implements OnInit {
   protected readonly error = this._staffMediaService.error;
   protected readonly media = this._staffMediaService.media;
 
+  protected static readonly MAX_GALLERY_PHOTOS = 8;
+
   protected readonly profilePhoto = computed(
     () => this.media().find((m) => m.type === 'PROFILE') ?? null,
   );
@@ -45,6 +47,9 @@ export class StaffMediaComponent implements OnInit {
     this.media().filter((m) => m.type === 'GALLERY'),
   );
   protected readonly galleryUrls = computed(() => this.galleryPhotos().map((m) => m.url));
+  protected readonly remainingGallerySlots = computed(() =>
+    Math.max(0, StaffMediaComponent.MAX_GALLERY_PHOTOS - this.galleryPhotos().length),
+  );
 
   protected readonly previewOpen = signal(false);
   protected readonly previewIndex = signal(0);
@@ -79,15 +84,17 @@ export class StaffMediaComponent implements OnInit {
     this._staffMediaService.refresh(this._staffId);
   }
 
-  protected onProfileUploaded(m: Media): void {
-    this._staffMediaService.patchMedia(this._staffId, (list) => [
-      m,
-      ...list.filter((x) => x.type !== 'PROFILE'),
-    ]);
+  protected onProfileFilesSelected(files: File[]): void {
+    const file = files[0];
+    if (file) this._staffMediaService.upload(this._staffId, file, 'PROFILE');
   }
 
-  protected onGalleryUploaded(m: Media): void {
-    this._staffMediaService.patchMedia(this._staffId, (list) => [...list, m]);
+  // Each file gets its own optimistic tile + independent request via
+  // upload()'s OptimisticService.run() call — a fork-join-style parallel
+  // upload with no extra plumbing needed here, and a failure in one file
+  // reverts only its own tile rather than the whole batch.
+  protected onGalleryFilesSelected(files: File[]): void {
+    for (const file of files) this._staffMediaService.upload(this._staffId, file, 'GALLERY');
   }
 
   protected onReordered(reordered: Media[]): void {

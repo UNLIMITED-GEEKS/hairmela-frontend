@@ -15,6 +15,8 @@ import {
   StaffCardAvailability,
 } from '../../../shared/components/staff-card/staff-card.component';
 import { ServiceListItemComponent } from '../../../shared/components/service-list-item/service-list-item.component';
+import { AccordionComponent } from '../../../shared/components/accordion/accordion.component';
+import { Service } from '../../../api/models/service';
 import { PushPromptComponent } from '../../../shared/components/push-prompt/push-prompt.component';
 import { BookAppointmentDialogComponent } from '../book-appointment-dialog/book-appointment-dialog.component';
 import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
@@ -43,6 +45,7 @@ interface SalonStatusBadge {
     IconComponent,
     StaffCardComponent,
     ServiceListItemComponent,
+    AccordionComponent,
     PushPromptComponent,
     BookAppointmentDialogComponent,
     MediaUrlPipe,
@@ -204,6 +207,41 @@ export class SalonLandingComponent implements OnInit {
   // either way, since visit.services()/staffList() are already loaded (same
   // instant, client-side-filter pattern as staffServices() on the join screen).
   protected readonly selectedServiceId = this.visit.selectedServiceId;
+
+  // Services grouped by category, ordered by each category's sortOrder
+  // (services within a category keep visit.services()'s existing order).
+  protected readonly serviceCategories = computed(() => {
+    const groups = new Map<string, { id: string; name: string; sortOrder: number; services: Service[] }>();
+    for (const service of this.visit.services()) {
+      const cat = service.category;
+      let group = groups.get(cat.id);
+      if (!group) {
+        group = { id: cat.id, name: cat.name, sortOrder: cat.sortOrder, services: [] };
+        groups.set(cat.id, group);
+      }
+      group.services.push(service);
+    }
+    return [...groups.values()].sort((a, b) => a.sortOrder - b.sortOrder);
+  });
+
+  // Per-category accordion open state. A single category is always expanded
+  // (nothing to collapse against); with multiple categories, all start
+  // collapsed. Explicit toggles are remembered here rather than recomputed,
+  // so a background services refresh doesn't snap a user's open section shut.
+  private readonly _openCategoryIds = signal<ReadonlySet<string>>(new Set());
+
+  protected isCategoryOpen(categoryId: string): boolean {
+    if (this.serviceCategories().length <= 1) return true;
+    return this._openCategoryIds().has(categoryId);
+  }
+
+  protected setCategoryOpen(categoryId: string, open: boolean): void {
+    this._openCategoryIds.update((ids) => {
+      const next = new Set(ids);
+      open ? next.add(categoryId) : next.delete(categoryId);
+      return next;
+    });
+  }
 
   protected readonly staffForSelectedService = computed(() => {
     const serviceId = this.selectedServiceId();

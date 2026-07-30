@@ -50,10 +50,15 @@ export class SalonMediaService {
     this._loader.refresh(salonId);
   }
 
-  upload(salonId: string, file: File, onSuccess?: () => void): void {
+  upload(
+    salonId: string,
+    file: File,
+    mediaType: 'PROFILE' | 'GALLERY',
+    onSuccess?: () => void,
+  ): void {
     const tempId = `temp_${crypto.randomUUID()}`;
     const blobUrl = URL.createObjectURL(file);
-    const optimisticTile = { id: tempId, url: blobUrl, pending: true } as Media & {
+    const optimisticTile = { id: tempId, url: blobUrl, type: mediaType, pending: true } as Media & {
       pending?: boolean;
     };
     this._optimistic.run({
@@ -61,7 +66,14 @@ export class SalonMediaService {
       // apply is REPLAYED on every recompute (e.g. a concurrent load()'s
       // commitRead landing while this upload is still pending) — must be
       // idempotent or a replay duplicates the tile. Guard by tempId.
-      apply: (list) => (list.some((m) => m.id === tempId) ? list : [...list, optimisticTile]),
+      // PROFILE replaces any existing profile tile (same semantics as the
+      // old patchMedia-based onProfileUploaded); GALLERY only appends.
+      apply: (list) => {
+        if (list.some((m) => m.id === tempId)) return list;
+        return mediaType === 'PROFILE'
+          ? [optimisticTile, ...list.filter((m) => m.type !== 'PROFILE')]
+          : [...list, optimisticTile];
+      },
       reconcile: (list, res) => list.map((m) => (m.id === tempId ? res.body : m)),
       tempId,
       dedupeKey: `SalonMediaService.upload:${salonId}:${file.name}:${file.size}:${file.lastModified}`,
@@ -69,7 +81,7 @@ export class SalonMediaService {
       contextKey: salonId,
       request: () =>
         mediaControllerUpload(this._http, this._apiConfig.rootUrl, {
-          body: { file, entityType: 'SALON', entityId: salonId, type: 'GALLERY' },
+          body: { file, entityType: 'SALON', entityId: salonId, type: mediaType },
         }),
       errorMessage: 'Upload failed. Removed.',
       onSuccess: () => onSuccess?.(),

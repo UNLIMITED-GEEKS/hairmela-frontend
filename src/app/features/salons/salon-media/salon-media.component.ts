@@ -38,6 +38,8 @@ export class SalonMediaComponent implements OnInit {
   protected readonly error = this._salonMediaService.error;
   protected readonly media = this._salonMediaService.media;
 
+  protected static readonly MAX_GALLERY_PHOTOS = 12;
+
   protected readonly profilePhoto = computed(
     () => this.media().find((m) => m.type === 'PROFILE') ?? null,
   );
@@ -45,6 +47,9 @@ export class SalonMediaComponent implements OnInit {
     this.media().filter((m) => m.type === 'GALLERY'),
   );
   protected readonly galleryUrls = computed(() => this.galleryPhotos().map((m) => m.url));
+  protected readonly remainingGallerySlots = computed(() =>
+    Math.max(0, SalonMediaComponent.MAX_GALLERY_PHOTOS - this.galleryPhotos().length),
+  );
 
   // Preview (view-only lightbox) vs edit (reorder/delete) are separate
   // modals — GalleryModalComponent has no editing capability, so the pen
@@ -76,15 +81,17 @@ export class SalonMediaComponent implements OnInit {
     this._salonMediaService.refresh(this._salonId);
   }
 
-  protected onProfileUploaded(m: Media): void {
-    this._salonMediaService.patchMedia(this._salonId, (list) => [
-      m,
-      ...list.filter((x) => x.type !== 'PROFILE'),
-    ]);
+  protected onProfileFilesSelected(files: File[]): void {
+    const file = files[0];
+    if (file) this._salonMediaService.upload(this._salonId, file, 'PROFILE');
   }
 
-  protected onGalleryUploaded(m: Media): void {
-    this._salonMediaService.patchMedia(this._salonId, (list) => [...list, m]);
+  // Each file gets its own optimistic tile + independent request via
+  // upload()'s OptimisticService.run() call — a fork-join-style parallel
+  // upload with no extra plumbing needed here, and a failure in one file
+  // reverts only its own tile rather than the whole batch.
+  protected onGalleryFilesSelected(files: File[]): void {
+    for (const file of files) this._salonMediaService.upload(this._salonId, file, 'GALLERY');
   }
 
   protected onReordered(reordered: Media[]): void {

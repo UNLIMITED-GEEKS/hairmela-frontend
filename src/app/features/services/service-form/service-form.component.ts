@@ -50,9 +50,22 @@ export class ServiceFormComponent implements OnInit {
   // Only ACTIVE staff are offered — the backend's create/update validation
   // requires an assigned staff id to belong to an ACTIVE staff record, so a
   // PENDING/INACTIVE row would just 404 on save if it were checkable here.
-  protected readonly assignableStaff = computed(() =>
-    this._staffService.staffList().filter((s) => s.staff.status === 'ACTIVE'),
-  );
+  //
+  // isAcceptingClients=false staff are excluded too (e.g. an owner who
+  // doesn't cut hair), UNLESS they're already checked in this form — hiding
+  // them outright would silently unassign them the next time the checklist
+  // is touched for any reason and saved (staffIds is only sent when dirty,
+  // and a hidden staff member can never show as checked to begin with).
+  protected readonly assignableStaff = computed(() => {
+    const checked = new Set(this.form.controls.staffIds.value);
+    return this._staffService
+      .staffList()
+      .filter(
+        (s) =>
+          s.staff.status === 'ACTIVE' &&
+          (s.staff.isAcceptingClients || checked.has(s.staff.id)),
+      );
+  });
 
   protected readonly form = this._fb.group({
     categoryId: ['', Validators.required],
