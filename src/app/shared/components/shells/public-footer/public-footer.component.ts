@@ -15,7 +15,7 @@ export class PublicFooterComponent {
 
   protected readonly pricingLink = RoutePath.pricing();
   protected readonly aboutLink = RoutePath.about();
-  protected readonly howToInstallLink = RoutePath.howToInstall();
+  protected readonly howToInstallLink = RoutePath.dashboard();
   protected readonly registerLink = RoutePath.register();
   protected readonly loginLink = RoutePath.login();
   protected readonly privacyLink = RoutePath.privacy();

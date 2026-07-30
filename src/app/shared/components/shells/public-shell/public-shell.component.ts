@@ -33,10 +33,10 @@ export class PublicShellComponent implements OnInit, OnDestroy {
     const isGuest = this._guestStore.hasToken();
 
     const base: NavItem[] = [
-      { label: 'About',        icon: 'info', url: RoutePath.about()[0],        sheet: true },
-      { label: 'Get the app',  icon: 'info', url: RoutePath.howToInstall()[0], sheet: true },
-      { label: 'Contact',      icon: 'mail', url: RoutePath.contact()[0],      sheet: true },
-      { label: 'Pricing',      icon: 'info', url: RoutePath.pricing()[0],      sheet: true },
+      { label: 'About', icon: 'info', url: RoutePath.about()[0], sheet: true },
+      { label: 'Install the app', icon: 'info', url: RoutePath.dashboard()[0], sheet: true },
+      { label: 'Contact', icon: 'mail', url: RoutePath.contact()[0], sheet: true },
+      { label: 'Pricing', icon: 'info', url: RoutePath.pricing()[0], sheet: true },
     ];
 
     if (isLoggedIn) {

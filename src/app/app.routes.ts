@@ -32,7 +32,7 @@ export const routes: Routes = [
           import('./marketing/pricing/pricing.component').then((m) => m.PricingComponent),
       },
       {
-        path: RouteSegment.HOW_TO_INSTALL,
+        path: RouteSegment.DOWNLOAD,
         loadComponent: () =>
           import('./marketing/how-to-install/how-to-install.component').then(
             (m) => m.HowToInstallComponent,
@@ -133,7 +133,8 @@ export const routes: Routes = [
       },
       {
         path: `${RouteSegment.BRANCHES}/:${RouteParam.SLUG}`,
-        loadChildren: () => import('./features/visit/branches.routes').then((m) => m.branchesRoutes),
+        loadChildren: () =>
+          import('./features/visit/branches.routes').then((m) => m.branchesRoutes),
       },
     ],
   },
@@ -197,7 +198,8 @@ export const routes: Routes = [
       },
       {
         path: `${RouteSegment.BRANCHES}/:${RouteParam.SLUG}`,
-        loadChildren: () => import('./features/visit/branches.routes').then((m) => m.branchesRoutes),
+        loadChildren: () =>
+          import('./features/visit/branches.routes').then((m) => m.branchesRoutes),
       },
       {
         path: `${RouteSegment.ORG}/:${RouteParam.ORG_ID}`,

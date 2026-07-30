@@ -58,7 +58,7 @@ export class DashboardComponent implements OnInit {
   protected readonly notificationsLink = RoutePath.notifications();
   protected readonly favoritesLink = RoutePath.favorites();
   protected readonly searchLink = RoutePath.search();
-  protected readonly howToInstallLink = RoutePath.howToInstall();
+  protected readonly howToInstallLink = RoutePath.download();
 
   ngOnInit(): void {
     this._dashboardService.load();

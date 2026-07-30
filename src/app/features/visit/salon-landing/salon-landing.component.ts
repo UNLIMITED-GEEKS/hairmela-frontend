@@ -55,7 +55,7 @@ interface SalonStatusBadge {
 export class SalonLandingComponent implements OnInit {
   protected readonly visit = inject(SalonVisitService);
   protected readonly install = inject(InstallPromptService);
-  protected readonly howToInstallLink = RoutePath.howToInstall();
+  protected readonly howToInstallLink = RoutePath.dashboard();
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
   private readonly _currentUser = inject(CurrentUserStore);
@@ -151,7 +151,9 @@ export class SalonLandingComponent implements OnInit {
   protected openBookDialog(): void {
     if (!this._currentUser.user()) {
       const returnUrl = RoutePath.visitSalon('', this._slug).join('/');
-      this._router.navigate(RoutePath.register(), { queryParams: { [RouteQueryParam.RETURN_URL]: returnUrl } });
+      this._router.navigate(RoutePath.register(), {
+        queryParams: { [RouteQueryParam.RETURN_URL]: returnUrl },
+      });
       return;
     }
     this.bookDialogOpen.set(true);
@@ -211,7 +213,10 @@ export class SalonLandingComponent implements OnInit {
   // Services grouped by category, ordered by each category's sortOrder
   // (services within a category keep visit.services()'s existing order).
   protected readonly serviceCategories = computed(() => {
-    const groups = new Map<string, { id: string; name: string; sortOrder: number; services: Service[] }>();
+    const groups = new Map<
+      string,
+      { id: string; name: string; sortOrder: number; services: Service[] }
+    >();
     for (const service of this.visit.services()) {
       const cat = service.category;
       let group = groups.get(cat.id);

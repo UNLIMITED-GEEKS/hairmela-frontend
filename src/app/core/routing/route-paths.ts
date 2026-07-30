@@ -86,7 +86,7 @@ export const RouteSegment = {
   ACCEPT_INVITE: 'staff/accept-invite',
   PRIVACY: 'privacy',
   PRICING: 'pricing',
-  HOW_TO_INSTALL: 'how-to-install',
+  DOWNLOAD: 'download',
   TERMS: 'terms',
   CONTACT: 'contact',
   ABOUT: 'about',
@@ -108,7 +108,7 @@ export const RoutePath = {
   privacy: () => ['/privacy'],
   pricing: () => ['/pricing'],
   about: () => ['/about'],
-  howToInstall: () => ['/how-to-install'],
+  download: () => ['/download'],
   terms: () => ['/terms'],
   contact: () => ['/contact'],
 

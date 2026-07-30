@@ -40,7 +40,7 @@ export class LandingComponent implements OnInit {
   // private readonly _geoLocation = inject(GeoLocationService);
 
   protected readonly registerLink = RoutePath.register();
-  protected readonly howToInstallLink = RoutePath.howToInstall();
+  protected readonly howToInstallLink = RoutePath.download();
 
   protected readonly steps = [
     {
