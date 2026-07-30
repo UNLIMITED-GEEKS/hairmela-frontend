@@ -12,6 +12,7 @@ import { AccordionComponent } from '../../../shared/components/accordion/accordi
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { ScreenLayoutComponent } from '../../../shared/components/screen-layout/screen-layout.component';
 import { RouteParam, RouteSegment } from '../../../core/routing/route-paths';
+import { CurrencyNgnPipe } from '../../../shared/pipes/currency-ngn.pipe';
 import { filter } from 'rxjs';
 
 @Component({
@@ -25,6 +26,7 @@ import { filter } from 'rxjs';
     AccordionComponent,
     PageHeaderComponent,
     ScreenLayoutComponent,
+    CurrencyNgnPipe,
   ],
 })
 export class ServiceListComponent implements OnInit {

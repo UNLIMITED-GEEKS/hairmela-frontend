@@ -1,13 +1,14 @@
 import { Component, input, output } from '@angular/core';
 import { Service } from '../../../api/models/service';
 import { IconComponent } from '../icon/icon.component';
+import { CurrencyNgnPipe } from '../../pipes/currency-ngn.pipe';
 
 // Service row on the salon slug page's "Choose service" screen — scissors
 // icon, name + description, price + duration.
 @Component({
   selector: 'app-service-list-item',
   templateUrl: './service-list-item.component.html',
-  imports: [IconComponent],
+  imports: [IconComponent, CurrencyNgnPipe],
   host: { class: 'block' },
 })
 export class ServiceListItemComponent {

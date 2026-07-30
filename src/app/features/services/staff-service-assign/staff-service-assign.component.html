@@ -37,7 +37,7 @@
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-medium text-gray-900">{{ service.name }}</p>
-                <p class="text-xs text-gray-400">{{ service.duration }}m · ₦{{ service.price }}</p>
+                <p class="text-xs text-gray-400">{{ service.duration }}m · {{ service.price | currencyNgn }}</p>
               </div>
             </button>
           }

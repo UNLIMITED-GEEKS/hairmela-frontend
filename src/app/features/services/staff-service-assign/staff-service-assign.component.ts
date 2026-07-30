@@ -6,11 +6,12 @@ import { StaffServiceAssignService } from './staff-service-assign.service';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { RouteParam } from '../../../core/routing/route-paths';
+import { CurrencyNgnPipe } from '../../../shared/pipes/currency-ngn.pipe';
 
 @Component({
   selector: 'app-staff-service-assign',
   templateUrl: './staff-service-assign.component.html',
-  imports: [RouterLink, SkeletonComponent, PageHeaderComponent],
+  imports: [RouterLink, SkeletonComponent, PageHeaderComponent, CurrencyNgnPipe],
 })
 export class StaffServiceAssignComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);

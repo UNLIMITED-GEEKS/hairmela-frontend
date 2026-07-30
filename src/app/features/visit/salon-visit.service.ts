@@ -508,6 +508,7 @@ export class SalonVisitService {
     startTime: string,
     members: BookMemberRow[],
     notes?: string,
+    onSuccess?: () => void,
   ): void {
     if (this.booking()) return;
     this.booking.set(true);
@@ -544,13 +545,15 @@ export class SalonVisitService {
           // by a 30s TTL only invalidated by the socket noticing an entry get
           // called — booking a NEW entry is neither, so without this the page
           // silently shows stale data (the entry missing) until the TTL
-          // happens to expire or the user hard-refreshes. The book dialog
-          // navigates to /queues immediately on submit (before this response
-          // even lands), so the list must be forced fresh here, not just
-          // updated locally — there's nothing local to update, My Queues
-          // reads its own separate signal.
+          // happens to expire. onSuccess (book-appointment-dialog's navigate)
+          // fires AFTER this refresh() call, not before, so My Queues' first
+          // fetch on mount lands after the new entry is already visible in
+          // the DB — no incomplete-list flash, no need for a second corrective
+          // fetch. There's nothing local to update, My Queues reads its own
+          // separate signal.
           this._activeQueues.refresh();
           this._toast.success('Appointment booked.');
+          onSuccess?.();
         },
         error: (err: unknown) => {
           this.booking.set(false);

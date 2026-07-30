@@ -9,11 +9,12 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
 import { MiniMonthCalendarComponent } from '../../../shared/components/mini-month-calendar/mini-month-calendar.component';
 import { SalonStaff } from '../../../api/models/salon-staff';
 import { RouteParam } from '../../../core/routing/route-paths';
+import { CurrencyNgnPipe } from '../../../shared/pipes/currency-ngn.pipe';
 
 @Component({
   selector: 'app-analytics',
   templateUrl: './analytics.component.html',
-  imports: [BaseChartDirective, PageHeaderComponent, MiniMonthCalendarComponent],
+  imports: [BaseChartDirective, PageHeaderComponent, MiniMonthCalendarComponent, CurrencyNgnPipe],
 })
 export class AnalyticsComponent implements OnInit {
   protected readonly analytics = inject(AnalyticsService);

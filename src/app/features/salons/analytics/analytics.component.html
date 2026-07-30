@@ -107,7 +107,7 @@
       <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
         <div class="bg-white rounded-2xl border border-border p-4 flex flex-col gap-1 min-w-0">
           <span class="text-xs font-semibold text-text-secondary uppercase tracking-wide md:truncate">Revenue</span>
-          <span class="text-2xl font-bold text-text-primary break-all">₦{{ s.totalRevenue }}</span>
+          <span class="text-2xl font-bold text-text-primary break-all">{{ s.totalRevenue | currencyNgn }}</span>
           <span class="text-xs text-text-secondary md:truncate">{{ s.from === s.to ? s.from : s.from + ' — ' + s.to }}</span>
         </div>
         <div class="bg-white rounded-2xl border border-border p-4 flex flex-col gap-1 min-w-0">
@@ -180,7 +180,7 @@
               <div class="min-w-0">
                 <div class="flex items-center justify-between gap-2 mb-1">
                   <span class="text-sm text-text-primary md:truncate min-w-0">{{ svc.serviceName }}</span>
-                  <span class="text-xs font-medium text-text-primary shrink-0">₦{{ svc.totalRevenue }}</span>
+                  <span class="text-xs font-medium text-text-primary shrink-0">{{ svc.totalRevenue | currencyNgn }}</span>
                 </div>
                 <div class="flex items-center gap-2">
                   <div class="flex-1 h-2 bg-surface-raised rounded-full overflow-hidden min-w-0">
@@ -226,7 +226,7 @@
               </div>
               <div class="grid grid-cols-4 gap-2 text-center">
                 <div class="min-w-0">
-                  <p class="text-sm font-bold text-text-primary break-all">₦{{ staff.totalRevenue }}</p>
+                  <p class="text-sm font-bold text-text-primary break-all">{{ staff.totalRevenue | currencyNgn }}</p>
                   <p class="text-[10px] text-text-secondary">revenue</p>
                 </div>
                 <div class="min-w-0">
