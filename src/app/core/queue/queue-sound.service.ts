@@ -35,14 +35,23 @@ export class QueueSoundService {
     if (this._warmedUp) return;
     this._warmedUp = true;
     const audio = this._ensureAudio();
+    // Muted for the warm-up itself — on iOS, play()-then-pause() can still
+    // let a brief blip of the real chime through before pause() lands
+    // (no silence padding in the WAV, so playback is audible from frame 0).
+    // This is pure unlock; nothing about it should be heard.
+    audio.muted = true;
     audio.play()
-      .then(() => audio.pause())
+      .then(() => {
+        audio.pause();
+        audio.muted = false;
+      })
       .catch(() => {
         // Still locked (e.g. this "first interaction" wasn't the kind iOS
         // counts) — next warmUp() call this session will retry, since we
         // only flip _warmedUp before knowing whether it actually worked.
         // That's intentional: retrying on every future gesture is cheap and
         // self-healing, versus giving up after one failed attempt.
+        audio.muted = false;
         this._warmedUp = false;
       });
   }

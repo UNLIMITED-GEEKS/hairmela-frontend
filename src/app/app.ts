@@ -6,6 +6,7 @@ import { RenameDialogComponent } from './shared/components/rename-dialog/rename-
 import { CookieConsentComponent } from './shared/components/cookie-consent/cookie-consent.component';
 import { QueueSoundService } from './core/queue/queue-sound.service';
 import { QueueSoundWatcherService } from './core/queue/queue-sound-watcher.service';
+import { SalonContextService } from './core/salon-context/salon-context.service';
 
 @Component({
   selector: 'app-root',
@@ -18,18 +19,28 @@ import { QueueSoundWatcherService } from './core/queue/queue-sound-watcher.servi
   // here covers every page instead of duplicating the warm-up call across
   // each one. See QueueSoundService.warmUp() for why this needs to be a
   // real synchronous gesture handler, not just "some click happened".
+  //
+  // Gated on displayMembership() (staff-only) in onFirstInteraction() below —
+  // a customer never triggers the real chime (QueueSoundWatcherService only
+  // watches a queue for staff), so warming up audio for them is pointless,
+  // and doing it unconditionally was the actual bug: on iOS, warmUp()'s
+  // play()-then-pause() could let an audible blip of the real chime through
+  // (see queue-sound.service.ts's muted fix), and it was firing for every
+  // visitor's first tap, not just staff.
   host: {
     '(document:pointerdown)': 'onFirstInteraction()',
   },
 })
 export class App {
   private readonly _queueSound = inject(QueueSoundService);
+  private readonly _salonContext = inject(SalonContextService);
   // Eagerly instantiated so its watch effect runs for the app's lifetime —
   // keeps the barber's queue joined for sound from anywhere in the app, not
   // just the console page. See the service for the full rationale.
   private readonly _queueSoundWatcher = inject(QueueSoundWatcherService);
 
   protected onFirstInteraction(): void {
+    if (!this._salonContext.displayMembership()) return;
     this._queueSound.warmUp();
   }
 }
