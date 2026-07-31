@@ -74,9 +74,9 @@ export class ImageUploaderComponent {
     input.value = '';
   }
 
-  // iOS hands out HEIC/HEIF for camera photos; browsers (including Safari)
-  // can't decode that format outside the OS, and it's tripped up multipart
-  // uploads to the backend, so convert to JPEG client-side before sending.
+  // iOS hands out HEIC/HEIF for camera-roll photos, and no browser (including
+  // Safari) can decode that format outside the OS — the backend can't either,
+  // so convert to JPEG client-side before sending.
   private async _toJpegIfHeic(file: File): Promise<File> {
     if (!isHeic(file)) return file;
 
