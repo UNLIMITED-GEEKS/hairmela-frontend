@@ -1,15 +1,21 @@
 import { Component, computed, input } from '@angular/core';
 import { MediaUrlPipe } from '../../pipes/media-url.pipe';
+import { InlineSpinnerComponent } from '../inline-spinner/inline-spinner.component';
 
 @Component({
   selector: 'app-avatar',
   templateUrl: './avatar.component.html',
-  imports: [MediaUrlPipe],
+  imports: [MediaUrlPipe, InlineSpinnerComponent],
 })
 export class AvatarComponent {
   readonly src = input<string | null | undefined>(null);
   readonly name = input('');
   readonly size = input<'sm' | 'md' | 'lg' | 'xl'>('md');
+  // Overlays a spinner on top of the current image while an upload for this
+  // avatar is in flight — callers pass their own optimistic-tile pending
+  // state (e.g. Media & { pending? }), this component has no upload logic
+  // of its own.
+  readonly pending = input(false);
 
   protected readonly initials = computed(() => {
     const parts = this.name().trim().split(/\s+/);

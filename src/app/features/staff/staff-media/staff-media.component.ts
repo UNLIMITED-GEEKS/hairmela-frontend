@@ -11,6 +11,7 @@ import { GalleryEditModalComponent } from '../../../shared/components/gallery-ed
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
 import { RouteParam } from '../../../core/routing/route-paths';
 
@@ -25,6 +26,7 @@ import { RouteParam } from '../../../core/routing/route-paths';
     SkeletonComponent,
     PageHeaderComponent,
     IconComponent,
+    InlineSpinnerComponent,
     MediaUrlPipe,
   ],
 })
@@ -43,10 +45,19 @@ export class StaffMediaComponent implements OnInit {
   protected readonly profilePhoto = computed(
     () => this.media().find((m) => m.type === 'PROFILE') ?? null,
   );
+  protected readonly profilePhotoPending = computed(() => this.isPending(this.profilePhoto()));
   protected readonly galleryPhotos = computed(() =>
     this.media().filter((m) => m.type === 'GALLERY'),
   );
   protected readonly galleryUrls = computed(() => this.galleryPhotos().map((m) => m.url));
+
+  // Optimistic upload tiles carry an ad hoc `pending` flag not part of the
+  // real Media model (see StaffMediaService.upload()'s optimisticTile) — a
+  // real Media from the server never has it, so this reads false for those.
+  protected isPending(photo: Media | null): boolean {
+    return !!(photo as (Media & { pending?: boolean }) | null)?.pending;
+  }
+
   protected readonly remainingGallerySlots = computed(() =>
     Math.max(0, StaffMediaComponent.MAX_GALLERY_PHOTOS - this.galleryPhotos().length),
   );

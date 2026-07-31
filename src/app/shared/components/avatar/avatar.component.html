@@ -1,7 +1,12 @@
-<div [class]="'rounded-full overflow-hidden shrink-0 bg-primary/10 flex items-center justify-center ' + sizeClasses()">
+<div [class]="'relative rounded-full overflow-hidden shrink-0 bg-primary/10 flex items-center justify-center ' + sizeClasses()">
   @if (src()) {
     <img [src]="src() | mediaUrl" [alt]="name()" class="w-full h-full object-cover" />
   } @else {
     <span class="font-semibold text-primary leading-none">{{ initials() }}</span>
+  }
+  @if (pending()) {
+    <span class="absolute inset-0 flex items-center justify-center bg-black/30">
+      <app-inline-spinner sizeClass="w-1/3 h-1/3" label="Uploading" class="text-white" />
+    </span>
   }
 </div>

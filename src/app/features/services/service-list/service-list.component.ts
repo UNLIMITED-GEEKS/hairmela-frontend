@@ -2,6 +2,7 @@ import { Component, OnInit, inject, computed, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Service } from '../../../api/models/service';
 import { ServicesService } from '../services.service';
+import { CategoriesService } from '../../../core/categories/categories.service';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { SalonRole } from '../../../core/salon-context/membership.types';
 import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/confirm-dialog.service';
@@ -32,6 +33,7 @@ import { filter } from 'rxjs';
 export class ServiceListComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
   private readonly _servicesService = inject(ServicesService);
+  private readonly _categoriesService = inject(CategoriesService);
   private readonly _confirmDialog = inject(ConfirmDialogService);
 
   protected readonly salonContext = inject(SalonContextService);
@@ -54,17 +56,33 @@ export class ServiceListComponent implements OnInit {
   // (services within a category keep services()'s existing order). Same
   // grouping/open-state pattern as salon-landing.component.ts's public
   // Services tab.
+  //
+  // service.category can be undefined here — ServicesService.create()'s
+  // optimistic row is spread from CreateServiceDto, which only carries
+  // categoryId, not the nested category object (that only exists once the
+  // real server response reconciles the row). Falls back to categoryId +
+  // categoriesService's own loaded list (ngOnInit loads it) to resolve the
+  // name/sortOrder in that case; if even that lookup misses (categories
+  // still loading), the group falls back to categoryId itself as a
+  // placeholder name rather than crashing on `undefined.id`.
   protected readonly serviceCategories = computed(() => {
+    const categoriesById = new Map(this._categoriesService.categories().map((c) => [c.id, c]));
     const groups = new Map<
       string,
       { id: string; name: string; sortOrder: number; services: Service[] }
     >();
     for (const service of this.services()) {
-      const cat = service.category;
-      let group = groups.get(cat.id);
+      const cat = service.category ?? categoriesById.get(service.categoryId);
+      const id = cat?.id ?? service.categoryId;
+      let group = groups.get(id);
       if (!group) {
-        group = { id: cat.id, name: cat.name, sortOrder: cat.sortOrder, services: [] };
-        groups.set(cat.id, group);
+        group = {
+          id,
+          name: cat?.name ?? service.categoryId,
+          sortOrder: cat?.sortOrder ?? Number.MAX_SAFE_INTEGER,
+          services: [],
+        };
+        groups.set(id, group);
       }
       group.services.push(service);
     }
@@ -100,6 +118,7 @@ export class ServiceListComponent implements OnInit {
 
   ngOnInit(): void {
     this._servicesService.load(this._salonId);
+    this._categoriesService.load();
   }
 
   protected retry(): void {
