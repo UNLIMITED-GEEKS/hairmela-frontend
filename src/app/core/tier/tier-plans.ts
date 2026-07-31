@@ -12,6 +12,8 @@ export interface PlanCard {
   readonly salons: string;
   readonly staff: string;
   readonly price: number;
+  /** Pre-promo price, shown struck through next to the promo price. */
+  readonly originalPrice: number;
   readonly features: readonly string[];
 }
 
@@ -28,12 +30,14 @@ export const PLAN_CARDS: readonly PlanCard[] = [
     salons: '1 salon',
     staff: 'Unlimited staff',
     price: 2900,
+    originalPrice: 6000,
     features: ['Walk-in queue', 'Appointments (bookings)', 'Analytics'],
   },
   {
     tier: 2,
     name: 'Pro',
     price: 5900,
+    originalPrice: 11900,
     tagline: 'For up to 3 salons.',
     salons: 'Up to 3 salons',
     staff: 'Unlimited staff',
@@ -43,6 +47,7 @@ export const PLAN_CARDS: readonly PlanCard[] = [
     tier: 3,
     name: 'Scale',
     price: 9900,
+    originalPrice: 17900,
     tagline: 'For up to 6 salons.',
     salons: 'Up to 6 salons',
     staff: 'Unlimited staff',
