@@ -18,7 +18,9 @@
     } @else {
       <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
         @for (salon of favorites.list(); track salon.id) {
-          <app-salon-card [salon]="salon" [showStreet]="true" />
+          <div class="h-64">
+            <app-salon-card [salon]="salon" [showStreet]="true" />
+          </div>
         }
       </div>
 

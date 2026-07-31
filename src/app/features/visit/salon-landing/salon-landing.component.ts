@@ -29,6 +29,50 @@ const LANDING_TABS: TabItem[] = [
   { id: 'staffs', label: 'Staffs' },
 ];
 
+// dayOfWeek 0 = Sunday — same convention as backend/src/salons/salon.types.ts
+// and salon-settings.component.ts's own DAYS array.
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+// "09:00" -> "9:00 AM", "18:00" -> "6:00 PM" — operatingHours stores 24h
+// HH:mm; nothing else in this read-only display benefits from that format.
+function formatHour(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number);
+  const period = h < 12 ? 'AM' : 'PM';
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
+}
+
+// "Now", in the SALON's timezone, not the browser's — the next-open label
+// this feeds (nextOpenLabel below) compares against operatingHours start
+// times, which are salon-local by definition (backend/src/salons/salon.
+// types.ts). Using the browser's local time here would misclassify "opens
+// later today" vs "opens tomorrow" for a visitor in a different timezone
+// than the salon, or near midnight salon-local — the same class of bug
+// flagged as a FIXME in queue-console.service.ts's staffBookAppointment.
+// Intl.DateTimeFormat with an explicit timeZone is the correct client-side
+// way to do this (no library needed); salonStatus() above still gets its
+// OPEN/CLOSED_HOURS/CLOSED_TODAY verdict from the backend's own openState,
+// this only adds the "when" on top for the CLOSED cases.
+function salonLocalNow(timezone: string): { dayOfWeek: number; minutes: number } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    weekday: 'short',
+    hour: 'numeric',
+    minute: 'numeric',
+    hourCycle: 'h23',
+  }).formatToParts(new Date());
+  const weekdayShort = parts.find((p) => p.type === 'weekday')!.value;
+  const hour = Number(parts.find((p) => p.type === 'hour')!.value);
+  const minute = Number(parts.find((p) => p.type === 'minute')!.value);
+  const dayOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(weekdayShort);
+  return { dayOfWeek, minutes: hour * 60 + minute };
+}
+
+function toMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
+
 interface SalonStatusBadge {
   readonly label: string;
   readonly badgeClasses: string;
@@ -95,6 +139,77 @@ export class SalonLandingComponent implements OnInit {
   // (the backend rejects the join). Pre-block: hide the barbers entirely and
   // show a notice instead of letting a customer tap into a dead flow.
   protected readonly frozen = computed(() => this.visit.salonData()?.isFrozen ?? false);
+
+  // operatingHours is an untyped Array<{}> on the generated DTO (Swagger
+  // doesn't declare its nested shape, same gap salon-settings.component.ts
+  // already casts around); the real runtime shape is
+  // backend/src/salons/salon.types.ts's OperatingHour ({ dayOfWeek: 0-6
+  // (Sun-Sat), startTime/endTime: "HH:mm" }). Shared by weeklyHours (About
+  // tab list) and nextOpenLabel (closed-badge subtext) below.
+  private readonly _operatingHoursByDay = computed(() => {
+    const salon = this.visit.salon();
+    if (!salon) return new Map<number, { dayOfWeek: number; startTime: string; endTime: string }>();
+    const hours = salon.operatingHours as Array<{
+      dayOfWeek: number;
+      startTime: string;
+      endTime: string;
+    }>;
+    return new Map(hours.map((h) => [h.dayOfWeek, h]));
+  });
+
+  // Operating hours — About tab, read-only. Always rendered Sunday-first
+  // through Saturday regardless of the array's own order/completeness — a
+  // day with no entry is closed, not omitted, so the list should never look
+  // like it's just missing that row.
+  protected readonly weeklyHours = computed(() => {
+    if (!this.visit.salon()) return [];
+    const byDay = this._operatingHoursByDay();
+    const todayDow = this._salonNow()?.dayOfWeek;
+    return DAY_NAMES.map((name, dayOfWeek) => {
+      const h = byDay.get(dayOfWeek);
+      return {
+        name,
+        isToday: dayOfWeek === todayDow,
+        label: h ? `${formatHour(h.startTime)} – ${formatHour(h.endTime)}` : 'Closed',
+      };
+    });
+  });
+
+  // Salon-local "now" — undefined until salon.timezone is known. Read by
+  // both weeklyHours (today's row) and nextOpenLabel below.
+  private readonly _salonNow = computed(() => {
+    const timezone = this.visit.salon()?.timezone;
+    return timezone ? salonLocalNow(timezone) : null;
+  });
+
+  // Subtext next to the Closed badge — when the salon next opens, salon-
+  // local. Only meaningful while closed; salonStatus() already carries the
+  // OPEN/CLOSED verdict itself (backend-computed), this only adds the "when"
+  // for the closed cases, walking forward through operatingHours to find the
+  // next day that has any hours at all (handles a salon closed multiple days
+  // in a row, e.g. Sat -> next open Monday, not just "closed today/tomorrow").
+  protected readonly nextOpenLabel = computed(() => {
+    const status = this.salonStatus();
+    const now = this._salonNow();
+    if (!status || status.label === 'Open Now' || !now) return null;
+    const byDay = this._operatingHoursByDay();
+
+    // Today, if it still has a slot starting later than right now.
+    const today = byDay.get(now.dayOfWeek);
+    if (today && toMinutes(today.startTime) > now.minutes) {
+      return `Opens at ${formatHour(today.startTime)}`;
+    }
+
+    // Otherwise walk forward up to 6 days to find the next day with hours.
+    for (let offset = 1; offset <= 6; offset++) {
+      const dow = (now.dayOfWeek + offset) % 7;
+      const day = byDay.get(dow);
+      if (!day) continue;
+      const when = offset === 1 ? 'tomorrow' : DAY_NAMES[dow];
+      return `Opens ${when} at ${formatHour(day.startTime)}`;
+    }
+    return null; // no hours configured for any day
+  });
 
   // About tab's photo gallery — the full salon.galleryUrls array is always
   // passed to the modal (only the first 4 are shown as a preview grid).

@@ -9,20 +9,22 @@
     [alt]="salon().name" loading="lazy"
     class="h-full w-full object-cover" />
 
-  <!-- Open/closed badge — glassmorphic (neutral glass, colored text). A
-       multi-branch root isn't open/closed or at one address itself (each
-       branch has its own), so it gets a locations-count badge instead. -->
-  @if (salon().hasBranches) {
-    <span class="absolute top-3 left-3 rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-md bg-secondary-100/70 border border-white/20 text-white">
-      {{ branchCountLabel() }}
-    </span>
-  } @else {
-    <span class="absolute top-3 left-3 rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-md bg-secondary-100/70 border border-white/20"
+  <!-- Open/closed + locations badges — separate glassmorphic pills. A
+       multi-branch root still carries its own isOpen, so both show; only
+       the open/closed pill is colored by state, the locations pill stays
+       neutral white regardless. -->
+  <div class="absolute top-3 left-3 flex items-center gap-1.5">
+    <span class="rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-md bg-secondary-100/70 border border-white/20"
       [class.text-open]="salon().isOpen"
       [class.text-white]="!salon().isOpen">
       {{ salon().isOpen ? 'Open' : 'Closed' }}
     </span>
-  }
+    @if (salon().hasBranches) {
+      <span class="rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-md bg-secondary-100/70 border border-white/20 text-white">
+        {{ branchCountLabel() }}
+      </span>
+    }
+  </div>
 
   <!-- Heart — glassmorphic (auth-gated, absent for anonymous/guest) -->
   @if (showHeart()) {
@@ -40,8 +42,9 @@
   <!-- Name/location — glassmorphic bar pinned to the bottom of the photo -->
   <div class="absolute inset-x-0 bottom-0 px-4 py-3 bg-gray-900/40 backdrop-blur-md">
     @if (salon().hasBranches) {
-      <p class="text-xs font-medium text-white/80">Multiple locations</p>
+      <p class="text-xs font-medium text-open">{{ salon().isOpen ? 'Open' : 'Closed' }}</p>
       <h3 class="mt-0.5 text-base font-bold text-white truncate">{{ salon().name }}</h3>
+      <p class="mt-0.5 text-xs text-white/80">{{ branchCountLabel() }}</p>
     } @else {
       <p class="text-xs font-medium text-open">{{ salon().isOpen ? 'Open' : 'Closed' }}</p>
       <h3 class="mt-0.5 text-base font-bold text-white truncate">{{ salon().name }}</h3>

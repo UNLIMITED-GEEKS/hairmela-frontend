@@ -38,7 +38,9 @@
     } @else {
       <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
         @for (branch of p.branches; track branch.id) {
-          <app-salon-card [salon]="branch" [showStreet]="true" />
+          <div class="h-64">
+            <app-salon-card [salon]="branch" [showStreet]="true" />
+          </div>
         }
       </div>
     }
