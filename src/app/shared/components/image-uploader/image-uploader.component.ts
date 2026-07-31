@@ -1,7 +1,14 @@
 import { Component, inject, input, output } from '@angular/core';
 import { ToastService } from '../../../core/toast/toast.service';
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const ALLOWED_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+  'image/avif',
+];
 const MAX_BYTES = 5 * 1024 * 1024;
 
 @Component({
@@ -40,7 +47,7 @@ export class ImageUploaderComponent {
 
     for (const file of files) {
       if (!ALLOWED_TYPES.includes(file.type)) {
-        this._toast.error('Only JPEG, PNG, or WebP images are allowed');
+        this._toast.error('Only JPEG, PNG, WebP, HEIC, HEIF, or AVIF images are allowed');
         input.value = '';
         return;
       }
