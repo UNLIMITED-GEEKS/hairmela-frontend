@@ -1,15 +1,15 @@
 import { Component, inject, input, output } from '@angular/core';
 import { ToastService } from '../../../core/toast/toast.service';
 
-const ALLOWED_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/heic',
-  'image/heif',
-  'image/avif',
-];
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
 const MAX_BYTES = 5 * 1024 * 1024;
+const HEIC_TYPES = ['image/heic', 'image/heif'];
+
+// iOS Safari often reports an empty file.type for HEIC/HEIF photos picked
+// from the Photos library — the extension is the only reliable signal there.
+function isHeic(file: File): boolean {
+  return HEIC_TYPES.includes(file.type) || /\.hei[cf]$/i.test(file.name);
+}
 
 @Component({
   selector: 'app-image-uploader',
@@ -29,7 +29,7 @@ export class ImageUploaderComponent {
 
   readonly filesSelected = output<File[]>();
 
-  protected onFileChange(event: Event): void {
+  protected async onFileChange(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const files = input.files ? Array.from(input.files) : [];
     if (files.length === 0 || this.disabled()) return;
@@ -46,11 +46,23 @@ export class ImageUploaderComponent {
     }
 
     for (const file of files) {
-      if (!ALLOWED_TYPES.includes(file.type)) {
-        this._toast.error('Only JPEG, PNG, WebP, HEIC, HEIF, or AVIF images are allowed');
+      if (!ALLOWED_TYPES.includes(file.type) && !isHeic(file)) {
+        this._toast.error('Only JPEG, PNG, WebP, HEIC, or HEIF images are allowed');
         input.value = '';
         return;
       }
+    }
+
+    let converted: File[];
+    try {
+      converted = await Promise.all(files.map((file) => this._toJpegIfHeic(file)));
+    } catch {
+      this._toast.error('Could not process that photo. Please try another.');
+      input.value = '';
+      return;
+    }
+
+    for (const file of converted) {
       if (file.size > MAX_BYTES) {
         this._toast.error('Image must be 5 MB or smaller');
         input.value = '';
@@ -58,7 +70,21 @@ export class ImageUploaderComponent {
       }
     }
 
-    this.filesSelected.emit(files);
+    this.filesSelected.emit(converted);
     input.value = '';
+  }
+
+  // iOS hands out HEIC/HEIF for camera photos; browsers (including Safari)
+  // can't decode that format outside the OS, and it's tripped up multipart
+  // uploads to the backend, so convert to JPEG client-side before sending.
+  private async _toJpegIfHeic(file: File): Promise<File> {
+    if (!isHeic(file)) return file;
+
+    const heic2any = (await import('heic2any')).default;
+    const result = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
+    const jpegBlob = Array.isArray(result) ? result[0] : result;
+    return new File([jpegBlob], file.name.replace(/\.hei[cf]$/i, '.jpg'), {
+      type: 'image/jpeg',
+    });
   }
 }
