@@ -120,7 +120,7 @@
             @if (!staffLoading() && assignableStaff().length === 0) {
               <p class="text-xs text-gray-400">No active staff to assign yet.</p>
             } @else {
-              <div class="space-y-1.5 max-h-56 overflow-y-auto rounded-lg border border-gray-200 p-2">
+              <div class="themed-scrollbar space-y-1.5 max-h-56 overflow-y-auto rounded-lg border border-gray-200 p-2">
                 @for (s of assignableStaff(); track s.staff.id) {
                   <label class="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-gray-50 cursor-pointer">
                     <input type="checkbox"

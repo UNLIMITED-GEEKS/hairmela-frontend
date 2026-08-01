@@ -8,7 +8,9 @@ import { SalonRole } from '../../../core/salon-context/membership.types';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/frozen-banner.component';
 import { TierBannerComponent } from '../../../shared/components/tier-banner/tier-banner.component';
+import { ToastService } from '../../../core/toast/toast.service';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-salon-overview',
@@ -21,6 +23,7 @@ export class SalonOverviewComponent implements OnInit {
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _salonOverviewService = inject(SalonOverviewService);
   private readonly _invitesService = inject(InvitesService);
+  private readonly _toast = inject(ToastService);
 
   protected readonly salonContext = inject(SalonContextService);
   protected readonly salon = this._salonOverviewService.salon;
@@ -70,6 +73,18 @@ export class SalonOverviewComponent implements OnInit {
 
   protected queueConsoleLink(salonId: string, queueId: string): string[] {
     return RoutePath.salonQueueConsole(salonId, queueId);
+  }
+
+  // The public link customers use to join THIS staff member's queue — same
+  // /s/{slug}/q/{queueId} shape live-queue's own "Copy queue link" copies,
+  // built with no shell prefix since it's meant to be shared with someone
+  // else, who should land fresh and get routed by their own session.
+  protected copyMyQueueLink(slug: string, queueId: string): void {
+    const path = RoutePath.visitQueue('', slug, queueId).join('/');
+    navigator.clipboard
+      .writeText(`${environment.appBaseUrl}${path}`)
+      .then(() => this._toast.success('Queue link copied'))
+      .catch(() => this._toast.error('Could not copy link'));
   }
 
   protected staffLink(salonId: string): string[] {

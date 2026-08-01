@@ -12,7 +12,9 @@ import { BackButtonComponent } from '../../../shared/components/back-button/back
 import { PushPromptComponent } from '../../../shared/components/push-prompt/push-prompt.component';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
+import { ToastService } from '../../../core/toast/toast.service';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-live-queue',
@@ -36,6 +38,7 @@ export class LiveQueueComponent {
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
   private readonly _currentUser = inject(CurrentUserStore);
+  private readonly _toast = inject(ToastService);
 
   // Reactive, not snapshot-based — q/:queueId is a single route, so navigating
   // between two barbers (q/A -> q/B) reuses this component instance and never
@@ -165,6 +168,18 @@ export class LiveQueueComponent {
 
   protected closeGallery(): void {
     this.galleryOpen.set(false);
+  }
+
+  // Shareable link for this queue — always the prefix-neutral /s/... path
+  // (not this._shellPrefix, which is per-visitor: '/g' for a guest session,
+  // '' for a signed-in one). Whoever the link is shared WITH should land on
+  // a fresh URL and get routed by their own session, not inherit the sharer's.
+  protected copyQueueLink(): void {
+    const path = RoutePath.visitQueue('', this._slug(), this._queueId()).join('/');
+    navigator.clipboard
+      .writeText(`${environment.appBaseUrl}${path}`)
+      .then(() => this._toast.success('Queue link copied'))
+      .catch(() => this._toast.error('Could not copy link'));
   }
 
   // Separate open-state for the barber's profile-photo lightbox — its own

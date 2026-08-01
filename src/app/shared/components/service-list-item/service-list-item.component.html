@@ -15,8 +15,10 @@
   </div>
 
   <div class="shrink-0 text-right">
+   
     @if (showPrice()) {
-      <p class="text-sm font-bold text-gray-900">{{ service().price | currencyNgn }}</p>
+     <span class="text-sm">From</span>
+      <p class="text-sm font-bold text-gray-900">  {{ service().price | currencyNgn }}</p>
     }
     <p class="text-xs text-gray-500">{{ service().duration }}mins</p>
   </div>
