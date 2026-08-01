@@ -34,28 +34,57 @@
               <div class="bg-white border border-gray-200 rounded-2xl px-4 py-3">
                 <div class="flex items-start justify-between gap-3">
                   <div class="min-w-0">
-                    <p class="text-sm font-semibold text-gray-900 truncate">
+                    <p class="text-sm font-semibold text-gray-900 wrap-break-word">
                       {{ entry.members[0].memberName }}
                       @if (entry.members.length > 1) {
                         <span class="text-xs text-gray-500 font-normal"> + {{ entry.members.length - 1 }} {{ entry.members.length - 1 === 1 ? 'more person' : 'more persons' }}</span>
                       }
                     </p>
-                    @if (serviceNames(entry); as services) {
-                      <p class="text-xs text-gray-500 truncate">{{ services }}</p>
-                    }
                     @if (!isStaffScoped()) {
-                      <p class="text-xs text-gray-400 truncate">{{ staffName(entry) }}</p>
+                      <p class="text-xs text-gray-400 wrap-break-word">{{ staffName(entry) }}</p>
                     }
                   </div>
                   <span class="shrink-0 inline-block text-xs font-medium px-2.5 py-1 rounded-full border" [class]="statusBadgeClasses(entry.status)">
                     {{ entry.status }}
                   </span>
                 </div>
+
                 @if (entry.scheduledAt) {
                   <p class="mt-2 text-xs text-primary font-medium">
                     {{ entry.scheduledAt | date: 'shortTime' }}
                   </p>
                 }
+
+                <!-- Party breakdown — replaces the old flattened comma-joined
+                     service list, which with a party said "Cut, Cut, Braids"
+                     without saying WHO gets what, exactly what the barber
+                     needs to prep. Collapsed by default so a big party doesn't
+                     bloat the card. durationSnapshot, not service.duration:
+                     it's the duration as BOOKED, which is what this
+                     appointment reserves if the service was edited since. -->
+                <div class="mt-2">
+                  <app-accordion [title]="entry.members.length === 1 ? 'Service' : 'Party (' + entry.members.length + ')'">
+                    <!-- Stacked on mobile, side-by-side only from sm up: a
+                         long service name in a justify-between row squeezes
+                         the member name to one character per line and still
+                         overflows. min-w-0 on both so either can shrink and
+                         wrap rather than push the row wider. -->
+                    <ul class="space-y-2">
+                      @for (member of entry.members; track member.id) {
+                        <li class="flex flex-col gap-0.5 text-xs sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
+                          <span class="min-w-0 font-medium text-gray-700 wrap-break-word">{{ member.memberName }}</span>
+                          <span class="min-w-0 text-gray-500 wrap-break-word sm:text-right">
+                            @if (member.service?.name) {
+                              {{ member.service?.name }} · {{ member.durationSnapshot }} mins
+                            } @else {
+                              {{ member.durationSnapshot }} mins
+                            }
+                          </span>
+                        </li>
+                      }
+                    </ul>
+                  </app-accordion>
+                </div>
 
                 <!-- Notes — self-contained, only one entry's open at a time -->
                 <div class="mt-2">

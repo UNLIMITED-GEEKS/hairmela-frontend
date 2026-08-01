@@ -1,24 +1,54 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { Location } from '@angular/common';
-import { ActivatedRoute, RouterOutlet } from '@angular/router';
+import { ActivatedRoute, Router, RouterOutlet, RouterLink, NavigationEnd } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { filter, map, startWith } from 'rxjs';
 import { QueueConsoleService } from '../queue-console/queue-console.service';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { ConnectionBannerComponent } from '../../../shared/components/connection-banner/connection-banner.component';
 import { BackButtonComponent } from '../../../shared/components/back-button/back-button.component';
-import { RouteParam } from '../../../core/routing/route-paths';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { RouteParam, RouteSegment, RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-queue-shell',
   templateUrl: './queue-shell.component.html',
   providers: [QueueConsoleService],
-  imports: [RouterOutlet, SkeletonComponent, ConnectionBannerComponent, BackButtonComponent],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    SkeletonComponent,
+    ConnectionBannerComponent,
+    BackButtonComponent,
+    IconComponent,
+  ],
 })
 export class QueueShellComponent implements OnInit, OnDestroy {
   protected readonly console = inject(QueueConsoleService);
   protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
+  private readonly _router = inject(Router);
   private readonly _salonContext = inject(SalonContextService);
+
+  // True while the active child route is queue-list (.../console/queue), not
+  // current-client (the shell's default child, .../console). The back
+  // chevron above is shared by both — on queue-list it should always return
+  // to current-client (hardcoded, not browser-history-based, since arriving
+  // at queue-list can happen from several different places); on
+  // current-client itself it keeps its normal history-based behavior.
+  protected readonly onQueueListRoute = toSignal(
+    this._router.events.pipe(
+      filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+      map(() => this._router.url.endsWith(`/${RouteSegment.QUEUE}`)),
+      startWith(this._router.url.endsWith(`/${RouteSegment.QUEUE}`)),
+    ),
+    { requireSync: true },
+  );
+
+  protected get currentClientLink(): string[] {
+    return RoutePath.salonQueueConsole(this.salonId, this.queueId);
+  }
 
   // staffFrozen (handoff §5): this non-owner staff member is over the plan's
   // staff limit and locked out of queue ops. Backend rejects their writes with

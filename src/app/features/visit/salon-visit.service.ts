@@ -1,7 +1,7 @@
 import { Injectable, DestroyRef, inject, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
-import { filter, map } from 'rxjs';
+import { Observable, filter, map } from 'rxjs';
 import { Router } from '@angular/router';
 import { ApiConfiguration } from '../../api/api-configuration';
 import { QueueSocketService } from '../../core/socket/queue-socket.service';
@@ -9,7 +9,7 @@ import { ServerClockService } from '../../core/clock/server-clock.service';
 import { CurrentUserStore } from '../../core/auth/current-user.store';
 import { ActiveQueuesService } from '../queues/auth-queues/active-queues.service';
 import { GuestStore } from '../../core/guest/guest-store';
-import { ActiveEntryStore } from '../../core/queue/active-entry.store';
+import { ActiveEntryStore, isAppointmentEntry } from '../../core/queue/active-entry.store';
 import { ConfirmDialogService } from '../../shared/components/confirm-dialog/confirm-dialog.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ErrorCodes } from '../../core/errors/error-codes';
@@ -43,6 +43,8 @@ import { BookAppointmentDto } from '../../api/models/book-appointment-dto';
 import { SocketPredictService } from '../../core/caching/socket-predict/socket-predict.service';
 import { myEntriesControllerGetMyEntries } from '../../api/fn/queues/my-entries-controller-get-my-entries';
 import { guestEntriesControllerGetGuestEntries } from '../../api/fn/queues/guest-entries-controller-get-guest-entries';
+import { entryStatusControllerGetEntry } from '../../api/fn/queues/entry-status-controller-get-entry';
+import { EntryStatusResponseDto } from '../../api/models/entry-status-response-dto';
 import { RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
 import { CommentsService, PostCommentInput } from '../comments/comments.service';
 
@@ -196,6 +198,20 @@ export class SalonVisitService {
     return this.timeline().find((e) => e.entryId === entryId) ?? null;
   }
 
+  // Per-entry status, direct from the backend rather than inferred from
+  // timeline presence. The live timeline excludes a WALK_IN/APPOINTMENT once
+  // it's no longer WAITING/SERVING, AND excludes an APPOINTMENT scheduled for
+  // a later salon-local day — so "absent from the timeline" has three causes
+  // (served/no-show/cancelled, or just not-today-yet) that myEntry() alone
+  // can't tell apart. position/estimatedWaitMinutes come from the same engine
+  // the timeline uses, so they never disagree with what's shown elsewhere.
+  getEntryStatus(queueId: string, entryId: string): Observable<EntryStatusResponseDto> {
+    return entryStatusControllerGetEntry(this._http, this._apiConfig.rootUrl, {
+      queueId,
+      entryId,
+    }).pipe(map((res) => res.body));
+  }
+
   /** True if any of the user's own entries belong to this queue's timeline. */
   isMine(entryId: string): boolean {
     return this.activeEntries().some((e) => e.entryId === entryId);
@@ -230,7 +246,23 @@ export class SalonVisitService {
   // (non-blank) memberName alone, so this is inert if the backend contract
   // ever changes to stop redacting the caller's own entry.
   partyMembers(entryId: string): TimelineEntryDto['members'] {
-    const members = this.myEntry(entryId)?.members ?? [];
+    return this.withStoredNames(entryId, this.myEntry(entryId)?.members ?? []);
+  }
+
+  /**
+   * Applies the stored-name overlay to any members array, whatever its source.
+   *
+   * Split out from partyMembers() because the position page also renders
+   * members from the per-entry status fetch, which is the ONLY source for an
+   * appointment scheduled beyond today (absent from the live timeline, so
+   * partyMembers() is empty for it). That endpoint returns real names rather
+   * than redacted ones, in which case this is inert — but routing both
+   * sources through the same overlay means neither can drift.
+   */
+  withStoredNames(
+    entryId: string,
+    members: TimelineEntryDto['members'],
+  ): TimelineEntryDto['members'] {
     return members.map((m) =>
       m.memberName
         ? m
@@ -422,12 +454,21 @@ export class SalonVisitService {
       });
       return false;
     }
-    const myEntries = this._activeEntryStore.getAllForQueue(staff.queueId!);
-    if (myEntries.length > 0) {
+    // Only an existing WALK-IN blocks a fresh join. An appointment is a
+    // reservation for a later slot — holding one says nothing about whether
+    // the customer can also stand in the line right now, and they often want
+    // both (walk in today, keep next week's booking). Redirecting on any
+    // stored entry made a booking silently un-joinable for that barber until
+    // the appointment was served or cancelled.
+    //
+    const myWalkIns = this._activeEntryStore
+      .getAllForQueue(staff.queueId!)
+      .filter((e) => !isAppointmentEntry(e));
+    if (myWalkIns.length > 0) {
       // Already in this queue — open the position page for the (earliest) entry,
       // even if the salon is now closed (they may still be waiting).
       this._router.navigate(
-        RoutePath.visitPosition(this._shellPrefix, slug, staff.queueId!, myEntries[0].entryId),
+        RoutePath.visitPosition(this._shellPrefix, slug, staff.queueId!, myWalkIns[0].entryId),
       );
       return false;
     }
@@ -461,6 +502,7 @@ export class SalonVisitService {
             entryId,
             salonId,
             salonSlug,
+            type: 'WALK_IN',
             pendingMemberNames: captureMemberNames(body.members.map((m) => m.memberName)),
           };
           this.activeEntries.update((list) => [
@@ -562,6 +604,10 @@ export class SalonVisitService {
             salonId,
             salonSlug,
             pendingMemberNames: captureMemberNames(body.members.map((m) => m.memberName)),
+            type: 'APPOINTMENT',
+            // Kept so _reconcileEntries can tell "scheduled for a later day,
+            // so not in today's timeline" from "finished, drop it".
+            scheduledAt: res.body.scheduledAt,
           };
           this.activeEntries.update((list) => [
             ...list.filter((e) => e.entryId !== entry.entryId),
@@ -678,7 +724,20 @@ export class SalonVisitService {
   // whole entry — once that's confirmed, this ALSO removes the ActiveEntry
   // from storage exactly like leaveQueue does, since there's nothing left of
   // it to hold a position for.
-  cancelMember(entryId: string, memberId: string, onSuccess: () => void): void {
+  //
+  // `members` lets the caller supply the party when the live timeline can't:
+  // an appointment scheduled beyond today isn't in any timeline frame, so
+  // myEntry() is null for it and the last-active check below would silently
+  // read false — leaving a stored entry behind after the backend auto-closed
+  // it, which then shows as a phantom booking in My Queues and blocks
+  // re-booking via selectBarber()'s duplicate check. Falls back to the
+  // timeline when omitted.
+  cancelMember(
+    entryId: string,
+    memberId: string,
+    onSuccess: () => void,
+    members?: TimelineEntryDto['members'],
+  ): void {
     const entry = this._activeEntryStore.getByEntryId(entryId);
     const salon = this.salon();
     if (!entry || !salon) return;
@@ -694,10 +753,9 @@ export class SalonVisitService {
         takeUntilDestroyed(this._destroyRef),
       )
       .subscribe(() => {
-        const timelineEntry = this.myEntry(entryId);
+        const partyMembers = members ?? this.myEntry(entryId)?.members ?? [];
         const wasLastActive =
-          timelineEntry?.members.filter((m) => m.status === 'WAITING' || m.status === 'SERVING')
-            .length === 1;
+          partyMembers.filter((m) => m.status === 'WAITING' || m.status === 'SERVING').length === 1;
 
         this.cancellingMemberIds.update((s) => new Set([...s, memberId]));
         walkInControllerCancelMyMember(this._http, this._apiConfig.rootUrl, {
@@ -766,6 +824,9 @@ export class SalonVisitService {
             entryId: res.body.entry.id,
             salonId: salon.id,
             salonSlug: entry.salonSlug,
+            // "Add someone while waiting" creates a fresh WALK-IN at the back
+            // of the line, whatever the entry it was launched from.
+            type: 'WALK_IN',
             pendingMemberNames: captureMemberNames(body.members.map((m) => m.memberName)),
           };
           if (res.body.guestToken) this._guestStore.setToken(res.body.guestToken);
@@ -935,6 +996,8 @@ export class SalonVisitService {
                     entryId: e.id,
                     salonId: salon?.id ?? '',
                     salonSlug: salon?.slug ?? '',
+                    type: e.type,
+                    scheduledAt: e.scheduledAt,
                   }),
                 );
               for (const entry of recovered) this._activeEntryStore.save(entry);
@@ -960,10 +1023,35 @@ export class SalonVisitService {
   }
 
   /**
+   * True for an appointment booked for a day after today, which the live
+   * timeline deliberately excludes (it's bounded to the end of the salon-local
+   * day) — so its absence from a frame says nothing about whether it ended.
+   *
+   * Compared in the BROWSER's timezone, not the salon's, which the client
+   * doesn't have. That's a deliberate approximation: the only cost of getting
+   * it wrong near a day boundary in a distant timezone is keeping a stored
+   * entry one frame longer than needed, or dropping one a few hours early —
+   * and the position page reads the authoritative status from
+   * getEntryStatus() regardless, so nothing user-visible depends on this
+   * being exact. It exists only to stop a definitely-future booking being
+   * deleted from local storage.
+   */
+  private _isScheduledBeyondToday(entry: ActiveEntry): boolean {
+    if (!entry.scheduledAt) return false;
+    const scheduled = new Date(entry.scheduledAt);
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+    return scheduled.getTime() > endOfToday.getTime();
+  }
+
+  /**
    * Reconciles the caller's stored entries for a queue against the live timeline:
    * keeps the ones still present, drops the ones that vanished (served/cancelled),
    * and fires the "you're up" banner when one of the caller's own entries starts
    * being served. Used by both the socket stream and the REST fallback.
+   *
+   * An entry absent from the frame is dropped as finished UNLESS it's booked
+   * beyond today — see _isScheduledBeyondToday.
    */
   private _reconcileEntries(
     queueId: string,
@@ -992,6 +1080,12 @@ export class SalonVisitService {
           this.calledVisible.set(true);
           setTimeout(() => this.calledVisible.set(false), 5000);
         }
+      } else if (this._isScheduledBeyondToday(entry)) {
+        // Absent because it's booked for a later day, not because it ended —
+        // the timeline only carries today's entries. Keep it: dropping it
+        // here would lose the booking from My Queues and let selectBarber()
+        // offer a duplicate for a slot the customer already holds.
+        live.push(entry);
       } else {
         this._activeEntryStore.remove(entry.entryId);
       }

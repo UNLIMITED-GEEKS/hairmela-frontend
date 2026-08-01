@@ -109,6 +109,30 @@
         </div>
        </div>
 
+        <!-- Party breakdown — who's booked for what. Collapsed by default so
+             a multi-person party doesn't bloat the row; no open-state
+             plumbing needed (unlike Notes, several may be open at once). -->
+        <div class="mt-2">
+          <app-accordion [title]="entry.members.length === 1 ? 'Service' : 'Party (' + entry.members.length + ')'">
+            <!-- Stacked on mobile, side-by-side only from sm up — see the
+                 appointments list's copy of this for the reasoning. -->
+            <ul class="space-y-2">
+              @for (member of entry.members; track member.memberId) {
+                <li class="flex flex-col gap-0.5 text-xs sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
+                  <span class="min-w-0 font-medium text-gray-700 wrap-break-word">{{ member.memberName }}</span>
+                  <span class="min-w-0 text-gray-500 wrap-break-word sm:text-right">
+                    @if (member.serviceName) {
+                      {{ member.serviceName }} · {{ member.serviceDuration }} mins
+                    } @else {
+                      {{ member.serviceDuration }} mins
+                    }
+                  </span>
+                </li>
+              }
+            </ul>
+          </app-accordion>
+        </div>
+
         <!-- Notes — self-contained, only one row's open at a time -->
         <div class="mt-2">
           <app-accordion title="Notes" [open]="openNotesEntryId() === entry.entryId"
@@ -139,11 +163,11 @@
       class="flex-1 min-h-[45px] rounded-2xl bg-primary border  text-white font-bold text-sm transition-colors hover:bg-primary-hover">
       Add a client
     </button>
-    <button
-      (click)="_location.back()"
-      class="flex-1 min-h-[45px] rounded-2xl border-2 border-primary text-primary font-bold text-sm transition-colors hover:bg-surface">
+    <a
+      [routerLink]="currentClientLink"
+      class="flex-1 min-h-[45px] rounded-2xl border-2 border-primary text-primary font-bold text-sm transition-colors hover:bg-surface flex items-center justify-center">
       Back
-    </button>
+    </a>
   </div>
 
 </div>

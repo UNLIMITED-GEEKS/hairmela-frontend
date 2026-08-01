@@ -1,21 +1,24 @@
 <button type="button" (click)="select.emit()"
   class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3.5
-         flex items-center gap-3 text-left
+         flex items-start gap-3 text-left
          hover:bg-gray-50 transition-colors">
 
   <div class="w-10 h-10 shrink-0 rounded-xl bg-secondary-light flex items-center justify-center">
     <app-icon name="scissors" class="w-3.5 h-4 text-primary" />
   </div>
 
-  <div class="flex-1 min-w-0">
-    <h3 class="text-sm font-semibold text-gray-900 truncate">{{ service().name }}</h3>
+  <!-- Wraps rather than truncating: a service name is the whole point of the
+       row, and salons write long ones. wrap-break-word so an unbroken string
+       (no spaces) still wraps instead of overflowing the container. -->
+  <div class="flex-1 min-w-0 pt-1">
+    <h3 class="text-sm font-semibold text-gray-900 wrap-break-word">{{ service().name }}</h3>
     @if (service().description) {
-      <p class="text-xs text-gray-500 truncate">{{ service().description }}</p>
+      <p class="text-xs text-gray-500 wrap-break-word">{{ service().description }}</p>
     }
   </div>
 
-  <div class="shrink-0 text-right">
-   
+  <div class="shrink-0 text-right pt-1">
+
     @if (showPrice()) {
      <span class="text-sm">From</span>
       <p class="text-sm font-bold text-gray-900">  {{ service().price | currencyNgn }}</p>

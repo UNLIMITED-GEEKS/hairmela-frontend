@@ -34,7 +34,14 @@
 
       <p class="text-xs text-gray-400 mb-1 ml-11">Tap to open, pause, or close your queue</p>
       <div class="flex items-center gap-2">
-        <app-back-button variant="plain" />
+        @if (onQueueListRoute()) {
+          <a [routerLink]="currentClientLink" aria-label="Back to current client"
+            class="min-w-11 min-h-11 flex items-center justify-center text-gray-400 hover:text-primary -ml-2 shrink-0">
+            <app-icon name="chevron-left" class="w-2 h-3.5" />
+          </a>
+        } @else {
+          <app-back-button variant="plain" />
+        }
         <div class="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
           @for (s of statusOptions; track s) {
             <button

@@ -21,7 +21,9 @@ import { PushPromptComponent } from '../../../shared/components/push-prompt/push
 import { BookAppointmentDialogComponent } from '../book-appointment-dialog/book-appointment-dialog.component';
 import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
 import { InstallPromptService } from '../../../core/pwa/install-prompt.service';
+import { ToastService } from '../../../core/toast/toast.service';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
+import { environment } from '../../../../environments/environment';
 
 const LANDING_TABS: TabItem[] = [
   { id: 'about', label: 'About' },
@@ -104,6 +106,7 @@ export class SalonLandingComponent implements OnInit {
   private readonly _router = inject(Router);
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _favorites = inject(FavoritesService);
+  private readonly _toast = inject(ToastService);
 
   // Fallback photo for salons with no uploaded image — same asset used by
   // SalonCardComponent (public/salon-placeholder.jpg).
@@ -286,6 +289,47 @@ export class SalonLandingComponent implements OnInit {
   protected toggleFavorite(): void {
     const id = this.visit.salon()?.id;
     if (id) this._favorites.toggle({ id });
+  }
+
+  // The public salon URL, built with NO shell prefix: this page is reachable
+  // as /s/:slug and /g/s/:slug (guest shell), but the link handed to someone
+  // else must be the plain one so their own session decides how to route them
+  // — same reasoning as live-queue's "Copy queue link".
+  protected get shareUrl(): string {
+    return `${environment.appBaseUrl}${RoutePath.visitSalon('', this._slug).join('/')}`;
+  }
+
+  // Native share sheet where the browser has one (the common case here — this
+  // is a customer-facing page, mostly opened on a phone), clipboard otherwise.
+  // Desktop Chrome/Firefox have no navigator.share, so the fallback isn't an
+  // edge case.
+  protected async shareSalon(): Promise<void> {
+    const name = this.visit.salon()?.name ?? 'this salon';
+    const url = this.shareUrl;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: name, text: `Check out ${name} on HairMela`, url });
+        return;
+      } catch (err) {
+        // AbortError = the user dismissed the sheet. That's not a failure and
+        // must not fall through to copying, which would be a surprise action
+        // they didn't ask for. Anything else means the sheet couldn't open,
+        // so copying is the right recovery.
+        if ((err as { name?: string })?.name === 'AbortError') return;
+      }
+    }
+
+    void this.copyLink();
+  }
+
+  protected async copyLink(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(this.shareUrl);
+      this._toast.success('Link copied');
+    } catch {
+      this._toast.error('Could not copy link');
+    }
   }
 
   protected get _slug(): string {

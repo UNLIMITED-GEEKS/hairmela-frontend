@@ -23,6 +23,7 @@ export type { CreateScheduleDto } from './models/create-schedule-dto';
 export type { CreateServiceDto } from './models/create-service-dto';
 export type { DowngradeDto } from './models/downgrade-dto';
 export type { EffectiveAccessDto } from './models/effective-access-dto';
+export type { EntryStatusResponseDto } from './models/entry-status-response-dto';
 export type { ExtendMemberDto } from './models/extend-member-dto';
 export type { ForgotPasswordDto } from './models/forgot-password-dto';
 export type { InitialServiceDto } from './models/initial-service-dto';

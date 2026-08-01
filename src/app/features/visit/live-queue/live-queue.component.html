@@ -36,20 +36,25 @@
               {{ staff.firstName }} {{ staff.lastName }}
               @if (staff.nickname) { <span class="font-normal text-gray-500">({{ staff.nickname }})</span> }
             </p>
-            <div class="flex items-center gap-2 flex-wrap mt-1.5">
-              @if (staff.queueId) {
-                <span class="text-xs font-medium text-success">Available</span>
-              } @else {
-                <span class="text-xs font-medium text-gray-400">Unavailable</span>
-              }
+            @if (staff.queueId) {
+              <span class="block text-xs font-medium text-success mt-1.5">Available</span>
+            } @else {
+              <span class="block text-xs font-medium text-gray-400 mt-1.5">Unavailable</span>
+            }
+
+            <!-- Both actions stay on ONE row. No flex-wrap: with the status
+                 label above rather than inline there's room for both, and
+                 min-w-0 + truncate lets them shrink on a narrow screen
+                 instead of pushing each other onto separate lines. -->
+            <div class="flex items-center gap-2 mt-1.5">
               @if (staff.galleryUrls?.length) {
                 <button type="button" (click)="openGallery()"
-                  class="text-xs font-semibold px-3 py-1 rounded-full border border-primary/40 text-primary hover:bg-secondary-light transition-colors">
+                  class="min-w-0 shrink text-xs font-semibold px-3 py-1 rounded-full border border-primary/40 text-primary hover:bg-secondary-light transition-colors truncate">
                   View my works
                 </button>
               }
               <button type="button" (click)="copyQueueLink()"
-                class="text-xs font-semibold px-3 py-1 rounded-full border border-primary/40 text-primary hover:bg-secondary-light transition-colors">
+                class="min-w-0 shrink text-xs font-semibold px-3 py-1 rounded-full border border-primary/40 text-primary hover:bg-secondary-light transition-colors truncate">
                 Copy queue link
               </button>
             </div>

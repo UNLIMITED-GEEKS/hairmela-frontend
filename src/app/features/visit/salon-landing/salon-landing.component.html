@@ -20,17 +20,27 @@
         <app-back-button variant="glass" />
       </div>
 
-      @if (showHeart()) {
-        <button type="button" (click)="toggleFavorite()"
-          [attr.aria-label]="isFavorited() ? 'Remove from favourites' : 'Add to favourites'"
-          [attr.aria-pressed]="isFavorited()"
-          class="absolute top-3 right-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/20 hover:scale-105 transition-transform">
-          <app-icon [name]="isFavorited() ? 'heart-filled' : 'heart'"
-            class="h-5 w-5 transition-colors"
-            [class.text-primary]="isFavorited()"
-            [class.text-white]="!isFavorited()" />
+      <!-- Share + favourite, top-right over the photo. Share sits left of the
+           heart so the heart keeps the corner position it already had. -->
+      <div class="absolute top-3 right-3 flex items-center gap-2">
+        <button type="button" (click)="shareSalon()"
+          aria-label="Share this salon"
+          class="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/20 hover:scale-105 transition-transform">
+          <app-icon name="share" class="h-5 w-5 text-white" />
         </button>
-      }
+
+        @if (showHeart()) {
+          <button type="button" (click)="toggleFavorite()"
+            [attr.aria-label]="isFavorited() ? 'Remove from favourites' : 'Add to favourites'"
+            [attr.aria-pressed]="isFavorited()"
+            class="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/20 hover:scale-105 transition-transform">
+            <app-icon [name]="isFavorited() ? 'heart-filled' : 'heart'"
+              class="h-5 w-5 transition-colors"
+              [class.text-primary]="isFavorited()"
+              [class.text-white]="!isFavorited()" />
+          </button>
+        }
+      </div>
 
       @if (!install.installed()) {
         <a [routerLink]="howToInstallLink"

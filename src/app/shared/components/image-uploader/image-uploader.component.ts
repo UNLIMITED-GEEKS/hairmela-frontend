@@ -22,36 +22,48 @@ export class ImageUploaderComponent {
 
   readonly filesSelected = output<File[]>();
 
+  // Best-effort, not all-or-nothing: an oversized/wrong-type file or picking
+  // more than the remaining slots no longer blocks the whole selection —
+  // whatever's valid still gets uploaded, and a toast explains what was
+  // skipped and why.
   protected onFileChange(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const files = input.files ? Array.from(input.files) : [];
-    if (files.length === 0 || this.disabled()) return;
+    const picked = input.files ? Array.from(input.files) : [];
+    input.value = '';
+    if (picked.length === 0 || this.disabled()) return;
+
+    let wrongType = 0;
+    let tooLarge = 0;
+    const valid: File[] = [];
+    for (const file of picked) {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        wrongType++;
+      } else if (file.size > MAX_BYTES) {
+        tooLarge++;
+      } else {
+        valid.push(file);
+      }
+    }
 
     const max = this.maxFiles();
-    if (this.multiple() && max !== null && files.length > max) {
+    let overLimit = 0;
+    let toUpload = valid;
+    if (this.multiple() && max !== null && valid.length > max) {
+      overLimit = valid.length - max;
+      toUpload = valid.slice(0, max);
+    }
+
+    const skippedReasons: string[] = [];
+    if (wrongType > 0) skippedReasons.push(`${wrongType} not JPEG/PNG/WebP`);
+    if (tooLarge > 0) skippedReasons.push(`${tooLarge} over 5 MB`);
+    if (overLimit > 0) skippedReasons.push(`${overLimit} over the photo limit`);
+    if (skippedReasons.length > 0) {
+      const skippedCount = wrongType + tooLarge + overLimit;
       this._toast.error(
-        max === 0
-          ? 'You have reached the photo limit.'
-          : `You can only add ${max} more photo${max === 1 ? '' : 's'}.`,
+        `Skipped ${skippedCount} photo${skippedCount === 1 ? '' : 's'} (${skippedReasons.join(', ')}).`,
       );
-      input.value = '';
-      return;
     }
 
-    for (const file of files) {
-      if (!ALLOWED_TYPES.includes(file.type)) {
-        this._toast.error('Only JPEG, PNG, or WebP images are allowed');
-        input.value = '';
-        return;
-      }
-      if (file.size > MAX_BYTES) {
-        this._toast.error('Image must be 5 MB or smaller');
-        input.value = '';
-        return;
-      }
-    }
-
-    this.filesSelected.emit(files);
-    input.value = '';
+    if (toUpload.length > 0) this.filesSelected.emit(toUpload);
   }
 }

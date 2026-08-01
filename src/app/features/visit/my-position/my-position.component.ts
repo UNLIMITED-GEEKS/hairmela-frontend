@@ -1,9 +1,19 @@
-import { Component, computed, effect, inject, signal, linkedSignal, viewChild } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { Location, DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SalonVisitService } from '../salon-visit.service';
+import { EntryStatusResponseDto } from '../../../api/models/entry-status-response-dto';
 import { PushPromptComponent } from '../../../shared/components/push-prompt/push-prompt.component';
 import { PushService } from '../../../core/push/push.service';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
@@ -45,6 +55,7 @@ export class MyPositionComponent {
   private readonly _router = inject(Router);
   private readonly _fb = inject(FormBuilder);
   private readonly _push = inject(PushService);
+  private readonly _destroyRef = inject(DestroyRef);
 
   protected readonly ringCircumference = RING_CIRCUMFERENCE;
 
@@ -66,39 +77,156 @@ export class MyPositionComponent {
     return this._route.snapshot.data['shellPrefix'] ?? '';
   }
 
+  // Direct per-entry fetch — the source of truth for status/type/scheduledAt.
+  // NOT derived from timeline presence: the live timeline excludes an entry
+  // once it's no longer WAITING/SERVING, AND excludes an APPOINTMENT
+  // scheduled for a later salon-local day, so "absent from timeline" has
+  // three different causes (served/no-show/cancelled, or just not-today-yet)
+  // that can't be told apart from timeline data alone. position/wait still
+  // come from myEntry()/timeline when the entry IS present there (walk-ins,
+  // same-day appointments) — that's the live, second-by-second-ticking
+  // source; this fetch is only for the one signal the timeline can't give us.
+  protected readonly entryStatus = signal<EntryStatusResponseDto | null>(null);
+
+  // Whether this entry is currently in the live timeline. A computed, not a
+  // raw myEntry() read, because a computed only notifies when its OUTPUT
+  // changes: the timeline emits a fresh array (and fresh entry objects) on
+  // every socket frame, so depending on the object itself would retrigger on
+  // every push. As a boolean it changes only on the actual enters/leaves
+  // transition.
+  private readonly _isInTimeline = computed(() => !!this.visit.myEntry(this._entryId()));
+
   constructor() {
     effect(() => this.visit.watchQueue(this._queueId()));
+
+    // Fetches on route entry, and again when the entry LEAVES the live
+    // timeline — that's how a SERVED/NO_SHOW/CANCELLED becomes visible here,
+    // since the backend drops the entry from the timeline at the same moment.
+    //
+    // Only the leaving direction refetches. `timeline` starts empty, so the
+    // first frame landing always flips presence false -> true; refetching on
+    // that would fire a second, redundant request for the same entry on every
+    // single page load, against a rate-limited endpoint.
+    //
+    // The tracked reads are exactly the three below; everything with a side
+    // effect is inside untracked(). Critically, entryStatus is WRITTEN here
+    // but never READ in tracked scope — reading it would make the effect
+    // depend on its own output (fetch -> write -> re-run -> fetch), which is
+    // exactly the loop that tripped the backend's rate limiter in an earlier
+    // revision of this file.
+    let wasInTimeline = false;
+    effect(() => {
+      const queueId = this._queueId();
+      const entryId = this._entryId();
+      const isInTimeline = this._isInTimeline();
+
+      untracked(() => {
+        const justLeftTimeline = wasInTimeline && !isInTimeline;
+        wasInTimeline = isInTimeline;
+
+        if (!queueId || !entryId) {
+          this.entryStatus.set(null);
+          return;
+        }
+        // A different entry means a different fetch is needed regardless of
+        // presence — clear first so the page can't show the previous entry's
+        // status while the new one loads.
+        const isNewEntry = this.entryStatus()?.entryId !== entryId;
+        if (isNewEntry) this.entryStatus.set(null);
+
+        // Skip the redundant false -> true refetch described above; the
+        // initial fetch for this entry has already been issued.
+        if (!isNewEntry && !justLeftTimeline) return;
+
+        this._fetchEntryStatus(queueId, entryId);
+      });
+    });
   }
 
-  // Pure derivation from visit's signals — no side effect, so linkedSignal
-  // (not effect) is the right primitive. previous.value covers the one
-  // "leave unchanged" branch: timeline loaded, entry not found yet, but
-  // still ours (isMine) — a transient state while the socket catches up,
-  // not a real completion.
-  protected readonly serviceComplete = linkedSignal<boolean, boolean>({
-    source: () => this.visit.timelineLoaded(),
-    computation: (timelineLoaded, previous) => {
-      if (!timelineLoaded) return false;
-      if (this.visit.myEntry(this._entryId())) return false;
-      if (!this.visit.isMine(this._entryId())) return true;
-      return previous?.value ?? false;
-    },
+  // Guards against out-of-order responses: navigating entry A -> B while A's
+  // request is still in flight would otherwise let A's response overwrite B's.
+  private _statusFetchId = 0;
+
+  private _fetchEntryStatus(queueId: string, entryId: string): void {
+    const fetchId = ++this._statusFetchId;
+    this.visit
+      .getEntryStatus(queueId, entryId)
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: (res) => {
+          if (fetchId !== this._statusFetchId) return;
+          this.entryStatus.set(res);
+        },
+        // Leave the previous value in place on a transient failure rather
+        // than nulling it out — the next transition or revisit corrects it,
+        // and dropping a known-good status would flash the loading state for
+        // no reason.
+        error: () => {},
+      });
+  }
+
+  protected readonly serviceComplete = computed(() => {
+    const status = this.entryStatus()?.status;
+    return status === 'SERVED' || status === 'NO_SHOW' || status === 'CANCELLED';
   });
 
-  // Can't leave once any member of this entry is already being served —
-  // matches the "Leave queue" button's disabled state.
-  protected readonly isBeingServed = computed(() =>
-    (this.visit.myEntry(this._entryId())?.members ?? []).some((m) => m.status === 'SERVING'),
+  // Can't leave once already being served — matches the "Leave queue"
+  // button's disabled state.
+  protected readonly isBeingServed = computed(() => this.entryStatus()?.status === 'SERVING');
+
+  // Party members, preferring the live timeline (ticks with each frame) and
+  // falling back to the per-entry fetch. The fallback isn't an edge case: an
+  // appointment scheduled beyond today is absent from the timeline entirely,
+  // so the fetch is the ONLY source of its members — without this the party
+  // list renders empty for every future booking, even though the response
+  // carries all of them.
+  protected readonly partyMembers = computed(() => {
+    const fromTimeline = this.visit.partyMembers(this._entryId());
+    if (fromTimeline.length > 0) return fromTimeline;
+    const fetched = this.entryStatus()?.members ?? [];
+    return this.visit.withStoredNames(this._entryId(), fetched);
+  });
+
+  // An APPOINTMENT always shows its scheduled time, never a queue position —
+  // its `position` is where it sits in the ordering once its slot arrives,
+  // not "walk up now". A 9pm booking can read position 1 at noon.
+  protected readonly isAppointment = computed(() => this.entryStatus()?.type === 'APPOINTMENT');
+
+  // A WALK_IN's position comes from the live timeline while it's in there
+  // (ticks with each frame); the fetched entry is the fallback, and the two
+  // come from the same engine so they can't disagree.
+  protected readonly queuePosition = computed(
+    () => this.visit.myEntry(this._entryId())?.position ?? this.entryStatus()?.position ?? null,
   );
+
+  // Date included only when the appointment isn't today — "Today at 9:00 PM"
+  // is noise on the page you land on right after booking, but a bare time is
+  // ambiguous for something days out. Uses the salon's own scheduledAt string
+  // rather than recomputing from a local clock.
+  protected readonly scheduledLabel = computed(() => {
+    const scheduledAt = this.entryStatus()?.scheduledAt;
+    if (!scheduledAt) return null;
+    const scheduled = new Date(scheduledAt);
+    const now = new Date();
+    const sameDay =
+      scheduled.getFullYear() === now.getFullYear() &&
+      scheduled.getMonth() === now.getMonth() &&
+      scheduled.getDate() === now.getDate();
+    return { date: scheduled, sameDay };
+  });
 
   // Progress ring — position-based, not time-based: fuller as the caller
   // gets closer to the front. position is 1-indexed; queue length comes from
-  // the full ordered timeline (every entry currently in the queue).
+  // the full ordered timeline.
+  //
+  // Empty for an appointment: its position is where it lands once its slot
+  // arrives, so a 9pm booking would paint a nearly-full ring at noon. The
+  // scheduled time is the whole story there, and the bare tick ring reads as
+  // "not started" rather than falsely "almost up".
   protected readonly ringProgress = computed(() => {
+    if (this.isAppointment()) return 0;
     const entry = this.visit.myEntry(this._entryId());
     const total = this.visit.timeline().length;
-    // position is null for an appointment that hasn't reached the front of
-    // the live queue yet (isUpcoming) — nothing to show progress toward.
     if (!entry || total === 0 || entry.position === null) return 0;
     return Math.min(1, Math.max(0, 1 - (entry.position - 1) / total));
   });
@@ -170,8 +298,21 @@ export class MyPositionComponent {
   // the LAST member (auto-closing the whole entry), the existing
   // serviceComplete/myEntry() handling already covers "entry no longer
   // exists" — no separate redirect needed here.
+  // Passes the rendered party so the service's last-active check works for a
+  // future appointment too, where the live timeline has no entry to read.
+  //
+  // Refetches on success for the same reason: a future appointment's party
+  // list comes from entryStatus, and nothing else would refresh it — the
+  // timeline never carries this entry, so no frame arrives to repaint the
+  // removed member away. For a walk-in the timeline repaints it anyway and
+  // this is just a confirming read.
   protected cancelMember(memberId: string): void {
-    this.visit.cancelMember(this._entryId(), memberId, () => {});
+    this.visit.cancelMember(
+      this._entryId(),
+      memberId,
+      () => this._fetchEntryStatus(this._queueId(), this._entryId()),
+      this.partyMembers(),
+    );
   }
 
   protected leaveQueue(): void {

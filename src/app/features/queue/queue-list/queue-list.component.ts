@@ -1,5 +1,5 @@
 import { Component, inject, signal, viewChildren } from '@angular/core';
-import { Location, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { QueueConsoleService } from '../queue-console/queue-console.service';
 import { AddClientModalComponent } from '../add-client-modal/add-client-modal.component';
@@ -26,7 +26,6 @@ import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 })
 export class QueueListComponent {
   protected readonly console = inject(QueueConsoleService);
-  protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _toast = inject(ToastService);
   protected readonly soundPreference = inject(QueueSoundPreferenceService);
@@ -57,6 +56,13 @@ export class QueueListComponent {
 
   protected get _staffId(): string {
     return this.console.queue()?.staffId ?? '';
+  }
+
+  // Hardcoded, not Location.back(): this page can be reached from several
+  // places, and "Back" should always mean "back to the current client",
+  // this shell's home — same reasoning as the shell's own back chevron.
+  protected get currentClientLink(): string[] {
+    return RoutePath.salonQueueConsole(this._salonId, this._queueId);
   }
 
   // Expand = refetch, same as My Position. Only one row open at a time:

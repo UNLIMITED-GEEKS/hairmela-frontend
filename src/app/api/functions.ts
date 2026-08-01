@@ -167,6 +167,8 @@ export type { MyEntriesControllerGetMyEntries$Params as MyEntriesControllerGetMy
 export { myEntriesControllerGetMyEntries as myEntriesControllerGetMyEntries } from './fn/queues/my-entries-controller-get-my-entries';
 export type { GuestEntriesControllerGetGuestEntries$Params as GuestEntriesControllerGetGuestEntries$Params } from './fn/queues/guest-entries-controller-get-guest-entries';
 export { guestEntriesControllerGetGuestEntries as guestEntriesControllerGetGuestEntries } from './fn/queues/guest-entries-controller-get-guest-entries';
+export type { EntryStatusControllerGetEntry$Params as EntryStatusControllerGetEntry$Params } from './fn/queues/entry-status-controller-get-entry';
+export { entryStatusControllerGetEntry as entryStatusControllerGetEntry } from './fn/queues/entry-status-controller-get-entry';
 export type { PublicQueueControllerGetQueue$Params as PublicQueueControllerGetQueue$Params } from './fn/queues/public-queue-controller-get-queue';
 export { publicQueueControllerGetQueue as publicQueueControllerGetQueue } from './fn/queues/public-queue-controller-get-queue';
 export type { PublicQueueControllerGetTimeline$Params as PublicQueueControllerGetTimeline$Params } from './fn/queues/public-queue-controller-get-timeline';

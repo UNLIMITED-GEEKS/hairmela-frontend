@@ -7,6 +7,7 @@ import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { RouteParam } from '../../../core/routing/route-paths';
 import { CurrencyNgnPipe } from '../../../shared/pipes/currency-ngn.pipe';
+import { groupByServiceCategory } from '../../../core/utils/group-by-category';
 
 @Component({
   selector: 'app-staff-service-assign',
@@ -30,6 +31,10 @@ export class StaffServiceAssignComponent implements OnInit {
 
   protected readonly allServices = computed(() =>
     this._servicesService.services().filter((s) => s.isActive),
+  );
+
+  protected readonly serviceGroups = computed(() =>
+    groupByServiceCategory(this.allServices(), (s: Service) => s),
   );
 
   protected readonly assignedServices = computed(() =>

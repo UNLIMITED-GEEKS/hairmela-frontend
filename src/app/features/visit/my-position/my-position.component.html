@@ -44,25 +44,35 @@
               class="transition-[stroke-dashoffset] duration-500 ease-out" />
           </svg>
 
-          <!-- Center content -->
+          <!-- Center content. Branches on the entry's TYPE, not on whether it
+               has a position: an APPOINTMENT gets a real position number from
+               the backend (where it sits in the ordering once its slot
+               arrives), so showing "You are 1st" for a 9pm booking at noon
+               would be wrong. Appointments always show their scheduled time
+               until they're actually called. -->
           <div class="absolute inset-0 flex flex-col items-center justify-center gap-0.5 text-center px-6">
             @if (isBeingServed()) {
               <span class="text-4xl font-bold text-primary leading-tight" aria-live="polite">Serving</span>
-            } @else if (visit.myEntry(_entryId()); as timelineEntry) {
-              @if (timelineEntry.position !== null) {
-                <span class="text-sm mr-4 text-text-primary">You are</span>
-                <span class="text-5xl font-bold text-primary leading-tight" aria-live="polite">
-                  {{ timelineEntry.position }}<span class="text-2xl align-top">{{ ordinalSuffix(timelineEntry.position) }}</span>
-                </span>
-                <span class="text-sm text-text-primary">In Queue</span>
-              } @else {
-                <!-- Upcoming appointment not yet at the front of the live
-                     queue — no meaningful numeric position to show yet. -->
-                <span class="text-sm text-text-primary">Appointment at</span>
+            } @else if (isAppointment() && scheduledLabel(); as scheduled) {
+              <span class="text-sm text-text-primary">Appointment</span>
+              @if (scheduled.sameDay) {
                 <span class="text-3xl font-bold text-primary leading-tight" aria-live="polite">
-                  {{ timelineEntry.scheduledAt | date: 'shortTime' }}
+                  {{ scheduled.date | date: 'shortTime' }}
+                </span>
+              } @else {
+                <span class="text-2xl font-bold text-primary leading-tight" aria-live="polite">
+                  {{ scheduled.date | date: 'MMM d' }}
+                </span>
+                <span class="text-base font-semibold text-primary">
+                  {{ scheduled.date | date: 'shortTime' }}
                 </span>
               }
+            } @else if (queuePosition(); as position) {
+              <span class="text-sm mr-4 text-text-primary">You are</span>
+              <span class="text-5xl font-bold text-primary leading-tight" aria-live="polite">
+                {{ position }}<span class="text-2xl align-top">{{ ordinalSuffix(position) }}</span>
+              </span>
+              <span class="text-sm text-text-primary">In Queue</span>
             } @else {
               <div class="w-16 h-16 rounded-full bg-gray-100 animate-pulse"></div>
             }
@@ -73,8 +83,14 @@
       <!-- Estimated wait — same reliable minute-granularity source the
            live-queue page uses (liveWaitMinutes, anchored to when the last
            server frame landed), not a local per-second countdown that could
-           get stuck at 00:00:00. -->
-      @if (!serviceComplete() && visit.myEntry(_entryId())) {
+           get stuck at 00:00:00.
+
+           Walk-ins only: for an appointment this number is the gap until its
+           scheduled slot, which the time shown above already communicates —
+           "1h 39m" under "9:00 PM" is redundant, and reads as a live queue
+           wait when it isn't one. Once the appointment is actually called it
+           renders as Serving, which doesn't show this either. -->
+      @if (!serviceComplete() && !isAppointment() && visit.myEntry(_entryId())) {
         <p class="text-2xl font-semibold text-text-secondary mb-4" aria-live="polite">
           {{ visit.liveWait(_entryId()) }}
         </p>
@@ -88,18 +104,39 @@
       }
 
       <!-- Party members -->
-      @if (visit.partyMembers(_entryId()).length > 0) {
+      @if (partyMembers().length > 0) {
         <div class="w-full space-y-2 mb-4">
-          @for (member of visit.partyMembers(_entryId()); track member.memberId) {
-            <div class="flex items-center justify-between bg-white border border-primary/10 rounded-2xl px-4 py-3 min-h-12">
-              <span class="text-sm font-normal text-primary">{{ member.memberName }}</span>
+          @for (member of partyMembers(); track member.memberId) {
+            <div class="flex items-center justify-between gap-3 bg-white border border-primary/10 rounded-2xl px-4 py-3 min-h-12">
+              <span class="min-w-0 flex flex-col">
+                <span class="text-sm font-semibold  wrap-break-word">{{ member.memberName }}</span>
+                <!-- serviceName is nullable: a walk-in can join without picking
+                     one (the salon's default applies later).
+                     Duration is appointment-only. A walk-in row already shows
+                     the live `est:` wait, which is the number that actually
+                     matters to someone in the line; a fixed service length
+                     beside it is noise. An appointment has no live wait (see
+                     the est: block below), so the duration is the only sense
+                     of how long the slot runs. -->
+                @if (member.serviceName) {
+                  <span class="text-xs  wrap-break-word ">
+                  
+                    {{ member.serviceName }}@if (isAppointment()) {  · duration {{ member.serviceDuration }} mins }
+                  </span>
+                }
+              </span>
               @if (member.status === 'SERVING') {
-                <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-success-light text-success">Serving</span>
+                <span class="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full bg-success-light text-success">Serving</span>
               } @else if (member.status === 'SERVED') {
-                <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-500 text-gray-400">Served</span>
+                <span class="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-500 text-gray-400">Served</span>
               } @else {
-                <span class="flex items-center gap-1">
-                  <span class="text-sm text-primary/70 font-normal" aria-live="polite">est: {{ visit.memberWait(member.memberId) }}</span>
+                <span class="shrink-0 flex items-center gap-1">
+                  <!-- Walk-ins only: for an appointment this is the gap to its
+                       scheduled slot, not a live queue wait, and the time shown
+                       above already says it. Same reasoning as the hero wait. -->
+                  @if (!isAppointment()) {
+                    <span class="text-sm  font-normal" aria-live="polite">est: {{ visit.memberWait(member.memberId) }}</span>
+                  }
                   @if (visit.cancellingMemberIds().has(member.memberId)) {
                     <app-inline-spinner class="text-primary shrink-0" />
                   } @else {
@@ -118,8 +155,12 @@
         </div>
       }
 
-      <!-- Add Kids button -->
-      @if (!serviceComplete()) {
+      <!-- Add Kids button — walk-ins only. It creates a NEW walk-in entry at
+           the BACK of the line (see SalonVisitService.addMembers), which makes
+           no sense against a booked slot: the extra person wouldn't share the
+           appointment, they'd just be queued behind everyone. Adding someone
+           to an appointment means booking for a larger party up front. -->
+      @if (!serviceComplete() && !isAppointment()) {
         <button (click)="openAddKids()"
           class="w-full min-h-12 rounded-2xl bg-white border-2 border-primary/20 text-primary font-semibold text-sm hover:bg-primary/20 transition-colors mb-4">
           + Add someone

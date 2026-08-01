@@ -32,6 +32,37 @@ export interface ActiveEntry {
   // ActiveEntryStore.bindMemberNames. Only ever read for an entry that has
   // not yet seen a timeline frame, so the position keys are still correct.
   readonly pendingMemberNames?: Record<number, string>;
+
+  // Mirrors QueueEntry.type. Optional only for backward compatibility with
+  // entries persisted before this field existed — treat a missing value as
+  // WALK_IN (see isAppointmentEntry), which is what every pre-existing stored
+  // entry without a scheduledAt is.
+  readonly type?: 'WALK_IN' | 'APPOINTMENT';
+
+  // Set only for booked appointments (from the booking response, and from
+  // entry recovery), never for a walk-in join.
+  //
+  // The live timeline only carries entries scheduled for TODAY, so an
+  // appointment booked for a later day is legitimately absent from every
+  // frame until its day arrives. Without this field _reconcileEntries can't
+  // tell that apart from "finished, drop it" and evicts the entry from
+  // storage on the first frame after booking — which loses it from My Queues
+  // and from the position page, which reads it back to render the scheduled
+  // time.
+  readonly scheduledAt?: string | null;
+}
+
+/**
+ * Whether a stored entry is a booked appointment rather than a walk-in.
+ *
+ * Prefers the explicit `type`, falling back to `scheduledAt` for entries
+ * persisted before `type` was added — those are still in real users'
+ * localStorage, and only appointments ever carried a scheduledAt, so the
+ * fallback is exact rather than a guess.
+ */
+export function isAppointmentEntry(entry: ActiveEntry): boolean {
+  if (entry.type) return entry.type === 'APPOINTMENT';
+  return !!entry.scheduledAt;
 }
 
 const ENTRIES_KEY = 'hairmela_active_entries';

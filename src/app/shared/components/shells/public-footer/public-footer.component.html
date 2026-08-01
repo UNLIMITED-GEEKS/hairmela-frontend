@@ -33,9 +33,24 @@
 
     </div>
 
-    <!-- Copyright -->
+    <!-- Copyright + socials. flex-col-reverse on mobile puts the icons above
+         the copyright line; md:flex-row splits them left/right. -->
     <div class="mt-12 flex flex-col-reverse items-start justify-between gap-4 border-t border-gray-200 pt-6 md:flex-row md:items-center">
       <p class="text-sm text-text-secondary">© {{ year }} HairMela. All rights reserved.</p>
+
+      <ul class="flex items-center gap-2">
+        @for (social of socialLinks; track social.url) {
+          <li>
+            <!-- noopener/noreferrer: these open a new tab, so without it the
+                 target page gets a handle on ours via window.opener. -->
+            <a [href]="social.url" target="_blank" rel="noopener noreferrer"
+              [attr.aria-label]="'HairMela on ' + social.label"
+              class="flex h-10 w-10 items-center justify-center rounded-full text-text-secondary hover:text-primary hover:bg-primary/5 transition-colors">
+              <app-icon [name]="social.icon" class="h-5 w-5" />
+            </a>
+          </li>
+        }
+      </ul>
     </div>
 
     <!-- Wordmark -->

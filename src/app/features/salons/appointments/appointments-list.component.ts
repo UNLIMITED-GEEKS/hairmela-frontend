@@ -134,13 +134,6 @@ export class AppointmentsListComponent implements OnInit {
     return staff.user ? `${staff.user.firstName} ${staff.user.lastName}` : staff.email;
   }
 
-  protected serviceNames(entry: QueueEntry): string {
-    return entry.members
-      .map((m) => m.service?.name)
-      .filter((name): name is string => !!name)
-      .join(', ');
-  }
-
   // scheduledAt is a UTC ISO timestamp; the grid buckets by the salon's
   // local calendar day, which the backend's date-range query already scoped
   // the fetch to — so grouping by the UTC date's calendar portion is safe
