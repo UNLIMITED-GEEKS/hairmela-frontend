@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal, linkedSignal } from '@angular/core';
+import { Component, computed, effect, inject, signal, linkedSignal, viewChild } from '@angular/core';
 import { Location, DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -9,6 +9,8 @@ import { PushService } from '../../../core/push/push.service';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { BackButtonComponent } from '../../../shared/components/back-button/back-button.component';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
+import { AccordionComponent } from '../../../shared/components/accordion/accordion.component';
+import { CommentsThreadComponent } from '../../comments/comments-thread/comments-thread.component';
 import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
 import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 import { ordinalSuffix } from '../../../core/utils/queue-format';
@@ -30,6 +32,8 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
     FieldErrorComponent,
     BackButtonComponent,
     InlineSpinnerComponent,
+    AccordionComponent,
+    CommentsThreadComponent,
     MediaUrlPipe,
     DatePipe,
   ],
@@ -45,6 +49,8 @@ export class MyPositionComponent {
   protected readonly ringCircumference = RING_CIRCUMFERENCE;
 
   protected readonly showAddKidsModal = signal(false);
+  protected readonly notesOpen = signal(false);
+  private readonly _commentsThread = viewChild(CommentsThreadComponent);
 
   // Reactive, not snapshot-based — this route can be reused across params
   // (e.g. leaving and rejoining produces a new entryId on the same route),
@@ -117,6 +123,17 @@ export class MyPositionComponent {
 
   protected get salonUrl() {
     return RoutePath.visitSalon('', this._slug());
+  }
+
+  // Expand = refetch (no live updates — spec is manual refresh only), so every
+  // open gets fresh data, not just the first. viewChild is only populated
+  // once the accordion's content has rendered at least once; on the very
+  // first open in the same tick the child may not exist yet, so this is
+  // called from the accordion's (openChange) rather than relying on the
+  // signal alone.
+  protected onNotesOpenChange(open: boolean): void {
+    this.notesOpen.set(open);
+    if (open) this._commentsThread()?.refresh();
   }
 
   protected openAddKids(): void {

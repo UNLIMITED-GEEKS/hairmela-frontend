@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, output, signal, effect } from '@angular/core';
+import { Component, computed, inject, input, output, signal, effect, untracked } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SalonVisitService } from '../salon-visit.service';
@@ -9,6 +9,9 @@ import { FieldErrorComponent } from '../../../shared/components/field-error/fiel
 import { RoutePath } from '../../../core/routing/route-paths';
 import { groupByServiceCategory } from '../../../core/utils/group-by-category';
 import { Service } from '../../../api/models/service';
+
+const ALLOWED_NOTE_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_NOTE_IMAGE_BYTES = 5 * 1024 * 1024;
 
 // Shared join dialog: guest name/phone (guests only), a required service for
 // the leader, + optional party members (kids), submitted as one batch join.
@@ -46,6 +49,13 @@ export class JoinDialogComponent {
   protected readonly leaderServiceId = signal('');
   protected readonly leaderServiceTouched = signal(false);
 
+  // One-shot note at intake — write-only here; it becomes the first entry in
+  // the "View notes" thread on My Position, never rendered in this dialog.
+  protected readonly noteBody = signal('');
+  protected readonly noteImage = signal<File | null>(null);
+  protected readonly noteImagePreviewUrl = signal<string | null>(null);
+  protected readonly noteImageError = signal<string | null>(null);
+
   protected readonly staffServices = computed(() => this.visit.staffServices(this.staff()));
   protected readonly staffServiceGroups = computed(() =>
     groupByServiceCategory(this.staffServices(), (s: Service) => s),
@@ -67,16 +77,30 @@ export class JoinDialogComponent {
   constructor() {
     // Reset form state every time the dialog opens — a signed-in user's name
     // is pre-filled, guests start blank, no stale values from a prior open.
+    // Deliberately reads ONLY this.open() as its tracked dependency —
+    // untracked() wraps everything else because _clearNoteImage() reads
+    // noteImagePreviewUrl() internally, and an effect tracks every signal
+    // read during its execution, including reads inside called functions.
+    // Without untracked(), this effect also depends on noteImagePreviewUrl,
+    // so onNoteImagePicked()'s noteImagePreviewUrl.set(...) retriggers THIS
+    // effect and immediately wipes the preview + resets the whole form —
+    // same bug this exact pattern already fixed once for
+    // BookAppointmentDialogComponent's month/slot state (see its own
+    // constructor comment).
     effect(() => {
       if (!this.open()) return;
-      const user = this._currentUser.user();
-      this.guestName.set(user?.firstName ?? '');
-      this.guestPhone.set('');
-      this.guestNameTouched.set(false);
-      this.guestPhoneTouched.set(false);
-      this.leaderServiceId.set(this.initialServiceId() ?? '');
-      this.leaderServiceTouched.set(false);
-      this.kidsArray.clear();
+      untracked(() => {
+        const user = this._currentUser.user();
+        this.guestName.set(user?.firstName ?? '');
+        this.guestPhone.set('');
+        this.guestNameTouched.set(false);
+        this.guestPhoneTouched.set(false);
+        this.leaderServiceId.set(this.initialServiceId() ?? '');
+        this.leaderServiceTouched.set(false);
+        this.kidsArray.clear();
+        this.noteBody.set('');
+        this._clearNoteImage();
+      });
     });
   }
 
@@ -87,6 +111,39 @@ export class JoinDialogComponent {
 
   protected removeKid(i: number): void {
     this.kidsArray.removeAt(i);
+  }
+
+  protected onNoteImagePicked(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    input.value = '';
+    if (!file) return;
+
+    if (!ALLOWED_NOTE_IMAGE_TYPES.includes(file.type)) {
+      this.noteImageError.set('Only JPEG, PNG, or WebP images are allowed.');
+      return;
+    }
+    if (file.size > MAX_NOTE_IMAGE_BYTES) {
+      this.noteImageError.set('Image must be 5 MB or smaller.');
+      return;
+    }
+
+    this.noteImageError.set(null);
+    this._clearNoteImage();
+    this.noteImage.set(file);
+    this.noteImagePreviewUrl.set(URL.createObjectURL(file));
+  }
+
+  protected removeNoteImage(): void {
+    this._clearNoteImage();
+  }
+
+  private _clearNoteImage(): void {
+    const url = this.noteImagePreviewUrl();
+    if (url) URL.revokeObjectURL(url);
+    this.noteImagePreviewUrl.set(null);
+    this.noteImage.set(null);
+    this.noteImageError.set(null);
   }
 
   protected cancel(): void {
@@ -117,11 +174,16 @@ export class JoinDialogComponent {
       .filter((k) => k.name?.trim())
       .map((k): JoinMemberDto => ({ memberName: k.name.trim(), serviceId: k.serviceId || undefined }));
 
+    const note =
+      this.noteBody().trim() || this.noteImage()
+        ? { body: this.noteBody().trim(), image: this.noteImage() }
+        : undefined;
+
     this.closed.emit();
-    this._submitJoin([leader, ...kids]);
+    this._submitJoin([leader, ...kids], note);
   }
 
-  private _submitJoin(members: JoinMemberDto[]): void {
+  private _submitJoin(members: JoinMemberDto[], note?: { body: string; image: File | null }): void {
     const salonId = this.salonId();
     const queueId = this.queueId();
     const slug = this.slug();
@@ -137,7 +199,7 @@ export class JoinDialogComponent {
     const joiningUrl = RoutePath.visitJoining(prefix, slug, queueId);
     this._router.navigate(joiningUrl);
 
-    this.visit.joinQueue(salonId, queueId, slug, { members });
+    this.visit.joinQueue(salonId, queueId, slug, { members }, note);
   }
 
   private _buildKidGroup(serviceId = '') {

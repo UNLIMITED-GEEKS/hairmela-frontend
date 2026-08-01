@@ -21,6 +21,9 @@ function startOfMonth(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), 1);
 }
 
+const ALLOWED_NOTE_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_NOTE_IMAGE_BYTES = 5 * 1024 * 1024;
+
 // Customer-facing appointment booking: [pick a staff member, when none was
 // pre-selected] -> month-grid date picker -> slot -> service for yourself +
 // optional extra party members (each with a REQUIRED service, unlike
@@ -101,6 +104,13 @@ export class BookAppointmentDialogComponent {
     return staff ? this.visit.staffServices(staff) : [];
   };
 
+  // One-shot note at intake — same write-only pattern as join-dialog's; sent
+  // as the first comment once the entry exists, not rendered in this dialog.
+  protected readonly noteBody = signal('');
+  protected readonly noteImage = signal<File | null>(null);
+  protected readonly noteImagePreviewUrl = signal<string | null>(null);
+  protected readonly noteImageError = signal<string | null>(null);
+
   protected get leaderName(): string {
     return this._currentUser.user()?.firstName ?? 'You';
   }
@@ -143,6 +153,8 @@ export class BookAppointmentDialogComponent {
         this.leaderServiceTouched.set(false);
         this.pickedStaff.set(null);
         this.membersArray.clear();
+        this.noteBody.set('');
+        this._clearNoteImage();
         // Only fetch if a staff member is already known — the staff-picker
         // path (needsStaffPicker()) has nothing to fetch availability for
         // yet; pickStaff() triggers the fetch once one is chosen.
@@ -190,6 +202,39 @@ export class BookAppointmentDialogComponent {
     this.membersArray.removeAt(i);
   }
 
+  protected onNoteImagePicked(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    input.value = '';
+    if (!file) return;
+
+    if (!ALLOWED_NOTE_IMAGE_TYPES.includes(file.type)) {
+      this.noteImageError.set('Only JPEG, PNG, or WebP images are allowed.');
+      return;
+    }
+    if (file.size > MAX_NOTE_IMAGE_BYTES) {
+      this.noteImageError.set('Image must be 5 MB or smaller.');
+      return;
+    }
+
+    this.noteImageError.set(null);
+    this._clearNoteImage();
+    this.noteImage.set(file);
+    this.noteImagePreviewUrl.set(URL.createObjectURL(file));
+  }
+
+  protected removeNoteImage(): void {
+    this._clearNoteImage();
+  }
+
+  private _clearNoteImage(): void {
+    const url = this.noteImagePreviewUrl();
+    if (url) URL.revokeObjectURL(url);
+    this.noteImagePreviewUrl.set(null);
+    this.noteImage.set(null);
+    this.noteImageError.set(null);
+  }
+
   protected cancel(): void {
     this.closed.emit();
   }
@@ -225,6 +270,11 @@ export class BookAppointmentDialogComponent {
     // moment later — a visible flash on every booking. Waiting for onSuccess
     // means My Queues' first fetch only ever happens after the entry already
     // exists, so it's correct on the first try.
+    const note =
+      this.noteBody().trim() || this.noteImage()
+        ? { body: this.noteBody().trim(), image: this.noteImage() }
+        : undefined;
+
     this.visit.bookAppointment(
       this.salonId(),
       queueId,
@@ -237,6 +287,7 @@ export class BookAppointmentDialogComponent {
         this.closed.emit();
         this._router.navigate(RoutePath.queues());
       },
+      note,
     );
   }
 

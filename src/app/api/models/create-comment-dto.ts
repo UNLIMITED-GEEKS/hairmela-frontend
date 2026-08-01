@@ -3,5 +3,6 @@
 
 export interface CreateCommentDto {
   body?: string;
-  imageToken?: string;
+  imagePublicId?: string;
+  imageUrl?: string;
 }

@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, viewChildren } from '@angular/core';
 import { Location, DatePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { QueueConsoleService } from '../queue-console/queue-console.service';
@@ -7,12 +7,22 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { QueueSoundPreferenceService } from '../../../core/queue/queue-sound-preference.service';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 import { PushPromptComponent } from '../../../shared/components/push-prompt/push-prompt.component';
+import { AccordionComponent } from '../../../shared/components/accordion/accordion.component';
+import { CommentsThreadComponent } from '../../comments/comments-thread/comments-thread.component';
 import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-queue-list',
   templateUrl: './queue-list.component.html',
-  imports: [InlineSpinnerComponent, AddClientModalComponent, DatePipe, RouterLink, PushPromptComponent],
+  imports: [
+    InlineSpinnerComponent,
+    AddClientModalComponent,
+    AccordionComponent,
+    CommentsThreadComponent,
+    DatePipe,
+    RouterLink,
+    PushPromptComponent,
+  ],
 })
 export class QueueListComponent {
   protected readonly console = inject(QueueConsoleService);
@@ -22,6 +32,12 @@ export class QueueListComponent {
   protected readonly soundPreference = inject(QueueSoundPreferenceService);
 
   protected readonly showAddQueueModal = signal(false);
+
+  // Only one row's Notes accordion open at a time — opening one collapses
+  // any other. Tracks the open entry's id rather than a per-row boolean, so
+  // there's a single source of truth to compare each row against.
+  protected readonly openNotesEntryId = signal<string | null>(null);
+  private readonly _commentsThreads = viewChildren(CommentsThreadComponent);
 
   // Dismissed for this page view only (not persisted) — reappears next time
   // the console is opened, unless the barber turns sound back on in Account
@@ -41,6 +57,19 @@ export class QueueListComponent {
 
   protected get _staffId(): string {
     return this.console.queue()?.staffId ?? '';
+  }
+
+  // Expand = refetch, same as My Position. Only one row open at a time:
+  // each row's accordion [open] is derived from equality against
+  // openNotesEntryId, so setting it to a new row implicitly collapses
+  // whichever row was previously open.
+  protected onRowNotesOpenChange(entryId: string, open: boolean): void {
+    if (!open) {
+      if (this.openNotesEntryId() === entryId) this.openNotesEntryId.set(null);
+      return;
+    }
+    this.openNotesEntryId.set(entryId);
+    this._commentsThreads().find((c) => c.entryId() === entryId)?.refresh();
   }
 
   protected noShow(entryId: string): void {

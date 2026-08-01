@@ -11,6 +11,7 @@ import { CommentResponseDto } from '../../models/comment-response-dto';
 import { CreateCommentDto } from '../../models/create-comment-dto';
 
 export interface CommentsControllerCreate$Params {
+  queueId: string;
   entryId: string;
       body: CreateCommentDto
 }
@@ -18,6 +19,7 @@ export interface CommentsControllerCreate$Params {
 export function commentsControllerCreate(http: HttpClient, rootUrl: string, params: CommentsControllerCreate$Params, context?: HttpContext): Observable<StrictHttpResponse<CommentResponseDto>> {
   const rb = new RequestBuilder(rootUrl, commentsControllerCreate.PATH, 'post');
   if (params) {
+    rb.path('queueId', params.queueId, {});
     rb.path('entryId', params.entryId, {});
     rb.body(params.body, 'application/json');
   }

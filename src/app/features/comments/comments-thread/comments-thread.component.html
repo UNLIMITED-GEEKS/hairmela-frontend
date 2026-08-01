@@ -1,0 +1,102 @@
+<div class="flex flex-col gap-3">
+
+  <!-- Thread -->
+  @if (loading()) {
+    <div class="flex items-center justify-center gap-2 py-6 text-sm text-gray-400">
+      <app-inline-spinner label="Loading notes" />
+      Loading…
+    </div>
+  } @else if (loadError()) {
+    <div class="flex items-center justify-between gap-3 rounded-xl bg-red-50 border border-red-100 px-3 py-2.5">
+      <p class="text-xs text-red-600">{{ loadError() }}</p>
+      <button type="button" (click)="refresh()" class="shrink-0 text-xs font-semibold text-red-600 hover:underline">
+        Retry
+      </button>
+    </div>
+  } @else if (comments(); as list) {
+    @if (list.length === 0) {
+      <p class="text-xs text-gray-400 text-center py-4">{{ emptyLabel() }}</p>
+    } @else {
+      <div class="flex flex-col gap-2 max-h-72 overflow-y-auto themed-scrollbar pr-0.5">
+        @for (comment of list; track comment.id) {
+          <div class="w-full flex flex-col gap-1 rounded-2xl px-3 py-2.5"
+            [class.bg-primary]="comment.isMine"
+            [class.text-white]="comment.isMine"
+            [class.bg-gray-100]="!comment.isMine"
+            [class.text-gray-900]="!comment.isMine">
+            <span class="text-[11px] font-semibold opacity-80">{{ comment.authorName }}</span>
+            @if (comment.body) {
+              <p class="text-sm whitespace-pre-wrap break-words">{{ comment.body }}</p>
+            }
+            @if (comment.imageUrl) {
+              <button type="button" (click)="openImageViewer(comment.imageUrl)"
+                class="mt-1 block rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-white/60">
+                <img [src]="comment.imageUrl" alt="" class="max-h-48 object-cover" />
+              </button>
+            }
+            <span class="text-[10px] opacity-60 self-end">{{ comment.createdAt | date: 'shortTime' }}</span>
+          </div>
+        }
+      </div>
+    }
+  }
+
+  <!-- Composer -->
+  @if (closed()) {
+    <p class="text-xs text-gray-400 text-center py-2">This conversation has ended.</p>
+  } @else {
+    <div class="flex flex-col gap-2">
+      @if (imagePreviewUrl(); as preview) {
+        <div class="relative w-16 h-16 shrink-0">
+          <img [src]="preview" alt="" class="w-full h-full object-cover rounded-lg" />
+          <button type="button" (click)="removeImage()" aria-label="Remove image"
+            class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-gray-900 text-white flex items-center justify-center">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      }
+
+      @if (sendError()) {
+        <p class="text-xs text-red-600">{{ sendError() }}</p>
+      }
+
+      <div class="flex items-end gap-2">
+        <textarea
+          [value]="body()"
+          (input)="body.set($any($event.target).value)"
+          [maxLength]="maxBodyLength"
+          [placeholder]="composerPlaceholder()"
+          rows="1"
+          class="flex-1 resize-none min-h-10 max-h-24 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30"
+        ></textarea>
+
+        <label class="shrink-0 w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 cursor-pointer relative">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <input type="file" accept="image/jpeg,image/png,image/webp" (change)="onImagePicked($event)"
+            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+        </label>
+
+        <button type="button" (click)="send()" [disabled]="!canSend()"
+          class="shrink-0 w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center disabled:opacity-40 hover:bg-primary-hover transition-colors">
+          @if (sending()) {
+            <app-inline-spinner sizeClass="w-4 h-4" label="Sending" class="text-white" />
+          } @else {
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19V5m0 0l-6 6m6-6l6 6" />
+            </svg>
+          }
+        </button>
+      </div>
+    </div>
+  }
+
+</div>
+
+@if (viewerImageUrl(); as url) {
+  <app-gallery-modal [images]="[url]" [open]="true" (closed)="closeImageViewer()" />
+}

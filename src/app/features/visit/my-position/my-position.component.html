@@ -126,6 +126,19 @@
         </button>
       }
 
+      <!-- Notes — hidden once the visit ends; the thread is destroyed
+           server-side then, so there's nothing left to show. Self-contained:
+           its own loading/error/composer state, never blocks the rest of
+           the page. -->
+      @if (!serviceComplete()) {
+        <div class="w-full mb-4">
+          <app-accordion title="View notes" [open]="notesOpen()" (openChange)="onNotesOpenChange($event)">
+            <app-comments-thread [queueId]="_queueId()" [entryId]="_entryId()"
+              composerPlaceholder="Write a note to the salon…" emptyLabel="No notes yet." />
+          </app-accordion>
+        </div>
+      }
+
       </div>
     </div>
 

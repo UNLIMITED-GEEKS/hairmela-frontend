@@ -61,6 +61,14 @@ export const ErrorCodes = {
   // ── Notifications ─────────────────────────────────────────────────────────────
   NOTIFICATION_NOT_FOUND: 'NOTIFICATION_NOT_FOUND',
   PUSH_SUBSCRIPTION_NOT_FOUND: 'PUSH_SUBSCRIPTION_NOT_FOUND',
+
+  // ── Comments ──────────────────────────────────────────────────────────────────
+  COMMENT_FORBIDDEN: 'COMMENT_FORBIDDEN',
+  COMMENTS_ENTRY_CLOSED: 'COMMENTS_ENTRY_CLOSED',
+  COMMENT_EMPTY: 'COMMENT_EMPTY',
+  COMMENT_TOO_LONG: 'COMMENT_TOO_LONG',
+  COMMENT_IMAGE_INVALID: 'COMMENT_IMAGE_INVALID',
+  RATE_LIMITED: 'RATE_LIMITED',
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

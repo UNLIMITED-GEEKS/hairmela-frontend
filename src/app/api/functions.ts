@@ -213,8 +213,6 @@ export type { CommentsControllerList$Params as CommentsControllerList$Params } f
 export { commentsControllerList as commentsControllerList } from './fn/queues/comments-controller-list';
 export type { CommentsControllerCreate$Params as CommentsControllerCreate$Params } from './fn/queues/comments-controller-create';
 export { commentsControllerCreate as commentsControllerCreate } from './fn/queues/comments-controller-create';
-export type { CommentsControllerUploadImage$Params as CommentsControllerUploadImage$Params } from './fn/queues/comments-controller-upload-image';
-export { commentsControllerUploadImage as commentsControllerUploadImage } from './fn/queues/comments-controller-upload-image';
 export type { NotificationsControllerGetInbox$Params as NotificationsControllerGetInbox$Params } from './fn/notifications/notifications-controller-get-inbox';
 export { notificationsControllerGetInbox as notificationsControllerGetInbox } from './fn/notifications/notifications-controller-get-inbox';
 export type { NotificationsControllerMarkAsRead$Params as NotificationsControllerMarkAsRead$Params } from './fn/notifications/notifications-controller-mark-as-read';

@@ -10,12 +10,14 @@ import { RequestBuilder } from '../../request-builder';
 import { CommentResponseDto } from '../../models/comment-response-dto';
 
 export interface CommentsControllerList$Params {
+  queueId: string;
   entryId: string;
 }
 
 export function commentsControllerList(http: HttpClient, rootUrl: string, params: CommentsControllerList$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<CommentResponseDto>>> {
   const rb = new RequestBuilder(rootUrl, commentsControllerList.PATH, 'get');
   if (params) {
+    rb.path('queueId', params.queueId, {});
     rb.path('entryId', params.entryId, {});
   }
 

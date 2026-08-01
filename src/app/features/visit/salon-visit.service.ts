@@ -44,6 +44,7 @@ import { SocketPredictService } from '../../core/caching/socket-predict/socket-p
 import { myEntriesControllerGetMyEntries } from '../../api/fn/queues/my-entries-controller-get-my-entries';
 import { guestEntriesControllerGetGuestEntries } from '../../api/fn/queues/guest-entries-controller-get-guest-entries';
 import { RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
+import { CommentsService, PostCommentInput } from '../comments/comments.service';
 
 import { ActiveEntry } from '../../core/queue/active-entry.store';
 export type { ActiveEntry };
@@ -102,6 +103,7 @@ export class SalonVisitService {
   private readonly _socketPredict = inject(SocketPredictService);
   private readonly _toast = inject(ToastService);
   private readonly _destroyRef = inject(DestroyRef);
+  private readonly _comments = inject(CommentsService);
 
   private _watchedQueueIds = new Set<string>();
   private _shellPrefix = '';
@@ -434,7 +436,20 @@ export class SalonVisitService {
     return true;
   }
 
-  joinQueue(salonId: string, queueId: string, salonSlug: string, body: JoinQueueDto): void {
+  // note is a one-shot message (+ optional image) attached at intake — a
+  // separate POST fired right after the entry exists, not part of the join
+  // payload itself (the join endpoint has no field for it). Never blocks or
+  // fails the join: the user is already in the queue by the time it fires,
+  // so a failure here is swallowed (see CommentsService.post's doc — same
+  // Cloudinary-first pattern as every other comment/media post). Visible
+  // later via the "View notes" accordion on My Position, not shown here.
+  joinQueue(
+    salonId: string,
+    queueId: string,
+    salonSlug: string,
+    body: JoinQueueDto,
+    note?: PostCommentInput,
+  ): void {
     walkInControllerJoinQueue(this._http, this._apiConfig.rootUrl, { salonId, queueId, body })
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe({
@@ -462,6 +477,15 @@ export class SalonVisitService {
             slug: salonSlug,
             shellPrefix: this._shellPrefix,
           });
+
+          if (note && (note.body.trim() || note.image)) {
+            this._comments
+              .post(queueId, entryId, note)
+              .pipe(takeUntilDestroyed(this._destroyRef))
+              .subscribe({
+                error: () => this._toast.info("Joined, but your note couldn't be sent."),
+              });
+          }
         },
         error: (err) => {
           const apiBody = (err as { error?: unknown })?.error;
@@ -509,6 +533,11 @@ export class SalonVisitService {
     members: BookMemberRow[],
     notes?: string,
     onSuccess?: () => void,
+    // Comments-thread note, same one-shot pattern as joinQueue's `note` param
+    // — distinct from `notes` above, which is BookAppointmentDto's own
+    // booking-level free text field, not a comment. Fired after the entry
+    // exists; never blocks or fails the booking.
+    note?: PostCommentInput,
   ): void {
     if (this.booking()) return;
     this.booking.set(true);
@@ -554,6 +583,15 @@ export class SalonVisitService {
           this._activeQueues.refresh();
           this._toast.success('Appointment booked.');
           onSuccess?.();
+
+          if (note && (note.body.trim() || note.image)) {
+            this._comments
+              .post(queueId, entry.entryId, note)
+              .pipe(takeUntilDestroyed(this._destroyRef))
+              .subscribe({
+                error: () => this._toast.info("Booked, but your note couldn't be sent."),
+              });
+          }
         },
         error: (err: unknown) => {
           this.booking.set(false);
