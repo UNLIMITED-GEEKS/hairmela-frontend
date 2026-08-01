@@ -1,13 +1,14 @@
 import { CacheRegistry } from '../../../core/caching/cache-registry/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
-import { map, of } from 'rxjs';
+import { map, of, switchMap } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { Media } from '../../../api/models/media';
 import { ReorderMediaDto } from '../../../api/models/reorder-media-dto';
 import { publicMediaControllerGetSalonMedia } from '../../../api/fn/media/public-media-controller-get-salon-media';
-import { mediaControllerUpload } from '../../../api/fn/media/media-controller-upload';
+import { mediaControllerAttach } from '../../../api/fn/media/media-controller-attach';
 import { mediaControllerDelete } from '../../../api/fn/media/media-controller-delete';
+import { uploadToCloudinary } from '../../../core/media/cloudinary-upload';
 import { mediaReorderControllerReorderSalonGallery } from '../../../api/fn/media/media-reorder-controller-reorder-salon-gallery';
 import { ToastService } from '../../../core/toast/toast.service';
 import { OptimisticService } from '../../../core/caching/optimistic/optimistic.service';
@@ -79,10 +80,24 @@ export class SalonMediaService {
       dedupeKey: `SalonMediaService.upload:${salonId}:${file.name}:${file.size}:${file.lastModified}`,
       mirror: this._loader.mirrorFn(salonId),
       contextKey: salonId,
+      // Two steps: the browser uploads straight to Cloudinary, then the
+      // backend persists the resulting asset. Uploading through our own API
+      // as multipart produced an empty body (contentLength=0) whenever a
+      // service worker was registered; this path sends JSON instead.
       request: () =>
-        mediaControllerUpload(this._http, this._apiConfig.rootUrl, {
-          body: { file, entityType: 'SALON', entityId: salonId, type: mediaType },
-        }),
+        uploadToCloudinary(this._http, file).pipe(
+          switchMap((res) =>
+            mediaControllerAttach(this._http, this._apiConfig.rootUrl, {
+              body: {
+                publicId: res.public_id,
+                url: res.secure_url,
+                entityType: 'SALON',
+                entityId: salonId,
+                type: mediaType,
+              },
+            }),
+          ),
+        ),
       errorMessage: 'Upload failed. Removed.',
       onSuccess: () => onSuccess?.(),
       onSettled: () => URL.revokeObjectURL(blobUrl),

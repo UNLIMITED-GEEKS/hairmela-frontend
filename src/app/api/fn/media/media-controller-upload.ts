@@ -17,7 +17,7 @@ export interface MediaControllerUpload$Params {
     body: {
 
 /**
- * Image file (JPEG, PNG, or WebP, max 5 MB)
+ * Image file (JPEG, PNG, WebP, HEIC, or AVIF, max 5 MB)
  */
 'file': Blob;
 'entityType': 'USER' | 'SALON' | 'STAFF';

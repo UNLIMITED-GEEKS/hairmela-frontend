@@ -113,6 +113,8 @@ export type { PublicMediaControllerGetEntityMedia$Params as PublicMediaControlle
 export { publicMediaControllerGetEntityMedia as publicMediaControllerGetEntityMedia } from './fn/media/public-media-controller-get-entity-media';
 export type { MediaControllerUpload$Params as MediaControllerUpload$Params } from './fn/media/media-controller-upload';
 export { mediaControllerUpload as mediaControllerUpload } from './fn/media/media-controller-upload';
+export type { MediaControllerAttach$Params as MediaControllerAttach$Params } from './fn/media/media-controller-attach';
+export { mediaControllerAttach as mediaControllerAttach } from './fn/media/media-controller-attach';
 export type { MediaControllerDelete$Params as MediaControllerDelete$Params } from './fn/media/media-controller-delete';
 export { mediaControllerDelete as mediaControllerDelete } from './fn/media/media-controller-delete';
 export type { MediaReorderControllerReorderSalonGallery$Params as MediaReorderControllerReorderSalonGallery$Params } from './fn/media/media-reorder-controller-reorder-salon-gallery';
@@ -207,6 +209,12 @@ export type { StaffAppointmentsControllerGetStaffAppointments$Params as StaffApp
 export { staffAppointmentsControllerGetStaffAppointments as staffAppointmentsControllerGetStaffAppointments } from './fn/queues/staff-appointments-controller-get-staff-appointments';
 export type { StaffAppointmentsControllerGetSalonAppointments$Params as StaffAppointmentsControllerGetSalonAppointments$Params } from './fn/queues/staff-appointments-controller-get-salon-appointments';
 export { staffAppointmentsControllerGetSalonAppointments as staffAppointmentsControllerGetSalonAppointments } from './fn/queues/staff-appointments-controller-get-salon-appointments';
+export type { CommentsControllerList$Params as CommentsControllerList$Params } from './fn/queues/comments-controller-list';
+export { commentsControllerList as commentsControllerList } from './fn/queues/comments-controller-list';
+export type { CommentsControllerCreate$Params as CommentsControllerCreate$Params } from './fn/queues/comments-controller-create';
+export { commentsControllerCreate as commentsControllerCreate } from './fn/queues/comments-controller-create';
+export type { CommentsControllerUploadImage$Params as CommentsControllerUploadImage$Params } from './fn/queues/comments-controller-upload-image';
+export { commentsControllerUploadImage as commentsControllerUploadImage } from './fn/queues/comments-controller-upload-image';
 export type { NotificationsControllerGetInbox$Params as NotificationsControllerGetInbox$Params } from './fn/notifications/notifications-controller-get-inbox';
 export { notificationsControllerGetInbox as notificationsControllerGetInbox } from './fn/notifications/notifications-controller-get-inbox';
 export type { NotificationsControllerMarkAsRead$Params as NotificationsControllerMarkAsRead$Params } from './fn/notifications/notifications-controller-mark-as-read';

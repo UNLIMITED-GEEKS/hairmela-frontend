@@ -3,6 +3,7 @@
 
 export type { Address } from './models/address';
 export type { AddressDto } from './models/address-dto';
+export type { AttachMediaDto } from './models/attach-media-dto';
 export type { AuthTokensDto } from './models/auth-tokens-dto';
 export type { AvailableSlotDto } from './models/available-slot-dto';
 export type { BookAppointmentDto } from './models/book-appointment-dto';
@@ -12,8 +13,10 @@ export type { CategoryResponseDto } from './models/category-response-dto';
 export type { CheckoutDto } from './models/checkout-dto';
 export type { CheckoutSessionDto } from './models/checkout-session-dto';
 export type { Closure } from './models/closure';
+export type { CommentResponseDto } from './models/comment-response-dto';
 export type { ContactUsDto } from './models/contact-us-dto';
 export type { CreateClosureDto } from './models/create-closure-dto';
+export type { CreateCommentDto } from './models/create-comment-dto';
 export type { CreateSalonDto } from './models/create-salon-dto';
 export type { CreateSalonResponseDto } from './models/create-salon-response-dto';
 export type { CreateScheduleDto } from './models/create-schedule-dto';

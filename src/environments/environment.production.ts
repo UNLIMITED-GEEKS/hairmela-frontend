@@ -48,4 +48,7 @@ export const environment = {
   socketUrl: NG_APP_SOCKET_URL,
   appBaseUrl: NG_APP_APP_BASE_URL,
   cloudinaryCloudName: 'dievyx0ia',
+  // Unsigned upload preset — see environment.ts. Hardcoded like the cloud
+  // name (both are public values, not secrets), so it needs no --define.
+  cloudinaryUploadPreset: 'hairmela',
 };

@@ -10,6 +10,7 @@ export interface QueueEntryMember {
   id: string;
   isLeader: boolean;
   memberName: string;
+  notifiedSessionEndingAt: string | null;
   phone: string | null;
   priceSnapshot: string;
   queueEntryId: string;
