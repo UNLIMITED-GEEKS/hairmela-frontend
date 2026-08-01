@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, viewChildren } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { AppointmentsCalendarService } from './appointments-calendar.service';
@@ -6,6 +6,8 @@ import { QueueEntry } from '../../../api/models/queue-entry';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { MiniMonthCalendarComponent } from '../../../shared/components/mini-month-calendar/mini-month-calendar.component';
+import { AccordionComponent } from '../../../shared/components/accordion/accordion.component';
+import { CommentsThreadComponent } from '../../comments/comments-thread/comments-thread.component';
 import { RouteParam } from '../../../core/routing/route-paths';
 
 function toIsoDate(d: Date): string {
@@ -26,13 +28,25 @@ function toIsoDate(d: Date): string {
 @Component({
   selector: 'app-appointments-list',
   templateUrl: './appointments-list.component.html',
-  imports: [PageHeaderComponent, SkeletonComponent, DatePipe, MiniMonthCalendarComponent],
+  imports: [
+    PageHeaderComponent,
+    SkeletonComponent,
+    DatePipe,
+    MiniMonthCalendarComponent,
+    AccordionComponent,
+    CommentsThreadComponent,
+  ],
 })
 export class AppointmentsListComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
   protected readonly calendar = inject(AppointmentsCalendarService);
 
   protected readonly isStaffScoped = computed(() => !!this._staffId);
+
+  // Only one entry's Notes accordion open at a time — same pattern as
+  // queue-list's per-row Notes.
+  protected readonly openNotesEntryId = signal<string | null>(null);
+  private readonly _commentsThreads = viewChildren(CommentsThreadComponent);
 
   // The visible month, first-of-month at local midnight.
   protected readonly viewedMonth = signal(this._startOfMonth(new Date()));
@@ -83,6 +97,18 @@ export class AppointmentsListComponent implements OnInit {
     // months instead of requiring a manual day tap.
     this.selectedDate.set(toIsoDate(new Date(month.getFullYear(), month.getMonth(), 1)));
     this._loadMonth(month);
+  }
+
+  // Expand = refetch, same as queue-list's per-row Notes. Setting a new
+  // entry as open implicitly collapses whichever one was open before, since
+  // each row's accordion [open] is derived from equality against this signal.
+  protected onEntryNotesOpenChange(entryId: string, open: boolean): void {
+    if (!open) {
+      if (this.openNotesEntryId() === entryId) this.openNotesEntryId.set(null);
+      return;
+    }
+    this.openNotesEntryId.set(entryId);
+    this._commentsThreads().find((c) => c.entryId() === entryId)?.refresh();
   }
 
   protected onDaySelect(iso: string): void {

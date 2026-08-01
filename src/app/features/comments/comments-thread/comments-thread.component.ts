@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, input, output, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, inject, input, output, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import { finalize } from 'rxjs';
@@ -65,7 +65,13 @@ export class CommentsThreadComponent {
   // always a single-element array rather than the whole thread's images.
   protected readonly viewerImageUrl = signal<string | null>(null);
 
-readonly maxBodyLength = MAX_BODY_LENGTH;
+  readonly maxBodyLength = MAX_BODY_LENGTH;
+
+  // The scrollable message list — scrolled to the bottom right after a
+  // refresh() populates it (so opening the accordion lands on the latest
+  // message, not the oldest) and after a successful send (so the new
+  // message stays in view).
+  private readonly _messageList = viewChild<ElementRef<HTMLElement>>('messageList');
 
   /** Called by the host every time the thread should (re)load — expand or refresh. */
   refresh(): void {
@@ -76,7 +82,10 @@ readonly maxBodyLength = MAX_BODY_LENGTH;
       .list(this.queueId(), this.entryId())
       .pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this._destroyRef))
       .subscribe({
-        next: (list) => this.comments.set(list),
+        next: (list) => {
+          this.comments.set(list);
+          this._scrollToLatest();
+        },
         error: (err) => {
           if (this._codeOf(err) === ErrorCodes.COMMENTS_ENTRY_CLOSED) {
             this.closed.set(true);
@@ -144,6 +153,7 @@ readonly maxBodyLength = MAX_BODY_LENGTH;
           this._revokePreview();
           this.image.set(null);
           this.posted.emit(comment);
+          this._scrollToLatest();
         },
         error: (err) => {
           const code = this._codeOf(err);
@@ -170,6 +180,17 @@ readonly maxBodyLength = MAX_BODY_LENGTH;
   private _codeOf(err: unknown): string | null {
     const body = (err as { error?: unknown })?.error;
     return isApiError(body) ? body.code : null;
+  }
+
+  // setTimeout(0), not queueMicrotask: the @for list re-renders off the
+  // comments signal write above, and that DOM update isn't guaranteed done
+  // by the next microtask — a macrotask reliably lands after Angular has
+  // flushed the render.
+  private _scrollToLatest(): void {
+    setTimeout(() => {
+      const el = this._messageList()?.nativeElement;
+      if (el) el.scrollTop = el.scrollHeight;
+    });
   }
 
   private _revokePreview(): void {
