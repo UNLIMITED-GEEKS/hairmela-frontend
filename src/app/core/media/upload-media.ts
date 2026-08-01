@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Observable, defer } from 'rxjs';
+import { Observable, defer, from, switchMap } from 'rxjs';
 import { Media } from '../../api/models/media';
 import { StrictHttpResponse } from '../../api/strict-http-response';
 
@@ -62,6 +62,45 @@ export function uploadMedia(
       );
     }
 
-    return http.post<Media>(`${rootUrl}${PATH}`, body, { observe: 'response' });
+    // TEMPORARY DIAGNOSTIC — remove once the iOS empty-body upload is resolved.
+    return from(probeBody(body, part as File)).pipe(
+      switchMap(() => http.post<Media>(`${rootUrl}${PATH}`, body, { observe: 'response' })),
+    );
   }) as Observable<StrictHttpResponse<Media>>;
+}
+
+/**
+ * TEMPORARY DIAGNOSTIC — remove once the iOS empty-body upload is resolved.
+ *
+ * The size checks above compare metadata only, so a file whose bytes never
+ * materialize still passes them. This does two real reads:
+ *
+ *  - `bytes`: actually reads the file part's contents.
+ *  - `serialized`: serializes the whole FormData exactly as the browser would
+ *    for the real request, giving the byte count that should reach the server.
+ *
+ * Compare `serialized` here against the backend's contentLength. Equal means
+ * the body left the app intact and is lost below Angular (service worker,
+ * proxy, edge). A near-zero `serialized` means it was already empty in the page.
+ */
+async function probeBody(body: FormData, part: File): Promise<void> {
+  let report: string;
+  try {
+    const bytes = (await part.arrayBuffer()).byteLength;
+    // Same serialization path the real request takes, on a throwaway Request
+    // so the FormData above is left untouched for the actual POST.
+    const serialized = (await new Request('/probe', { method: 'POST', body }).arrayBuffer())
+      .byteLength;
+    report = [
+      `name=${part.name}`,
+      `type=${part.type || '(none)'}`,
+      `size=${part.size}`,
+      `bytes=${bytes}`,
+      `serialized=${serialized}`,
+      `swControlled=${!!navigator.serviceWorker?.controller}`,
+    ].join('\n');
+  } catch (e) {
+    report = `probe failed: ${e}`;
+  }
+  alert(`UPLOAD PROBE\n${report}`);
 }
