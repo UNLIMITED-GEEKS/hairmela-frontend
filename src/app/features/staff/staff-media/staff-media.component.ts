@@ -64,10 +64,25 @@ export class StaffMediaComponent implements OnInit {
 
   protected readonly previewOpen = signal(false);
   protected readonly previewIndex = signal(0);
+  // What the lightbox shows — the gallery grid by default, or just the
+  // profile photo when opened from the avatar. A single reused modal
+  // instance rather than a second <app-gallery-modal>, since it's already
+  // fully driven by inputs (images/startIndex) with no internal state of its
+  // own to collide between the two openers.
+  protected readonly previewImages = signal<string[]>([]);
   protected readonly editOpen = signal(false);
 
   protected openPreview(index: number): void {
+    this.previewImages.set(this.galleryUrls());
     this.previewIndex.set(index);
+    this.previewOpen.set(true);
+  }
+
+  protected openProfilePreview(): void {
+    const url = this.profilePhoto()?.url;
+    if (!url) return;
+    this.previewImages.set([url]);
+    this.previewIndex.set(0);
     this.previewOpen.set(true);
   }
 

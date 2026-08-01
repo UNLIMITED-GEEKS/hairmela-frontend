@@ -7,7 +7,7 @@
       <!-- Header: salon photo + name, scrolls with the rest of the page -->
       <div class="relative w-full h-40 shrink-0">
         @if (visit.salon(); as salon) {
-          <img [src]="salon.photoUrl ? (salon.photoUrl | mediaUrl) : '/salon-placeholder.jpg'" alt=""
+          <img [src]="salon.photoUrl ? (salon.photoUrl | mediaUrl:'hero') : '/salon-placeholder.jpg'" alt=""
             class="h-full w-full object-cover object-top rounded-lg" />
           <div class="absolute inset-0 bg-black/50 rounded-lg"></div>
           <h1 class="absolute inset-0 flex items-center justify-center text-lg font-bold text-white px-12 text-center truncate">

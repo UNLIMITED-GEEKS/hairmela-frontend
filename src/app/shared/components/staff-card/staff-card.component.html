@@ -5,7 +5,7 @@
 
   <!-- Full-bleed photo — the card IS the photo; name/availability are
        glassmorphic overlays on top of it, not a separate info block below. -->
-  <img [src]="staff().photoUrl ? (staff().photoUrl | mediaUrl) : placeholderImage"
+  <img [src]="staff().photoUrl ? (staff().photoUrl | mediaUrl:'grid') : placeholderImage"
     [alt]="staff().firstName" loading="lazy"
     class="h-full w-full object-cover" />
 

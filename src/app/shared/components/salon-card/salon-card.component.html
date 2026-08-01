@@ -5,7 +5,7 @@
        glassmorphic overlays on top of it, not a separate info block below. -->
   <!-- Salons with no uploaded photo fall back to /salon-placeholder.jpg
        (drop the file in public/ — see salon-card.component.ts). -->
-  <img [src]="salon().photoUrl ? (salon().photoUrl | mediaUrl) : placeholderImage"
+  <img [src]="salon().photoUrl ? (salon().photoUrl | mediaUrl:'grid') : placeholderImage"
     [alt]="salon().name" loading="lazy"
     class="h-full w-full object-cover" />
 

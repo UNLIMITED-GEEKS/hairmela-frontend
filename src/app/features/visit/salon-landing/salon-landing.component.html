@@ -8,7 +8,7 @@
       @if (s.photoUrl) {
         <button type="button" (click)="openPhoto()" aria-label="View salon photo"
           class="absolute inset-0 h-full w-full">
-          <img [src]="s.photoUrl | mediaUrl" alt=""
+          <img [src]="s.photoUrl | mediaUrl:'hero'" alt=""
             class="h-full w-full object-cover object-top rounded-t-2xl" />
         </button>
       } @else {
@@ -121,7 +121,7 @@
               @for (img of s.galleryUrls.slice(0, 4); track img; let i = $index) {
                 <button type="button" (click)="openGallery(i)"
                   class="aspect-square rounded-xl overflow-hidden hover:opacity-90 transition-opacity">
-                  <img [src]="img | mediaUrl" alt="" class="w-full h-full object-cover" />
+                  <img [src]="img | mediaUrl:'grid'" alt="" class="w-full h-full object-cover" />
                 </button>
               }
             </div>

@@ -7,7 +7,7 @@
     @for (item of items(); track item.id) {
       <div cdkDrag [cdkDragDisabled]="!canEdit()"
         class="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
-        <img [src]="item.url | mediaUrl" alt="Gallery photo"
+        <img [src]="item.url | mediaUrl:'grid'" alt="Gallery photo"
           class="object-cover w-full h-full" />
         @if (canEdit()) {
           <button type="button" (click)="deleteItem(item)"

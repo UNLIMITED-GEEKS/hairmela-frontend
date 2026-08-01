@@ -64,7 +64,7 @@
               (i === activeIndex() ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100')"
             [attr.aria-label]="'Go to image ' + (i + 1)"
             [attr.aria-current]="i === activeIndex()">
-            <img [src]="img | mediaUrl" alt="" class="w-full h-full object-cover" />
+            <img [src]="img | mediaUrl:'thumb'" alt="" class="w-full h-full object-cover" />
           </button>
         }
       </div>

@@ -24,7 +24,10 @@
       <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
         <h2 class="text-sm font-semibold text-gray-700">Profile photo</h2>
         <div class="flex items-start md:items-center gap-4">
-          <app-avatar [src]="profilePhoto()?.url" size="xl" [pending]="profilePhotoPending()" />
+          <button type="button" (click)="openProfilePreview()" [disabled]="!profilePhoto() || profilePhotoPending()"
+            class="rounded-full disabled:cursor-default" aria-label="View profile photo">
+            <app-avatar [src]="profilePhoto()?.url" size="xl" [pending]="profilePhotoPending()" />
+          </button>
           @if (canEdit()) {
             <app-image-uploader
               label="Change photo"
@@ -58,7 +61,7 @@
             @for (photo of galleryPhotos(); track photo.id; let i = $index) {
               <button type="button" (click)="openPreview(i)" [disabled]="isPending(photo)"
                 class="relative aspect-square rounded-xl overflow-hidden hover:opacity-90 transition-opacity">
-                <img [src]="photo.url | mediaUrl" alt="" class="w-full h-full object-cover" />
+                <img [src]="photo.url | mediaUrl:'grid'" alt="" class="w-full h-full object-cover" />
                 @if (isPending(photo)) {
                   <span class="absolute inset-0 flex items-center justify-center bg-black/30">
                     <app-inline-spinner sizeClass="w-5 h-5" label="Uploading" class="text-white" />
@@ -83,7 +86,7 @@
   </div>
 
   <app-gallery-modal
-    [images]="galleryUrls()"
+    [images]="previewImages()"
     [open]="previewOpen()"
     [startIndex]="previewIndex()"
     (closed)="previewOpen.set(false)" />
