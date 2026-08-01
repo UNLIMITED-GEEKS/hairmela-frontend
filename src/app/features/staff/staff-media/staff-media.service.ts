@@ -5,8 +5,8 @@ import { HttpClient } from '@angular/common/http';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { Media } from '../../../api/models/media';
 import { publicMediaControllerGetStaffMedia } from '../../../api/fn/media/public-media-controller-get-staff-media';
+import { mediaControllerUpload } from '../../../api/fn/media/media-controller-upload';
 import { mediaControllerDelete } from '../../../api/fn/media/media-controller-delete';
-import { uploadMedia } from '../../../core/media/upload-media';
 import { ToastService } from '../../../core/toast/toast.service';
 import { OptimisticService } from '../../../core/caching/optimistic/optimistic.service';
 import { CachedLoader } from '../../../core/caching/optimistic/cached-loader';
@@ -78,11 +78,8 @@ export class StaffMediaService {
       mirror: this._loader.mirrorFn(staffId),
       contextKey: staffId,
       request: () =>
-        uploadMedia(this._http, this._apiConfig.rootUrl, {
-          file,
-          entityType: 'STAFF',
-          entityId: staffId,
-          type: mediaType,
+        mediaControllerUpload(this._http, this._apiConfig.rootUrl, {
+          body: { file, entityType: 'STAFF', entityId: staffId, type: mediaType },
         }),
       errorMessage: 'Upload failed. Removed.',
       onSuccess: () => onSuccess?.(),

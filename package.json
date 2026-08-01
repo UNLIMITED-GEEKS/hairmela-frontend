@@ -25,7 +25,6 @@
     "@angular/ssr": "^22.0.0",
     "chart.js": "^4.5.1",
     "express": "^5.1.0",
-    "heic2any": "^0.0.4",
     "html5-qrcode": "^2.3.8",
     "ng2-charts": "^10.0.0",
     "qrcode": "^1.5.4",

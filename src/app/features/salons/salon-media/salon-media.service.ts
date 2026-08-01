@@ -6,8 +6,8 @@ import { ApiConfiguration } from '../../../api/api-configuration';
 import { Media } from '../../../api/models/media';
 import { ReorderMediaDto } from '../../../api/models/reorder-media-dto';
 import { publicMediaControllerGetSalonMedia } from '../../../api/fn/media/public-media-controller-get-salon-media';
+import { mediaControllerUpload } from '../../../api/fn/media/media-controller-upload';
 import { mediaControllerDelete } from '../../../api/fn/media/media-controller-delete';
-import { uploadMedia } from '../../../core/media/upload-media';
 import { mediaReorderControllerReorderSalonGallery } from '../../../api/fn/media/media-reorder-controller-reorder-salon-gallery';
 import { ToastService } from '../../../core/toast/toast.service';
 import { OptimisticService } from '../../../core/caching/optimistic/optimistic.service';
@@ -80,11 +80,8 @@ export class SalonMediaService {
       mirror: this._loader.mirrorFn(salonId),
       contextKey: salonId,
       request: () =>
-        uploadMedia(this._http, this._apiConfig.rootUrl, {
-          file,
-          entityType: 'SALON',
-          entityId: salonId,
-          type: mediaType,
+        mediaControllerUpload(this._http, this._apiConfig.rootUrl, {
+          body: { file, entityType: 'SALON', entityId: salonId, type: mediaType },
         }),
       errorMessage: 'Upload failed. Removed.',
       onSuccess: () => onSuccess?.(),
