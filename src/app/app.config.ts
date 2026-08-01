@@ -12,6 +12,7 @@ import { refreshInterceptor } from './core/interceptors/refresh.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { sessionInit } from './core/auth/session-init';
 import { UpdateService } from './core/pwa/update.service';
+import { swDisabled } from './core/pwa/sw-diagnostic';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -27,7 +28,9 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(sessionInit()),
     provideCloudinaryLoader(`https://res.cloudinary.com/${environment.cloudinaryCloudName}`),
     provideServiceWorker('ngsw-worker.js', {
-      enabled: !isDevMode(),
+      // swDisabled(): TEMPORARY — ?nosw=1 escape hatch, see main.ts. Remove
+      // along with the diagnostic once the iOS empty-body upload is resolved.
+      enabled: !isDevMode() && !swDisabled(),
       registrationStrategy: 'registerWhenStable:30000',
     }),
     // Wire the SW update-watcher at boot so a new deploy auto-reloads into the
