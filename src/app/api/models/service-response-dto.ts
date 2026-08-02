@@ -12,6 +12,7 @@ export interface ServiceResponseDto {
   duration: number;
   id: string;
   isActive: boolean;
+  isDynamicPricing: boolean;
   name: string;
   price: string;
   salon: Salon;

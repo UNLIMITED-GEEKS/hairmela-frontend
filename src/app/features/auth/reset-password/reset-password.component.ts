@@ -62,7 +62,11 @@ export class ResetPasswordPageComponent implements OnInit {
   }
 
   protected submit(): void {
-    if (this.form.invalid || this.loading() || !this.hasToken()) return;
+    if (this.loading() || !this.hasToken()) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this.errorMessage.set(null);
     this.loading.set(true);
     this._auth.resetPassword({

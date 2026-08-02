@@ -5,6 +5,7 @@ export interface CreateServiceDto {
   categoryId: string;
   description?: string;
   duration: number;
+  isDynamicPricing?: boolean;
   name: string;
   price: string;
   staffIds?: Array<string>;

@@ -259,7 +259,7 @@
         </button>
         <button
           type="submit"
-          [disabled]="form.invalid || saving()"
+          [disabled]="saving()"
           class="flex-1 min-h-11 flex items-center justify-center gap-2 bg-primary text-white text-sm font-medium rounded-lg
                  hover:bg-primary-dark disabled:opacity-50 active:scale-95 transition-all">
           @if (saving()) {

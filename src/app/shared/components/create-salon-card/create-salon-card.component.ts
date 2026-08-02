@@ -20,6 +20,16 @@ export class CreateSalonCardComponent {
 
   protected readonly newSalonLink = RoutePath.newSalon();
 
+  // Hidden entirely for a user whose only salon relationships are non-owner
+  // (ADMIN/STAFF) — creating a salon isn't something a pure staff member
+  // does, only an owner (or a brand-new user with no relationships at all,
+  // who owns nothing yet but is free to become an owner). A user with zero
+  // salons() entries is exactly that new-user case, not staff-only.
+  protected readonly staffOnly = computed(() => {
+    const salons = this._dashboardService.salons();
+    return salons.length > 0 && !salons.some((s) => s.role === SalonRole.OWNER);
+  });
+
   protected readonly canAddSalon = computed(() => {
     const limit = this._orgContext.access()?.salonLimit ?? UNLIMITED_SENTINEL;
     const owned = this._dashboardService.salons().filter((s) => s.role === SalonRole.OWNER).length;

@@ -24,17 +24,17 @@
       <!-- mt-2: this page uses [noPadding] on app-screen-layout (no pt-6), so
            there's otherwise no gap between the header banner and this text. -->
       <app-page-description extraClass="mt-2 mb-6">
-        Add a specific date your salon won't be open. Users won't be able to join
-        queues or book for that day.
+        @if (isStaffScope) {
+          Add a specific date this staff member won't be available. Users won't
+          be able to join their queue or book with them for that day.
+        } @else {
+          Add a specific date your salon won't be open. Users won't be able to join
+          queues or book for that day.
+        }
       </app-page-description>
 
       @if (salonContext.isFrozen()) {
         <app-frozen-banner />
-      }
-
-      <!-- Tabs (only shown when staffId is present) -->
-      @if (_staffId) {
-        <app-tabs [tabs]="scopeTabs" [activeId]="activeTab()" (tabChange)="setTab($event)" />
       }
 
       <!-- Add form -->
@@ -61,7 +61,7 @@
                      focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" />
           </div>
           <div class="flex gap-3">
-            <button type="submit" [disabled]="addForm.invalid"
+            <button type="submit"
               class="flex-1 min-h-11 bg-primary text-white text-sm font-medium rounded-lg
                      hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
               Save
@@ -76,13 +76,13 @@
 
       <div class="mt-4">
         <!-- Closure list -->
-        @if (activeClosures.length === 0) {
+        @if (closures().length === 0) {
           <div class="bg-white rounded-xl border border-gray-200 p-10 text-center">
             <p class="text-sm text-gray-400">No closures scheduled</p>
           </div>
         } @else {
           <div class="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-            <app-animated-list [items]="activeClosures">
+            <app-animated-list [items]="closures()">
               <ng-template let-closure>
                 <div class="flex items-center gap-3 px-4 py-4 min-h-14">
                   <div class="flex-1 min-w-0">

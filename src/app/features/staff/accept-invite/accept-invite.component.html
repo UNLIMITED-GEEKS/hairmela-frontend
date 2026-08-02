@@ -92,7 +92,7 @@
               placeholder="••••••••" />
             <app-field-error [control]="loginForm.controls.password" />
           </div>
-          <button type="submit" [disabled]="loginForm.invalid || submitting()"
+          <button type="submit" [disabled]="submitting()"
             class="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-colors">
             {{ submitting() ? 'Signing in…' : 'Sign in & join' }}
           </button>
@@ -149,7 +149,7 @@
               placeholder="Min. 8 characters" />
             <app-field-error [control]="registerForm.controls.password" />
           </div>
-          <button type="submit" [disabled]="registerForm.invalid || submitting()"
+          <button type="submit" [disabled]="submitting()"
             class="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-colors">
             {{ submitting() ? 'Creating account…' : 'Create account & join' }}
           </button>

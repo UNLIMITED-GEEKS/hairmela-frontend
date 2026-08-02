@@ -8,7 +8,10 @@ import { SalonPublicStaffDto } from '../../../api/models/salon-public-staff-dto'
 import { AvailableSlotDto } from '../../../api/models/available-slot-dto';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { MiniMonthCalendarComponent } from '../../../shared/components/mini-month-calendar/mini-month-calendar.component';
+import { AccordionComponent } from '../../../shared/components/accordion/accordion.component';
 import { RoutePath } from '../../../core/routing/route-paths';
+import { groupByServiceCategory } from '../../../core/utils/group-by-category';
+import { Service } from '../../../api/models/service';
 
 function toIsoDate(d: Date): string {
   const yyyy = d.getFullYear();
@@ -49,7 +52,7 @@ const MAX_NOTE_IMAGE_BYTES = 5 * 1024 * 1024;
 @Component({
   selector: 'app-book-appointment-dialog',
   templateUrl: './book-appointment-dialog.component.html',
-  imports: [ReactiveFormsModule, FieldErrorComponent, MiniMonthCalendarComponent],
+  imports: [ReactiveFormsModule, FieldErrorComponent, MiniMonthCalendarComponent, AccordionComponent],
 })
 export class BookAppointmentDialogComponent {
   readonly open = input.required<boolean>();
@@ -98,6 +101,42 @@ export class BookAppointmentDialogComponent {
   protected readonly pickedStaff = signal<SalonPublicStaffDto | null>(null);
   protected readonly selectedStaff = computed(() => this.staff() ?? this.pickedStaff());
   protected readonly needsStaffPicker = computed(() => !this.staff());
+
+  // Service-first staff picker (Book ahead entry, staff() unset): the
+  // customer picks WHAT they want done before WHO does it, rather than
+  // picking a staff member blind. Only relevant while needsStaffPicker() —
+  // when staff() is already known (live-queue page's own "Book an
+  // appointment"), the flow is unchanged: date -> time -> service straight
+  // away, since who is fixed already.
+  protected readonly pickerServiceId = signal<string | null>(null);
+  protected readonly staffOfferingPickerService = computed(() => {
+    const serviceId = this.pickerServiceId();
+    if (!serviceId) return [];
+    return this.staffList().filter((s) => s.serviceIds.includes(serviceId));
+  });
+
+  // Service picker grouped by category — same grouping (extracted to
+  // groupByServiceCategory) and open/collapse rule used by salon-landing's
+  // Services tab and the join/add-client dropdowns: a single category is
+  // always expanded, multiple start collapsed, explicit toggles remembered
+  // here rather than recomputed.
+  protected readonly pickerServiceGroups = computed(() =>
+    groupByServiceCategory(this.visit.services(), (s: Service) => s),
+  );
+  private readonly _openPickerCategoryIds = signal<ReadonlySet<string>>(new Set());
+
+  protected isPickerCategoryOpen(categoryId: string): boolean {
+    if (this.pickerServiceGroups().length <= 1) return true;
+    return this._openPickerCategoryIds().has(categoryId);
+  }
+
+  protected setPickerCategoryOpen(categoryId: string, open: boolean): void {
+    this._openPickerCategoryIds.update((ids) => {
+      const next = new Set(ids);
+      open ? next.add(categoryId) : next.delete(categoryId);
+      return next;
+    });
+  }
 
   protected readonly staffServices = () => {
     const staff = this.selectedStaff();
@@ -152,6 +191,7 @@ export class BookAppointmentDialogComponent {
         this.leaderServiceId.set('');
         this.leaderServiceTouched.set(false);
         this.pickedStaff.set(null);
+        this.pickerServiceId.set(null);
         this.membersArray.clear();
         this.noteBody.set('');
         this._clearNoteImage();
@@ -163,12 +203,24 @@ export class BookAppointmentDialogComponent {
     });
   }
 
+  protected pickPickerService(serviceId: string): void {
+    this.pickerServiceId.set(serviceId);
+  }
+
+  protected backToServicePicker(): void {
+    this.pickerServiceId.set(null);
+  }
+
   protected pickStaff(staff: SalonPublicStaffDto): void {
     this.pickedStaff.set(staff);
     this.viewedMonth.set(startOfMonth(new Date()));
     this.selectedDate.set(this.minDate);
     this.selectedStartTime.set(null);
-    this.leaderServiceId.set('');
+    // Carry the already-chosen service forward — the customer picked WHAT
+    // before WHO, so re-asking for the same service on the next screen would
+    // be redundant. Only meaningful for this (service-first) path;
+    // pickerServiceId is null when staff() was pre-known.
+    this.leaderServiceId.set(this.pickerServiceId() ?? '');
     this._fetchMonth();
   }
 

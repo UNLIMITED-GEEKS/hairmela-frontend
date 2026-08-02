@@ -72,7 +72,10 @@ export class WeeklyScheduleComponent implements OnInit {
   }
 
   protected saveEdit(schedule: StaffSchedule): void {
-    if (this.editForm.invalid) return;
+    if (this.editForm.invalid) {
+      this.editForm.markAllAsTouched();
+      return;
+    }
     const { startTime, endTime } = this.editForm.getRawValue();
     this._schedulesService.update(this._salonId, this._staffId, schedule.id, {
       startTime: startTime!,
@@ -93,7 +96,10 @@ export class WeeklyScheduleComponent implements OnInit {
   }
 
   protected saveAdd(day: number): void {
-    if (this.addForm.invalid) return;
+    if (this.addForm.invalid) {
+      this.addForm.markAllAsTouched();
+      return;
+    }
     const { startTime, endTime } = this.addForm.getRawValue();
     this._schedulesService.create(this._salonId, this._staffId, {
       dayOfWeek: day,

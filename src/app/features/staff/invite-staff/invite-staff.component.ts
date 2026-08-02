@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { StaffService } from '../staff.service';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
-import { OrgContextService } from '../../../core/salon-context/org-context.service';
+import { SalonRole } from '../../../core/salon-context/membership.types';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
@@ -21,7 +21,6 @@ export class InviteStaffComponent {
   private readonly _fb = inject(FormBuilder);
   private readonly _staffService = inject(StaffService);
   private readonly _salonContext = inject(SalonContextService);
-  private readonly _orgContext = inject(OrgContextService);
 
   // Pre-block (handoff §3): Tier 1 allows only the owner (staff limit = 1), so
   // any invite exceeds it — block on tier === 1. Tier 2/3 are unlimited.
@@ -31,9 +30,23 @@ export class InviteStaffComponent {
   protected readonly frozen = computed(() => this._salonContext.isFrozen());
   protected readonly blocked = computed(() => this.tierBlocked() || this.frozen());
 
-  // Resolve the org on demand at click time (see OrgContextService.goToBilling).
+  // Billing is ORG-OWNER-only server-side (every subscription route is
+  // class-level @OrgOwner(); OrgOwnerGuard 403s when org.ownerId !== user.id),
+  // and this page is reachable by ADMINs too — so the blocked notice still
+  // shows for them, but the "View plans" CTA is owner-only. Without this an
+  // admin's click bounced to /dashboard via the frontend orgOwnerGuard.
+  protected readonly isOwner = computed(
+    () => this._salonContext.membership()?.role === SalonRole.OWNER,
+  );
+
+  // This salon's membership already carries orgId (GET /salons/:salonId/me) —
+  // navigate straight there instead of OrgContextService.goToBilling()'s
+  // GET /organizations/mine round-trip, which made this click wait on a live
+  // network call purely to learn an orgId already sitting in membership().
   protected viewPlans(): void {
-    this._orgContext.goToBilling();
+    const orgId = this._salonContext.membership()?.orgId;
+    if (!orgId) return;
+    this._router.navigate(RoutePath.orgBilling(orgId));
   }
 
   protected readonly form = this._fb.group({
@@ -46,7 +59,11 @@ export class InviteStaffComponent {
   }
 
   protected invite(): void {
-    if (this.form.invalid || this.blocked()) return;
+    if (this.blocked()) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this._staffService.invite(this._salonId, {
       email: this.form.value.email!,
       role: this.form.value.role!,

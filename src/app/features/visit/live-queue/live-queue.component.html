@@ -36,10 +36,11 @@
               {{ staff.firstName }} {{ staff.lastName }}
               @if (staff.nickname) { <span class="font-normal text-gray-500">({{ staff.nickname }})</span> }
             </p>
-            @if (staff.queueId) {
-              <span class="block text-xs font-medium text-success mt-1.5">Available</span>
-            } @else {
-              <span class="block text-xs font-medium text-gray-400 mt-1.5">Unavailable</span>
+            @if (availability(); as a) {
+              <span class="block text-xs font-medium mt-1.5"
+                [class.text-success]="a.joinable" [class.text-gray-400]="!a.joinable">
+                {{ a.joinable ? 'Available' : 'Unavailable — ' + a.label }}
+              </span>
             }
 
             <!-- Both actions stay on ONE row. No flex-wrap: with the status

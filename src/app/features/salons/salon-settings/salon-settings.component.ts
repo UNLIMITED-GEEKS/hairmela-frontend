@@ -168,7 +168,10 @@ export class SalonSettingsComponent implements OnInit {
   }
 
   protected save(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
 
     // getRawValue(), not .value — .value excludes disabled controls (the
     // locked `name` field while this salon is a branch), which would

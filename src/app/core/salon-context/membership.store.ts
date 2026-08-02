@@ -51,6 +51,7 @@ export class MembershipStore {
   private _toMembership(dto: SalonMembershipDto): Membership {
     return {
       salonId: dto.salonId,
+      orgId: dto.orgId,
       role: dto.role as unknown as SalonRole,
       isStaff: dto.isStaff,
       staffId: dto.staffId,

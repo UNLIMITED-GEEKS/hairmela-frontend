@@ -92,3 +92,4 @@ export type { UserResponseDto } from './models/user-response-dto';
 export type { VapidKeyResponseDto } from './models/vapid-key-response-dto';
 export type { VerifyEmailDto } from './models/verify-email-dto';
 export type { VerifyPaymentDto } from './models/verify-payment-dto';
+export type { WorkingHoursDayDto } from './models/working-hours-day-dto';

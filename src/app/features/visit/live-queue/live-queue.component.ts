@@ -15,6 +15,7 @@ import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { ToastService } from '../../../core/toast/toast.service';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 import { environment } from '../../../../environments/environment';
+import { staffAvailability } from '../../../core/utils/staff-availability';
 
 @Component({
   selector: 'app-live-queue',
@@ -112,11 +113,16 @@ export class LiveQueueComponent {
     return myIndex >= 0 ? myIndex : entries.length;
   });
 
-  // Whether a fresh join is currently possible — salon open AND this queue open.
-  // Mirrors the availability check the landing page's barber cards use.
-  protected readonly joinable = computed(
-    () => !!this.visit.salonData()?.isOpen && this.visit.queueStatus() === 'OPEN',
-  );
+  // Real availability from the barber's own openState (backend-computed,
+  // precedence-ordered) — see core/utils/staff-availability.ts. Same source
+  // the landing page's barber cards use, so the two surfaces always agree.
+  // null only while _currentStaff() hasn't resolved yet (not joinable).
+  protected readonly availability = computed(() => {
+    const staff = this._currentStaff();
+    return staff ? staffAvailability(staff) : null;
+  });
+
+  protected readonly joinable = computed(() => this.availability()?.joinable ?? false);
 
   protected get myQueuesUrl() {
     return this._shellPrefix ? RoutePath.guestQueues() : RoutePath.queues();

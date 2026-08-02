@@ -78,6 +78,7 @@ export class ServiceFormComponent implements OnInit {
     price: [null as number | null, [Validators.required, Validators.min(0)]],
     description: [''],
     staffIds: this._fb.nonNullable.control<string[]>([]),
+    isDynamicPricing: this._fb.nonNullable.control(false),
   });
 
   private get _salonId(): string {
@@ -89,6 +90,18 @@ export class ServiceFormComponent implements OnInit {
   }
 
   constructor() {
+    // Price is only required when dynamic pricing is off — a dynamic-pricing
+    // service has no fixed amount to enter, so requiring one would block
+    // submit for no reason. min(0) still applies either way (if a price IS
+    // entered, it can't be negative).
+    this.form.controls.isDynamicPricing.valueChanges.subscribe((isDynamicPricing) => {
+      const priceControl = this.form.controls.price;
+      priceControl.setValidators(
+        isDynamicPricing ? [Validators.min(0)] : [Validators.required, Validators.min(0)],
+      );
+      priceControl.updateValueAndValidity();
+    });
+
     // Patch form reactively so it works whether the cache was cold or warm.
     // effect() must be created here (a valid injection context), not in
     // ngOnInit() — it still only does anything once _serviceId is set (edit
@@ -106,6 +119,7 @@ export class ServiceFormComponent implements OnInit {
             price: Number(service.price),
             description: service.description ?? '',
             staffIds: service.assignedStaffIds,
+            isDynamicPricing: service.isDynamicPricing,
           });
         }
       },
@@ -142,16 +156,22 @@ export class ServiceFormComponent implements OnInit {
   }
 
   protected save(): void {
-    if (this.form.invalid || this.submitting()) return;
+    if (this.submitting()) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this.submitting.set(true);
-    const { categoryId, name, duration, price, description, staffIds } = this.form.getRawValue();
+    const { categoryId, name, duration, price, description, staffIds, isDynamicPricing } =
+      this.form.getRawValue();
     const sid = this._serviceId;
     const baseBody = {
       categoryId: categoryId!,
       name: name!,
       duration: duration!,
-      price: String(price!),
+      price: String(price ?? 0),
       description: description || undefined,
+      isDynamicPricing,
     };
     if (sid) {
       // staffIds is only included when the checklist was actually touched —

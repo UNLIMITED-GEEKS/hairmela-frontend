@@ -42,7 +42,11 @@ export class RegisterComponent {
   protected readonly errorMessage = signal<string | null>(null);
 
   protected submit(): void {
-    if (this.form.invalid || this.loading()) return;
+    if (this.loading()) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
 
     this.errorMessage.set(null);
     this.loading.set(true);

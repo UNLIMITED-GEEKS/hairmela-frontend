@@ -125,10 +125,10 @@
     </div>
 
     <!-- Cancel -->
-    @if (currentTier() > 0 && status() !== 'CANCELLED') {
+    @if (currentTier() > 0 && status() !== 'CANCELLED' && !isTrialing()) {
       <div class="mt-6 text-center">
-        <button type="button" (click)="cancelPlan()" [disabled]="isTrialing()"
-          class="text-sm font-medium text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+        <button type="button" (click)="cancelPlan()"
+          class="text-sm font-medium text-red-600 hover:text-red-800 transition-colors">
           Cancel plan
         </button>
       </div>

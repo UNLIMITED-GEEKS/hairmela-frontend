@@ -39,7 +39,10 @@ export class SalonSlugComponent implements OnInit {
   }
 
   protected save(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this._settings.updateSlug(
       this._salonId,
       { slug: this.form.value.slug! },

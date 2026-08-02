@@ -38,7 +38,10 @@ export class EditProfileComponent implements OnInit {
   }
 
   protected save(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     const { firstName, lastName, nickname, phone } = this.form.getRawValue();
     this._editProfile.update({
       firstName: firstName.trim(),

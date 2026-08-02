@@ -13,10 +13,12 @@
             Your current plan includes the owner only. Upgrade to Pro to invite staff.
           }
         </p>
-        <button type="button" (click)="viewPlans()"
-          class="mt-3 inline-block rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover transition-colors">
-          View plans
-        </button>
+        @if (isOwner()) {
+          <button type="button" (click)="viewPlans()"
+            class="mt-3 inline-block rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover transition-colors">
+            View plans
+          </button>
+        }
       </div>
     }
 
@@ -63,7 +65,7 @@
                  text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
           Cancel
         </button>
-        <button type="submit" [disabled]="form.invalid || blocked()"
+        <button type="submit" [disabled]="blocked()"
           class="flex-1 min-h-11 bg-primary text-white text-sm font-medium rounded-lg
                  hover:bg-primary-dark disabled:opacity-50 active:scale-95 transition-all">
           Add to salon

@@ -22,6 +22,7 @@ import { BookAppointmentDialogComponent } from '../book-appointment-dialog/book-
 import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
 import { InstallPromptService } from '../../../core/pwa/install-prompt.service';
 import { ToastService } from '../../../core/toast/toast.service';
+import { staffAvailability } from '../../../core/utils/staff-availability';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 import { environment } from '../../../../environments/environment';
 
@@ -426,35 +427,14 @@ export class SalonLandingComponent implements OnInit {
     this.visit.selectedServiceId.set(null);
   }
 
-  // Real availability from the barber's live queue status. CLOSED or PAUSED
-  // queues are not joinable from the landing page. When the salon itself is
-  // closed, no barber is joinable and no badge shows.
+  // Real availability from the barber's own openState (backend-computed,
+  // precedence-ordered: paused > queue closed > one-off closure or salon
+  // closed today > no schedule today > outside today's hours > open) — see
+  // core/utils/staff-availability.ts. Replaces the old queueStatus-only
+  // check, which couldn't tell "on break" from "no schedule today" from
+  // "outside hours" and showed a barber as available even when their
+  // schedule said otherwise, as long as their queue happened to be OPEN.
   protected availability(staff: SalonPublicStaffDto): StaffCardAvailability {
-    if (!this.visit.salonData()?.isOpen) {
-      return { label: '', badgeClasses: '', joinable: false, showBadge: false };
-    }
-    switch (staff.queueStatus) {
-      case 'OPEN':
-        return {
-          label: 'Available Now',
-          badgeClasses: 'bg-success-light text-success border-success/20',
-          joinable: true,
-          showBadge: true,
-        };
-      case 'PAUSED':
-        return {
-          label: 'Unavailable',
-          badgeClasses: 'bg-warning-light text-warning border-warning/30',
-          joinable: false,
-          showBadge: true,
-        };
-      default: // 'CLOSED' or null (no queue yet)
-        return {
-          label: 'Unavailable',
-          badgeClasses: 'bg-primary-light text-primary border-primary/20',
-          joinable: false,
-          showBadge: true,
-        };
-    }
+    return { ...staffAvailability(staff), showBadge: true };
   }
 }

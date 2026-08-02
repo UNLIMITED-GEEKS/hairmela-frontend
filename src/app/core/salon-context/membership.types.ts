@@ -11,6 +11,10 @@ export type SubscriptionStatus = 'TRIALING' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED'
 
 export interface Membership {
   readonly salonId: string;
+  // This salon's org — lets the Upgrade CTA build /org/:orgId/billing
+  // directly from already-loaded membership, no separate
+  // GET /organizations/mine round-trip before it can navigate.
+  readonly orgId: string;
   readonly role: SalonRole;
   readonly isStaff: boolean;
   // This user's SalonStaff.id in this salon — null if they have no staff row

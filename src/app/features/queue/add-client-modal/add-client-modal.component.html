@@ -162,7 +162,7 @@
               + Add a kid
             </button>
           }
-          <button (click)="staffBookAppointment()" [disabled]="!selectedDate() || !selectedStartTime() || appointmentForm.invalid"
+          <button (click)="staffBookAppointment()" [disabled]="!selectedDate() || !selectedStartTime()"
             class="flex-1 min-h-12 rounded-2xl bg-primary border-2 text-white font-bold text-sm hover:bg-primary-hover disabled:opacity-50 transition-colors">
             Book appointment
           </button>

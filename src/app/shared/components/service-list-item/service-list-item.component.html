@@ -17,11 +17,15 @@
     }
   </div>
 
-  <div class="shrink-0 text-right pt-1">
+  <div class="shrink-0 max-w-28 text-right pt-1">
 
     @if (showPrice()) {
-     <span class="text-sm">From</span>
-      <p class="text-sm font-bold text-gray-900">  {{ service().price | currencyNgn }}</p>
+      @if (service().isDynamicPricing) {
+        <p class="text-xs font-medium text-gray-600 wrap-break-word">Price is based on your preference</p>
+      } @else {
+        <span class="text-xs text-gray-600">From</span>
+        <p class="text-sm font-bold text-gray-900">  {{ service().price | currencyNgn }}</p>
+      }
     }
     <p class="text-xs text-gray-500">{{ service().duration }}mins</p>
   </div>

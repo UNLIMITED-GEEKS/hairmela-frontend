@@ -40,7 +40,10 @@ export class OrgSettingsComponent implements OnInit {
   }
 
   protected save(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this._orgService.update(this._orgId, { name: this.form.value.name! }, () =>
       this._router.navigate(RoutePath.org(this._orgId), { replaceUrl: true }),
     );

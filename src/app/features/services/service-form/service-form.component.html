@@ -30,7 +30,7 @@
                    text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
             Cancel
           </button>
-          <button type="submit" [disabled]="form.invalid || submitting()"
+          <button type="submit" [disabled]="submitting()"
             class="flex-1 min-h-11 bg-primary text-white text-sm font-medium rounded-lg
                    hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
             {{ isEdit() ? 'Save changes' : 'Create service' }}
@@ -135,6 +135,21 @@
                 }
               </div>
             }
+          </div>
+
+          <!-- Dynamic pricing — checked, customers see "Price based on your
+               preference" instead of the price amount everywhere it's shown. -->
+          <div class="space-y-1.5">
+            <label class="flex items-start gap-2.5 cursor-pointer">
+              <input type="checkbox" formControlName="isDynamicPricing"
+                class="w-4 h-4 mt-0.5 rounded border-gray-300 text-primary focus:ring-primary/30" />
+              <span>
+                <span class="block text-sm font-medium text-gray-700">Dynamic pricing</span>
+                <span class="block text-xs text-gray-400 mt-0.5">
+                  If checked, customers see "Price is based on your preference" instead of a price amount.
+                </span>
+              </span>
+            </label>
           </div>
 
         </div>

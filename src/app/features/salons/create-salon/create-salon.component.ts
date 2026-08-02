@@ -113,7 +113,11 @@ export class CreateSalonComponent implements OnInit {
   }
 
   protected save(): void {
-    if (this.form.invalid || this.saving()) return;
+    if (this.saving()) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this.saving.set(true);
 
     // getRawValue(), not .value — .value excludes disabled controls (the

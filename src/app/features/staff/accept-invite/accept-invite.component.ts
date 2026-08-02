@@ -111,7 +111,11 @@ export class AcceptInviteComponent implements OnInit {
 
   protected submitLogin(): void {
     const dto = this.invite();
-    if (!dto || this.loginForm.invalid || this.submitting()) return;
+    if (!dto || this.submitting()) return;
+    if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
+      return;
+    }
     this.errorMessage.set(null);
     this.submitting.set(true);
     this._auth.login({ email: dto.email, password: this.loginForm.controls.password.value }).subscribe({
@@ -130,7 +134,11 @@ export class AcceptInviteComponent implements OnInit {
 
   protected submitRegister(): void {
     const dto = this.invite();
-    if (!dto || this.registerForm.invalid || this.submitting()) return;
+    if (!dto || this.submitting()) return;
+    if (this.registerForm.invalid) {
+      this.registerForm.markAllAsTouched();
+      return;
+    }
     this.errorMessage.set(null);
     this.submitting.set(true);
     const v = this.registerForm.getRawValue();

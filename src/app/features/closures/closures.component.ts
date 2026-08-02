@@ -13,17 +13,9 @@ import { Closure } from '../../api/models/closure';
 import { FrozenBannerComponent } from '../../shared/components/frozen-banner/frozen-banner.component';
 import { TierFreezeDirective } from '../../shared/directives/tier-freeze.directive';
 import { FieldErrorComponent } from '../../shared/components/field-error/field-error.component';
-import { TabsComponent, TabItem } from '../../shared/components/tabs/tabs.component';
 import { AnimatedListComponent } from '../../shared/components/animated-list/animated-list.component';
 import { filter } from 'rxjs';
 import { RouteParam } from '../../core/routing/route-paths';
-
-type ClosureScope = 'salon' | 'staff';
-
-const SCOPE_TABS: TabItem[] = [
-  { id: 'salon', label: 'Salon' },
-  { id: 'staff', label: 'This staff' },
-];
 
 @Component({
   selector: 'app-closures',
@@ -34,7 +26,6 @@ const SCOPE_TABS: TabItem[] = [
     FrozenBannerComponent,
     TierFreezeDirective,
     FieldErrorComponent,
-    TabsComponent,
     AnimatedListComponent,
     PageHeaderComponent,
     PageDescriptionComponent,
@@ -49,22 +40,21 @@ export class ClosuresComponent implements OnInit {
   private readonly _closuresService = inject(ClosuresService);
   protected readonly salonContext = inject(SalonContextService);
 
-  protected readonly scopeTabs = SCOPE_TABS;
-  protected readonly activeTab = signal<ClosureScope>('salon');
+  // A staffId in the route means this page was reached from a specific staff
+  // member's own page — a salon-wide closure belongs on the salon-reached
+  // version of this page instead (no staffId), so this page shows ONLY that
+  // staff member's closures here, with no scope switcher at all.
   protected readonly showAddForm = signal(false);
 
   protected readonly loading = computed(() =>
-    this.activeTab() === 'salon'
-      ? this._closuresService.salonLoading()
-      : this._closuresService.staffLoading(),
+    this.isStaffScope ? this._closuresService.staffLoading() : this._closuresService.salonLoading(),
   );
   protected readonly error = computed(() =>
-    this.activeTab() === 'salon'
-      ? this._closuresService.salonError()
-      : this._closuresService.staffError(),
+    this.isStaffScope ? this._closuresService.staffError() : this._closuresService.salonError(),
   );
-  protected readonly salonClosures = this._closuresService.salonClosures;
-  protected readonly staffClosures = this._closuresService.staffClosures;
+  protected readonly closures = computed(() =>
+    this.isStaffScope ? this._closuresService.staffClosures() : this._closuresService.salonClosures(),
+  );
 
   protected readonly addForm = this._fb.group({
     date: ['', Validators.required],
@@ -79,26 +69,34 @@ export class ClosuresComponent implements OnInit {
     return this._route.snapshot.paramMap.get(RouteParam.STAFF_ID) ?? '';
   }
 
+  protected get isStaffScope(): boolean {
+    return !!this._staffId;
+  }
+
   ngOnInit(): void {
-    this._closuresService.loadSalon(this._salonId);
-    if (this._staffId) this._closuresService.loadStaff(this._salonId, this._staffId);
+    if (this.isStaffScope) {
+      this._closuresService.loadStaff(this._salonId, this._staffId);
+    } else {
+      this._closuresService.loadSalon(this._salonId);
+    }
   }
 
   protected retry(): void {
-    this._closuresService.refreshSalon(this._salonId);
-    if (this._staffId) this._closuresService.refreshStaff(this._salonId, this._staffId);
-  }
-
-  protected setTab(tab: string): void {
-    this.activeTab.set(tab as ClosureScope);
-    this.showAddForm.set(false);
+    if (this.isStaffScope) {
+      this._closuresService.refreshStaff(this._salonId, this._staffId);
+    } else {
+      this._closuresService.refreshSalon(this._salonId);
+    }
   }
 
   protected add(): void {
-    if (this.addForm.invalid) return;
+    if (this.addForm.invalid) {
+      this.addForm.markAllAsTouched();
+      return;
+    }
     const { date, reason } = this.addForm.getRawValue();
     const body = { date: date!, reason: reason || undefined };
-    if (this.activeTab() === 'staff') {
+    if (this.isStaffScope) {
       this._closuresService.createStaff(this._salonId, this._staffId, body);
     } else {
       this._closuresService.createSalon(this._salonId, body);
@@ -121,15 +119,11 @@ export class ClosuresComponent implements OnInit {
       })
       .pipe(filter((ok) => ok))
       .subscribe(() => {
-        if (this.activeTab() === 'staff') {
+        if (this.isStaffScope) {
           this._closuresService.deleteStaff(this._salonId, this._staffId, closure.id);
         } else {
           this._closuresService.deleteSalon(this._salonId, closure.id);
         }
       });
-  }
-
-  protected get activeClosures(): Closure[] {
-    return this.activeTab() === 'staff' ? this.staffClosures() : this.salonClosures();
   }
 }

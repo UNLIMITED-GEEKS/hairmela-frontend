@@ -26,7 +26,11 @@ export class ForgotPasswordComponent {
   });
 
   protected submit(): void {
-    if (this.form.invalid || this.loading()) return;
+    if (this.loading()) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this.loading.set(true);
     // Endpoint always returns 200; we treat success and error identically and
     // never reveal whether the account exists.

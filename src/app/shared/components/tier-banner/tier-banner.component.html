@@ -19,18 +19,20 @@
         {{ b.message }}
       </p>
 
-      <button
-        type="button"
-        (click)="upgrade()"
-        class="shrink-0 text-sm font-semibold transition-colors"
-        [class.text-blue-700]="b.kind === 'trial'"
-        [class.hover:text-blue-900]="b.kind === 'trial'"
-        [class.text-red-700]="b.kind === 'expired'"
-        [class.hover:text-red-900]="b.kind === 'expired'"
-        [class.text-amber-700]="b.kind === 'free'"
-        [class.hover:text-amber-900]="b.kind === 'free'">
-        {{ b.cta }}
-      </button>
+      @if (canUpgrade()) {
+        <button
+          type="button"
+          (click)="upgrade()"
+          class="shrink-0 text-sm font-semibold transition-colors"
+          [class.text-blue-700]="b.kind === 'trial'"
+          [class.hover:text-blue-900]="b.kind === 'trial'"
+          [class.text-red-700]="b.kind === 'expired'"
+          [class.hover:text-red-900]="b.kind === 'expired'"
+          [class.text-amber-700]="b.kind === 'free'"
+          [class.hover:text-amber-900]="b.kind === 'free'">
+          {{ b.cta }}
+        </button>
+      }
 
       @if (dismissible()) {
         <button
