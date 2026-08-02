@@ -26,7 +26,7 @@ export function staffAvailability(staff: SalonPublicStaffDto): StaffAvailability
       };
     case 'QUEUE_CLOSED':
       return {
-        label: 'Not accepting walk-ins',
+        label: 'Unavailable',
         badgeClasses: 'bg-primary-light text-primary border-primary/20',
         joinable: false,
       };
@@ -44,7 +44,7 @@ export function staffAvailability(staff: SalonPublicStaffDto): StaffAvailability
       };
     case 'CLOSED_HOURS':
       return {
-        label: 'Outside working hours',
+        label: 'Unavailable ',
         badgeClasses: 'bg-primary-light text-primary border-primary/20',
         joinable: false,
       };
