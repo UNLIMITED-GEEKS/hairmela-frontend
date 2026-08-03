@@ -9,6 +9,7 @@ import { AvailableSlotDto } from '../../../api/models/available-slot-dto';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { MiniMonthCalendarComponent } from '../../../shared/components/mini-month-calendar/mini-month-calendar.component';
 import { AccordionComponent } from '../../../shared/components/accordion/accordion.component';
+import { StaffCardComponent } from '../../../shared/components/staff-card/staff-card.component';
 import { RoutePath } from '../../../core/routing/route-paths';
 import { groupByServiceCategory } from '../../../core/utils/group-by-category';
 import { Service } from '../../../api/models/service';
@@ -52,7 +53,13 @@ const MAX_NOTE_IMAGE_BYTES = 5 * 1024 * 1024;
 @Component({
   selector: 'app-book-appointment-dialog',
   templateUrl: './book-appointment-dialog.component.html',
-  imports: [ReactiveFormsModule, FieldErrorComponent, MiniMonthCalendarComponent, AccordionComponent],
+  imports: [
+    ReactiveFormsModule,
+    FieldErrorComponent,
+    MiniMonthCalendarComponent,
+    AccordionComponent,
+    StaffCardComponent,
+  ],
 })
 export class BookAppointmentDialogComponent {
   readonly open = input.required<boolean>();

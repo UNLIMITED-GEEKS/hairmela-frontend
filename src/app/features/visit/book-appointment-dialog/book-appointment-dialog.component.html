@@ -49,25 +49,28 @@
                   Change service
                 </button>
               </div>
-              <div class="space-y-2">
+              <div class="grid grid-cols-2 gap-3">
                 @for (s of staffOfferingPickerService(); track s.staffId) {
-                  <button type="button" (click)="pickStaff(s)"
-                    class="w-full flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-2.5 text-left hover:bg-secondary-light transition-colors">
-                    <span class="text-sm font-medium text-gray-900">{{ s.firstName }} {{ s.lastName }}</span>
-                    @if (s.nickname) {
-                      <span class="text-xs text-gray-500">({{ s.nickname }})</span>
-                    }
-                  </button>
-                }
-                @if (staffOfferingPickerService().length === 0) {
-                  <p class="text-sm text-text-secondary">No staff currently offer this service.</p>
+                  <div class="h-40">
+                    <app-staff-card [staff]="s" (select)="pickStaff(s)" />
+                  </div>
                 }
               </div>
+              @if (staffOfferingPickerService().length === 0) {
+                <p class="text-sm text-text-secondary">No staff currently offer this service.</p>
+              }
             </div>
           }
         } @else {
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1.5">Date</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            Date
+            @if (selectedStaff(); as staff) {
+              <span class="font-normal text-gray-500">
+                — with {{ staff.firstName }}@if (staff.nickname) { ({{ staff.nickname }}) }
+              </span>
+            }
+          </label>
           <app-mini-month-calendar
             [viewedMonth]="viewedMonth()"
             [selectedDate]="selectedDate()"
