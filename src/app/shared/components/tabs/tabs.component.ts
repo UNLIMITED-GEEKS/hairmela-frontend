@@ -26,6 +26,13 @@ export class TabsComponent implements AfterViewInit {
   readonly tabs = input.required<TabItem[]>();
   readonly activeId = input.required<string>();
   readonly tabChange = output<string>();
+  // false (default) = the row stretches to fill its container, tabs share
+  // equal width — the original behavior every existing caller (salon-landing's
+  // About/Services/Staffs) already relies on. true = the row sizes to its
+  // own content instead, for callers with very different-length labels in a
+  // wide/centered container (e.g. how-it-works's "For customers" vs "For
+  // salon owners") where equal-width stretching squeezes the longer label.
+  readonly fitContent = input(false);
 
   @ViewChildren('tabBtn') private readonly _tabButtons!: QueryList<ElementRef<HTMLButtonElement>>;
 
