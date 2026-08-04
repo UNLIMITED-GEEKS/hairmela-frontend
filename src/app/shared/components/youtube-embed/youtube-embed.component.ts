@@ -18,13 +18,9 @@ export class YoutubeEmbedComponent {
   // landscape (16/9) — caller picks based on the actual source video.
   readonly aspect = input<'9/16' | '16/9'>('16/9');
 
-  // controls=0 hides YouTube's play bar/scrubber chrome — a deliberate
-  // tradeoff: the viewer loses seeking and the visible play/pause button,
-  // keeping only tap-anywhere-on-the-video to toggle play. Fine for a short
-  // tutorial meant to be watched straight through, not scrubbed.
   protected readonly safeUrl = computed<SafeResourceUrl>(() =>
     this._sanitizer.bypassSecurityTrustResourceUrl(
-      `https://www.youtube-nocookie.com/embed/${this.videoId()}?controls=0`,
+      `https://www.youtube-nocookie.com/embed/${this.videoId()}`,
     ),
   );
 
