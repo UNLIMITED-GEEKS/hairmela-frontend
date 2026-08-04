@@ -56,19 +56,20 @@
             <!-- Edit inline -->
             @if (isEditing) {
               <form [formGroup]="editForm" (ngSubmit)="saveEdit(schedule!)" class="space-y-2">
-                <div class="flex items-center gap-2">
-                  <div class="flex-1 space-y-1">
+                <div class="space-y-2">
+                  <div class="space-y-1">
                     <label class="text-xs text-gray-500">Start</label>
-                    <input formControlName="startTime" type="time"
-                      class="w-full min-h-9 px-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" />
+                    <app-time-picker formControlName="startTime" ariaLabel="Start time" />
                     <app-field-error [control]="editForm.controls.startTime" />
                   </div>
-                  <div class="flex-1 space-y-1">
+                  <div class="space-y-1">
                     <label class="text-xs text-gray-500">End</label>
-                    <input formControlName="endTime" type="time"
-                      class="w-full min-h-9 px-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" />
+                    <app-time-picker formControlName="endTime" ariaLabel="End time" />
                     <app-field-error [control]="editForm.controls.endTime" />
                   </div>
+                  @if (editForm.errors?.['endBeforeStart'] && editForm.controls.endTime.touched) {
+                    <p class="text-xs text-red-600">End time must be after start time.</p>
+                  }
                 </div>
                 <div class="flex gap-2">
                   <button type="submit"
@@ -86,19 +87,20 @@
             <!-- Add inline -->
             @if (isAdding) {
               <form [formGroup]="addForm" (ngSubmit)="saveAdd($index)" class="space-y-2">
-                <div class="flex items-center gap-2">
-                  <div class="flex-1 space-y-1">
+                <div class="space-y-2">
+                  <div class="space-y-1">
                     <label class="text-xs text-gray-500">Start</label>
-                    <input formControlName="startTime" type="time"
-                      class="w-full min-h-9 px-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" />
+                    <app-time-picker formControlName="startTime" ariaLabel="Start time" />
                     <app-field-error [control]="addForm.controls.startTime" />
                   </div>
-                  <div class="flex-1 space-y-1">
+                  <div class="space-y-1">
                     <label class="text-xs text-gray-500">End</label>
-                    <input formControlName="endTime" type="time"
-                      class="w-full min-h-9 px-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" />
+                    <app-time-picker formControlName="endTime" ariaLabel="End time" />
                     <app-field-error [control]="addForm.controls.endTime" />
                   </div>
+                  @if (addForm.errors?.['endBeforeStart'] && addForm.controls.endTime.touched) {
+                    <p class="text-xs text-red-600">End time must be after start time.</p>
+                  }
                 </div>
                 <div class="flex gap-2">
                   <button type="submit"

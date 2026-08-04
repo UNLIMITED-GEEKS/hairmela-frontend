@@ -165,14 +165,23 @@
 
             <!-- Time inputs — shown below the toggle when enabled -->
             @if (day.get('enabled')?.value) {
-              <div class="flex items-center gap-2 mt-2 pl-6">
-                <input type="time" formControlName="startTime"
-                  class="flex-1 min-w-0 min-h-10 px-2 py-1.5 text-sm border border-gray-300 rounded-lg
-                         focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors" />
-                <span class="text-xs text-gray-400 shrink-0">to</span>
-                <input type="time" formControlName="endTime"
-                  class="flex-1 min-w-0 min-h-10 px-2 py-1.5 text-sm border border-gray-300 rounded-lg
-                         focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors" />
+              <div class="mt-2 pl-6">
+                <!-- Each label+picker is its own row so the two never split
+                     apart mid-pair when space runs out; the fixed-width
+                     labels keep both pickers on the same left edge. -->
+                <div class="flex flex-col gap-1.5">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-400 w-12 shrink-0">Opens</span>
+                    <app-time-picker formControlName="startTime" ariaLabel="Opening time" />
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-400 w-12 shrink-0">Closes</span>
+                    <app-time-picker formControlName="endTime" ariaLabel="Closing time" />
+                  </div>
+                </div>
+                @if (day.errors?.['endBeforeStart'] && day.get('endTime')?.touched) {
+                  <p class="mt-1.5 text-xs text-red-600">Closing time must be after opening time.</p>
+                }
               </div>
             }
           </div>

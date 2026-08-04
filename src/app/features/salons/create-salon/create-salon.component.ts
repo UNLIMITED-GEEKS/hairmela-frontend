@@ -1,15 +1,23 @@
 import { Component, DestroyRef, inject, signal, OnInit } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { FormBuilder, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControlOptions,
+  FormBuilder,
+  FormArray,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { SalonsStore } from '../../../core/salon-context/salons.store';
 import { MembershipStore } from '../../../core/salon-context/membership.store';
 import { SalonService } from '../salon.service';
 import { BranchPickerService } from '../../visit/branch-picker/branch-picker.service';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
+import { TimePickerComponent } from '../../../shared/components/time-picker/time-picker.component';
 import { CategoriesService } from '../../../core/categories/categories.service';
 import { RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
+import { endAfterStart } from '../../../core/utils/time-range.validator';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -31,7 +39,7 @@ const TIMEZONES = [
 @Component({
   selector: 'app-create-salon',
   templateUrl: './create-salon.component.html',
-  imports: [ReactiveFormsModule, FieldErrorComponent, InlineSpinnerComponent],
+  imports: [ReactiveFormsModule, FieldErrorComponent, InlineSpinnerComponent, TimePickerComponent],
 })
 export class CreateSalonComponent implements OnInit {
   private readonly _location = inject(Location);
@@ -75,7 +83,7 @@ export class CreateSalonComponent implements OnInit {
         dayOfWeek: [i],
         startTime: ['09:00'],
         endTime: ['18:00'],
-      }))
+      }, { validators: endAfterStart } as AbstractControlOptions))
     ),
     service: this._fb.group({
       categoryId: ['', Validators.required],

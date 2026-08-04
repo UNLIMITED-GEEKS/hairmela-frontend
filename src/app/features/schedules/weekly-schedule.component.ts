@@ -2,20 +2,33 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControlOptions,
+  FormBuilder,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { filter } from 'rxjs';
 import { StaffSchedule } from '../../api/models/staff-schedule';
 import { ConfirmDialogService } from '../../shared/components/confirm-dialog/confirm-dialog.service';
 import { SchedulesService } from './schedules.service';
 import { FieldErrorComponent } from '../../shared/components/field-error/field-error.component';
+import { TimePickerComponent } from '../../shared/components/time-picker/time-picker.component';
 import { RouteParam } from '../../core/routing/route-paths';
+import { endAfterStart } from '../../core/utils/time-range.validator';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 @Component({
   selector: 'app-weekly-schedule',
   templateUrl: './weekly-schedule.component.html',
-  imports: [ReactiveFormsModule, SkeletonComponent, FieldErrorComponent, PageHeaderComponent],
+  imports: [
+    ReactiveFormsModule,
+    SkeletonComponent,
+    FieldErrorComponent,
+    PageHeaderComponent,
+    TimePickerComponent,
+  ],
 })
 export class WeeklyScheduleComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
@@ -32,15 +45,21 @@ export class WeeklyScheduleComponent implements OnInit {
 
   protected readonly days = DAYS;
 
-  protected readonly editForm = this._fb.group({
-    startTime: ['', Validators.required],
-    endTime: ['', Validators.required],
-  });
+  protected readonly editForm = this._fb.group(
+    {
+      startTime: ['', Validators.required],
+      endTime: ['', Validators.required],
+    },
+    { validators: endAfterStart } as AbstractControlOptions,
+  );
 
-  protected readonly addForm = this._fb.group({
-    startTime: ['09:00', Validators.required],
-    endTime: ['18:00', Validators.required],
-  });
+  protected readonly addForm = this._fb.group(
+    {
+      startTime: ['09:00', Validators.required],
+      endTime: ['18:00', Validators.required],
+    },
+    { validators: endAfterStart } as AbstractControlOptions,
+  );
 
   private get _salonId(): string {
     return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';

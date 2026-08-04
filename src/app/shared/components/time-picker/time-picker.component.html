@@ -1,0 +1,49 @@
+<!-- Segmented control: one bordered pill containing three borderless selects,
+     so a time reads as a single field rather than three loose boxes. The
+     selects stay native, so mobile still gets the OS wheel picker.
+
+     Each segment carries its own min-w + min-h-11 so it clears the ~44px
+     comfortable-tap target on a phone — the segments are the tap surface,
+     and a tightly-padded one is easy to miss between neighbours. -->
+<div
+  class="inline-flex items-center rounded-xl border border-gray-300 bg-white overflow-hidden
+         focus-within:ring-2 focus-within:ring-primary/40 focus-within:border-primary transition-colors"
+  [class.opacity-50]="disabled()"
+  [attr.aria-label]="ariaLabel()">
+  <select
+    (change)="onHourChange($any($event.target).value)"
+    (blur)="onBlur()"
+    [disabled]="disabled()"
+    aria-label="Hour"
+    class="appearance-none bg-transparent min-h-12 min-w-16 px-4 text-sm text-gray-900 text-center
+           focus:outline-none cursor-pointer">
+    @for (h of hours; track h) {
+      <option [value]="h" [selected]="h === hour12()">{{ h }}</option>
+    }
+  </select>
+
+  <span class="text-sm text-gray-400 select-none">:</span>
+
+  <select
+    (change)="onMinuteChange($any($event.target).value)"
+    (blur)="onBlur()"
+    [disabled]="disabled()"
+    aria-label="Minute"
+    class="appearance-none bg-transparent min-h-12 min-w-16 px-4 text-sm text-gray-900 text-center
+           focus:outline-none cursor-pointer">
+    @for (m of minutes; track m) {
+      <option [value]="m" [selected]="m === minute()">{{ m < 10 ? '0' + m : m }}</option>
+    }
+  </select>
+
+  <select
+    (change)="onPeriodChange($any($event.target).value)"
+    (blur)="onBlur()"
+    [disabled]="disabled()"
+    aria-label="AM or PM"
+    class="appearance-none bg-transparent min-h-12 min-w-18 px-4 text-sm font-medium text-gray-700 text-center
+           focus:outline-none cursor-pointer">
+    <option value="AM" [selected]="period() === 'AM'">AM</option>
+    <option value="PM" [selected]="period() === 'PM'">PM</option>
+  </select>
+</div>

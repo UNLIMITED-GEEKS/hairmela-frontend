@@ -3,7 +3,13 @@ import { Location } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
-import { FormBuilder, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControlOptions,
+  FormBuilder,
+  FormArray,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { SalonSettingsService } from './salon-settings.service';
 import { SalonOverviewService } from '../salon-overview/salon-overview.service';
 import { SalonService } from '../salon.service';
@@ -19,7 +25,9 @@ import { TierFreezeDirective } from '../../../shared/directives/tier-freeze.dire
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
+import { TimePickerComponent } from '../../../shared/components/time-picker/time-picker.component';
 import { RouteParam } from '../../../core/routing/route-paths';
+import { endAfterStart } from '../../../core/utils/time-range.validator';
 import { ErrorCodes } from '../../../core/errors/error-codes';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -49,6 +57,7 @@ const TIMEZONES = [
     FieldErrorComponent,
     PageHeaderComponent,
     InlineSpinnerComponent,
+    TimePickerComponent,
   ],
 })
 export class SalonSettingsComponent implements OnInit {
@@ -103,12 +112,15 @@ export class SalonSettingsComponent implements OnInit {
     noShowWindow: [10, [Validators.required, Validators.min(1)]],
     operatingHours: this._fb.array(
       DAYS.map((_, i) =>
-        this._fb.group({
-          enabled: [false],
-          dayOfWeek: [i],
-          startTime: ['09:00'],
-          endTime: ['18:00'],
-        }),
+        this._fb.group(
+          {
+            enabled: [false],
+            dayOfWeek: [i],
+            startTime: ['09:00'],
+            endTime: ['18:00'],
+          },
+          { validators: endAfterStart } as AbstractControlOptions,
+        ),
       ),
     ),
   });
