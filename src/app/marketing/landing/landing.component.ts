@@ -16,7 +16,7 @@ import { PaginationComponent } from '../../shared/components/pagination/paginati
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { InstallPromptService } from '../../core/pwa/install-prompt.service';
-import { RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
+import { HowItWorksTab, RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
 
 @Component({
   selector: 'app-landing',
@@ -41,6 +41,11 @@ export class LandingComponent implements OnInit {
 
   protected readonly registerLink = RoutePath.register();
   protected readonly howToInstallLink = RoutePath.download();
+
+  protected readonly howItWorksCustomersLink = RoutePath.howItWorks();
+  protected readonly howItWorksCustomersParams = { [RouteQueryParam.TAB]: HowItWorksTab.CUSTOMERS };
+  protected readonly howItWorksOwnersLink = RoutePath.howItWorks();
+  protected readonly howItWorksOwnersParams = { [RouteQueryParam.TAB]: HowItWorksTab.OWNERS };
 
   protected readonly steps = [
     {

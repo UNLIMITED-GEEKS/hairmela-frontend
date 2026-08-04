@@ -31,7 +31,18 @@ export const RouteQueryParam = {
   STATUS: 'status',
   TX_REF: 'tx_ref',
   TRANSACTION_ID: 'transaction_id',
+  // Which audience tab the How It Works page shows — see RouteParamValue.HowItWorksTab.
+  TAB: 'tab',
 } as const;
+
+// Values for RouteQueryParam.TAB on the How It Works page — a real enum
+// (not a free string) so the query param, the tab component, and any link
+// builder all agree on the two valid values.
+export const HowItWorksTab = {
+  CUSTOMERS: 'customers',
+  OWNERS: 'owners',
+} as const;
+export type HowItWorksTab = (typeof HowItWorksTab)[keyof typeof HowItWorksTab];
 
 // Raw path segments — referenced by *.routes.ts `path:` definitions.
 export const RouteSegment = {
@@ -90,6 +101,7 @@ export const RouteSegment = {
   TERMS: 'terms',
   CONTACT: 'contact',
   ABOUT: 'about',
+  HOW_IT_WORKS: 'how-it-works',
 } as const;
 
 // Full-path builders — used by router.navigate([...]) / [routerLink]="[...]".
@@ -111,6 +123,7 @@ export const RoutePath = {
   download: () => ['/download'],
   terms: () => ['/terms'],
   contact: () => ['/contact'],
+  howItWorks: () => [`/${RouteSegment.HOW_IT_WORKS}`],
 
   newSalon: () => ['/salons', RouteSegment.NEW],
   salon: (salonId: string) => ['/salons', salonId],

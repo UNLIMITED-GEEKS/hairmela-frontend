@@ -1,0 +1,11 @@
+<div [class]="'relative w-full rounded-2xl overflow-hidden bg-gray-100 ' + aspectClass()">
+  <iframe
+    [src]="safeUrl()"
+    [title]="title()"
+    class="absolute inset-0 w-full h-full"
+    frameborder="0"
+    referrerpolicy="strict-origin-when-cross-origin"
+    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    allowfullscreen>
+  </iframe>
+</div>

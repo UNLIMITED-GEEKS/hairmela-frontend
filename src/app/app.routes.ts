@@ -54,6 +54,13 @@ export const routes: Routes = [
           import('./marketing/about/about.component').then((m) => m.AboutComponent),
       },
       {
+        path: RouteSegment.HOW_IT_WORKS,
+        loadComponent: () =>
+          import('./marketing/how-it-works/how-it-works.component').then(
+            (m) => m.HowItWorksComponent,
+          ),
+      },
+      {
         path: RouteSegment.VERIFY_EMAIL,
         loadComponent: () =>
           import('./features/auth/verify-email/verify-email.component').then(

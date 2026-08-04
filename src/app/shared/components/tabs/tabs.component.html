@@ -1,4 +1,4 @@
-<div class="relative flex gap-2" role="tablist">
+<div class="relative flex w-fit gap-2" role="tablist">
   <!-- Sliding active-tab pill -->
   <div
     class="absolute top-0 bottom-0 bg-primary rounded-xl transition-[transform,width] duration-250 ease-out"
@@ -10,7 +10,7 @@
       role="tab"
       [attr.aria-selected]="tab.id === activeId()"
       (click)="select(tab.id)"
-      [class]="'relative z-10 flex-1 min-h-9 text-sm font-semibold rounded-xl border transition-colors duration-200 cursor-pointer ' +
+      [class]="'relative z-10 flex-1 min-h-9 px-3 text-sm font-semibold rounded-xl border transition-colors duration-200 cursor-pointer whitespace-nowrap ' +
         (tab.id === activeId() ? 'text-white border-transparent' : 'text-gray-600 border-gray-200 hover:bg-gray-50')">
       {{ tab.label }}
     </button>
