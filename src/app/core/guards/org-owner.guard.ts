@@ -1,15 +1,21 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { HttpClient } from '@angular/common/http';
-import { ApiConfiguration } from '../../api/api-configuration';
-import { organizationsControllerFindMine } from '../../api/fn/organizations/organizations-controller-find-mine';
+import { OrgContextService } from '../salon-context/org-context.service';
 import { RouteParam, RoutePath } from '../routing/route-paths';
 
+// Uses OrgContextService's cache (ensureLoaded()) instead of its own raw
+// GET /organizations/mine — that cache is already warmed eagerly on app boot
+// (AuthShellComponent.ngOnInit) and shared with the Upgrade CTAs (frozen
+// banner, tier banner, invite-staff), which already navigate here using
+// membership.orgId with no round-trip of their own. Before this fix, EVERY
+// entry into /org/:orgId/* re-fetched the owned-org list from scratch here —
+// on prod that's real network latency stacked right after an otherwise-
+// instant click, the "doesn't feel like an SPA" symptom. A warm cache now
+// resolves synchronously; only a genuinely cold cache (e.g. a hard refresh
+// landing directly on /org/:orgId) still makes a real request.
 export const orgOwnerGuard: CanActivateFn = async (route) => {
-  const http = inject(HttpClient);
-  const apiConfig = inject(ApiConfiguration);
+  const orgContext = inject(OrgContextService);
   const router = inject(Router);
 
   const orgId = route.paramMap.get(RouteParam.ORG_ID);
@@ -18,14 +24,8 @@ export const orgOwnerGuard: CanActivateFn = async (route) => {
   }
 
   try {
-    const orgs = await firstValueFrom(
-      organizationsControllerFindMine(http, apiConfig.rootUrl).pipe(
-        map((res) => res.body),
-      ),
-    );
-
-    const owns = Array.isArray(orgs) && orgs.some((o) => o.id === orgId);
-    return owns ? true : router.createUrlTree(RoutePath.dashboard());
+    const org = orgContext.ownedOrg() ?? (await firstValueFrom(orgContext.ensureLoaded()));
+    return org?.id === orgId ? true : router.createUrlTree(RoutePath.dashboard());
   } catch {
     return router.createUrlTree(RoutePath.dashboard());
   }

@@ -107,6 +107,21 @@
             </textarea>
           </div>
 
+          <!-- Dynamic pricing — checked, customers see "Price based on your
+               preference" instead of the price amount everywhere it's shown. -->
+          <div class="space-y-1.5 mb-10">
+            <label class="flex items-start gap-2.5 cursor-pointer">
+              <input type="checkbox" formControlName="isDynamicPricing"
+                class="w-4 h-4 mt-0.5 rounded border-gray-300 text-primary focus:ring-primary/30" />
+              <span>
+                <span class="block text-sm font-medium text-gray-700">Dynamic pricing</span>
+                <span class="block text-xs text-gray-400 mt-0.5">
+                  If checked, customers see "Price is based on your choosen style" instead of a price amount.
+                </span>
+              </span>
+            </label>
+          </div>
+
           <!-- Staff who offer this service — non-blocking: doesn't gate submit,
                just travels along with the create/update request so no separate
                per-staff assignment call is needed afterward. -->
@@ -120,7 +135,7 @@
             @if (!staffLoading() && assignableStaff().length === 0) {
               <p class="text-xs text-gray-400">No active staff to assign yet.</p>
             } @else {
-              <div class="themed-scrollbar space-y-1.5 max-h-56 overflow-y-auto rounded-lg border border-gray-200 p-2">
+              <div class="space-y-1.5 rounded-lg border border-gray-200 p-2">
                 @for (s of assignableStaff(); track s.staff.id) {
                   <label class="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-gray-50 cursor-pointer">
                     <input type="checkbox"
@@ -135,21 +150,6 @@
                 }
               </div>
             }
-          </div>
-
-          <!-- Dynamic pricing — checked, customers see "Price based on your
-               preference" instead of the price amount everywhere it's shown. -->
-          <div class="space-y-1.5">
-            <label class="flex items-start gap-2.5 cursor-pointer">
-              <input type="checkbox" formControlName="isDynamicPricing"
-                class="w-4 h-4 mt-0.5 rounded border-gray-300 text-primary focus:ring-primary/30" />
-              <span>
-                <span class="block text-sm font-medium text-gray-700">Dynamic pricing</span>
-                <span class="block text-xs text-gray-400 mt-0.5">
-                  If checked, customers see "Price is based on your choosen style" instead of a price amount.
-                </span>
-              </span>
-            </label>
           </div>
 
         </div>

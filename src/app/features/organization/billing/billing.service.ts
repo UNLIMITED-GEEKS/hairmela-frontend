@@ -14,6 +14,7 @@ import { CheckoutSessionDto } from '../../../api/models/checkout-session-dto';
 import { Subscription } from '../../../api/models/subscription';
 import { Tier } from '../../../core/tier/tier-limits';
 import { MembershipStore } from '../../../core/salon-context/membership.store';
+import { OrgContextService } from '../../../core/salon-context/org-context.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { OptimisticService } from '../../../core/caching/optimistic/optimistic.service';
 import { CachedLoader } from '../../../core/caching/optimistic/cached-loader';
@@ -25,6 +26,7 @@ export class BillingService {
   private readonly _cacheRegistry = inject(CacheRegistry);
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _membershipStore = inject(MembershipStore);
+  private readonly _orgContext = inject(OrgContextService);
   private readonly _toast = inject(ToastService);
   private readonly _optimistic = inject(OptimisticService);
   private readonly _router = inject(Router);
@@ -57,7 +59,25 @@ export class BillingService {
   readonly acting = this._acting.asReadonly();
 
   // Current plan / effective access — drives the billing page (handoff §4b).
+  //
+  // Seeds this loader's OWN cache from OrgContextService when it's already
+  // warm (that service fetches the identical EffectiveAccessDto — same
+  // subscriptionsControllerGetMine call — as a side effect of resolving
+  // ownedOrg, e.g. via orgOwnerGuard just before this component mounts). A
+  // user owns at most one org, so ownedOrg().id === orgId is sufficient proof
+  // that access() genuinely belongs to THIS org, not a stale read from a
+  // previously-viewed one. Without this seed, landing on the billing page
+  // re-fetched the same data a moment after the guard's own fetch already
+  // had it — a third redundant request stacked onto an otherwise-instant
+  // Upgrade click on prod. CachedLoader.load() already checks its cache map
+  // before ever calling fetch(), so seeding the map is all that's needed —
+  // no beginRead/commitRead bookkeeping to duplicate here.
   load(orgId: string): void {
+    const org = this._orgContext.ownedOrg();
+    const access = this._orgContext.access();
+    if (org?.id === orgId && access && !this._cache.has(orgId)) {
+      this._cache.set(orgId, access);
+    }
     this._loader.load(orgId);
   }
 

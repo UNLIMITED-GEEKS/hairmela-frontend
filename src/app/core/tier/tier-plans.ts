@@ -22,12 +22,12 @@ export function formatPlanPrice(price: number): string {
 
 export const PLAN_CARDS: readonly PlanCard[] = [
   {
-    tier: 1,
-    name: 'Standard',
-    tagline: 'For a single salon.',
-    salons: '1 salon',
+    tier: 2,
+    name: 'Pro',
+    price: 5900,
+    tagline: 'For up to 3 salons.',
+    salons: 'Up to 3 salons',
     staff: 'Unlimited staff',
-    price: 2900,
     features: [
       'Walk-in queue',
       'Appointments (bookings)',
@@ -37,12 +37,12 @@ export const PLAN_CARDS: readonly PlanCard[] = [
     ],
   },
   {
-    tier: 2,
-    name: 'Pro',
-    price: 5900,
-    tagline: 'For up to 3 salons.',
-    salons: 'Up to 3 salons',
+    tier: 1,
+    name: 'Standard',
+    tagline: 'For a single salon.',
+    salons: '1 salon',
     staff: 'Unlimited staff',
+    price: 2900,
     features: [
       'Walk-in queue',
       'Appointments (bookings)',
