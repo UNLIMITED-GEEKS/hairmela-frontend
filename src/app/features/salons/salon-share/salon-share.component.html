@@ -24,18 +24,24 @@
         }
 
         <div class="flex flex-col sm:flex-row gap-2 w-full">
-          <button type="button" (click)="downloadQr()" [disabled]="!qrDataUrl()"
+        
+          <button type="button" (click)="downloadPoster()"
+            [disabled]="!posterUrl() || downloadingPoster()"
+            class="flex-1 min-h-11 px-6 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg
+                   hover:bg-gray-50 disabled:opacity-50 active:scale-95 transition-all
+                   flex items-center justify-center gap-2">
+            @if (downloadingPoster()) {
+              <app-inline-spinner sizeClass="w-4 h-4" label="Preparing poster" />
+              <span>Preparing…</span>
+            } @else {
+              <span>Download poster</span>
+            }
+          </button>
+            <button type="button" (click)="downloadQr()" [disabled]="!qrDataUrl()"
             class="flex-1 min-h-11 px-6 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg
                    hover:bg-gray-50 disabled:opacity-50 active:scale-95 transition-all">
             Download PNG
           </button>
-          @if (posterUrl()) {
-            <a [href]="posterUrl()" target="_blank" rel="noopener"
-              class="flex-1 min-h-11 px-6 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg text-center
-                     hover:bg-gray-50 active:scale-95 transition-all">
-              Open printable poster
-            </a>
-          }
         </div>
       </div>
 

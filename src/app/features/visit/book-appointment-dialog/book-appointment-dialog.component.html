@@ -209,8 +209,14 @@
           <button
             (click)="confirmBooking()"
             [disabled]="!selectedDate() || !selectedStartTime() || visit.booking()"
-            class="flex-1 min-h-12 rounded-2xl bg-primary text-white font-semibold text-sm disabled:opacity-50 hover:bg-secondary-light hover:text-primary transition-colors">
-            {{ visit.booking() ? 'Booking...' : 'Book appointment' }}
+            class="flex-1 min-h-12 rounded-2xl bg-primary text-white font-semibold text-sm disabled:opacity-50 hover:bg-secondary-light hover:text-primary transition-colors
+                   flex items-center justify-center gap-2">
+            @if (visit.booking()) {
+              <app-inline-spinner sizeClass="w-4 h-4" label="Booking" />
+              <span>Booking…</span>
+            } @else {
+              <span>Book appointment</span>
+            }
           </button>
         }
       </div>

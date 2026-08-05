@@ -1,9 +1,12 @@
-import { Component, inject, signal, computed, OnInit, effect } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, effect, DestroyRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ToastService } from '../../../core/toast/toast.service';
 import { environment } from '../../../../environments/environment';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 import { SalonOverviewService } from '../salon-overview/salon-overview.service';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { RouteParam } from '../../../core/routing/route-paths';
@@ -12,16 +15,19 @@ import { hairmelaPosterControllerGetPoster } from '../../../api/fn/salons/hairme
 @Component({
   selector: 'app-salon-share',
   templateUrl: './salon-share.component.html',
-  imports: [SkeletonComponent, PageHeaderComponent],
+  imports: [SkeletonComponent, PageHeaderComponent, InlineSpinnerComponent],
 })
 export class SalonShareComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
   private readonly _toast = inject(ToastService);
   private readonly _overview = inject(SalonOverviewService);
   private readonly _currentUser = inject(CurrentUserStore);
+  private readonly _http = inject(HttpClient);
+  private readonly _destroyRef = inject(DestroyRef);
 
   protected readonly loading = signal(true);
   protected readonly qrDataUrl = signal('');
+  protected readonly downloadingPoster = signal(false);
 
   // Pure derivation from the loaded salon — no side effect, so computed (not
   // effect) is the right primitive.
@@ -30,16 +36,12 @@ export class SalonShareComponent implements OnInit {
     return slug ? `${environment.appBaseUrl}/s/${slug}` : '';
   });
 
-  // Backend now generates the printable poster server-side (PDF) — this just
-  // links straight at it, per the hand-off's own guidance ("not JSON, don't
-  // call it through the normal API client, point a link at the URL
-  // directly"). hairmelaPosterControllerGetPoster.PATH is the generated
-  // client's own copy of the route template, so the {slug} substitution here
-  // can't drift from the real backend path even though the generated
-  // function itself isn't used to call it (it's typed for HttpClient/JSON,
-  // discards the body — wrong shape for a binary PDF response opened directly
-  // in a new tab). No more client-side poster generation (canvas/print CSS)
-  // at all — the whole print-only DOM block and its .scss are gone.
+  // Backend generates the printable poster server-side (PDF); no client-side
+  // generation (canvas/print CSS) remains. hairmelaPosterControllerGetPoster
+  // .PATH is the generated client's own copy of the route template, so the
+  // {slug} substitution here can't drift from the real backend path — the
+  // generated FUNCTION isn't used to call it, since it's typed for JSON and
+  // discards the response body (wrong shape for a binary PDF).
   protected readonly posterUrl = computed(() => {
     const slug = this._overview.salon()?.slug;
     if (!slug) return '';
@@ -76,10 +78,43 @@ export class SalonShareComponent implements OnInit {
   protected downloadQr(): void {
     const dataUrl = this.qrDataUrl();
     if (!dataUrl) return;
+    const slug = this._overview.salon()?.slug;
     const a = document.createElement('a');
     a.href = dataUrl;
-    a.download = 'hairmela-qr.png';
+    a.download = slug ? `hairmela-${slug}-qr.png` : 'hairmela-qr.png';
     a.click();
+  }
+
+  // Fetched as a blob rather than linked directly: the server always sends
+  // Content-Disposition: inline, so an <a href> (even with `download`, which
+  // browsers ignore cross-origin) opens the PDF in a tab instead of saving
+  // it. Downloading the bytes ourselves and handing them to an object-URL
+  // link is the only way to force a real save, per the endpoint's own
+  // hand-off notes. Not routed through the generated client function, which
+  // is typed for JSON and drops the body.
+  protected downloadPoster(): void {
+    const url = this.posterUrl();
+    if (!url || this.downloadingPoster()) return;
+    this.downloadingPoster.set(true);
+
+    this._http
+      .get(url, { responseType: 'blob' })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: (blob) => {
+          const objectUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = objectUrl;
+          a.download = `HairMela - ${this._overview.salon()?.name ?? 'Salon'} - Queue Card.pdf`;
+          a.click();
+          URL.revokeObjectURL(objectUrl);
+          this.downloadingPoster.set(false);
+        },
+        error: () => {
+          this.downloadingPoster.set(false);
+          this._toast.error('Could not download the poster. Please try again.');
+        },
+      });
   }
 
   private async _generateQr(url: string): Promise<void> {
