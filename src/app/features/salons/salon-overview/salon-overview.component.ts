@@ -95,6 +95,13 @@ export class SalonOverviewComponent implements OnInit {
     return RoutePath.salonServices(salonId);
   }
 
+  // "My Services" on the staff-facing grid — a staff member's own assigned
+  // services, not the salon-wide manage-services list servicesLink() points
+  // owners/admins at.
+  protected myServicesLink(salonId: string, staffId: string): string[] {
+    return RoutePath.salonStaffServices(salonId, staffId);
+  }
+
   protected settingsLink(salonId: string): string[] {
     return RoutePath.salonSettings(salonId);
   }
@@ -105,6 +112,14 @@ export class SalonOverviewComponent implements OnInit {
 
   protected shareLink(salonId: string): string[] {
     return RoutePath.salonShare(salonId);
+  }
+
+  // Shortcut to the current user's OWN staff photos — any role (owner, admin,
+  // staff) has a myStaff() record here, so this needs no role check. Without
+  // it, updating your own photos meant going through Staff -> your own row ->
+  // Media, even though you're looking at your own overview page already.
+  protected myPhotosLink(salonId: string, staffId: string): string[] {
+    return RoutePath.salonStaffMedia(salonId, staffId);
   }
 
   protected closuresLink(salonId: string): string[] {

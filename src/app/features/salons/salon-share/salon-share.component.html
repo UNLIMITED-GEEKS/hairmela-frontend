@@ -1,12 +1,12 @@
 @if (loading()) {
-  <div class="print:hidden py-6 px-4">
+  <div class="py-6 px-4">
 
     <div class="">
       <app-skeleton variant="card" [count]="2" />
     </div>
   </div>
 } @else {
-  <div class="print:hidden ">
+  <div class="">
     <app-page-header title="Share your salon" backVariant="glass" />
 
     <div class="space-y-6 pt-3 pb-6 px-4">
@@ -23,11 +23,20 @@
           </div>
         }
 
-        <button type="button" (click)="downloadQr()" [disabled]="!qrDataUrl()"
-          class="min-h-11 px-6 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg
-                 hover:bg-gray-50 disabled:opacity-50 active:scale-95 transition-all">
-          Download PNG
-        </button>
+        <div class="flex flex-col sm:flex-row gap-2 w-full">
+          <button type="button" (click)="downloadQr()" [disabled]="!qrDataUrl()"
+            class="flex-1 min-h-11 px-6 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg
+                   hover:bg-gray-50 disabled:opacity-50 active:scale-95 transition-all">
+            Download PNG
+          </button>
+          @if (posterUrl()) {
+            <a [href]="posterUrl()" target="_blank" rel="noopener"
+              class="flex-1 min-h-11 px-6 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg text-center
+                     hover:bg-gray-50 active:scale-95 transition-all">
+              Open printable poster
+            </a>
+          }
+        </div>
       </div>
 
       <!-- Share URL -->
@@ -44,91 +53,6 @@
         </div>
       </div>
 
-      <!-- Poster -->
-      <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-        <p class="text-sm font-medium text-gray-700">Printable poster</p>
-        <p class="text-xs text-gray-500">A welcome poster with your QR code — print it and display it in your salon.</p>
-        <button type="button" (click)="printPoster()" [disabled]="!posterQrDataUrl()"
-          class="w-full min-h-11 px-4 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg
-                 hover:bg-gray-50 disabled:opacity-50 active:scale-95 transition-all">
-          Print poster
-        </button>
-      </div>
-
     </div>
   </div>
 }
-
-<!-- Print-only poster — hidden on screen, shown only for window.print().
-     A single page: brand mark, salon name in a display font so it stands
-     out, the join instructions, and the QR code anchoring the whole thing. -->
-<div class="poster hidden print:flex flex-col items-center text-center h-full px-6 py-6 sm:px-16 sm:py-8">
-  <img src="/hairmela_logo.jpeg" alt="HairMela" class="w-14 h-14 rounded-2xl object-cover" />
-  <span class="mt-2 text-base font-bold text-primary">HairMela</span>
-
-  <p class="mt-4 text-lg font-semibold tracking-wide text-gray-500 uppercase">Welcome to</p>
-  <h1 class="poster-name mt-2 text-4xl sm:text-6xl leading-tight text-primary">{{ salonName() }}</h1>
-
-  <p class="mt-4 max-w-md text-xl sm:text-2xl text-gray-700 leading-relaxed">
-    Join the queue right from your phone — scan the code below, sign up, and
-    favourite <strong>{{ salonName() }}</strong> to join us again next time.
-  </p>
-
-  @if (posterQrDataUrl()) {
-    <img [src]="posterQrDataUrl()" alt="Scan to join the queue" class="mt-5 w-48 h-48 sm:w-64 sm:h-64" />
-  }
-
-  <p class="mt-3 text-lg sm:text-xl font-medium text-gray-600 break-all">{{ shareUrl() }}</p>
-
-  <p class="mt-3 text-sm font-medium text-gray-500">Scan with your phone's camera to get started</p>
-
-  <div class="mt-4 pt-4 border-t border-gray-200 w-full max-w-2xl">
-    <p class="text-base font-semibold text-gray-800 text-center">Want faster access next time? Install HairMela to your device — no app store needed.</p>
-    <div class="mt-3 grid grid-cols-2 gap-3 sm:gap-8 text-left">
-      <div>
-        <p class="text-sm font-bold text-gray-800 uppercase tracking-wide">Android</p>
-        <ol class="mt-2 space-y-1.5 text-xs sm:text-sm text-gray-700">
-          <li class="flex gap-2">
-            <span class="shrink-0 flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary-light text-primary text-xs sm:text-sm font-bold">1</span>
-            <span>Open this page in Chrome (or your browser of choice).</span>
-          </li>
-          <li class="flex gap-2">
-            <span class="shrink-0 flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary-light text-primary text-xs sm:text-sm font-bold">2</span>
-            <span>Tap the <strong>⋮</strong> menu button in the top-right corner.</span>
-          </li>
-          <li class="flex gap-2">
-            <span class="shrink-0 flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary-light text-primary text-xs sm:text-sm font-bold">3</span>
-            <span>Tap <strong>Install app</strong> (or <strong>Add to Home screen</strong>).</span>
-          </li>
-          <li class="flex gap-2">
-            <span class="shrink-0 flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary-light text-primary text-xs sm:text-sm font-bold">4</span>
-            <span>Confirm — HairMela's icon appears on your home screen and app drawer.</span>
-          </li>
-        </ol>
-      </div>
-      <div>
-        <p class="text-sm font-bold text-gray-800 uppercase tracking-wide">iPhone &amp; iPad</p>
-        <p class="mt-2 text-sm font-bold text-primary">Only works in Safari — Chrome and other browsers can't install apps on iPhone/iPad.</p>
-        <ol class="mt-2 space-y-1.5 text-xs sm:text-sm text-gray-700">
-          <li class="flex gap-2">
-            <span class="shrink-0 flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary-light text-primary text-xs sm:text-sm font-bold">1</span>
-            <span>Open this page in <strong>Safari</strong>.</span>
-          </li>
-          <li class="flex gap-2">
-            <span class="shrink-0 flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary-light text-primary text-xs sm:text-sm font-bold">2</span>
-            <span>Tap the <strong>Share</strong> icon (a square with an arrow pointing up) in the toolbar.</span>
-          </li>
-          <li class="flex gap-2">
-            <span class="shrink-0 flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary-light text-primary text-xs sm:text-sm font-bold">3</span>
-            <span>Scroll down and tap <strong>Add to Home Screen</strong>. (If you don't see it, tap <strong>Edit Actions</strong> at the bottom of the list and add it.)</span>
-          </li>
-          <li class="flex gap-2">
-            <span class="shrink-0 flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary-light text-primary text-xs sm:text-sm font-bold">4</span>
-            <span>Tap <strong>Add</strong> in the top-right corner — HairMela's icon appears on your home screen.</span>
-          </li>
-        </ol>
-      </div>
-    </div>
-  </div>
-</div>
-
