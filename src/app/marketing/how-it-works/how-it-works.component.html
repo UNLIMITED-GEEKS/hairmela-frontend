@@ -2,18 +2,23 @@
   <div class="max-w-3xl mx-auto">
 
     <div class="text-center">
-      <h1 class="text-2xl sm:text-3xl font-bold text-left md:text-center text-gray-900">How HairMela works</h1>
+      <h1 class="text-2xl sm:text-3xl font-bold text-left md:text-center text-gray-900">How HairMela works for </h1>
     </div>
 
-    <div class="mt-8 flex flex-col sm:flex-row sm:items-center sm:justify-center gap-3">
+    <!-- Pills use shortLabel below sm: (see TABS) so all three fit a phone
+         without scrolling or wrapping. -->
+    <div class="mt-8 flex justify-center">
       <app-tabs [tabs]="tabs" [activeId]="activeTab()" [fitContent]="true" (tabChange)="setTab($event)" />
+    </div>
+
+    <div class="mt-3 flex justify-center">
       <button type="button" (click)="copyLink()"
-        class="self-start shrink-0 inline-flex items-center gap-1.5 rounded-full border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+        class="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
         <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 01-5.656-5.656l1.5-1.5M10.172 13.828a4 4 0 010-5.656l3-3a4 4 0 015.656 5.656l-1.5 1.5" />
         </svg>
-        Copy link
+        Copy link to this video
       </button>
     </div>
 
@@ -48,7 +53,7 @@
           </a>
         </div>
       </div>
-    } @else {
+    } @else if (isOwners()) {
       <div class="mt-10">
          <div class="md:max-w-xs mx-auto mb-10">
           <app-youtube-embed videoId="ju_qLoL6yqM" title="How to run your salon on HairMela" aspect="9/16" />
@@ -76,6 +81,38 @@
         <p class="mt-10 text-center text-sm text-text-secondary max-w-md mx-auto">And it works from day one. Even if nobody scans the code, you've already replaced the notebook.</p>
 
         <div class="mt-8 text-center">
+          <a [routerLink]="registerLink"
+            class="inline-flex min-h-12 px-8 rounded-2xl bg-primary text-white font-bold text-sm items-center justify-center hover:bg-primary/90 transition-colors shadow-md">
+            Create a free account
+          </a>
+        </div>
+      </div>
+    } @else {
+      <div class="mt-10">
+        <div class="md:max-w-xs mx-auto mb-10">
+          <app-youtube-embed videoId="Clpv2fLf6Qs" title="How to manage your queue on HairMela as staff" aspect="9/16" />
+        </div>
+        <p class="text-center text-sm text-text-secondary max-w-md mx-auto">How to manage your queue on HairMela as a staff member in a salon.</p>
+
+        <div class="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-8">
+          <div class="flex flex-col items-center gap-3 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-extrabold text-xl">1</div>
+            <h3 class="text-base font-bold text-text-primary">Accept your invite</h3>
+            <p class="text-sm text-text-secondary leading-relaxed">Your salon owner invites you by email. Accept it, and your own queue is created for you automatically.</p>
+          </div>
+          <div class="flex flex-col items-center gap-3 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-extrabold text-xl">2</div>
+            <h3 class="text-base font-bold text-text-primary">Run your queue</h3>
+            <p class="text-sm text-text-secondary leading-relaxed">Open your queue console to add walk-ins, call the next client, and mark each cut done — all from your phone between clients.</p>
+          </div>
+          <div class="flex flex-col items-center gap-3 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-extrabold text-xl">3</div>
+            <h3 class="text-base font-bold text-text-primary">Set your own hours</h3>
+            <p class="text-sm text-text-secondary leading-relaxed">Set your working hours, take a day off, pause your queue when you step away, and share your personal queue link with your clients.</p>
+          </div>
+        </div>
+
+        <div class="mt-12 text-center">
           <a [routerLink]="registerLink"
             class="inline-flex min-h-12 px-8 rounded-2xl bg-primary text-white font-bold text-sm items-center justify-center hover:bg-primary/90 transition-colors shadow-md">
             Create a free account

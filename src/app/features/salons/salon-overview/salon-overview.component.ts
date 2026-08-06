@@ -8,6 +8,7 @@ import { SalonRole } from '../../../core/salon-context/membership.types';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/frozen-banner.component';
 import { TierBannerComponent } from '../../../shared/components/tier-banner/tier-banner.component';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 import { environment } from '../../../../environments/environment';
@@ -15,7 +16,7 @@ import { environment } from '../../../../environments/environment';
 @Component({
   selector: 'app-salon-overview',
   templateUrl: './salon-overview.component.html',
-  imports: [RouterLink, SkeletonComponent, FrozenBannerComponent, TierBannerComponent],
+  imports: [RouterLink, SkeletonComponent, FrozenBannerComponent, TierBannerComponent, IconComponent],
 })
 export class SalonOverviewComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
@@ -38,6 +39,8 @@ export class SalonOverviewComponent implements OnInit {
   });
 
   protected readonly isStaff = computed(() => this.myStaff()?.role === SalonRole.STAFF);
+
+  protected readonly howItWorksLink = RoutePath.howItWorks();
 
   private get _salonId(): string {
     return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';

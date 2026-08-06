@@ -101,11 +101,11 @@
   </div>
 </section>
 
-<!-- Learn how it works (customers / salon owners) -->
+<!-- Learn how it works (customers / salon owners / salon staff) -->
 <section class="py-10 md:py-16 px-5 text-center">
-  <div class="max-w-lg mx-auto flex flex-col items-center gap-5">
+  <div class="max-w-2xl mx-auto flex flex-col items-center gap-5">
     <h2 class="text-2xl sm:text-3xl font-bold text-text-primary">Learn how HairMela works for</h2>
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+    <div class="flex flex-col sm:flex-row sm:flex-wrap sm:justify-center items-stretch sm:items-center gap-3 w-full sm:w-auto">
       <a [routerLink]="howItWorksCustomersLink" [queryParams]="howItWorksCustomersParams"
         class="min-h-12 px-8 rounded-2xl bg-primary text-white font-bold text-sm flex items-center justify-center hover:bg-primary/90 transition-colors shadow-md">
         For customers, click here
@@ -113,6 +113,10 @@
       <a [routerLink]="howItWorksOwnersLink" [queryParams]="howItWorksOwnersParams"
         class="min-h-12 px-8 rounded-2xl border border-primary/30 text-primary font-bold text-sm flex items-center justify-center hover:bg-primary/5 transition-colors">
         For salon owners, click here
+      </a>
+      <a [routerLink]="howItWorksStaffLink" [queryParams]="howItWorksStaffParams"
+        class="min-h-12 px-8 rounded-2xl border border-primary/30 text-primary font-bold text-sm flex items-center justify-center hover:bg-primary/5 transition-colors">
+        For salon staff, click here
       </a>
     </div>
   </div>

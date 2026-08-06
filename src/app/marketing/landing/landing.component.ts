@@ -46,6 +46,8 @@ export class LandingComponent implements OnInit {
   protected readonly howItWorksCustomersParams = { [RouteQueryParam.TAB]: HowItWorksTab.CUSTOMERS };
   protected readonly howItWorksOwnersLink = RoutePath.howItWorks();
   protected readonly howItWorksOwnersParams = { [RouteQueryParam.TAB]: HowItWorksTab.OWNERS };
+  protected readonly howItWorksStaffLink = RoutePath.howItWorks();
+  protected readonly howItWorksStaffParams = { [RouteQueryParam.TAB]: HowItWorksTab.STAFF };
 
   protected readonly steps = [
     {

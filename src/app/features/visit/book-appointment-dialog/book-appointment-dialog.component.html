@@ -13,7 +13,7 @@
         <p class="text-sm text-text-secondary mt-1">Pick a date and time that works for you.</p>
       </div>
 
-      <div class="flex-1 overflow-y-auto space-y-4">
+      <div class="flex-1 overflow-y-auto themed-scrollbar scroll-fade space-y-4">
         @if (needsStaffPicker() && !selectedStaff()) {
           @if (!pickerServiceId()) {
             <!-- Step 1 of 2: service first — the customer picks WHAT before

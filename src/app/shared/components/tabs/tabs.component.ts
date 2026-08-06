@@ -2,6 +2,7 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
+  OnDestroy,
   QueryList,
   ViewChildren,
   computed,
@@ -14,6 +15,11 @@ import {
 export interface TabItem {
   readonly id: string;
   readonly label: string;
+  // Optional shorter label used below sm: — for tab sets whose full labels
+  // don't fit a phone viewport (e.g. how-it-works' "For salon owners"). Both
+  // are rendered and swapped by CSS, so the sliding indicator still measures
+  // a single row and never needs to re-run on a breakpoint change.
+  readonly shortLabel?: string;
 }
 
 // Pill-style tabs with a sliding active indicator (measures the active
@@ -22,7 +28,9 @@ export interface TabItem {
   selector: 'app-tabs',
   templateUrl: './tabs.component.html',
 })
-export class TabsComponent implements AfterViewInit {
+export class TabsComponent implements AfterViewInit, OnDestroy {
+  private _resizeObserver?: ResizeObserver;
+
   readonly tabs = input.required<TabItem[]>();
   readonly activeId = input.required<string>();
   readonly tabChange = output<string>();
@@ -53,6 +61,20 @@ export class TabsComponent implements AfterViewInit {
   ngAfterViewInit(): void {
     this._measure();
     this._tabButtons.changes.subscribe(() => this._measure());
+
+    // Button widths change without any Angular-visible event: a viewport
+    // resize/rotation, or crossing the sm: breakpoint where a TabItem with a
+    // shortLabel swaps to its full label. Without this the indicator keeps
+    // the width/offset it measured at the old size and sits off the pill.
+    const first = this._tabButtons.first?.nativeElement;
+    if (first?.parentElement) {
+      this._resizeObserver = new ResizeObserver(() => this._measure());
+      this._resizeObserver.observe(first.parentElement);
+    }
+  }
+
+  ngOnDestroy(): void {
+    this._resizeObserver?.disconnect();
   }
 
   protected select(id: string): void {

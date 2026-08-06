@@ -12,7 +12,12 @@
       (click)="select(tab.id)"
       [class]="'relative z-10 flex-1 min-h-9 px-3 text-sm font-semibold rounded-xl border transition-colors duration-200 cursor-pointer whitespace-nowrap ' +
         (tab.id === activeId() ? 'text-white border-transparent' : 'text-gray-600 border-gray-200 hover:bg-gray-50')">
-      {{ tab.label }}
+      @if (tab.shortLabel) {
+        <span class="sm:hidden">{{ tab.shortLabel }}</span>
+        <span class="hidden sm:inline">{{ tab.label }}</span>
+      } @else {
+        {{ tab.label }}
+      }
     </button>
   }
 </div>

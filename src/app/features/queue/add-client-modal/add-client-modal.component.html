@@ -35,7 +35,7 @@
 
       @if (mode() === 'walk-in') {
         <div [formGroup]="addQueueForm" class="contents">
-          <div class="flex-1 overflow-y-auto space-y-3 mb-4" formArrayName="members">
+          <div class="flex-1 overflow-y-auto themed-scrollbar scroll-fade space-y-3 mb-4" formArrayName="members">
             @for (ctrl of addQueueMembers.controls; track $index; let i = $index) {
               <div [formGroupName]="i" class="bg-white border border-gray-200 rounded-2xl px-4 py-4 flex flex-col gap-2">
                 <div class="flex gap-3 items-start">
@@ -83,7 +83,7 @@
           </button>
         </div>
       } @else {
-        <div class="flex-1 overflow-y-auto space-y-4 mb-4">
+        <div class="flex-1 overflow-y-auto themed-scrollbar scroll-fade space-y-4 mb-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">Date</label>
             <app-mini-month-calendar

@@ -6,15 +6,21 @@ import { YoutubeEmbedComponent } from '../../shared/components/youtube-embed/you
 import { ToastService } from '../../core/toast/toast.service';
 import { HowItWorksTab, RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
 
+// shortLabel keeps all three pills on one line on a phone — the full labels
+// together are wider than a mobile viewport, and TabsComponent's sliding
+// indicator rules out wrapping to a second row.
 const TABS: TabItem[] = [
-  { id: HowItWorksTab.CUSTOMERS, label: 'For customers' },
-  { id: HowItWorksTab.OWNERS, label: 'For salon owners' },
+  { id: HowItWorksTab.CUSTOMERS, label: 'For customers', shortLabel: 'Customers' },
+  { id: HowItWorksTab.OWNERS, label: 'For salon owners', shortLabel: 'Salon Owners' },
+  { id: HowItWorksTab.STAFF, label: 'For salon staff', shortLabel: 'Salon Staffs' },
 ];
 
-// Public "How it works" page — two audiences, one URL, split by
-// ?tab=customers|owners so either half is directly linkable/shareable (the
-// copy-link button below copies exactly that URL). Customers is the default
-// when the param is absent or holds anything else.
+const TAB_IDS: readonly string[] = TABS.map((t) => t.id);
+
+// Public "How it works" page — three audiences, one URL, split by
+// ?tab=customers|owners|staff so any one of them is directly linkable/
+// shareable (the copy-link button below copies exactly that URL). Customers
+// is the default when the param is absent or holds anything else.
 @Component({
   selector: 'app-how-it-works',
   templateUrl: './how-it-works.component.html',
@@ -33,12 +39,16 @@ export class HowItWorksComponent {
   // pattern used by salon-shell/live-queue for the equivalent path-param case.
   private readonly _queryParamMap = toSignal(this._route.queryParamMap, { requireSync: true });
 
+  // Any value that isn't one of the three known tabs falls back to customers,
+  // so a hand-edited/stale ?tab= can never render an empty page.
   protected readonly activeTab = computed<HowItWorksTab>(() => {
-    const raw = this._queryParamMap().get(RouteQueryParam.TAB);
-    return raw === HowItWorksTab.OWNERS ? HowItWorksTab.OWNERS : HowItWorksTab.CUSTOMERS;
+    const raw = this._queryParamMap().get(RouteQueryParam.TAB) ?? '';
+    return TAB_IDS.includes(raw) ? (raw as HowItWorksTab) : HowItWorksTab.CUSTOMERS;
   });
 
   protected readonly isCustomers = computed(() => this.activeTab() === HowItWorksTab.CUSTOMERS);
+  protected readonly isOwners = computed(() => this.activeTab() === HowItWorksTab.OWNERS);
+  protected readonly isStaff = computed(() => this.activeTab() === HowItWorksTab.STAFF);
 
   protected setTab(tab: string): void {
     this._router.navigate([], {
@@ -48,10 +58,12 @@ export class HowItWorksComponent {
     });
   }
 
+  // Copies the URL of the CURRENT tab — landing on it shows that tab's video,
+  // which is what the "copy link to this video" button promises.
   protected copyLink(): void {
     const url = `${window.location.origin}${RoutePath.howItWorks().join('/')}?${RouteQueryParam.TAB}=${this.activeTab()}`;
     navigator.clipboard.writeText(url).then(
-      () => this._toast.success('Link copied.'),
+      () => this._toast.success('Link to this video copied.'),
       () => this._toast.error('Could not copy link.'),
     );
   }

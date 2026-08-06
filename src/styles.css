@@ -502,7 +502,8 @@ body {
 /* Thin, brand-colored scrollbar — kept visible (not hidden) but styled
    instead of the default OS scrollbar. Works for both horizontal chip rows
    and vertical lists: width sizes a vertical scrollbar, height a horizontal
-   one, and only the relevant one ever renders on a given element. */
+   one, and only the relevant one ever renders on a given element.
+   The standard scrollbar-* properties come first: the ::-webkit-*/
 .themed-scrollbar::-webkit-scrollbar {
   width: 4px;
   height: 4px;
@@ -518,6 +519,27 @@ body {
   display: none;
   width: 0;
   height: 0;
+}
+
+/* Scroll affordance for modal bodies. A styled scrollbar alone doesn't solve
+   discoverability on touch: mobile overlay scrollbars only appear WHILE
+   scrolling, so a user who hasn't scrolled yet sees no hint that more form
+   fields exist below the fold. This fades the bottom edge of the scroll
+   container to signal "there's more", using a background-attachment trick
+   that self-hides at the end of the scroll range — no JS scroll listeners.
+
+   How it works: two gradients are painted, both anchored to the CONTENT box
+   (local attachment) except the cover pair, which is anchored to the
+   scrollport (scroll attachment). The solid "cover" block sits over the
+   shadow and moves with the scrollport, so at the very bottom of the range
+   the cover exactly overlaps the shadow and hides it. Pair with
+   .themed-scrollbar, which stays useful for mouse/trackpad users. */
+.scroll-fade {
+  background:
+    /* cover: hides the bottom shadow once fully scrolled */
+    linear-gradient(var(--color-surface) 20%, transparent) center bottom / 100% 24px no-repeat local,
+    /* shadow: the visible fade hinting at more content */
+    linear-gradient(transparent, rgba(0, 0, 0, 0.09)) center bottom / 100% 24px no-repeat scroll;
 }
 
 /* Same scrollable behavior as .themed-scrollbar, but with the scrollbar

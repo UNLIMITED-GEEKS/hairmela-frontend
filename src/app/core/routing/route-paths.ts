@@ -37,10 +37,11 @@ export const RouteQueryParam = {
 
 // Values for RouteQueryParam.TAB on the How It Works page — a real enum
 // (not a free string) so the query param, the tab component, and any link
-// builder all agree on the two valid values.
+// builder all agree on the valid values.
 export const HowItWorksTab = {
   CUSTOMERS: 'customers',
   OWNERS: 'owners',
+  STAFF: 'staff',
 } as const;
 export type HowItWorksTab = (typeof HowItWorksTab)[keyof typeof HowItWorksTab];
 
