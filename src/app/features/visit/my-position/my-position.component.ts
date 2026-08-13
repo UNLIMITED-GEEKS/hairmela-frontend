@@ -88,6 +88,14 @@ export class MyPositionComponent {
   // source; this fetch is only for the one signal the timeline can't give us.
   protected readonly entryStatus = signal<EntryStatusResponseDto | null>(null);
 
+  // Number the customer calls from the notes composer: the barber's own
+  // phone when they've set one, otherwise the salon's main line — a salon
+  // that can route the call is strictly better than no button at all. Null
+  // only when neither exists, which hides the button.
+  protected readonly callPhone = computed(
+    () => this.entryStatus()?.staff?.phone ?? this.visit.salon()?.phone ?? null,
+  );
+
   // Whether this entry is currently in the live timeline. A computed, not a
   // raw myEntry() read, because a computed only notifies when its OUTPUT
   // changes: the timeline emits a fresh array (and fresh entry objects) on

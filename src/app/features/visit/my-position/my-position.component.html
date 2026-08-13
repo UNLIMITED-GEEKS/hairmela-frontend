@@ -175,6 +175,7 @@
         <div class="w-full mb-4">
           <app-accordion title="View notes" [open]="notesOpen()" (openChange)="onNotesOpenChange($event)">
             <app-comments-thread [queueId]="_queueId()" [entryId]="_entryId()"
+              [callPhone]="callPhone()"
               composerPlaceholder="Write a note to the salon…" emptyLabel="No notes yet." />
           </app-accordion>
         </div>

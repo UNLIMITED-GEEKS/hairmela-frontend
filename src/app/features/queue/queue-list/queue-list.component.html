@@ -138,6 +138,7 @@
           <app-accordion title="Notes" [open]="openNotesEntryId() === entry.entryId"
             (openChange)="onRowNotesOpenChange(entry.entryId, $event)">
             <app-comments-thread [queueId]="_queueId" [entryId]="entry.entryId"
+              [callPhone]="entry.members[0].phone"
               composerPlaceholder="Write a note to the client…" emptyLabel="No notes yet." />
           </app-accordion>
         </div>

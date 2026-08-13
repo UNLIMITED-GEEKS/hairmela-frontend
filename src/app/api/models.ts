@@ -47,6 +47,7 @@ export type { PushUnsubscribeDto } from './models/push-unsubscribe-dto';
 export type { Queue } from './models/queue';
 export type { QueueEntry } from './models/queue-entry';
 export type { QueueEntryMember } from './models/queue-entry-member';
+export type { QueueStaffDto } from './models/queue-staff-dto';
 export type { QueueSummaryDto } from './models/queue-summary-dto';
 export type { RegisterDto } from './models/register-dto';
 export type { ReorderMediaDto } from './models/reorder-media-dto';

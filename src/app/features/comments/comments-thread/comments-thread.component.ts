@@ -44,6 +44,13 @@ export class CommentsThreadComponent {
   readonly composerPlaceholder = input('Write a note…');
   readonly emptyLabel = input('No notes yet.');
 
+  // Phone to call from the composer, supplied by the host because each side
+  // reads it from a different place: the customer gets the barber's number
+  // (falling back to the salon's), the barber gets the client's. Null hides
+  // the button entirely — an absence, not a disabled control, since there's
+  // nothing the user could do to make a missing number appear.
+  readonly callPhone = input<string | null>(null);
+
   // Fires after a successful post, so a host that also shows an unread badge
   // or similar could react — nothing currently listens, kept for symmetry
   // with the rest of this codebase's optimistic-write components.
