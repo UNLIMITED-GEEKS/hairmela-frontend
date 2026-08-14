@@ -26,7 +26,7 @@ export function staffAvailability(staff: SalonPublicStaffDto): StaffAvailability
       };
     case 'QUEUE_CLOSED':
       return {
-        label: 'Unavailable',
+        label: 'Queue closed',
         badgeClasses: 'bg-primary-light text-primary border-primary/20',
         joinable: false,
       };

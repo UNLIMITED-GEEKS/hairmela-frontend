@@ -553,6 +553,12 @@ body {
     display: none;
   }
 }
+.no-scrollbar{
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
 
 /* iOS Safari auto-zooms the viewport when focusing any form control whose
    computed font-size is under 16px, and is well known to not reliably zoom
