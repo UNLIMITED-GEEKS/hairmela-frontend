@@ -18,19 +18,19 @@
       <div class="flex items-center gap-3">
         <app-avatar [name]="(user()?.firstName ?? '') + ' ' + (user()?.lastName ?? '')" size="md" />
         <div>
-          <h1 class="text-lg font-semibold font-family-lora text-text-primary">Good Morning 👋</h1>
+          <h1 class="text-lg font-semibold font-family-lora text-text-primary">{{ greeting }} 👋</h1>
           <p class="text-sm text-text-secondary font-family-geist font-medium">{{ user()?.firstName }} {{ user()?.lastName }}</p>
         </div>
       </div>
       <div class="flex items-center gap-2 shrink-0">
         <a [routerLink]="favoritesLink"
           aria-label="Favourites"
-          class="flex h-10 w-10 items-center justify-center rounded-full  hover:bg-surface-overlay transition-colors">
+          class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/5 hover:bg-primary/10 transition-colors">
           <app-icon name="heart-filled" class="w-4 h-4 text-primary" />
         </a>
         <a [routerLink]="notificationsLink"
           aria-label="Notifications"
-          class="flex h-10 w-10 items-center justify-center rounded-full hover:bg-surface-overlay transition-colors">
+          class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/5 hover:bg-primary/10 transition-colors">
           <app-icon name="bell" class="w-5 h-5 text-text-primary" />
         </a>
       </div>
