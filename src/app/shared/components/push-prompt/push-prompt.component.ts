@@ -1,4 +1,4 @@
-import { Component, inject, input, signal } from '@angular/core';
+import { Component, computed, inject, input, signal } from '@angular/core';
 import { PushService } from '../../../core/push/push.service';
 import { ToastService } from '../../../core/toast/toast.service';
 
@@ -26,15 +26,18 @@ export class PushPromptComponent {
   private readonly _dismissed = signal(false);
   protected readonly busy = signal(false);
 
-  protected readonly visible = signal(this._shouldShow());
-
-  private _shouldShow(): boolean {
-    return (
+  // Computed, not a one-shot signal: on native the permission state is only
+  // known asynchronously and reports 'unknown' until it settles. Sampling once
+  // at construction (as this did) would evaluate against 'unknown' and never
+  // re-check — and treating 'unknown' as promptable would flash this at a user
+  // who had already granted or refused. Only an explicit 'default' shows it.
+  protected readonly visible = computed(
+    () =>
+      !this._dismissed() &&
       this._push.isSupported &&
-      this._push.permission === 'default' &&
-      !this._push.hasAsked()
-    );
-  }
+      this._push.permissionState() === 'default' &&
+      !this._push.hasAsked(),
+  );
 
   protected async enable(): Promise<void> {
     if (this.busy()) return;
@@ -44,18 +47,20 @@ export class PushPromptComponent {
     const result = await this._push.enable();
     this.busy.set(false);
     this._dismissed.set(true);
-    this.visible.set(false);
 
     if (result === 'enabled') {
       this._toast.success("Done — we'll let you know when it's your turn.");
     } else if (result === 'denied') {
       this._toast.info('No problem — you can turn this on later in your account.');
+    } else {
+      // Permission was granted but registration or the server call failed —
+      // "turn it on in your account" would be misleading advice here.
+      this._toast.error("Couldn't set up notifications. Please try again later.");
     }
   }
 
   protected dismiss(): void {
     this._push.markAsked();
     this._dismissed.set(true);
-    this.visible.set(false);
   }
 }

@@ -2,6 +2,7 @@ import { Component, input, output } from '@angular/core';
 import { Media } from '../../../api/models/media';
 import { GalleryComponent } from '../gallery/gallery.component';
 import { IconComponent } from '../icon/icon.component';
+import { registerOverlayWhileOpen } from '../../../core/overlay/overlay-registry';
 
 // Modal wrapper around the existing reorder/delete-capable <app-gallery> —
 // keeps the drag-drop editing UI out of the page's normal flow (a Recent
@@ -22,6 +23,11 @@ export class GalleryEditModalComponent {
   readonly closed = output<void>();
   readonly reordered = output<Media[]>();
   readonly deleted = output<string>();
+
+  constructor() {
+    // Android back dismisses this modal instead of navigating underneath it.
+    registerOverlayWhileOpen(this.open, () => this.close());
+  }
 
   protected close(): void {
     this.closed.emit();

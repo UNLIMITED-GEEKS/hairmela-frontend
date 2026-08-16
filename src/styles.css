@@ -573,3 +573,29 @@ body {
     font-size: 16px;
   }
 }
+
+/* Capacitor native barcode scanning only. The MLKit plugin renders the camera
+   preview NATIVELY, behind the WebView — so the whole page has to be made
+   transparent for it to be visible. QrScannerComponent adds this class to
+   <body> while scanning and removes it on every exit path (success, cancel,
+   error, destroy).
+
+   Web is unaffected: nothing ever adds this class in a browser build, where
+   the scanner uses html5-qrcode in an in-page element instead. */
+body.barcode-scanner-active {
+  visibility: hidden;
+  background: transparent !important;
+}
+
+/* Capacitor native only. The Android WebView's own overscroll stretch/glow
+   fights the custom pull-to-refresh drag (PullToRefreshService), which the
+   bare WebView otherwise has no replacement for — there is no browser chrome
+   and no built-in refresh gesture. preventDefault() on touchmove handles most
+   of it; this suppresses the residual stretch animation.
+
+   Scoped to .capacitor-native (set on <html> by AppPlatformService's build) so
+   web keeps its normal browser overscroll behaviour untouched. */
+html.capacitor-native,
+html.capacitor-native body {
+  overscroll-behavior-y: none;
+}

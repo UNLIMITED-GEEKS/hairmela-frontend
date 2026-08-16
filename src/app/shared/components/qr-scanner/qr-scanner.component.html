@@ -1,6 +1,7 @@
 <div
   animate.enter="overlay-modal-enter"
   animate.leave="overlay-modal-leave"
+  [class.hidden]="nativeScanning()"
   class="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center">
   <!-- Close button -->
   <button (click)="close()" type="button"
@@ -24,8 +25,13 @@
         Close
       </button>
     </div>
-  } @else {
+  } @else if (!isNative) {
     <div id="qr-reader" #reader class="w-[300px] h-[300px] rounded-xl overflow-hidden"></div>
     <p class="text-white/60 text-xs mt-4">Point your camera at a HairMela QR code</p>
+  } @else {
+    <!-- Native: the camera is rendered by the OS *behind* the WebView, so
+         there is no preview element to place here. Only a brief "starting"
+         message shows before the native UI takes over the screen. -->
+    <p class="text-white/60 text-sm">Starting camera…</p>
   }
 </div>

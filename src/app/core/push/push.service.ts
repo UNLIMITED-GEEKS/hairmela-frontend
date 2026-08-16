@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { SwPush } from '@angular/service-worker';
@@ -11,10 +11,22 @@ import { pushControllerUnsubscribe } from '../../api/fn/push/push-controller-uns
 import { myEntriesControllerGetMyEntries } from '../../api/fn/queues/my-entries-controller-get-my-entries';
 import { PersistentStore } from '../storage/persistent-store';
 import { RoutePath } from '../routing/route-paths';
+import { AppPlatformService } from '../native/app-platform.service';
+import { NativePushService } from './native-push.service';
 
 // Result of attempting to enable push — lets callers react without knowing the
 // underlying reasons (unsupported env, denied permission, missing keys).
 export type PushEnableResult = 'enabled' | 'denied' | 'unsupported';
+
+/**
+ * Permission state as callers see it.
+ *
+ * 'unknown' exists for native, where the real state is only readable
+ * asynchronously — it means "not established yet", and callers must NOT treat
+ * it as permission to prompt. Web never reports it, since Notification
+ * .permission is synchronous.
+ */
+export type PushPermission = NotificationPermission | 'unsupported' | 'unknown';
 
 const ASKED_KEY = 'hm_push_asked';
 
@@ -32,13 +44,55 @@ export class PushService {
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _router = inject(Router);
   private readonly _store = inject(PersistentStore);
+  private readonly _platform = inject(AppPlatformService);
+  private readonly _native = inject(NativePushService);
 
   // Mirrors whether a browser subscription is currently active. Hydrated from
   // SwPush.subscription so the account toggle reflects reality across reloads.
   private readonly _subscribed = signal(false);
-  readonly subscribed = this._subscribed.asReadonly();
+  // Native tracks its own subscription state (FCM token registered); web uses
+  // the SwPush-hydrated signal. One readonly surface either way.
+  readonly subscribed = computed(() =>
+    this._platform.isNative ? this._native.subscribed() : this._subscribed(),
+  );
+
+  // Native permission can only be read asynchronously, but `permission` is a
+  // synchronous getter. The honest initial value is therefore 'unknown', NOT
+  // 'default': 'default' means "the user has not been asked", which callers
+  // treat as "safe to prompt". Reporting that before the real state has loaded
+  // would flash the permission prompt at someone who already granted — or
+  // already refused. 'unknown' makes callers wait instead of guessing.
+  private readonly _nativePermissionState = signal<PushPermission>('unknown');
 
   constructor() {
+    // Native: FCM instead of Web Push, which does not exist in a WebView. The
+    // web branch below is left exactly as it was — this returns before it.
+    if (this._platform.isNative) {
+      const platform = this._platform.nativePlatform;
+
+      // AWAIT init() before refresh(): refresh() calls register(), and the
+      // resulting 'registration' event is only captured if the listener is
+      // already bound. Firing them concurrently lost the token by ~12ms — the
+      // event arrived before the listener existed, so the token was never sent
+      // to the backend and push silently never worked.
+      void this._native
+        .init((data) => {
+          if (data.url) {
+            void this._router.navigateByUrl(data.url);
+            return;
+          }
+          void this._navigateFromNotification({ title: data.title ?? '', data });
+        })
+        .then(() => {
+          // Tokens rotate; the backend upserts, so re-sending on every launch
+          // keeps the row fresh. No-ops unless permission is already granted.
+          void this._native.refresh(platform);
+        });
+
+      void this._native.permission().then((p) => this._nativePermissionState.set(p));
+      return;
+    }
+
     if (!this._swPush.isEnabled) return;
 
     this._swPush.subscription
@@ -54,14 +108,30 @@ export class PushService {
 
   /** True only where push can actually run (prod build + SW support present). */
   get isSupported(): boolean {
-    return this._swPush.isEnabled;
+    // Native always supports push — FCM needs no service worker.
+    return this._platform.isNative || this._swPush.isEnabled;
   }
 
-  /** Browser-level permission state, or 'unsupported' when the SW isn't active. */
-  get permission(): NotificationPermission | 'unsupported' {
+  /**
+   * Permission state. 'unsupported' when push cannot run at all; 'unknown' on
+   * native until the async lookup started in the constructor settles.
+   *
+   * Reads through a signal on the native path so consumers written as
+   * computed()/effect() re-evaluate when the real state lands — a plain getter
+   * would be sampled once and never update.
+   */
+  get permission(): PushPermission {
+    if (this._platform.isNative) return this._nativePermissionState();
     if (!this._swPush.isEnabled || typeof Notification === 'undefined') return 'unsupported';
     return Notification.permission;
   }
+
+  /** Signal form of `permission`, for reactive consumers. */
+  readonly permissionState = computed<PushPermission>(() => {
+    if (this._platform.isNative) return this._nativePermissionState();
+    if (!this._swPush.isEnabled || typeof Notification === 'undefined') return 'unsupported';
+    return Notification.permission;
+  });
 
   /** Whether we've already shown the contextual prompt this device. */
   hasAsked(): boolean {
@@ -76,6 +146,17 @@ export class PushService {
   // key, then persist the subscription server-side. Idempotent — re-subscribing
   // an already-subscribed browser just re-saves the same subscription.
   async enable(): Promise<PushEnableResult> {
+    if (this._platform.isNative) {
+      const result = await this._native.enable(this._platform.nativePlatform);
+      // 'unsupported' means permission was granted but registration or the
+      // server call failed — recording 'denied' there would wrongly suppress
+      // any later prompt.
+      if (result !== 'unsupported') {
+        this._nativePermissionState.set(result === 'enabled' ? 'granted' : 'denied');
+      }
+      return result;
+    }
+
     if (!this._swPush.isEnabled) return 'unsupported';
 
     try {
@@ -115,6 +196,11 @@ export class PushService {
   // token, so this runs before logout clears tokens. The HTTP request captures
   // the token when initiated, so the early signal flip is safe.
   async disable(): Promise<void> {
+    if (this._platform.isNative) {
+      await this._native.disable();
+      return;
+    }
+
     if (!this._swPush.isEnabled) return;
 
     // Predict: flip immediately so the toggle reflects the new state

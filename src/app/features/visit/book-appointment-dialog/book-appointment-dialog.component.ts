@@ -14,6 +14,7 @@ import { StaffCardComponent } from '../../../shared/components/staff-card/staff-
 import { RoutePath } from '../../../core/routing/route-paths';
 import { groupByServiceCategory } from '../../../core/utils/group-by-category';
 import { Service } from '../../../api/models/service';
+import { registerOverlayWhileOpen } from '../../../core/overlay/overlay-registry';
 
 function toIsoDate(d: Date): string {
   const yyyy = d.getFullYear();
@@ -178,6 +179,9 @@ export class BookAppointmentDialogComponent {
   }
 
   constructor() {
+    // Android back dismisses this dialog instead of navigating underneath it.
+    registerOverlayWhileOpen(this.open, () => this.cancel());
+
     // Reset every time the dialog opens, mirroring join-dialog's own reset
     // effect — no stale month/slot/members from a prior open. Deliberately
     // reads ONLY this.open() as its tracked dependency — untracked() wraps

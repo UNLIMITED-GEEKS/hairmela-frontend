@@ -1,9 +1,13 @@
-<div class="print:hidden">
-  <app-public-nav
-    [navItems]="navItems()"
-    [sheetOpen]="sheetOpen()"
-    (sheetToggle)="sheetOpen.update(v => !v)" />
-</div>
+<!-- Marketing nav, web only — website chrome that has no place inside the
+     installed app, where the welcome screen carries its own Sign in / Sign up. -->
+@if (!platform.isAppContext) {
+  <div class="print:hidden">
+    <app-public-nav
+      [navItems]="navItems()"
+      [sheetOpen]="sheetOpen()"
+      (sheetToggle)="sheetOpen.update(v => !v)" />
+  </div>
+}
 
 <app-pull-to-refresh-indicator />
 
@@ -11,8 +15,13 @@
   <router-outlet />
 </main>
 
-<div class="print:hidden">
-  <app-install-banner />
-  <app-public-footer />
-</div>
+<!-- Marketing chrome, web only. Inside the installed app the footer's
+     social/marketing links are website furniture, and the install banner is
+     nonsense — it prompts you to install the app you are already using. -->
+@if (!platform.isAppContext) {
+  <div class="print:hidden">
+    <app-install-banner />
+    <app-public-footer />
+  </div>
+}
 

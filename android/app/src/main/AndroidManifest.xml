@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Android App Links: shared https links open in the app instead of
+                 the browser. autoVerify makes Android fetch
+                 https://<host>/.well-known/assetlinks.json and match this app's
+                 signing certificate against it — no user prompt, no "open with"
+                 chooser, but it only works if EVERY declared host serves that
+                 file directly. A redirect fails verification silently, and one
+                 failing host fails the whole filter, not just that host.
+
+                 launchMode="singleTask" above matters here: an incoming link
+                 reuses the running instance rather than stacking a second copy
+                 of the app on top of itself. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <!-- www is deliberately NOT claimed: it 308-redirects to the
+                     apex, Android does not follow redirects when verifying, and
+                     ONE failing host fails this entire filter. Users tapping a
+                     www link still reach the app — Android follows the redirect
+                     at navigation time, just not at verification time. -->
+                <data android:scheme="https" android:host="hairmela.com" />
+                <data android:scheme="https" android:host="dev-hairmela.vercel.app" />
+            </intent-filter>
+
+        </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"></meta-data>
+        </provider>
+    </application>
+
+    <!-- Permissions -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- QR scanning (@capacitor-mlkit/barcode-scanning). The permission is
+         also requested at runtime before the first scan; this declaration is
+         what makes that request legal. `required="false"` on the feature keeps
+         the app installable on devices without a camera — scanning is one
+         feature, not the whole app. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <!-- Android 13+ requires this at runtime before ANY notification can be
+         shown. Without it FCM still delivers, but our local notification is
+         silently dropped — delivery succeeds and the user sees nothing. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+</manifest>

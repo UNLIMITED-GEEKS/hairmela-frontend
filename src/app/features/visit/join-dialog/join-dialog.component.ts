@@ -8,6 +8,7 @@ import { JoinMemberDto } from '../../../api/models/join-member-dto';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { RoutePath } from '../../../core/routing/route-paths';
 import { groupByServiceCategory } from '../../../core/utils/group-by-category';
+import { registerOverlayWhileOpen } from '../../../core/overlay/overlay-registry';
 import { Service } from '../../../api/models/service';
 
 const ALLOWED_NOTE_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -75,6 +76,11 @@ export class JoinDialogComponent {
   }
 
   constructor() {
+    // Android back dismisses this dialog instead of navigating the page
+    // underneath it. Its own effect tracks only open(), so it does not
+    // interact with the untracked() dance below.
+    registerOverlayWhileOpen(this.open, () => this.cancel());
+
     // Reset form state every time the dialog opens — a signed-in user's name
     // is pre-filled, guests start blank, no stale values from a prior open.
     // Deliberately reads ONLY this.open() as its tracked dependency —

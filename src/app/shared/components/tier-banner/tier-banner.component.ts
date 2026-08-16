@@ -69,8 +69,8 @@ export class TierBannerComponent {
       return {
         kind: 'expired',
         message: owner
-          ? 'Your plan has ended — upgrade to restore full access.'
-          : 'This plan has ended — ask the owner to upgrade to restore full access.',
+          ? 'Your plan has ended, upgrade to restore full access.'
+          : 'This plan has ended, ask the owner to upgrade to restore full access.',
         cta: 'Upgrade',
       };
     }

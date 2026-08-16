@@ -41,6 +41,16 @@ export function sessionInit(): () => Promise<void> {
     const router = inject(Router);
     const persistentStore = inject(PersistentStore);
 
+    // Native only: load Capacitor Preferences into PersistentStore's
+    // synchronous cache before ANY read below. Awaited HERE rather than relying
+    // on a separate provideAppInitializer running first — Angular starts all
+    // initializers in parallel and only waits for them collectively, so
+    // ordering them in the providers array guarantees nothing. Without this
+    // await, getRefreshToken() below reads an empty cache while hydration is
+    // still in flight and every native cold start looks signed-out.
+    // Idempotent and a no-op on web.
+    await persistentStore.hydrate();
+
     const atRoot = window.location.pathname === '/';
     // Flutterwave's redirect_url is set to the org's payment-callback page,
     // but subscription/Payment Plan checkouts have been observed ignoring

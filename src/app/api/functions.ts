@@ -231,6 +231,10 @@ export type { PushControllerSubscribe$Params as PushControllerSubscribe$Params }
 export { pushControllerSubscribe as pushControllerSubscribe } from './fn/push/push-controller-subscribe';
 export type { PushControllerUnsubscribe$Params as PushControllerUnsubscribe$Params } from './fn/push/push-controller-unsubscribe';
 export { pushControllerUnsubscribe as pushControllerUnsubscribe } from './fn/push/push-controller-unsubscribe';
+export type { PushControllerFcmSubscribe$Params as PushControllerFcmSubscribe$Params } from './fn/push/push-controller-fcm-subscribe';
+export { pushControllerFcmSubscribe as pushControllerFcmSubscribe } from './fn/push/push-controller-fcm-subscribe';
+export type { PushControllerFcmUnsubscribe$Params as PushControllerFcmUnsubscribe$Params } from './fn/push/push-controller-fcm-unsubscribe';
+export { pushControllerFcmUnsubscribe as pushControllerFcmUnsubscribe } from './fn/push/push-controller-fcm-unsubscribe';
 export type { PublicPushControllerGetVapidPublicKey$Params as PublicPushControllerGetVapidPublicKey$Params } from './fn/push/public-push-controller-get-vapid-public-key';
 export { publicPushControllerGetVapidPublicKey as publicPushControllerGetVapidPublicKey } from './fn/push/public-push-controller-get-vapid-public-key';
 export type { AnalyticsControllerGetSummary$Params as AnalyticsControllerGetSummary$Params } from './fn/analytics/analytics-controller-get-summary';
