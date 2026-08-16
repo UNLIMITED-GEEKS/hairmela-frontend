@@ -4,6 +4,15 @@
 unchanged for web users (§0a).
 
 ---
+### how to build
+
+```sh ng build --configuration native
+npx cap sync android
+cd android && ./gradlew assembleRelease
+```
+output = /home/ikwuh-jeffery/UG/HairMela/frontend/android/app/build/outputs/apk/release/app-release.apk
+
+
 
 ## Status board
 
