@@ -1098,3 +1098,70 @@ cd android && ./gradlew bundleRelease
 Note that **the same frontend change also needs a Vercel deploy** for web users. Native and web ship
 from one codebase but on two independent release cadences — web is instant, native is days. Expect
 them to be out of sync, and keep the backend compatible with both.
+
+---
+
+# 12. Adding iOS later
+
+Not built, and not started. This section exists so the cost is known rather than rediscovered.
+
+**The short version:** the app code is already iOS-ready. What iOS actually costs is hardware, a
+paid account, and Apple's separate push/deep-link plumbing — not a rewrite.
+
+## 12.1 Hard prerequisites
+
+| Requirement | Note |
+|---|---|
+| **A Mac** | Non-negotiable. Xcode is macOS-only and is required to build, sign and submit. |
+| **Apple Developer Program** | **$99/year, recurring** — unlike Google's one-time $25. |
+| **A physical iPhone** | The simulator **cannot receive push at all**, so FCM can only be verified on real hardware. |
+
+## 12.2 What is already done
+
+Written this way deliberately during the Android work, so iOS is not a hunt for hardcoded strings:
+
+| Piece | State |
+|---|---|
+| `AppPlatformService.nativePlatform` | Returns `'ios'` — derived from the UA, not hardcoded |
+| Backend `FcmSubscribeDto` | Already accepts `platform: 'android' \| 'ios'` |
+| `PushService` | Platform-agnostic; delegates to `NativePushService` either way |
+| `PersistentStore`, `OverlayRegistry`, QR, deep links | All plugin-based, no Android-only code |
+
+**The backend needs no changes for iOS.** FCM relays to APNs on Apple's side.
+
+## 12.3 Push setup — the part that differs
+
+Android's credential is a JSON file downloaded from Firebase. **iOS requires a key generated in
+Apple's portal and uploaded to Firebase**, in this order:
+
+1. Apple Developer portal → Certificates, Identifiers & Profiles.
+2. Create an **APNs Auth Key** (`.p8`). **Downloadable exactly once** — Apple never shows it again.
+   Treat it like the Android keystore: back it up off-machine immediately.
+3. Register an App ID for `com.hairmela.app` with the **Push Notifications** capability enabled.
+4. Upload the `.p8` to Firebase → Project Settings → Cloud Messaging → iOS, with the Key ID and
+   Team ID.
+5. In Xcode, enable **Push Notifications** and **Background Modes → Remote notifications**.
+
+Then `npx cap add ios` and the existing `NativePushService` works unchanged.
+
+## 12.4 What genuinely differs from Android
+
+- **Deep links.** `assetlinks.json` is Android-only. iOS uses **`apple-app-site-association`** at
+  the same `.well-known/` path, keyed by **Team ID + bundle ID** rather than a cert fingerprint.
+  Same apex/redirect caution applies (see §10a).
+- **No hardware back button.** `NativeBackButtonService` is inert on iOS. `OverlayRegistry` still
+  dismisses dialogs, but there is no OS-level back — so the gap noted during the app-home work
+  becomes real: **`/login` and `/register` have no back affordance of their own**, and on Android
+  the hardware button covered that. Add one before shipping iOS.
+- **Safe areas.** Notch and home indicator need `env(safe-area-inset-*)`. The app-home screen
+  already handles this; other pages were only ever checked against Android.
+- **Pull-to-refresh.** Already implemented for iOS standalone PWA (§ pull-to-refresh), and
+  `_needsCustomPull` covers `isNative`, so it works in a Capacitor iOS build with no change.
+- **Review.** Stricter and slower than Google's. Common rejection reasons: thin content, and
+  permission prompts without a clear in-context rationale — the contextual push prompt already
+  helps here.
+
+## 12.5 Realistic effort
+
+**1–2 days** of setup and build work given a Mac and an iPhone, plus Apple's review time. The
+application logic itself needs close to nothing — the cost is entirely Apple's ceremony.

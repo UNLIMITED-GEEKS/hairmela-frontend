@@ -24,8 +24,8 @@ export const environment = {
 
   // Both point at the same Railway host — verified live: /v1 returns 200 and
   // the Socket.IO handshake on that host returns a session id.
-  apiBaseUrl: 'https://hairmela-backend-development.up.railway.app',
-  socketUrl: 'https://hairmela-backend-development.up.railway.app',
+  apiBaseUrl: 'https://hairmela-backend-production.up.railway.app',
+  socketUrl: 'https://hairmela-backend-production.up.railway.app',
 
   // NOT the WebView origin. Under Capacitor the app runs from
   // https://localhost, but this value is used to build links that OTHER people
@@ -33,7 +33,10 @@ export const environment = {
   // printed on physical salon posters (salon-landing.component.ts). Pointing it
   // at the WebView origin would encode "https://localhost/..." onto a printed
   // poster. It must always be a real, publicly reachable website.
-  appBaseUrl: 'https://dev-hairmela.vercel.app',
+  // The apex, NOT www: www 308-redirects here, and the App Links intent filter
+  // claims the apex — so QR payloads and share links must use the host that is
+  // actually verified, with no redirect hop.
+  appBaseUrl: 'https://hairmela.com',
 
   cloudinaryCloudName: 'dievyx0ia',
   cloudinaryUploadPreset: 'hairmela',
