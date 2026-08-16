@@ -1,13 +1,17 @@
-<div class="min-h-screen px-5 pt-24 md:pt-28 pb-16">
+<div class="md:max-w-3xl md:mx-auto pt-14 md:pt-16 ">
+  <app-page-header title="How it works" backVariant="glass" [fallbackRoute]="dashboardLink" />
+</div>
+
+<div class="min-h-screen px-5 pt-2 pb-16">
   <div class="max-w-3xl mx-auto">
 
-    <div class="text-center">
-      <h1 class="text-2xl sm:text-3xl font-bold text-left md:text-center text-gray-900">How HairMela works for </h1>
-    </div>
+    <p class="text-base text-gray-600 text-left md:text-center">
+      A quick guide to how HairMela works for
+    </p>
 
     <!-- Pills use shortLabel below sm: (see TABS) so all three fit a phone
          without scrolling or wrapping. -->
-    <div class="mt-8 flex justify-center">
+    <div class="mt-4 flex justify-center">
       <app-tabs [tabs]="tabs" [activeId]="activeTab()" [fitContent]="true" (tabChange)="setTab($event)" />
     </div>
 
