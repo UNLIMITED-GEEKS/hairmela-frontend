@@ -4,6 +4,7 @@ import { guestGuard } from './core/guards/guest.guard';
 import { guestShellGuard } from './core/guards/guest-shell.guard';
 import { salonRoleGuard } from './core/guards/salon-role.guard';
 import { orgOwnerGuard } from './core/guards/org-owner.guard';
+import { appHomeGuestGuard } from './core/guards/app-home-guest.guard';
 import { SalonRole } from './core/salon-context/membership.types';
 import { RouteParam, RouteSegment } from './core/routing/route-paths';
 
@@ -18,8 +19,13 @@ export const routes: Routes = [
     children: [
       {
         path: '',
+        // Renders the marketing landing in a browser, or the app-style welcome
+        // screen when installed — see HomeShellComponent. guestGuard only bites
+        // in the installed case: on web, a signed-in user visiting "/" still
+        // sees the marketing page exactly as before.
+        canActivate: [appHomeGuestGuard],
         loadComponent: () =>
-          import('./marketing/landing/landing.component').then((m) => m.LandingComponent),
+          import('./marketing/home-shell/home-shell.component').then((m) => m.HomeShellComponent),
       },
       {
         path: RouteSegment.PRIVACY,

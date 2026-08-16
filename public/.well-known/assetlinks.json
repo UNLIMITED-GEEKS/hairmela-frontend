@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.hairmela.app",
+      "sha256_cert_fingerprints": [
+        "E1:13:6E:22:BB:D9:AB:AA:80:18:9F:8F:E7:32:B0:F3:14:1B:4A:1E:16:68:DD:76:02:96:F0:4B:87:69:D5:A9"
+      ]
+    }
+  }
+]

@@ -3,6 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TabsComponent, TabItem } from '../../shared/components/tabs/tabs.component';
 import { YoutubeEmbedComponent } from '../../shared/components/youtube-embed/youtube-embed.component';
+import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { ToastService } from '../../core/toast/toast.service';
 import { HowItWorksTab, RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
 
@@ -24,7 +25,7 @@ const TAB_IDS: readonly string[] = TABS.map((t) => t.id);
 @Component({
   selector: 'app-how-it-works',
   templateUrl: './how-it-works.component.html',
-  imports: [RouterLink, TabsComponent, YoutubeEmbedComponent],
+  imports: [RouterLink, TabsComponent, YoutubeEmbedComponent, PageHeaderComponent],
 })
 export class HowItWorksComponent {
   private readonly _route = inject(ActivatedRoute);
@@ -33,6 +34,8 @@ export class HowItWorksComponent {
 
   protected readonly tabs = TABS;
   protected readonly registerLink = RoutePath.register();
+  // Back falls here when the page was opened directly with no history to pop.
+  protected readonly dashboardLink = RoutePath.dashboard();
 
   // Live query-param reads (not a snapshot) — the tab must update when a tab
   // button's own routerLink-driven navigation changes the URL, same reactive

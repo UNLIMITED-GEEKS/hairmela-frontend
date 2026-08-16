@@ -51,4 +51,9 @@ export const environment = {
   // Unsigned upload preset — see environment.ts. Hardcoded like the cloud
   // name (both are public values, not secrets), so it needs no --define.
   cloudinaryUploadPreset: 'hairmela',
+  // Production web keeps the Angular service worker exactly as before. Only
+  // the Capacitor native build (environment.native.ts) opts out.
+  serviceWorker: true,
+  // See environment.ts — false for every web build.
+  native: false,
 };

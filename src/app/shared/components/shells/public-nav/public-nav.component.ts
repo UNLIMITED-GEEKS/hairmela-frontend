@@ -1,8 +1,9 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { NavItem } from '../nav-item.types';
 import { NavIconComponent } from '../nav-icon/nav-icon.component';
 import { RoutePath } from '../../../../core/routing/route-paths';
+import { AppPlatformService } from '../../../../core/native/app-platform.service';
 
 @Component({
   selector: 'app-public-nav',
@@ -15,7 +16,8 @@ export class PublicNavComponent {
   readonly sheetOpen = input(false);
   readonly sheetToggle = output<void>();
 
-  protected readonly rootLink = RoutePath.root();
+  // Dashboard when installed, marketing home on web — see AppPlatformService.
+  protected readonly rootLink = inject(AppPlatformService).homeLink;
 
   protected centerItems(): NavItem[] {
     return this.navItems().filter((i) => !i.cta && !i.auth);

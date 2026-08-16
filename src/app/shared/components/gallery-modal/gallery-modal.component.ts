@@ -1,6 +1,7 @@
 import { Component, ElementRef, QueryList, ViewChild, ViewChildren, computed, effect, inject, input, output, signal } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { MediaUrlPipe } from '../../pipes/media-url.pipe';
+import { registerOverlayWhileOpen } from '../../../core/overlay/overlay-registry';
 
 // Full-screen image lightbox: center image + arrows + thumbnail strip, with
 // smooth animated swipe (pointer events — no gesture library, no CDK). The
@@ -54,6 +55,10 @@ export class GalleryModalComponent {
         this._document.body.style.overflow = '';
       }
     });
+
+    // Android back dismisses this modal instead of navigating the page
+    // underneath it — same behaviour the Escape key already provides.
+    registerOverlayWhileOpen(this.open, () => this.close());
 
     // Keep the active thumbnail scrolled into view — arrows/swipe/keyboard
     // navigation can move activeIndex past what's currently visible in the strip.

@@ -11,6 +11,17 @@
 npm-debug.log
 yarn-error.log
 
+# Capacitor / Android — the android/ project IS committed (native config,
+# permissions, icons and Gradle changes must be version-controlled), but its
+# build output and local machine paths are not.
+/android/build
+/android/app/build
+/android/.gradle
+/android/local.properties
+/android/capacitor-cordova-android-plugins
+/android/app/src/main/assets/public
+/android/app/src/main/assets/capacitor.config.json
+
 # IDEs and editors
 .idea/
 .project
@@ -42,3 +53,10 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Android signing — NEVER commit. The keystore permanently identifies this app
+# to Google Play; leaking it lets someone else publish updates as us, and
+# losing it means the app can never be updated under the same identity.
+/android/*.jks
+/android/*.keystore
+/android/keystore.properties

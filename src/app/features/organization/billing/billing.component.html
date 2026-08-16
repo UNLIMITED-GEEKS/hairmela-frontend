@@ -43,6 +43,18 @@
         </div>
       </div>
 
+      <!-- Explains why their salons vanished — otherwise it reads as data loss. -->
+      @if (hasLapsed()) {
+        <div class="mt-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2.5 text-sm text-red-800">
+          @if (status() === 'CANCELLED') {
+            Your plan has ended, so your salons are hidden.
+          } @else {
+            Your free trial has ended, so your salons are hidden.
+          }
+          Nothing has been deleted — choose a plan below to get them back.
+        </div>
+      }
+
       <!-- Scheduled change notice (lights up when backend adds pendingTier/endsAt) -->
       @if (pendingTier() !== null) {
         <div class="mt-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800">
@@ -101,9 +113,9 @@
                 }
               }
               @case ('upgrade') {
-                <button type="button" (click)="upgrade(plan.tier)" 
+                <button type="button" (click)="upgrade(plan.tier)"
                   class="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-colors">
-                  {{ acting() ? 'Working…' : 'Upgrade' }}
+                  {{ acting() ? 'Working…' : (hasLapsed() ? 'Choose plan' : 'Upgrade') }}
                 </button>
               }
               <!-- Downgrade disabled app-wide: the backend doesn't correctly

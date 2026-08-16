@@ -20,7 +20,9 @@ export class NotificationsToggleComponent {
 
   // Permission was explicitly denied at the browser level — the user must
   // re-enable in browser settings; an in-app toggle can't override that.
-  protected readonly blockedByBrowser = computed(() => this._push.permission === 'denied');
+  // permissionState() (signal) rather than permission (getter) so this
+  // re-evaluates when native's async permission lookup settles.
+  protected readonly blockedByBrowser = computed(() => this._push.permissionState() === 'denied');
 
   protected async enable(): Promise<void> {
     if (this.busy()) return;
@@ -31,7 +33,11 @@ export class NotificationsToggleComponent {
     if (result === 'enabled') {
       this._toast.success('Notifications on.');
     } else if (result === 'denied') {
-      this._toast.info('Permission blocked — enable notifications in your browser settings.');
+      this._toast.info('Permission blocked — enable notifications in your device settings.');
+    } else {
+      // Permission granted, but registration or the server call failed — a
+      // settings-related message would send the user somewhere that can't help.
+      this._toast.error("Couldn't turn on notifications. Please try again later.");
     }
   }
 

@@ -9,6 +9,7 @@ import { PullToRefreshService } from '../../../../core/pwa/pull-to-refresh.servi
 import { CurrentUserStore } from '../../../../core/auth/current-user.store';
 import { GuestStore } from '../../../../core/guest/guest-store';
 import { RoutePath } from '../../../../core/routing/route-paths';
+import { AppPlatformService } from '../../../../core/native/app-platform.service';
 
 @Component({
   selector: 'app-public-shell',
@@ -25,6 +26,7 @@ export class PublicShellComponent implements OnInit, OnDestroy {
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _guestStore = inject(GuestStore);
   private readonly _pullToRefresh = inject(PullToRefreshService);
+  protected readonly platform = inject(AppPlatformService);
 
   protected readonly sheetOpen = signal(false);
 
@@ -34,7 +36,12 @@ export class PublicShellComponent implements OnInit, OnDestroy {
 
     const base: NavItem[] = [
       { label: 'About', icon: 'info', url: RoutePath.about()[0], sheet: true },
-      { label: 'Install the app', icon: 'info', url: RoutePath.download()[0], sheet: true },
+      // "Install the app" is meaningless once you are in the installed app.
+      ...(this.platform.isAppContext
+        ? []
+        : ([
+            { label: 'Install the app', icon: 'info', url: RoutePath.download()[0], sheet: true },
+          ] as NavItem[])),
       { label: 'Contact', icon: 'mail', url: RoutePath.contact()[0], sheet: true },
       { label: 'Pricing', icon: 'info', url: RoutePath.pricing()[0], sheet: true },
     ];

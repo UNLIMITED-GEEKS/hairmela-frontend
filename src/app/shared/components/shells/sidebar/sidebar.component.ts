@@ -5,6 +5,7 @@ import { NavItem } from '../nav-item.types';
 import { NavIconComponent } from '../nav-icon/nav-icon.component';
 import { Membership, SalonRole } from '../../../../core/salon-context/membership.types';
 import { RouteSegment, RoutePath } from '../../../../core/routing/route-paths';
+import { AppPlatformService } from '../../../../core/native/app-platform.service';
 
 export interface ControlItem {
   readonly label: string;
@@ -77,6 +78,8 @@ export interface VisibleControl extends ControlItem {
 export class SidebarComponent implements OnInit {
   protected readonly RouteSegment = RouteSegment;
   protected readonly RoutePath = RoutePath;
+  // Dashboard when installed, marketing home on web — see AppPlatformService.
+  protected readonly rootLink = inject(AppPlatformService).homeLink;
 
   readonly navItems = input<NavItem[]>([]);
   readonly activeSalonId = input<string | null>(null);

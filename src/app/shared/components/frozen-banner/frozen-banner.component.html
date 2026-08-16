@@ -1,5 +1,5 @@
 @if (frozen()) {
-  <div class="rounded-xl border border-amber-300 bg-amber-50 p-4" role="status">
+  <div class="rounded-xl border border-amber-300 bg-amber-50 p-4 mb-4" role="status">
     <div class="flex items-start gap-3">
       <svg class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -9,7 +9,7 @@
         <p class="text-sm font-semibold text-amber-900">This salon is frozen</p>
         <p class="mt-0.5 text-sm text-amber-800">
           @if (canManage()) {
-            It's over your plan's salon limit, so it's read-only. Upgrade to reactivate it — no data is lost.
+            It's over your plan's salon limit, so it's read-only. Upgrade to reactivate it, no data is lost.
           } @else {
             It's over the plan's limit and is currently read-only. Ask the owner to upgrade to reactivate it.
           }

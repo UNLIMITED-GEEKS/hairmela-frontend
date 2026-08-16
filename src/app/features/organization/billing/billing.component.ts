@@ -48,21 +48,28 @@ export class BillingComponent implements OnInit {
     this._billing.load(this._orgId);
   }
 
-  // Upgrade = immediate (checkout -> verify -> re-fetch), only offered as the
-  // very first purchase — while trialing. NOTE: tier reads as 3 (Scale) during
-  // a trial even with no real subscription (EffectiveAccessDto.tier doc:
-  // "trial reads as 3") — so isTrialing() alone (not currentTier() === 0) is
-  // the only reliable "no real plan yet" signal. Once isTrialing() is false, a
-  // real paid plan exists and no plan-switching is offered at all: every card
-  // just reflects 'current' and the only action on the whole page is Cancel
-  // below. (Plan changes go through cancel + a fresh purchase, not an
-  // in-place upgrade/downgrade.)
+  // No live paid plan: still trialing, or lapsed. Branches on status, never on
+  // the tier number (trial reads as 3).
+  protected readonly needsPlan = computed(() => {
+    const status = this.status();
+    return this.isTrialing() || status === 'EXPIRED' || status === 'CANCELLED';
+  });
+
+  /** Access already lost — trial/plan ended with nothing live replacing it. */
+  protected readonly hasLapsed = computed(() => {
+    const status = this.status();
+    return !this.isTrialing() && (status === 'EXPIRED' || status === 'CANCELLED');
+  });
+
+  // Upgrade = immediate (checkout -> verify -> re-fetch), offered whenever
+  // there's no live plan. Was `isTrialing() ? 'upgrade' : 'current'`, which
+  // left EXPIRED users with no buyable button at all.
   //
-  // Downgrade is disabled app-wide for the same underlying reason (the
-  // backend doesn't correctly bill a lower tier at period end) — kept as a
-  // possible return value only for the commented-out template case below.
+  // Once a plan IS live, no plan-switching is offered — changes go through
+  // cancel + a fresh purchase. Downgrade stays disabled app-wide (backend
+  // doesn't bill the lower tier correctly at period end).
   protected actionFor(_tier: Tier): 'current' | 'upgrade' | 'downgrade' {
-    return this.isTrialing() ? 'upgrade' : 'current';
+    return this.needsPlan() ? 'upgrade' : 'current';
   }
 
   protected upgrade(tier: Tier): void {

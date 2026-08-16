@@ -12,6 +12,9 @@ import { refreshInterceptor } from './core/interceptors/refresh.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { sessionInit } from './core/auth/session-init';
 import { UpdateService } from './core/pwa/update.service';
+import { NativeBackButtonService } from './core/native/back-button.service';
+import { DeepLinkService } from './core/native/deep-link.service';
+import { PersistentStore } from './core/storage/persistent-store';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -24,14 +27,30 @@ export const appConfig: ApplicationConfig = {
     ),
     provideHttpClient(withInterceptors([jwtInterceptor, refreshInterceptor, errorInterceptor])),
     provideApiConfiguration(environment.apiBaseUrl),
+    // Starts loading Capacitor Preferences into PersistentStore's synchronous
+    // cache (no-op on web). This is a HEAD START, not a guarantee: Angular runs
+    // initializers in PARALLEL and only awaits them collectively, so listing
+    // this first does NOT make it finish first. Anything that reads storage
+    // during startup must await hydrate() itself — sessionInit does, and
+    // hydrate() is idempotent so the two calls share one pass.
+    provideAppInitializer(() => inject(PersistentStore).hydrate()),
     provideAppInitializer(sessionInit()),
     provideCloudinaryLoader(`https://res.cloudinary.com/${environment.cloudinaryCloudName}`),
     provideServiceWorker('ngsw-worker.js', {
-      enabled: !isDevMode(),
+      // environment.serviceWorker is false only in the Capacitor native build,
+      // where ngsw-worker.js is never emitted — without this the optimized
+      // native bundle (isDevMode() === false) would try to register a file that
+      // does not exist. Web builds set it true, so this stays `!isDevMode()`
+      // for them, unchanged.
+      enabled: environment.serviceWorker && !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',
     }),
     // Wire the SW update-watcher at boot so a new deploy auto-reloads into the
     // latest version instead of needing manual refreshes. No-op in dev.
     provideAppInitializer(() => inject(UpdateService).init()),
+    // Android hardware back button → in-app navigation. No-op on web.
+    provideAppInitializer(() => inject(NativeBackButtonService).init()),
+    // Android App Links → route the tapped URL to its in-app page. No-op on web.
+    provideAppInitializer(() => inject(DeepLinkService).init()),
   ],
 };

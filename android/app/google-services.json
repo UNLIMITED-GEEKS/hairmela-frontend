@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "78026531104",
+    "project_id": "hairmela-app",
+    "storage_bucket": "hairmela-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:78026531104:android:37c304daecba05e7137745",
+        "android_client_info": {
+          "package_name": "com.hairmela.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCU_6X-a5V56R0flad4qlEwMvLt1LYCMC0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

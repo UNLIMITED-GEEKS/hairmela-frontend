@@ -10,6 +10,7 @@ import { FieldErrorComponent } from '../../../shared/components/field-error/fiel
 import { MiniMonthCalendarComponent } from '../../../shared/components/mini-month-calendar/mini-month-calendar.component';
 import { groupByServiceCategory } from '../../../core/utils/group-by-category';
 import { StaffService } from '../../../api/models/staff-service';
+import { registerOverlayWhileOpen } from '../../../core/overlay/overlay-registry';
 
 function toIsoDate(d: Date): string {
   const yyyy = d.getFullYear();
@@ -107,6 +108,9 @@ export class AddClientModalComponent {
   }
 
   constructor() {
+    // Android back dismisses this modal instead of navigating underneath it.
+    registerOverlayWhileOpen(this.open, () => this.close());
+
     // Reset every time the modal opens — no stale values from a prior open,
     // matching join-dialog's / book-appointment-dialog's own reset effect.
     // Deliberately tracks ONLY this.open() — untracked() wraps the rest
