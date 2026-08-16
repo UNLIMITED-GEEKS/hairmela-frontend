@@ -19,6 +19,14 @@ import { InstallPromptService } from '../../core/pwa/install-prompt.service';
 import { CreateSalonCardComponent } from '../../shared/components/create-salon-card/create-salon-card.component';
 import { RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
 
+// Local-time greeting. Boundaries follow common usage: morning until noon,
+// afternoon until 17:00, evening after.
+function timeOfDayGreeting(hour: number): string {
+  if (hour < 12) return 'Good Morning';
+  if (hour < 17) return 'Good Afternoon';
+  return 'Good Evening';
+}
+
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
@@ -50,6 +58,11 @@ export class DashboardComponent implements OnInit {
   protected readonly loading = this._dashboardService.loading;
   protected readonly error = this._dashboardService.error;
   protected readonly user = this._currentUser.user;
+
+  // Read once at construction, not as a computed: no signal changes when the
+  // clock crosses noon, so a computed would be no more live than this — and a
+  // stale greeting on a page left open for hours isn't worth a timer.
+  protected readonly greeting = timeOfDayGreeting(new Date().getHours());
 
   protected readonly activeEntries = this._activeQueues.entries;
 
