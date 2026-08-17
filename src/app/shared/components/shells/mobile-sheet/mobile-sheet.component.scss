@@ -3,6 +3,25 @@
   overflow: hidden;
   transition: max-height 300ms cubic-bezier(0.4, 0, 0.2, 1);
 
+  // THIS PANEL MUST PAINT ITS OWN BACKGROUND.
+  //
+  // It is projected into <app-mobile-top-bar>, whose root is bg-white/90 +
+  // backdrop-blur-md. backdrop-filter blurs what is behind the element that
+  // DECLARES it — a child cannot inherit its parent's blur, and this panel
+  // declared no background at all. It was always transparent; on newer iOS the
+  // parent's translucent white made it read as solid enough to go unnoticed.
+  //
+  // On iPhone 6s/7 (iOS 15) it rendered visibly see-through, and because the
+  // open panel still covers the screen, taps landed on it rather than the
+  // links underneath — reported as "nothing happens" when navigating to salon
+  // pages, while iPhone 11/13 worked. This sheet is the auth/guest shells'
+  // nav, so it is the one on the path to every salon-context page.
+  //
+  // NOTE: the template also carries a `mobile-sheet-nav` class that is defined
+  // NOWHERE in the codebase — presumably where this background was meant to
+  // live. Same omission as public-nav's `public-mobile-nav`.
+  background-color: #fff;
+
   // 100vh fallback + @supports override for dvh — NOT two declarations of the
   // same property in one rule. Angular's production CSS optimizer (Lightning
   // CSS) collapses same-property duplicates during minification and drops

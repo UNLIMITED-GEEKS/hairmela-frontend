@@ -1,0 +1,33 @@
+# Browser support target. WITHOUT this file Angular falls back to its default
+# ("last 2 versions" etc.), which resolved to iOS Safari 18.5+ ONLY — so the
+# build emitted syntax and APIs that older iPhones cannot run.
+#
+# The symptom was not a visible error: the page rendered, but bootstrap threw
+# and every button went dead. Navigation, dropdowns and links all silently did
+# nothing on iPhone 6 and 7, while iPhone 11/13 were fine.
+#
+# Two concrete breakages that were shipping:
+#   - `??=` / `||=` (logical assignment) — needs iOS 14+. A PARSE error on
+#     iOS 12, so the whole file fails to load and no JS runs at all.
+#   - `Object.hasOwn` — needs iOS 15.4+. A runtime throw during bootstrap.
+#
+# FLOOR IS iOS 15, NOT LOWER, AND THAT IS DELIBERATE.
+# iOS 15 is the iPhone 7's last supported version, so the 7 is covered. The
+# iPhone 6 (iOS 12) is NOT: esbuild refuses to build for it —
+# "Transforming destructuring to the configured target environment (ios12.0)
+# is not supported yet". Reaching iOS 12 would mean adding a Babel pass over
+# the whole bundle, which is a real cost for a phone discontinued in 2016.
+# Revisit only if iPhone 6 traffic proves material.
+#
+# Customers queueing at a salon skew toward older handsets, so this floor is
+# worth keeping low — do not let it drift back up to "last 2 versions".
+last 2 versions
+> 0.5%
+Firefox ESR
+not dead
+
+# Explicit floors — these are the ones that actually matter here.
+iOS >= 15
+Safari >= 15
+Chrome >= 90
+Android >= 90
