@@ -1,4 +1,4 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideAppInitializer, inject, isDevMode } from '@angular/core';
+import { ApplicationConfig, ErrorHandler, provideBrowserGlobalErrorListeners, provideAppInitializer, inject, isDevMode } from '@angular/core';
 import { provideRouter, withRouterConfig, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideCloudinaryLoader } from '@angular/common';
@@ -15,10 +15,15 @@ import { UpdateService } from './core/pwa/update.service';
 import { NativeBackButtonService } from './core/native/back-button.service';
 import { DeepLinkService } from './core/native/deep-link.service';
 import { PersistentStore } from './core/storage/persistent-store';
+import { OnScreenErrorHandler } from './core/debug/on-screen-error-handler';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
+    // TEMPORARY DIAGNOSTIC — remove once the iOS 15 navigation bug is found.
+    // Surfaces uncaught errors as on-screen toasts so they can be read on a
+    // phone. Without it, every uncaught error has been silently swallowed.
+    { provide: ErrorHandler, useClass: OnScreenErrorHandler },
     provideRouter(
       routes,
       withRouterConfig({ paramsInheritanceStrategy: 'always' }),
