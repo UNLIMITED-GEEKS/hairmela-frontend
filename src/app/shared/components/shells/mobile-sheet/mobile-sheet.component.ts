@@ -39,7 +39,7 @@ export class MobileSheetComponent {
 
   // Items with a staffScopedLink (Photos, Services): STAFF goes to their own
   // staff/:staffId page (Membership already carries staffId — no fetch
-  // needed); OWNER/ADMIN get the salon-wide page.
+  // needed); OWNER/ADMIN get the salon-wide page..
   controlLink(item: VisibleControl): string[] {
     const salonId = this.activeSalonId() ?? '';
     const m = this.membership();

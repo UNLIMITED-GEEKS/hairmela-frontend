@@ -41,19 +41,36 @@ export class GuestShellComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly sheetOpen = signal(false);
 
   protected readonly navItems: NavItem[] = [
-    { label: 'My Queues', icon: 'queue',      url: RoutePath.guestQueues()[0],  bottomNav: true, sidebar: true, sheet: true },
-    { label: 'Sign Up',   icon: 'person-add', url: RoutePath.register()[0],  bottomNav: true, sidebar: true, sheet: true, cta: true },
+    {
+      label: 'My History',
+      icon: 'queue',
+      url: RoutePath.guestQueues()[0],
+      bottomNav: true,
+      sidebar: true,
+      sheet: true,
+    },
+    {
+      label: 'Sign Up',
+      icon: 'person-add',
+      url: RoutePath.register()[0],
+      bottomNav: true,
+      sidebar: true,
+      sheet: true,
+      cta: true,
+    },
   ];
 
   ngOnInit(): void {
     this._validator.validate();
 
-    this._router.events.pipe(
-      filter((e): e is NavigationEnd => e instanceof NavigationEnd),
-      takeUntilDestroyed(this._destroyRef),
-    ).subscribe((e) => {
-      this._guestStore.setLastPath(e.urlAfterRedirects);
-    });
+    this._router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        takeUntilDestroyed(this._destroyRef),
+      )
+      .subscribe((e) => {
+        this._guestStore.setLastPath(e.urlAfterRedirects);
+      });
   }
 
   ngAfterViewInit(): void {

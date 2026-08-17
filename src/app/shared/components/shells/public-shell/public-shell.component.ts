@@ -52,9 +52,15 @@ export class PublicShellComponent implements OnInit, OnDestroy {
     if (isGuest) {
       return [
         ...base,
-        { label: 'My Queues', icon: 'queue',      url: RoutePath.guestQueues()[0], sheet: true },
-        { label: 'Sign In',   icon: 'login',      url: RoutePath.login()[0],    sheet: true, auth: true },
-        { label: 'Sign Up',   icon: 'person-add', url: RoutePath.register()[0], sheet: true, cta: true },
+        { label: 'My History', icon: 'queue', url: RoutePath.guestQueues()[0], sheet: true },
+        { label: 'Sign In', icon: 'login', url: RoutePath.login()[0], sheet: true, auth: true },
+        {
+          label: 'Sign Up',
+          icon: 'person-add',
+          url: RoutePath.register()[0],
+          sheet: true,
+          cta: true,
+        },
       ];
     }
     return [
