@@ -64,7 +64,7 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
     { label: 'Home', icon: 'home', url: RoutePath.dashboard()[0], bottomNav: true, sidebar: true },
     { label: 'Search', icon: 'search', url: RoutePath.search()[0], bottomNav: true, sidebar: true },
     {
-      label: 'My Queues',
+      label: 'My History',
       icon: 'queue',
       url: RoutePath.queues()[0],
       bottomNav: true,

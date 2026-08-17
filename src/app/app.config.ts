@@ -20,9 +20,9 @@ import { OnScreenErrorHandler } from './core/debug/on-screen-error-handler';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    // TEMPORARY DIAGNOSTIC — remove once the iOS 15 navigation bug is found.
-    // Surfaces uncaught errors as on-screen toasts so they can be read on a
-    // phone. Without it, every uncaught error has been silently swallowed.
+    // Global error handler — the app had none, so uncaught errors were
+    // silently swallowed. See the FIXME in that file: it currently only logs,
+    // and there is a known unidentified error firing during login.
     { provide: ErrorHandler, useClass: OnScreenErrorHandler },
     provideRouter(
       routes,
