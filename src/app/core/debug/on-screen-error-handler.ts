@@ -25,7 +25,7 @@ export class OnScreenErrorHandler implements ErrorHandler {
     console.error(error);
 
     const e = error as { message?: string; name?: string; stack?: string };
-    const name = e?.name ?? 'Error';
+    const name = e?.name ?? 'Errors';
     const message = e?.message ?? String(error);
 
     // First stack frame usually names the file, which is the most useful part
