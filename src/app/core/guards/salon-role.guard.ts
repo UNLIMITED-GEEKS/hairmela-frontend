@@ -53,7 +53,9 @@ export const salonRoleGuard: CanActivateFn = async (route) => {
     // it — otherwise every future login redirects into the same dead salon
     // forever. No-ops if a different salon is persisted.
     const e = err as { status?: number; message?: string; name?: string };
-    toast.error(`DEBUG C: ${e?.name ?? 'err'} ${e?.status ?? ''} ${e?.message ?? ''}`.slice(0, 120));
+    toast.error(
+      `DEBUG C:: ${e?.name ?? 'err'} ${e?.status ?? ''} ${e?.message ?? ''}`.slice(0, 120),
+    );
     salonContext.clearIfMatches(salonId);
     return router.createUrlTree(RoutePath.dashboard());
   }
