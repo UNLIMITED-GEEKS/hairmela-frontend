@@ -12,6 +12,7 @@ export interface CreateSalonDto {
   name: string;
   operatingHours?: Array<OperatingHourDto>;
   phone: string;
+  referralCode?: string;
   service: InitialServiceDto;
   settings?: UpdateSalonSettingsDto;
   timezone?: string;

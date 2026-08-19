@@ -102,5 +102,17 @@
       Already have an account?
       <a [routerLink]="loginLink" [queryParams]="loginQueryParams" class="font-medium text-primary hover:underline">Sign in</a>
     </p>
+
+    <!-- Back home. Points at "/" on every platform — HomeShellComponent
+         resolves that to the marketing landing on web and the app welcome
+         screen when installed, so one link covers both with no platform check.
+         Matters most on iOS standalone, which has no hardware back button. -->
+    <a routerLink="/"
+      class="mt-4 flex items-center justify-center gap-2 min-h-11 w-full rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
+      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+      Back to home
+    </a>
   </div>
 </div>

@@ -3,7 +3,6 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { NavItem } from '../nav-item.types';
 import { NavIconComponent } from '../nav-icon/nav-icon.component';
 import { RoutePath } from '../../../../core/routing/route-paths';
-import { AppPlatformService } from '../../../../core/native/app-platform.service';
 
 @Component({
   selector: 'app-public-nav',
@@ -16,8 +15,11 @@ export class PublicNavComponent {
   readonly sheetOpen = input(false);
   readonly sheetToggle = output<void>();
 
-  // Dashboard when installed, marketing home on web — see AppPlatformService.
-  protected readonly rootLink = inject(AppPlatformService).homeLink;
+  // Always "/" — this nav is the PUBLIC shell (landing, pricing, about, login,
+  // register), where the visitor is signed out. HomeShellComponent decides what
+  // "/" renders: the marketing page on web, the app welcome screen when
+  // installed. The auth/guest shells send their logo to the dashboard instead.
+  protected readonly rootLink = RoutePath.root();
 
   protected centerItems(): NavItem[] {
     return this.navItems().filter((i) => !i.cta && !i.auth);
