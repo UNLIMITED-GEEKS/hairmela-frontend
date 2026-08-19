@@ -33,6 +33,16 @@ export const routes: Routes = [
           import('./marketing/privacy/privacy.component').then((m) => m.PrivacyComponent),
       },
       {
+        // Deliberately UNGUARDED and inside the public shell: Google Play
+        // requires a deletion URL that a reviewer — and a user who can no
+        // longer sign in — can open directly.
+        path: RouteSegment.DELETE_ACCOUNT,
+        loadComponent: () =>
+          import('./marketing/delete-account/delete-account.component').then(
+            (m) => m.DeleteAccountComponent,
+          ),
+      },
+      {
         path: RouteSegment.PRICING,
         loadComponent: () =>
           import('./marketing/pricing/pricing.component').then((m) => m.PricingComponent),

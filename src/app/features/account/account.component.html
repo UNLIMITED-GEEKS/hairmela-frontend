@@ -68,6 +68,13 @@
         class="w-full py-3 rounded-xl border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors min-h-11">
         Log out
       </button>
+
+      <!-- Deliberately understated and placed after Log out: destructive, and
+           nobody should reach it by accident. -->
+      <a [routerLink]="deleteAccountLink"
+        class="block w-full text-center text-xs text-gray-400 hover:text-red-600 transition-colors py-2">
+        Delete my account
+      </a>
     } @else {
       <div class="py-16">
         <app-skeleton variant="avatar-row" [count]="1" />

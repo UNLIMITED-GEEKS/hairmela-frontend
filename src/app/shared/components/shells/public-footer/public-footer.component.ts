@@ -32,5 +32,6 @@ export class PublicFooterComponent {
   protected readonly loginLink = RoutePath.login();
   protected readonly privacyLink = RoutePath.privacy();
   protected readonly termsLink = RoutePath.terms();
+  protected readonly deleteAccountLink = RoutePath.deleteAccount();
   protected readonly contactLink = RoutePath.contact();
 }
