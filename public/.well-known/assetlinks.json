@@ -1,11 +1,15 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.hairmela.app",
       "sha256_cert_fingerprints": [
-        "E1:13:6E:22:BB:D9:AB:AA:80:18:9F:8F:E7:32:B0:F3:14:1B:4A:1E:16:68:DD:76:02:96:F0:4B:87:69:D5:A9"
+        "E1:13:6E:22:BB:D9:AB:AA:80:18:9F:8F:E7:32:B0:F3:14:1B:4A:1E:16:68:DD:76:02:96:F0:4B:87:69:D5:A9",
+        "F9:1D:90:24:BE:D2:41:21:47:28:E0:0C:C1:BC:AF:DC:B4:CF:92:34:8A:5A:72:4B:68:66:11:BF:37:FD:62:84",
+        "A4:56:FE:AC:E7:68:D8:B7:9F:91:70:E3:1A:7D:62:93:AD:7D:E1:24:D0:50:9F:97:EC:95:77:31:BC:3B:BD:39"
       ]
     }
   }
