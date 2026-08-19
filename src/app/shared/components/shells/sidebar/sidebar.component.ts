@@ -5,7 +5,6 @@ import { NavItem } from '../nav-item.types';
 import { NavIconComponent } from '../nav-icon/nav-icon.component';
 import { Membership, SalonRole } from '../../../../core/salon-context/membership.types';
 import { RouteSegment, RoutePath } from '../../../../core/routing/route-paths';
-import { AppPlatformService } from '../../../../core/native/app-platform.service';
 
 export interface ControlItem {
   readonly label: string;
@@ -78,8 +77,10 @@ export interface VisibleControl extends ControlItem {
 export class SidebarComponent implements OnInit {
   protected readonly RouteSegment = RouteSegment;
   protected readonly RoutePath = RoutePath;
-  // Dashboard when installed, marketing home on web — see AppPlatformService.
-  protected readonly rootLink = inject(AppPlatformService).homeLink;
+  // Always the dashboard, on every platform. This nav only renders in the
+  // auth/guest shells, where the user is already inside the app — sending the
+  // logo to the marketing home there would read as being logged out.
+  protected readonly rootLink = RoutePath.dashboard();
 
   readonly navItems = input<NavItem[]>([]);
   readonly activeSalonId = input<string | null>(null);

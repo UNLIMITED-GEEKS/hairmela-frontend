@@ -69,21 +69,30 @@ export class CreateSalonComponent implements OnInit {
     phone: ['', Validators.required],
     about: ['', Validators.maxLength(1000)],
     address: this._fb.group({
-      country: ['', Validators.required],
+      country: ['Nigeria', Validators.required],
       state: ['', Validators.required],
       city: ['', Validators.required],
       street: ['', Validators.required],
     }),
+    // Optional: a partner/affiliate code that credits whoever referred this
+    // salon. No validators — the backend owns validity, and a wrong code must
+    // never block someone from creating their salon.
+    referralCode: [''],
     timezone: ['Africa/Lagos', Validators.required],
     defaultSlotDuration: [30, [Validators.required, Validators.min(5), Validators.max(240)]],
     showPrice: [false],
     operatingHours: this._fb.array(
-      DAYS.map((_, i) => this._fb.group({
-        enabled: [i >= 1 && i <= 5],
-        dayOfWeek: [i],
-        startTime: ['09:00'],
-        endTime: ['18:00'],
-      }, { validators: endAfterStart } as AbstractControlOptions))
+      DAYS.map((_, i) =>
+        this._fb.group(
+          {
+            enabled: [i >= 1 && i <= 5],
+            dayOfWeek: [i],
+            startTime: ['09:00'],
+            endTime: ['18:00'],
+          },
+          { validators: endAfterStart } as AbstractControlOptions,
+        ),
+      ),
     ),
     service: this._fb.group({
       categoryId: ['', Validators.required],
@@ -132,7 +141,12 @@ export class CreateSalonComponent implements OnInit {
     // locked `name` field in branch-creation mode), which would otherwise
     // submit as undefined.
     const v = this.form.getRawValue();
-    type HourRow = { enabled: boolean | null; dayOfWeek: number | null; startTime: string | null; endTime: string | null };
+    type HourRow = {
+      enabled: boolean | null;
+      dayOfWeek: number | null;
+      startTime: string | null;
+      endTime: string | null;
+    };
     const enabledHours = ((v.operatingHours ?? []) as HourRow[])
       .filter((h) => !!h.enabled)
       .map((h) => ({
@@ -146,6 +160,10 @@ export class CreateSalonComponent implements OnInit {
         name: v.name!,
         phone: v.phone!,
         about: v.about || undefined,
+        // Never sent for a branch — the field is hidden there (see template),
+        // and getRawValue() would still return anything typed before the user
+        // switched into branch mode.
+        referralCode: this.parentSalonId() ? undefined : v.referralCode || undefined,
         address: {
           country: v.address!.country!,
           state: v.address!.state!,

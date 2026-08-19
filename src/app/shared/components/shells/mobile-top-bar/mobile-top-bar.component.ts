@@ -3,7 +3,6 @@ import { Router, RouterLink } from '@angular/router';
 import { MembershipStore } from '../../../../core/salon-context/membership.store';
 import { MySalonDto } from '../../../../api/models/my-salon-dto';
 import { RoutePath, RouteQueryParam, RouteSegment } from '../../../../core/routing/route-paths';
-import { AppPlatformService } from '../../../../core/native/app-platform.service';
 
 @Component({
   selector: 'app-mobile-top-bar',
@@ -20,8 +19,10 @@ export class MobileTopBarComponent {
   readonly activeSalonId = input<string | null>(null);
 
   protected readonly dropdownOpen = signal(false);
-  // Dashboard when installed, marketing home on web — see AppPlatformService.
-  protected readonly rootLink = inject(AppPlatformService).homeLink;
+  // Always the dashboard, on every platform. This nav only renders in the
+  // auth/guest shells, where the user is already inside the app — sending the
+  // logo to the marketing home there would read as being logged out.
+  protected readonly rootLink = RoutePath.dashboard();
 
   protected readonly activeSalon = computed(
     () => this.salons().find((s) => s.salon.id === this.activeSalonId()) ?? this.salons()[0] ?? null,

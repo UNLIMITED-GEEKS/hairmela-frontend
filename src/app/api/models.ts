@@ -51,6 +51,8 @@ export type { QueueEntry } from './models/queue-entry';
 export type { QueueEntryMember } from './models/queue-entry-member';
 export type { QueueStaffDto } from './models/queue-staff-dto';
 export type { QueueSummaryDto } from './models/queue-summary-dto';
+export type { ReferralStatsDto } from './models/referral-stats-dto';
+export type { ReferredSalonDto } from './models/referred-salon-dto';
 export type { RegisterDto } from './models/register-dto';
 export type { ReorderMediaDto } from './models/reorder-media-dto';
 export type { ResetPasswordDto } from './models/reset-password-dto';

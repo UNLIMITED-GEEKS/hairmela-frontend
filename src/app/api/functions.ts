@@ -111,6 +111,8 @@ export type { MyInvitesControllerGetMyInvites$Params as MyInvitesControllerGetMy
 export { myInvitesControllerGetMyInvites as myInvitesControllerGetMyInvites } from './fn/staff/my-invites-controller-get-my-invites';
 export type { InviteResolveControllerResolveInvite$Params as InviteResolveControllerResolveInvite$Params } from './fn/staff/invite-resolve-controller-resolve-invite';
 export { inviteResolveControllerResolveInvite as inviteResolveControllerResolveInvite } from './fn/staff/invite-resolve-controller-resolve-invite';
+export type { ReferralsControllerGetStats$Params as ReferralsControllerGetStats$Params } from './fn/referrals/referrals-controller-get-stats';
+export { referralsControllerGetStats as referralsControllerGetStats } from './fn/referrals/referrals-controller-get-stats';
 export type { PublicMediaControllerGetSalonMedia$Params as PublicMediaControllerGetSalonMedia$Params } from './fn/media/public-media-controller-get-salon-media';
 export { publicMediaControllerGetSalonMedia as publicMediaControllerGetSalonMedia } from './fn/media/public-media-controller-get-salon-media';
 export type { PublicMediaControllerGetStaffMedia$Params as PublicMediaControllerGetStaffMedia$Params } from './fn/media/public-media-controller-get-staff-media';
