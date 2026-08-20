@@ -8,6 +8,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
 import { RouteParam } from '../../../core/routing/route-paths';
 import { CurrencyNgnPipe } from '../../../shared/pipes/currency-ngn.pipe';
 import { groupByServiceCategory } from '../../../core/utils/group-by-category';
+import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 
 @Component({
   selector: 'app-staff-service-assign',
@@ -15,6 +16,8 @@ import { groupByServiceCategory } from '../../../core/utils/group-by-category';
   imports: [RouterLink, SkeletonComponent, PageHeaderComponent, CurrencyNgnPipe],
 })
 export class StaffServiceAssignComponent implements OnInit {
+  // Salon's currency, for price formatting.
+  protected readonly salonContext = inject(SalonContextService);
   private readonly _route = inject(ActivatedRoute);
   private readonly _servicesService = inject(ServicesService);
   private readonly _assignService = inject(StaffServiceAssignService);

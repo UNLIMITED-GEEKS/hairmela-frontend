@@ -14,5 +14,9 @@ import { CurrencyNgnPipe } from '../../pipes/currency-ngn.pipe';
 export class ServiceListItemComponent {
   readonly service = input.required<Service>();
   readonly showPrice = input(true);
+  // Passed in rather than read from SalonContextService: this row renders on
+  // the PUBLIC salon page, where the viewer has no membership and therefore no
+  // salon context. The parent has the salon's currency from the public DTO.
+  readonly currency = input<string>('NGN');
   readonly select = output<void>();
 }

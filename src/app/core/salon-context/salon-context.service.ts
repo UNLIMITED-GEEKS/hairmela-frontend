@@ -46,6 +46,11 @@ export class SalonContextService {
 
   // ── Tier / subscription derived state (single source for banners + gates) ──
   readonly tier = computed(() => this._membership()?.tier ?? 0);
+  // Salon's currency for price formatting. The NGN fallback covers only the
+  // no-membership case (outside any salon-scoped route) — the backend now
+  // always sends currency on SalonMembershipDto, so a loaded membership never
+  // falls through. NGN is both the home market and the backend's own default.
+  readonly currency = computed(() => this._membership()?.currency ?? 'NGN');
   readonly status = computed(() => this._membership()?.status ?? null);
   readonly isTrialing = computed(() => this._membership()?.isTrialing ?? false);
   readonly daysLeft = computed(() => this._membership()?.daysLeft ?? null);

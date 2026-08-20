@@ -4,6 +4,7 @@
 export interface SalonMembershipDto {
   canManageSalon: boolean;
   canManageStaff: boolean;
+  currency: string;
   daysLeft: number | null;
   isFrozen: boolean;
   isStaff: boolean;

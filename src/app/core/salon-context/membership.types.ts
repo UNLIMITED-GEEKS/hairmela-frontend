@@ -22,6 +22,8 @@ export interface Membership {
   // photo gallery, services, etc.) resolve synchronously off Membership
   // instead of a separate staff-list fetch just to find their own row.
   readonly staffId: string | null;
+  /** Salon's ISO 4217 currency, used to format prices. */
+  readonly currency: string;
   // This staff member's Queue.id in this salon — null if they have no staff
   // row, or have one but no queue exists yet (e.g. right after salon
   // creation, before QueuesListener provisions it). Lets app-wide features

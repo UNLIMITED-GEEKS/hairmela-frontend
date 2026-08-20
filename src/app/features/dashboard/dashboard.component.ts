@@ -18,6 +18,7 @@ import { ToastService } from '../../core/toast/toast.service';
 import { InstallPromptService } from '../../core/pwa/install-prompt.service';
 import { CreateSalonCardComponent } from '../../shared/components/create-salon-card/create-salon-card.component';
 import { RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
+import { AppPlatformService } from '../../core/native/app-platform.service';
 
 // Local-time greeting. Boundaries follow common usage: morning until noon,
 // afternoon until 17:00, evening after.
@@ -54,6 +55,11 @@ export class DashboardComponent implements OnInit {
   protected readonly listing = inject(SalonListingService);
   protected readonly categoriesService = inject(CategoriesService);
   protected readonly install = inject(InstallPromptService);
+  // isAppContext, NOT install.installed(): that flag falls back to a stored
+  // hm_pwa_installed value, so someone who once installed the PWA reads as
+  // "installed" even in a normal browser tab — and would wrongly lose the
+  // prompt. isAppContext uses live display checks instead.
+  protected readonly platform = inject(AppPlatformService);
 
   protected readonly loading = this._dashboardService.loading;
   protected readonly error = this._dashboardService.error;

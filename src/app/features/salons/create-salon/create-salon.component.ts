@@ -1,4 +1,5 @@
 import { Component, DestroyRef, inject, signal, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
@@ -18,6 +19,9 @@ import { TimePickerComponent } from '../../../shared/components/time-picker/time
 import { CategoriesService } from '../../../core/categories/categories.service';
 import { RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 import { endAfterStart } from '../../../core/utils/time-range.validator';
+import { COUNTRIES } from '../../../core/geo/countries-states.data';
+import { CURRENCIES } from '../../../core/geo/currencies.data';
+import { CreateSalonDto } from '../../../api/models/create-salon-dto';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -64,6 +68,22 @@ export class CreateSalonComponent implements OnInit {
   // way SalonShellComponent's slug does, so a one-time read is safe here.
   protected readonly parentSalonId = signal<string | null>(null);
 
+  // Country/state are dropdowns, not free text: salon search matches on these
+  // strings, and typed values produced "Lagos" / "lagos state" / "Lagos State"
+  // for one place, so customers searching their own state missed salons.
+  protected readonly countries = COUNTRIES;
+
+  // States for the currently selected country. Empty for the ~21 countries the
+  // source data has no subdivisions for (Monaco, Vatican, ...) — the template
+  // falls back to a text input there rather than showing an empty dropdown.
+  protected readonly statesForCountry = signal<readonly string[]>([]);
+
+  // Visible and EDITABLE, pre-filled from the country. Deriving it silently
+  // was wrong: a salon can legitimately price in a currency other than its
+  // country's (a Ghanaian salon charging USD), and an owner should be able to
+  // see what their prices will display in.
+  protected readonly currencies = CURRENCIES;
+
   protected readonly form = this._fb.group({
     name: ['', [Validators.required, Validators.minLength(2)]],
     phone: ['', Validators.required],
@@ -79,6 +99,8 @@ export class CreateSalonComponent implements OnInit {
     // never block someone from creating their salon.
     referralCode: [''],
     timezone: ['Africa/Lagos', Validators.required],
+    // Pre-filled from country on change; see _syncStates.
+    currency: ['NGN', Validators.required],
     defaultSlotDuration: [30, [Validators.required, Validators.min(5), Validators.max(240)]],
     showPrice: [false],
     operatingHours: this._fb.array(
@@ -109,6 +131,18 @@ export class CreateSalonComponent implements OnInit {
 
   ngOnInit(): void {
     this.categoriesService.load();
+
+    // Keep the state dropdown in sync with the chosen country, and CLEAR a
+    // stale state on change — otherwise switching Nigeria -> Ghana leaves
+    // "Lagos" selected and submits an address that cannot exist.
+    const countryControl = this.form.get('address.country');
+    this._syncStates(countryControl?.value ?? '');
+    countryControl?.valueChanges
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe((name) => {
+        this._syncStates(String(name ?? ''));
+        this.form.get('address.state')?.setValue('');
+      });
     const parentId = this._route.snapshot.queryParamMap.get(RouteQueryParam.PARENT_SALON_ID);
     const parentName = this._route.snapshot.queryParamMap.get(RouteQueryParam.PARENT_SALON_NAME);
     if (parentId) {
@@ -171,6 +205,7 @@ export class CreateSalonComponent implements OnInit {
           street: v.address!.street!,
         },
         timezone: v.timezone!,
+        currency: v.currency as CreateSalonDto['currency'],
         defaultSlotDuration: v.defaultSlotDuration!,
         operatingHours: enabledHours,
         settings: { showPrice: v.showPrice! },
@@ -229,4 +264,13 @@ export class CreateSalonComponent implements OnInit {
   protected cancel(): void {
     this._location.back();
   }
+
+  private _syncStates(countryName: string): void {
+    const match = COUNTRIES.find((c) => c.name === countryName);
+    this.statesForCountry.set(match?.states ?? []);
+    // Pre-fill only — the user can still override afterwards. Left untouched
+    // when the country has no code the backend accepts.
+    if (match?.currency) this.form.get('currency')?.setValue(match.currency);
+  }
+
 }

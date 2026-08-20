@@ -9,6 +9,7 @@ export interface Salon {
   addressId: string;
   children: Array<Salon>;
   createdAt: string;
+  currency: string;
   defaultSlotDuration: number;
   deletedAt: string | null;
   id: string;

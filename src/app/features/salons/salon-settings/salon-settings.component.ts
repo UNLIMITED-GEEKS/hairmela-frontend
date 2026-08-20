@@ -29,6 +29,9 @@ import { TimePickerComponent } from '../../../shared/components/time-picker/time
 import { RouteParam } from '../../../core/routing/route-paths';
 import { endAfterStart } from '../../../core/utils/time-range.validator';
 import { ErrorCodes } from '../../../core/errors/error-codes';
+import { COUNTRIES } from '../../../core/geo/countries-states.data';
+import { CURRENCIES } from '../../../core/geo/currencies.data';
+import { UpdateSalonDto } from '../../../api/models/update-salon-dto';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const TIMEZONES = [
@@ -100,11 +103,28 @@ export class SalonSettingsComponent implements OnInit {
   protected readonly markingAsBranch = signal(false);
   protected readonly unbranching = signal(false);
 
+  // Dropdowns, not free text: salon search matches on these strings, and typed
+  // values produced "Lagos" / "lagos state" / "Lagos State" for one place.
+  protected readonly countries = COUNTRIES;
+  protected readonly statesForCountry = signal<readonly string[]>([]);
+  // Visible and editable, pre-filled from country — see create-salon for why
+  // deriving it silently was wrong.
+  protected readonly currencies = CURRENCIES;
+
   protected readonly form = this._fb.group({
     name: ['', [Validators.required, Validators.minLength(2)]],
     phone: ['', Validators.required],
     about: ['', Validators.maxLength(1000)],
     timezone: ['Africa/Lagos', Validators.required],
+    currency: ['NGN', Validators.required],
+    // Address is editable here because it was previously fixed at creation —
+    // a salon that moved, or was created with a typo, had no way to correct it.
+    address: this._fb.group({
+      country: ['', Validators.required],
+      state: ['', Validators.required],
+      city: ['', Validators.required],
+      street: ['', Validators.required],
+    }),
     defaultSlotDuration: [30, [Validators.required, Validators.min(5), Validators.max(240)]],
     allowWalkIns: [true],
     showPrice: [false],
@@ -148,7 +168,23 @@ export class SalonSettingsComponent implements OnInit {
         showPrice: (settings['showPrice'] as boolean) ?? false,
         maxPartySize: (settings['maxPartySize'] as number) ?? 5,
         noShowWindow: (settings['noShowWindow'] as number) ?? 10,
-      });
+        currency: s.currency ?? 'NGN',
+        address: {
+          country: s.address?.country ?? '',
+          state: s.address?.state ?? '',
+          city: s.address?.city ?? '',
+          street: s.address?.street ?? '',
+        },
+      // emitEvent: false is LOAD-BEARING. Without it, patching address.country
+      // fires the valueChanges listener below, which treats a programmatic
+      // patch as a user edit — overwriting the saved currency with the
+      // country's default (a salon saved as UGX reloaded as NGN) and clearing
+      // the saved state. Only a real user change should reset those.
+      }, { emitEvent: false });
+      // Prime the state dropdown from the saved country, otherwise the stored
+      // state has no matching <option> and the select renders blank. Does NOT
+      // touch currency — patchValue above already set the saved one.
+      this._syncStates(s.address?.country ?? '', false);
       // Locked while this salon is a branch — the backend forces a branch's
       // name to match its root and blocks renaming until unbranched (see
       // unbranch() below, which is the only path back to an editable name).
@@ -168,7 +204,29 @@ export class SalonSettingsComponent implements OnInit {
     });
   }
 
+  // prefillCurrency=false when priming from SAVED data: the owner may have
+  // deliberately chosen a currency other than their country's default, and
+  // overwriting it on load would silently discard that choice.
+  private _syncStates(countryName: string, prefillCurrency = true): void {
+    const match = COUNTRIES.find((c) => c.name === countryName);
+    this.statesForCountry.set(match?.states ?? []);
+    if (prefillCurrency && match?.currency) {
+      this.form.get('currency')?.setValue(match.currency);
+    }
+  }
+
   ngOnInit(): void {
+    // Keep states in sync with the chosen country, and CLEAR a stale state on
+    // change — otherwise switching Nigeria -> Ghana leaves "Lagos" selected and
+    // saves an address that cannot exist.
+    this.form
+      .get('address.country')
+      ?.valueChanges.pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe((name) => {
+        this._syncStates(String(name ?? ''));
+        this.form.get('address.state')?.setValue('');
+      });
+
     const userId = this._currentUser.user()?.id ?? '';
     this._overview.load(this._salonId, userId);
     // Fallback: load directly in case the overview isn't already populated
@@ -212,6 +270,13 @@ export class SalonSettingsComponent implements OnInit {
         timezone: v.timezone!,
         defaultSlotDuration: v.defaultSlotDuration!,
         operatingHours: enabledHours,
+        address: {
+          country: v.address!.country!,
+          state: v.address!.state!,
+          city: v.address!.city!,
+          street: v.address!.street!,
+        },
+        currency: v.currency as UpdateSalonDto['currency'],
       },
       {
         allowWalkIns: v.allowWalkIns!,

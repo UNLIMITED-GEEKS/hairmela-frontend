@@ -24,7 +24,7 @@
         <p class="text-xs font-medium text-gray-600 wrap-break-word">Price is based on your choosen style</p>
       } @else {
         <span class="text-xs text-gray-600">From</span>
-        <p class="text-sm font-bold text-gray-900">  {{ service().price | currencyNgn }}</p>
+        <p class="text-sm font-bold text-gray-900">  {{ service().price | currencyNgn: currency() }}</p>
       }
     }
     <p class="text-xs text-gray-500">{{ service().duration }}mins</p>

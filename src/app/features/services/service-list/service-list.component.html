@@ -54,7 +54,7 @@
                         </div>
                         <p class="text-xs text-gray-400 mt-0.5">
                           {{ formatDuration(service.duration) }}
-                          @if (service.price) { · {{ service.price | currencyNgn }} }
+                          @if (service.price) { · {{ service.price | currencyNgn: salonContext.currency() }} }
                           @if (service.description) { · {{ service.description }} }
                         </p>
                       </div>

@@ -25,6 +25,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { staffAvailability } from '../../../core/utils/staff-availability';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 import { environment } from '../../../../environments/environment';
+import { AppPlatformService } from '../../../core/native/app-platform.service';
 
 const LANDING_TABS: TabItem[] = [
   { id: 'about', label: 'About' },
@@ -102,6 +103,11 @@ interface SalonStatusBadge {
 export class SalonLandingComponent implements OnInit {
   protected readonly visit = inject(SalonVisitService);
   protected readonly install = inject(InstallPromptService);
+  // isAppContext, NOT install.installed(): that flag falls back to a stored
+  // hm_pwa_installed value, so someone who once installed the PWA reads as
+  // "installed" even in a normal browser tab — and would wrongly lose the
+  // prompt. isAppContext uses live display checks instead.
+  protected readonly platform = inject(AppPlatformService);
   protected readonly howToInstallLink = RoutePath.download();
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);

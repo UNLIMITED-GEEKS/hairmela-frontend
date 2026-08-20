@@ -8,6 +8,7 @@ import { UpdateSalonSettingsDto } from '../models/update-salon-settings-dto';
 export interface CreateSalonDto {
   about?: string;
   address: AddressDto;
+  currency?: 'NGN' | 'GHS' | 'KES' | 'ZAR' | 'EGP' | 'MAD' | 'TZS' | 'UGX' | 'RWF' | 'XOF' | 'XAF' | 'ETB' | 'DZD' | 'TND' | 'LYD' | 'SDG' | 'SSP' | 'ZMW' | 'MWK' | 'BWP' | 'NAD' | 'MZN' | 'AOA' | 'ZWG' | 'MUR' | 'SCR' | 'MGA' | 'CVE' | 'GMD' | 'GNF' | 'LRD' | 'SLE' | 'SOS' | 'DJF' | 'ERN' | 'BIF' | 'CDF' | 'LSL' | 'SZL' | 'STN' | 'KMF' | 'MRU' | 'EUR' | 'GBP' | 'CHF' | 'SEK' | 'NOK' | 'DKK' | 'ISK' | 'GIP' | 'PLN' | 'CZK' | 'HUF' | 'RON' | 'BGN' | 'HRK' | 'RSD' | 'BAM' | 'MKD' | 'ALL' | 'MDL' | 'TRY' | 'RUB' | 'UAH' | 'BYN' | 'GEL' | 'AMD' | 'AZN' | 'USD' | 'CAD' | 'MXN' | 'BRL' | 'ARS' | 'CLP' | 'COP' | 'PEN' | 'UYU' | 'PYG' | 'BOB' | 'VES' | 'GTQ' | 'HNL' | 'NIO' | 'CRC' | 'PAB' | 'DOP' | 'CUP' | 'JMD' | 'TTD' | 'BBD' | 'BSD' | 'BZD' | 'XCD' | 'AWG' | 'ANG' | 'KYD' | 'BMD' | 'HTG' | 'GYD' | 'SRD' | 'CNY' | 'JPY' | 'INR' | 'KRW' | 'IDR' | 'PHP' | 'THB' | 'VND' | 'MYR' | 'SGD' | 'HKD' | 'TWD' | 'MOP' | 'PKR' | 'BDT' | 'LKR' | 'NPR' | 'BTN' | 'MVR' | 'AFN' | 'MMK' | 'KHR' | 'LAK' | 'BND' | 'MNT' | 'KZT' | 'UZS' | 'KGS' | 'TJS' | 'TMT' | 'AUD' | 'NZD' | 'FJD' | 'PGK' | 'SBD' | 'VUV' | 'WST' | 'TOP' | 'XPF' | 'AED' | 'SAR' | 'QAR' | 'KWD' | 'BHD' | 'OMR' | 'JOD' | 'ILS' | 'LBP' | 'SYP' | 'IQD' | 'IRR' | 'YER';
   defaultSlotDuration?: number;
   name: string;
   operatingHours?: Array<OperatingHourDto>;

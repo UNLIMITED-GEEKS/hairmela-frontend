@@ -13,6 +13,11 @@ export interface ReferralStatsDto {
   salons: Array<ReferredSalonDto>;
   salonsReferred: number;
   subscriptions: number;
+
+  /**
+   * Count of referred organizations per plan bucket. Keys are tier names (NONE, STANDARD, PRO, SCALE) plus TRIALING, EXPIRED, and CANCELLED for orgs whose status matters more than their stored tier.
+   */
   tierBreakdown: {
+[key: string]: number;
 };
 }

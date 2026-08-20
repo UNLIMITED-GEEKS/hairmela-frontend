@@ -10,6 +10,7 @@ import { MiniMonthCalendarComponent } from '../../../shared/components/mini-mont
 import { SalonStaff } from '../../../api/models/salon-staff';
 import { RouteParam } from '../../../core/routing/route-paths';
 import { CurrencyNgnPipe } from '../../../shared/pipes/currency-ngn.pipe';
+import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 
 @Component({
   selector: 'app-analytics',
@@ -17,6 +18,8 @@ import { CurrencyNgnPipe } from '../../../shared/pipes/currency-ngn.pipe';
   imports: [BaseChartDirective, PageHeaderComponent, MiniMonthCalendarComponent, CurrencyNgnPipe],
 })
 export class AnalyticsComponent implements OnInit {
+  // Salon's currency, for price formatting.
+  protected readonly salonContext = inject(SalonContextService);
   protected readonly analytics = inject(AnalyticsService);
   protected readonly staffService = inject(StaffService);
   protected readonly servicesService = inject(ServicesService);
