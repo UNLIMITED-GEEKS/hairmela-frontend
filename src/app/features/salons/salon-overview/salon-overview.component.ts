@@ -4,6 +4,7 @@ import { SalonOverviewService } from './salon-overview.service';
 import { InvitesService } from '../../dashboard/invites.service';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
+import { NoPhotoBannerComponent } from '../../../shared/components/no-photo-banner/no-photo-banner.component';
 import { SalonRole } from '../../../core/salon-context/membership.types';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/frozen-banner.component';
@@ -16,7 +17,7 @@ import { environment } from '../../../../environments/environment';
 @Component({
   selector: 'app-salon-overview',
   templateUrl: './salon-overview.component.html',
-  imports: [RouterLink, SkeletonComponent, FrozenBannerComponent, TierBannerComponent, IconComponent],
+  imports: [RouterLink, SkeletonComponent, FrozenBannerComponent, TierBannerComponent, IconComponent, NoPhotoBannerComponent],
 })
 export class SalonOverviewComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
