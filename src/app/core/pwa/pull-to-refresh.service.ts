@@ -44,6 +44,10 @@ const PULL_THRESHOLD_PX = 180;
 // the standard native-feeling pull-to-refresh behavior — a raw 1:1 drag
 // feels wrong once you're well past what's needed to trigger a refresh.
 const RESISTANCE_FACTOR = 0.35;
+// How far a touch must travel before we decide whether it is a vertical pull
+// or a horizontal scroll. Small enough to feel instant, large enough that the
+// first pixel or two of thumb wobble does not pick the axis for the user.
+const AXIS_LOCK_SLOP_PX = 8;
 
 @Injectable({ providedIn: 'root' })
 export class PullToRefreshService {
@@ -60,6 +64,10 @@ export class PullToRefreshService {
   private _config: PullToRefreshConfig | null = null;
   private _target: HTMLElement | Window | null = null;
   private _startY = 0;
+  private _startX = 0;
+  // Locked on first meaningful movement, so a gesture cannot switch axis
+  // mid-swipe — see _handleTouchMove.
+  private _axis: 'undecided' | 'vertical' | 'horizontal' = 'undecided';
   private _armed = false;
 
   // Bound once so add/removeEventListener reference the same function.
@@ -89,12 +97,16 @@ export class PullToRefreshService {
     this._target = config.window ? window : (config.scrollEl ?? null);
     if (!this._target) return;
 
-    // touchstart is passive (we never preventDefault it — only an armed
-    // touchmove needs that). touchmove is deliberately NOT passive: once
-    // armed, we call preventDefault() to stop the platform's own overscroll
-    // (iOS rubber-band, Android WebView glow/stretch) from fighting the
-    // custom drag. This is the one documented exception to "listeners should
-    // be passive" in this codebase.
+    // touchstart is passive (we never preventDefault it). touchmove is
+    // deliberately NOT passive: once the gesture is confirmed as a downward
+    // pull we call preventDefault() to stop the platform's own overscroll
+    // (iOS rubber-band, Android WebView glow/stretch) fighting the drag. This
+    // is the one documented exception to "listeners should be passive" here.
+    //
+    // Crucially, preventDefault() is reached ONLY after the axis lock resolves
+    // to 'vertical' — every earlier path returns untouched. That is what lets
+    // horizontal strips (category pills, salon card rows) scroll normally
+    // instead of being swallowed by a refresh that was never intended.
     this._target.addEventListener('touchstart', this._onTouchStart as EventListener, { passive: true });
     this._target.addEventListener('touchmove', this._onTouchMove as EventListener, { passive: false });
     this._target.addEventListener('touchend', this._onTouchEnd, { passive: true });
@@ -111,6 +123,7 @@ export class PullToRefreshService {
     this._target = null;
     this._config = null;
     this._armed = false;
+    this._axis = 'undecided';
     this._pullState.set('idle');
     this._pullDistance.set(0);
   }
@@ -142,11 +155,40 @@ export class PullToRefreshService {
     }
     this._armed = true;
     this._startY = e.touches[0].clientY;
+    this._startX = e.touches[0].clientX;
+    this._axis = 'undecided';
   }
+
 
   private _handleTouchMove(e: TouchEvent): void {
     if (!this._armed) return;
+
     const delta = e.touches[0].clientY - this._startY;
+    const deltaX = e.touches[0].clientX - this._startX;
+
+    // AXIS LOCK. Decide once, on the first movement that clears the slop
+    // threshold, whether this gesture is a vertical pull or a horizontal
+    // scroll — then stick with it for the rest of the touch.
+    //
+    // Without this, swiping a horizontal strip (the category pills, the salon
+    // card row) triggered a refresh: no thumb swipe is perfectly horizontal,
+    // so the small downward drift read as a pull, and preventDefault() below
+    // then killed the horizontal scroll outright.
+    if (this._axis === 'undecided') {
+      const absY = Math.abs(delta);
+      const absX = Math.abs(deltaX);
+      if (Math.max(absX, absY) < AXIS_LOCK_SLOP_PX) return; // too early to tell
+      this._axis = absX > absY ? 'horizontal' : 'vertical';
+    }
+
+    // Horizontal gesture — hands off entirely, including preventDefault, so
+    // the strip scrolls normally.
+    if (this._axis === 'horizontal') {
+      this._pullState.set('idle');
+      this._pullDistance.set(0);
+      return;
+    }
+
     if (delta <= 0) {
       // Dragging back up (or no movement) — not a pull; let the browser
       // handle it normally instead of holding the gesture hostage.
@@ -165,6 +207,15 @@ export class PullToRefreshService {
   private _handleTouchEnd(): void {
     if (!this._armed) return;
     this._armed = false;
+    // Reset before any early return below — a lingering 'horizontal' lock
+    // would suppress the next gesture's pull entirely.
+    const axis = this._axis;
+    this._axis = 'undecided';
+    if (axis === 'horizontal') {
+      this._pullState.set('idle');
+      this._pullDistance.set(0);
+      return;
+    }
     if (this._pullState() === 'ready') {
       this._pullState.set('refreshing');
       // The former FIXME here — "pull-to-refresh is not suppressed while a
