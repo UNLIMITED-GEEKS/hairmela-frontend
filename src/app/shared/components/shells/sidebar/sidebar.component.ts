@@ -5,6 +5,7 @@ import { NavItem } from '../nav-item.types';
 import { NavIconComponent } from '../nav-icon/nav-icon.component';
 import { Membership, SalonRole } from '../../../../core/salon-context/membership.types';
 import { RouteSegment, RoutePath } from '../../../../core/routing/route-paths';
+import { OrgContextService } from '../../../../core/salon-context/org-context.service';
 
 export interface ControlItem {
   readonly label: string;
@@ -91,6 +92,7 @@ export class SidebarComponent implements OnInit {
   readonly collapsed = signal(false);
 
   private readonly _document = inject(DOCUMENT);
+  private readonly _orgContext = inject(OrgContextService);
 
   // Mirrors the sidebar's current width onto a CSS custom property on <html>
   // so fixed-position elements elsewhere in the app (e.g. a bottom action
@@ -135,6 +137,19 @@ export class SidebarComponent implements OnInit {
   }
 
   readonly isOwner = computed(() => this.membership()?.role === SalonRole.OWNER);
+
+  // Billing lives on the org, NOT the salon — deliberately kept out of the
+  // "Salon Controls" block above. That block only renders when there is an
+  // active salon AND a membership for it, and BOTH vanish when a plan lapses
+  // (expired trial / cancelled): the salons are hidden, so the owner lost the
+  // only route back to the page where they could pay. Sourced from
+  // OrgContextService instead, which is org-scoped and survives the lapse.
+  //
+  // Owner-only comes free: /organizations/mine only ever returns orgs this
+  // user OWNS, so staff and customers resolve to null and render nothing.
+  // That is also why this does not reuse isOwner() above — that is a
+  // salon-role check, and it goes away in exactly the lapsed case this fixes.
+  readonly ownedOrgId = computed(() => this._orgContext.ownedOrg()?.id ?? null);
 
   readonly sidebarItems = computed(() => this.navItems().filter((i) => i.sidebar && !i.action));
 

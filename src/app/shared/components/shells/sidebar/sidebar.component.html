@@ -132,6 +132,36 @@
       </div>
     }
 
+    <!-- Account section — org-scoped, so it survives a lapsed plan (the
+         Salon Controls block above does not: hidden salons mean no
+         membership, and the owner would be left with no way to reach
+         billing at all). -->
+    @if (ownedOrgId(); as orgId) {
+      <div class="pt-4">
+        @if (!collapsed()) {
+          <p class="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-text-secondary/60 truncate">
+            Account
+          </p>
+        } @else {
+          <div class="h-px bg-border mx-2 mb-2"></div>
+        }
+
+        <a
+          [routerLink]="RoutePath.orgBilling(orgId)"
+          routerLinkActive="bg-primary text-white"
+          class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-primary hover:text-white transition-all ease-in min-h-11"
+          [class.justify-center]="collapsed()"
+          [title]="collapsed() ? 'Plan & billing' : ''">
+          <span class="w-5 h-5 shrink-0 flex items-center justify-center">
+            <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
+          </span>
+          @if (!collapsed()) {
+            <span class="truncate">Plan &amp; billing</span>
+          }
+        </a>
+      </div>
+    }
+
   </nav>
 
   <!-- Logout -->

@@ -1,10 +1,11 @@
-import { Component, input, output, computed } from '@angular/core';
+import { Component, input, output, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { NavItem } from '../nav-item.types';
 import { NavIconComponent } from '../nav-icon/nav-icon.component';
 import { Membership, SalonRole } from '../../../../core/salon-context/membership.types';
 import { CONTROL_ITEMS, VisibleControl } from '../sidebar/sidebar.component';
 import { RouteSegment, RoutePath } from '../../../../core/routing/route-paths';
+import { OrgContextService } from '../../../../core/salon-context/org-context.service';
 
 @Component({
   selector: 'app-mobile-sheet',
@@ -31,7 +32,14 @@ export class MobileSheetComponent {
     }));
   });
 
+  private readonly _orgContext = inject(OrgContextService);
+
   readonly isOwner = computed(() => this.membership()?.role === SalonRole.OWNER);
+
+  // Org-scoped, deliberately outside the "Salon Controls" block — see the
+  // matching comment in SidebarComponent for why a lapsed plan otherwise
+  // leaves an owner with no route to the billing page.
+  readonly ownedOrgId = computed(() => this._orgContext.ownedOrg()?.id ?? null);
 
   protected sheetItems(): NavItem[] {
     return this.navItems().filter((i) => i.sheet);
