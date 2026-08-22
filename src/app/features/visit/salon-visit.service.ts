@@ -12,6 +12,7 @@ import { GuestStore } from '../../core/guest/guest-store';
 import { ActiveEntryStore, isAppointmentEntry } from '../../core/queue/active-entry.store';
 import { ConfirmDialogService } from '../../shared/components/confirm-dialog/confirm-dialog.service';
 import { ToastService } from '../../core/toast/toast.service';
+import { CacheRegistry, Clearable } from '../../core/caching/cache-registry/cache-registry.service';
 import { ErrorCodes } from '../../core/errors/error-codes';
 import { isApiError } from '../../core/errors/api-error.types';
 import { TimelineEntryDto } from '../../core/socket/socket.types';
@@ -90,8 +91,45 @@ function captureMemberNames(names: string[]): Record<number, string> {
   return byPosition;
 }
 
+// How long a cached salon payload stays usable. Short on purpose: this is the
+// public-facing salon page, so opening hours, staff list and services need to
+// go stale quickly. Long enough to cover browsing back and forth between a few
+// salons, which is the whole point of the cache.
+//
+// FIXME: this TTL knowingly serves stale AVAILABILITY, which is the one part
+// of the payload that is not merely cosmetic. Within the 5-minute window a
+// returning customer can see:
+//
+//   - salon.staff  — the barber picker (staffList()). A barber marked
+//     unavailable, or removed from the salon, still renders and can be tapped.
+//     The queue itself is live, so they find out on the next screen — but the
+//     bad first impression is ours.
+//   - isOpen       — worse, because selectBarber() GATES ON IT (see the
+//     `if (!this.salonData()?.isOpen) return false;` check). A salon that
+//     closed during the window still lets a customer through the join, and a
+//     salon that just OPENED still refuses them for up to 5 minutes.
+//   - services/prices — a price edited during the window shows the old value.
+//
+// Accepted deliberately: the alternative was refetching on every back-nav,
+// which is the bug this cache exists to fix. Revisit if customers report
+// joining closed salons or picking absent barbers. The targeted fix is not a
+// shorter TTL (it trades the bug back) but re-validating just the volatile
+// fields on a cache hit — a cheap HEAD/etag or an isOpen+staff-only endpoint —
+// while still serving the heavy static payload from cache.
+const SALON_TTL_MS = 5 * 60 * 1000;
+
+// Only the STATIC half of a salon visit is cached. Live queue state (timeline,
+// queueStatus, activeEntries, socket rooms) is deliberately excluded — it is
+// pushed over a socket and would be wrong to restore from a snapshot, showing
+// a returning customer stale wait times while the room is no longer watched.
+interface CachedSalon {
+  readonly salon: SalonPublicDto;
+  readonly services: Service[];
+  readonly fetchedAt: number;
+}
+
 @Injectable({ providedIn: 'root' })
-export class SalonVisitService {
+export class SalonVisitService implements Clearable {
   private readonly _http = inject(HttpClient);
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _socket = inject(QueueSocketService);
@@ -106,11 +144,20 @@ export class SalonVisitService {
   private readonly _toast = inject(ToastService);
   private readonly _destroyRef = inject(DestroyRef);
   private readonly _comments = inject(CommentsService);
+  private readonly _cacheRegistry = inject(CacheRegistry);
+
+  constructor() {
+    this._cacheRegistry.register(this);
+  }
 
   private _watchedQueueIds = new Set<string>();
   private _shellPrefix = '';
   private _socketInitialReceived = new Set<string>();
   private _loadedSlug: string | null = null;
+  // Keyed by slug. Was a single _loadedSlug slot, which meant only the most
+  // recent salon was remembered: A -> B -> A refetched A every time, because
+  // B had overwritten the slot.
+  private readonly _salonCache = new Map<string, CachedSalon>();
   // The queue currently displayed (position/live-queue page). Because timeline
   // is a single shared signal (see FIXME below), this id is what every async
   // writer checks (`if (this._activeQueueId !== queueId) return;`) so a late
@@ -332,11 +379,38 @@ export class SalonVisitService {
     this._loadedSlug = slug;
     this._resetForNewSalon();
     const storedEntries = this._activeEntryStore.getAll();
+
+    // Serve the static salon payload from cache when it's still fresh, so
+    // hopping between salons doesn't refetch the page you just looked at.
+    // Live queue state was cleared by _resetForNewSalon() above and is NOT
+    // restored here — _resumeQueueWatch re-subscribes for real, exactly as it
+    // does on a cold load.
+    const cached = this._salonCache.get(slug);
+    if (cached && Date.now() - cached.fetchedAt < SALON_TTL_MS) {
+      this.salonData.set(cached.salon);
+      this.services.set(cached.services);
+      this.loading.set(false);
+      this.servicesLoading.set(false);
+      this._resumeQueueWatch(cached.salon, storedEntries);
+      return;
+    }
+    // Expired — drop it so a failed refetch can't leave a stale entry behind.
+    if (cached) this._salonCache.delete(slug);
+
     this._loadSalon(slug, storedEntries);
   }
 
   destroy(): void {
     this._clock.stop();
+  }
+
+  // CacheRegistry hook — logout must not leave one user's salon payloads
+  // readable by the next session on the same device. _loadedSlug is reset too,
+  // so the next init() genuinely refetches rather than short-circuiting on
+  // salonData that is about to be cleared.
+  clear(): void {
+    this._salonCache.clear();
+    this._loadedSlug = null;
   }
 
   private _resetForNewSalon(): void {
@@ -352,6 +426,10 @@ export class SalonVisitService {
     this.queueStatus.set(null);
     this.activeEntries.set([]);
     this.loading.set(true);
+    // Was omitted here, so switching salons left this false from the previous
+    // salon while services was cleared to [] — the Services tab rendered
+    // "no services" instead of a loading state until the refetch landed.
+    this.servicesLoading.set(true);
     this.timelineLoaded.set(false);
     this.timelineConfirmed.set(false);
     this.joining.set(false);
@@ -894,34 +972,67 @@ export class SalonVisitService {
     return this.salonData()?.staff.find((s) => s.queueId === queueId) ?? null;
   }
 
+  // Re-attaches the socket watch for an entry the user already holds in this
+  // salon. Shared by the cached and freshly-fetched paths so a cache hit
+  // resubscribes identically — the socket room is live state and is never
+  // restored from the cache itself.
+  private _resumeQueueWatch(salon: SalonPublicDto, storedEntries: ActiveEntry[]): void {
+    for (const stored of storedEntries) {
+      const matchesStaff = salon.staff.some((s) => s.queueId === stored.queueId);
+      if (matchesStaff) {
+        this.watchQueue(stored.queueId);
+        break;
+      }
+    }
+  }
+
   private _loadSalon(slug: string, storedEntries: ActiveEntry[]): void {
     publicSalonsControllerFindBySlug(this._http, this._apiConfig.rootUrl, { slug })
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe({
         next: (res) => {
           const body = res.body;
-          this.salonData.set(body);
-          this.loading.set(false);
+          // Only paint if this salon is still the one on screen. A slow
+          // response for A must not repaint over B — and _resumeQueueWatch
+          // below must not attach A's socket room while B is displayed.
+          // The services fetch still runs either way, so an abandoned salon
+          // finishes populating its own cache entry for the next visit.
+          const isCurrent = this._loadedSlug === slug;
+          if (isCurrent) {
+            this.salonData.set(body);
+            this.loading.set(false);
+          }
           publicServicesControllerFindBySalon(this._http, this._apiConfig.rootUrl, {
             salonId: body.salon.id,
           })
             .pipe(takeUntilDestroyed(this._destroyRef))
             .subscribe({
               next: (svc) => {
+                // Cache regardless of whether this salon is still on screen —
+                // the entry is keyed by ITS OWN slug, so a late response still
+                // caches correctly for the salon it belongs to.
+                this._salonCache.set(slug, {
+                  salon: body,
+                  services: svc.body,
+                  fetchedAt: Date.now(),
+                });
+                // ...but only paint if the user hasn't since switched salons.
+                // Same guard idiom as _loadInitialTimeline's _activeQueueId
+                // check: without it, a slow response for salon A overwrote the
+                // services list while salon B was already displayed.
+                if (this._loadedSlug !== slug) return;
                 this.services.set(svc.body);
                 this.servicesLoading.set(false);
               },
-              error: () => this.servicesLoading.set(false),
+              error: () => {
+                if (this._loadedSlug !== slug) return;
+                this.servicesLoading.set(false);
+              },
             });
-          for (const stored of storedEntries) {
-            const matchesStaff = body.staff.some((s) => s.queueId === stored.queueId);
-            if (matchesStaff) {
-              this.watchQueue(stored.queueId);
-              break;
-            }
-          }
+          if (isCurrent) this._resumeQueueWatch(body, storedEntries);
         },
         error: () => {
+          if (this._loadedSlug !== slug) return;
           this.loading.set(false);
           this.servicesLoading.set(false);
           this._toast.error('Salon not found');

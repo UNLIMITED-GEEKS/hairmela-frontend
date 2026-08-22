@@ -85,10 +85,11 @@
       </div>
     } @else {
       <!-- Single row — extra results scroll horizontally instead of wrapping taller. -->
-      <div class="flex gap-4 overflow-x-auto themed-scrollbar no-scrollbar-mobile pb-6">
+      <div class="flex gap-4 overflow-x-auto themed-scrollbar no-scrollbar-mobile pb-6"
+        appRestoreListingScroll surface="landing" [ready]="listing.items().length">
         @for (salon of listing.items(); track salon.id) {
           <div class="shrink-0 w-[70%] xs:w-[55%] sm:w-[38%] md:w-[calc(25%-0.75rem)] h-64 md:h-64">
-            <app-salon-card [salon]="salon" />
+            <app-salon-card [salon]="salon" surface="landing" />
           </div>
         }
       </div>

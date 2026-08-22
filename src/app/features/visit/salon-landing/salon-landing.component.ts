@@ -274,7 +274,13 @@ export class SalonLandingComponent implements OnInit {
   // "Book ahead" is the walk-in fallback for a closed salon — while open,
   // customers use the per-staff "Book an appointment" section on the
   // live-queue page instead (staff already known there).
-  protected readonly showBookAhead = computed(() => !this.visit.salonData()?.isOpen);
+  // Closed is precisely WHEN book-ahead is offered — it's the walk-in
+  // fallback. Frozen is different: the salon is suspended, so booking must not
+  // be offered at all. Without the frozen check the button rendered directly
+  // above the "Not accepting walk-ins right now" panel, contradicting it.
+  protected readonly showBookAhead = computed(
+    () => !this.visit.salonData()?.isOpen && !this.frozen(),
+  );
 
   protected readonly bookDialogOpen = signal(false);
 
@@ -361,6 +367,11 @@ export class SalonLandingComponent implements OnInit {
   protected readonly salonStatus = computed<SalonStatusBadge | null>(() => {
     const data = this.visit.salonData();
     if (!data) return null;
+    // A frozen salon isn't taking check-ins whatever its hours say, so "Open
+    // Now" would contradict the "Not accepting walk-ins right now" panel below.
+    // Returning null here also drops the adjacent nextOpenLabel, which would
+    // otherwise promise an opening time that changes nothing while suspended.
+    if (this.frozen()) return null;
     switch (data.openState) {
       case 'OPEN':
         return {
@@ -399,7 +410,13 @@ export class SalonLandingComponent implements OnInit {
         // slug is carried alongside id so a ?category=<slug> deep link can be
         // resolved without a second lookup — the pills filter by slug, the
         // accordions key on id.
-        group = { id: cat.id, name: cat.name, slug: cat.slug, sortOrder: cat.sortOrder, services: [] };
+        group = {
+          id: cat.id,
+          name: cat.name,
+          slug: cat.slug,
+          sortOrder: cat.sortOrder,
+          services: [],
+        };
         groups.set(cat.id, group);
       }
       group.services.push(service);

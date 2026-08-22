@@ -69,7 +69,9 @@
       {{s.address.street}} {{ s.address?.city }}{{ s.address?.state ? ', ' + s.address.state : '' }}
       </p>
 
-      @if (s.phone) {
+      <!-- Hidden when frozen: the salon is suspended, so pointing customers at
+           its phone number invites calls it isn't taking business through. -->
+      @if (s.phone && !frozen()) {
         <a [href]="'tel:' + s.phone"
           class="mt-5 w-full  min-h-12 rounded-full bg-primary text-white text-sm font-normal flex items-center justify-center gap-2 hover:bg-surface-hover transition-colors">
           <app-icon name="phone" class="w-4 h-4" />
@@ -98,8 +100,8 @@
 
       @if (frozen()) {
         <div class="w-full rounded-2xl border border-gray-200 bg-gray-50 px-5 py-8 text-center">
-          <p class="text-sm font-semibold text-gray-700">Not accepting walk-ins right now</p>
-          <p class="mt-1 text-sm text-gray-500">This salon isn’t taking online check-ins at the moment. Please check back later.</p>
+          <p class="text-sm font-semibold text-gray-700">Not available at the moment</p>
+          <p class="mt-1 text-sm text-gray-500">Please check back later.</p>
         </div>
       } @else if (activeTab() === 'about') {
         <!-- Tab: About -->

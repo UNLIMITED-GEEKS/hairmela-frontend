@@ -36,12 +36,13 @@
            comment in the .ts for why this isn't a CSS grid) — collapses to a
            single row under 4 results, since a sparse/empty second row isn't
            worth it. -->
-      <div class="md:hidden">
+      <div class="md:hidden"
+        appRestoreListingScroll surface="search" [ready]="listing.items().length">
         @if (useSingleRow()) {
           <div class="flex gap-3 overflow-x-auto themed-scrollbar no-scrollbar-mobile pb-2">
             @for (salon of listing.items(); track salon.id) {
               <div class="shrink-0 w-[65%] xs:w-[55%] sm:w-[38%] h-64">
-                <app-salon-card [salon]="salon" [activeCategory]="listing.filters().category" />
+                <app-salon-card [salon]="salon" [activeCategory]="listing.filters().category" surface="search" />
               </div>
             }
           </div>
@@ -49,14 +50,14 @@
           <div class="flex gap-3 overflow-x-auto themed-scrollbar no-scrollbar-mobile pb-2">
            @for (salon of topRow(); track salon.id) {
             <div class="shrink-0 w-[65%] xs:w-[55%] sm:w-[38%] h-64">
-              <app-salon-card [salon]="salon" [activeCategory]="listing.filters().category" />
+              <app-salon-card [salon]="salon" [activeCategory]="listing.filters().category" surface="search" />
             </div>
           }
         </div>
           <div class="flex gap-3 overflow-x-auto themed-scrollbar no-scrollbar-mobile pb-2">
             @for (salon of bottomRow(); track salon.id) {
             <div class="shrink-0 w-[65%] xs:w-[55%] sm:w-[38%] h-64">
-              <app-salon-card [salon]="salon" [activeCategory]="listing.filters().category" />
+              <app-salon-card [salon]="salon" [activeCategory]="listing.filters().category" surface="search" />
             </div>
           }
         </div>
@@ -64,10 +65,11 @@
       </div>
 
       <!-- Desktop: plain 4-column grid, no horizontal scroll. -->
-      <div class="hidden md:grid md:grid-cols-4 gap-4">
+      <div class="hidden md:grid md:grid-cols-4 gap-4"
+        appRestoreListingScroll surface="search" [ready]="listing.items().length">
         @for (salon of listing.items(); track salon.id) {
           <div class="h-64">
-            <app-salon-card [salon]="salon" [activeCategory]="listing.filters().category" />
+            <app-salon-card [salon]="salon" [activeCategory]="listing.filters().category" surface="search" />
           </div>
         }
       </div>

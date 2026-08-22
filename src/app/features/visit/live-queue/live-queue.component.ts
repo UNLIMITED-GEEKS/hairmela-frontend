@@ -122,7 +122,20 @@ export class LiveQueueComponent {
     return staff ? staffAvailability(staff) : null;
   });
 
-  protected readonly joinable = computed(() => this.availability()?.joinable ?? false);
+  // Frozen = the salon is over its org's plan limit; the backend rejects both
+  // joins and appointments for it. Mirrors salon-landing's own frozen() gate,
+  // which hides the barbers there — this page is reachable directly (deep
+  // link, stored entry, back-nav), so it needs its own check rather than
+  // relying on having come through the landing page.
+  protected readonly frozen = computed(() => this.visit.salonData()?.isFrozen ?? false);
+
+  // staffAvailability() covers schedule/availability only and knows nothing
+  // about the salon being suspended, so frozen is applied on top. Note
+  // selectBarber() already blocks a CLOSED salon, but a frozen-and-OPEN salon
+  // passed straight through to the join dialog before this.
+  protected readonly joinable = computed(
+    () => (this.availability()?.joinable ?? false) && !this.frozen(),
+  );
 
   protected get myQueuesUrl() {
     return this._shellPrefix ? RoutePath.guestQueues() : RoutePath.queues();
@@ -152,6 +165,11 @@ export class LiveQueueComponent {
   // pattern selectBarber() uses for the walk-in join flow, rather than never
   // seeing the option existed at all.
   protected openBookDialog(): void {
+    // Also guarded here, not just in the template: a signed-out tap redirects
+    // to register and returns to this page, so the check must hold on the way
+    // back in too. The backend rejects appointments for a frozen salon either
+    // way — this stops the customer filling a form that cannot succeed.
+    if (this.frozen()) return;
     if (!this._currentUser.user()) {
       const returnUrl = RoutePath.visitQueue(this._shellPrefix, this._slug(), this._queueId()).join('/');
       this._router.navigate(RoutePath.register(), { queryParams: { [RouteQueryParam.RETURN_URL]: returnUrl } });

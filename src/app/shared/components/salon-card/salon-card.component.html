@@ -42,11 +42,15 @@
   <!-- Name/location — glassmorphic bar pinned to the bottom of the photo -->
   <div class="absolute inset-x-0 bottom-0 px-4 py-3 bg-gray-900/40 backdrop-blur-md">
     @if (salon().hasBranches) {
-      <p class="text-xs font-medium text-open">{{ salon().isOpen ? 'Open' : 'Closed' }}</p>
+      <!-- <p class="text-xs font-medium"
+        [class.text-open]="salon().isOpen"
+        [class.text-white]="!salon().isOpen">{{ salon().isOpen ? 'Open' : 'Closed' }}</p> -->
       <h3 class="mt-0.5 text-base font-bold text-white truncate">{{ salon().name }}</h3>
       <p class="mt-0.5 text-xs text-white/80">{{ branchCountLabel() }}</p>
     } @else {
-      <p class="text-xs font-medium text-open">{{ salon().isOpen ? 'Open' : 'Closed' }}</p>
+      <!-- <p class="text-xs font-medium"
+        [class.text-open]="salon().isOpen"
+        [class.text-white]="!salon().isOpen">{{ salon().isOpen ? 'Open' : 'Closed' }}</p> -->
       <h3 class="mt-0.5 text-base font-bold text-white truncate">{{ salon().name }}</h3>
       <p class="mt-0.5 flex items-center gap-1 text-xs text-white/80">
         <app-icon name="location-pin" class="h-3.5 w-3.5 shrink-0" />

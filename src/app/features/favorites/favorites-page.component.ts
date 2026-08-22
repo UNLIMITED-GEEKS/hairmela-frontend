@@ -4,6 +4,7 @@ import { SalonCardComponent } from '../../shared/components/salon-card/salon-car
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { RestoreListingScrollDirective } from '../../shared/directives/restore-listing-scroll.directive';
 
 // Favourites page — same card + pagination as the homepage listing, fed by
 // FavoritesService's own cache (GET /users/me/favorites), which toggle()
@@ -11,7 +12,8 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
 @Component({
   selector: 'app-favorites-page',
   templateUrl: './favorites-page.component.html',
-  imports: [SalonCardComponent, PaginationComponent, SkeletonComponent, PageHeaderComponent],
+  imports: [
+    RestoreListingScrollDirective,SalonCardComponent, PaginationComponent, SkeletonComponent, PageHeaderComponent],
 })
 export class FavoritesPageComponent implements OnInit {
   protected readonly favorites = inject(FavoritesService);

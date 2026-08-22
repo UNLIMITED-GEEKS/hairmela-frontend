@@ -36,10 +36,17 @@
               {{ staff.firstName }} {{ staff.lastName }}
               @if (staff.nickname) { <span class="font-normal text-gray-500">({{ staff.nickname }})</span> }
             </p>
+            <!-- Reads joinable() (frozen-aware), not a.joinable: on a frozen
+                 salon the raw availability is still "Available", which would
+                 sit next to a disabled Join Queue button and read as a bug. -->
             @if (availability(); as a) {
               <span class="block text-xs font-medium mt-1.5"
-                [class.text-success]="a.joinable" [class.text-gray-400]="!a.joinable">
-                {{ a.joinable ? 'Available' : 'Unavailable — ' + a.label }}
+                [class.text-success]="joinable()" [class.text-gray-400]="!joinable()">
+                @if (frozen()) {
+                  Not available at the moment
+                } @else {
+                  {{ a.joinable ? 'Available' : 'Unavailable — ' + a.label }}
+                }
               </span>
             }
 
@@ -83,17 +90,21 @@
       </div>
     }
 
-    <!-- Book an appointment — always shown; unauthenticated tap redirects to register -->
+    <!-- Book an appointment — unauthenticated tap redirects to register.
+         Hidden when the salon is frozen: the backend rejects appointments for
+         a suspended salon, so offering it here only produces a failed booking. -->
+    @if (!frozen()) {
     <button type="button" (click)="openBookDialog()"
       class="shrink-0 mx-3 mb-6 flex items-center justify-between rounded-2xl border border-primary/20 bg-white px-4 py-3.5 text-left hover:bg-secondary-light transition-colors">
       <div>
         <p class="text-sm font-semibold text-text-primary">Not ready today?</p>
-        <p class="text-xs text-text-secondary mt-0.5">Book an appointment for later</p>
+        <p class="text-xs text-text-secondary mt-0.5">Click here to Book an appointment for later</p>
       </div>
       <svg class="w-4 h-4 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
       </svg>
     </button>
+    }
 
     <!-- Queue Status -->
     <div class="shrink-0 px-3 mb-3">
