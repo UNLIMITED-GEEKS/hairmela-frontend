@@ -75,13 +75,13 @@ export class TierBannerComponent {
       };
     }
 
-    if (m.tier === 1) {
-      return {
-        kind: 'free',
-        message: "You're on the Free plan.",
-        cta: 'See plans',
-      };
-    }
+    // if (m.tier === 1) {
+    //   return {
+    //     kind: 'free',
+    //     message: "You're on the Free plan.",
+    //     cta: 'See plans',
+    //   };
+    // }
 
     return null;
   });

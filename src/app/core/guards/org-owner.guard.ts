@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { OrgContextService } from '../salon-context/org-context.service';
+import { CurrentUserStore } from '../auth/current-user.store';
 import { RouteParam, RoutePath } from '../routing/route-paths';
 
 // Uses OrgContextService's cache (ensureLoaded()) instead of its own raw
@@ -16,6 +17,7 @@ import { RouteParam, RoutePath } from '../routing/route-paths';
 // landing directly on /org/:orgId) still makes a real request.
 export const orgOwnerGuard: CanActivateFn = async (route) => {
   const orgContext = inject(OrgContextService);
+  const currentUser = inject(CurrentUserStore);
   const router = inject(Router);
 
   const orgId = route.paramMap.get(RouteParam.ORG_ID);
@@ -25,7 +27,13 @@ export const orgOwnerGuard: CanActivateFn = async (route) => {
 
   try {
     const org = orgContext.ownedOrg() ?? (await firstValueFrom(orgContext.ensureLoaded()));
-    return org?.id === orgId ? true : router.createUrlTree(RoutePath.dashboard());
+    // Re-confirm ownership rather than trusting the id alone. OrgContextService
+    // already resolves ownedOrg() by ownerId, so this is belt-and-braces — but
+    // it is the check that actually enforces "owner", and keeping it here means
+    // the guard cannot be silently weakened by a change to how that org is
+    // selected upstream.
+    const isOwner = org?.id === orgId && org?.ownerId === currentUser.user()?.id;
+    return isOwner ? true : router.createUrlTree(RoutePath.dashboard());
   } catch {
     return router.createUrlTree(RoutePath.dashboard());
   }

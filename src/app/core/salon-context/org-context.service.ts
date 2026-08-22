@@ -8,6 +8,7 @@ import { subscriptionsControllerGetMine } from '../../api/fn/subscriptions/subsc
 import { Organization } from '../../api/models/organization';
 import { EffectiveAccessDto } from '../../api/models/effective-access-dto';
 import { CacheRegistry } from '../caching/cache-registry/cache-registry.service';
+import { CurrentUserStore } from '../auth/current-user.store';
 
 // A user owns at most one org (FRONTEND-TIER-HANDOFF §4a). This resolves and
 // caches it once so the tier banner, the billing page, and orgOwnerGuard all
@@ -20,6 +21,7 @@ export class OrgContextService {
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _cacheRegistry = inject(CacheRegistry);
   private readonly _router = inject(Router);
+  private readonly _currentUser = inject(CurrentUserStore);
 
   constructor() {
     this._cacheRegistry.register(this);
@@ -39,7 +41,21 @@ export class OrgContextService {
     if (this._inflight$) return this._inflight$;
 
     this._inflight$ = organizationsControllerFindMine(this._http, this._apiConfig.rootUrl).pipe(
-      map((res) => (Array.isArray(res.body) && res.body.length > 0 ? res.body[0] : null)),
+      // GET /organizations/mine returns every org the user is ASSOCIATED with,
+      // not only the ones they own — a staff member gets their employer's org
+      // back. Taking res.body[0] therefore handed staff an org they don't own,
+      // which then passed orgOwnerGuard and surfaced the owner-only billing
+      // page (and its Cancel plan button) to them.
+      //
+      // Ownership is decided here, once, off Organization.ownerId, so every
+      // consumer (guard, billing service, sidebar/sheet nav) inherits the
+      // correct answer instead of re-deriving it. Non-owners resolve to null,
+      // exactly as the "owns at most one org" contract intends.
+      map((res) => {
+        if (!Array.isArray(res.body)) return null;
+        const myId = this._currentUser.user()?.id;
+        return res.body.find((o) => o.ownerId === myId) ?? null;
+      }),
       tap((org) => {
         this._ownedOrg.set(org);
         // Don't cache a null result — a transient failure (or a not-yet-created
