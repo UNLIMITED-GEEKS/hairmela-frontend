@@ -5,7 +5,7 @@ import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { FavoritesService } from '../../../core/favorites/favorites.service';
 import { MediaUrlPipe } from '../../pipes/media-url.pipe';
 import { IconComponent } from '../icon/icon.component';
-import { RoutePath, RouteSegment } from '../../../core/routing/route-paths';
+import { RoutePath, RouteSegment, RouteQueryParam } from '../../../core/routing/route-paths';
 
 // Shared salon "card" — identical shape used by the homepage listing and the
 // favourites page (FRONTEND-FAVORITES-LISTING-HANDOFF §3). Always links to the
@@ -29,6 +29,17 @@ export class SalonCardComponent {
   // side by side — the branch picker (branches all share the root's name) and
   // favourites.
   readonly showStreet = input(false);
+  /**
+   * Category slug the viewer is currently filtering by, if any. Passed through
+   * to the salon page so it can open on that category's services instead of
+   * making the customer find it again.
+   *
+   * An INPUT rather than read from SalonListingService: this card also renders
+   * on favourites, the branch picker and the landing page, none of which have
+   * a category filter. Reaching into that service here would make the card
+   * lie about context it does not have.
+   */
+  readonly activeCategory = input<string>('');
 
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _favorites = inject(FavoritesService);
@@ -48,6 +59,13 @@ export class SalonCardComponent {
     const { slug, hasBranches } = this.salon();
     const base = this.isLoggedIn() ? '' : `/${RouteSegment.G}`;
     return hasBranches ? RoutePath.visitBranches(base, slug) : RoutePath.visitSalon(base, slug);
+  });
+
+  // Only present when a filter is actually active — an unfiltered browse or a
+  // search produces a clean URL, since there is no category intent to carry.
+  protected readonly detailQueryParams = computed(() => {
+    const category = this.activeCategory();
+    return category ? { [RouteQueryParam.CATEGORY]: category } : {};
   });
 
   // branchCount is nullable on the wire, so fall back to a count-free label

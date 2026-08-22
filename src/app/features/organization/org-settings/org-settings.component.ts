@@ -1,10 +1,11 @@
-import { Component, OnInit, inject, effect } from '@angular/core';
+import { Component, OnInit, inject, effect, viewChild, ElementRef, Injector, afterNextRender } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { OrgService } from '../org.service';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
+import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
 
 @Component({
   selector: 'app-org-settings',
@@ -12,6 +13,11 @@ import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
   imports: [ReactiveFormsModule, SkeletonComponent, FieldErrorComponent],
 })
 export class OrgSettingsComponent implements OnInit {
+  // The <form> element, so a blocked submit can scroll to the first
+  // invalid field — see scrollToFirstInvalidControl.
+  private readonly _formEl = viewChild<ElementRef<HTMLElement>>('formEl');
+  private readonly _scrollInjector = inject(Injector);
+
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
   private readonly _fb = inject(FormBuilder);
@@ -42,6 +48,12 @@ export class OrgSettingsComponent implements OnInit {
   protected save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      // Deferred: markAllAsTouched only renders the error messages on the next
+      // change detection pass, and those messages shift layout.
+      afterNextRender(
+        () => scrollToFirstInvalidControl(this._formEl()?.nativeElement),
+        { injector: this._scrollInjector },
+      );
       return;
     }
     this._orgService.update(this._orgId, { name: this.form.value.name! }, () =>

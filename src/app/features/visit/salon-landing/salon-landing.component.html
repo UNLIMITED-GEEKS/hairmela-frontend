@@ -153,6 +153,11 @@
             } @else {
               <div class="space-y-3">
                 @for (category of serviceCategories(); track category.id) {
+                  <!-- Wrapper carries the scroll anchor rather than binding [id] on the
+                       component: that would rely on Angular falling through to the host
+                       element's native id, which silently breaks the day someone adds an
+                       `id` input to AccordionComponent. -->
+                  <div [id]="'service-category-' + category.id">
                   <app-accordion [title]="category.name" [open]="isCategoryOpen(category.id)"
                     (openChange)="setCategoryOpen(category.id, $event)">
                     <div class="space-y-2">
@@ -161,6 +166,7 @@
                       }
                     </div>
                   </app-accordion>
+                  </div>
                 }
               </div>
             }

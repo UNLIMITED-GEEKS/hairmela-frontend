@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, viewChild, ElementRef, Injector, afterNextRender } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -6,6 +6,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { PasswordToggleDirective } from '../../../shared/directives/password-toggle.directive';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
+import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
 
 // newPassword must match the backend's 8–72 char rule.
 const PASSWORD_MIN = 8;
@@ -23,6 +24,11 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
   templateUrl: './reset-password.component.html',
 })
 export class ResetPasswordPageComponent implements OnInit {
+  // The <form> element, so a blocked submit can scroll to the first
+  // invalid field — see scrollToFirstInvalidControl.
+  private readonly _formEl = viewChild<ElementRef<HTMLElement>>('formEl');
+  private readonly _scrollInjector = inject(Injector);
+
   private readonly _auth = inject(AuthService);
   private readonly _router = inject(Router);
   private readonly _route = inject(ActivatedRoute);
@@ -65,6 +71,12 @@ export class ResetPasswordPageComponent implements OnInit {
     if (this.loading() || !this.hasToken()) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      // Deferred: markAllAsTouched only renders the error messages on the next
+      // change detection pass, and those messages shift layout.
+      afterNextRender(
+        () => scrollToFirstInvalidControl(this._formEl()?.nativeElement),
+        { injector: this._scrollInjector },
+      );
       return;
     }
     this.errorMessage.set(null);

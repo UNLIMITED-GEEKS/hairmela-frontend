@@ -22,7 +22,7 @@
       </div>
     }
 
-    <form [formGroup]="form" (ngSubmit)="invite()" class="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
+    <form #formEl [formGroup]="form" (ngSubmit)="invite()" class="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
 
       <!-- Email -->
       <div>

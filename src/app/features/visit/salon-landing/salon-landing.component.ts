@@ -1,4 +1,5 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { Component, OnInit, computed, inject, signal, effect, afterNextRender, Injector } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SalonVisitService } from '../salon-visit.service';
 import { SalonPublicStaffDto } from '../../../api/models/salon-public-staff-dto';
@@ -110,6 +111,8 @@ export class SalonLandingComponent implements OnInit {
   protected readonly platform = inject(AppPlatformService);
   protected readonly howToInstallLink = RoutePath.download();
   private readonly _route = inject(ActivatedRoute);
+  private readonly _document = inject(DOCUMENT);
+  private readonly _injector = inject(Injector);
   private readonly _router = inject(Router);
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _favorites = inject(FavoritesService);
@@ -241,6 +244,12 @@ export class SalonLandingComponent implements OnInit {
 
   protected openPhoto(): void {
     this.photoOpen.set(true);
+  }
+
+  constructor() {
+    // Re-runs as serviceCategories() fills in; _applyCategoryDeepLink is
+    // self-guarding and no-ops after its single application.
+    effect(() => this._applyCategoryDeepLink());
   }
 
   ngOnInit(): void {
@@ -381,19 +390,79 @@ export class SalonLandingComponent implements OnInit {
   protected readonly serviceCategories = computed(() => {
     const groups = new Map<
       string,
-      { id: string; name: string; sortOrder: number; services: Service[] }
+      { id: string; name: string; slug: string; sortOrder: number; services: Service[] }
     >();
     for (const service of this.visit.services()) {
       const cat = service.category;
       let group = groups.get(cat.id);
       if (!group) {
-        group = { id: cat.id, name: cat.name, sortOrder: cat.sortOrder, services: [] };
+        // slug is carried alongside id so a ?category=<slug> deep link can be
+        // resolved without a second lookup — the pills filter by slug, the
+        // accordions key on id.
+        group = { id: cat.id, name: cat.name, slug: cat.slug, sortOrder: cat.sortOrder, services: [] };
         groups.set(cat.id, group);
       }
       group.services.push(service);
     }
     return [...groups.values()].sort((a, b) => a.sortOrder - b.sortOrder);
   });
+
+  // ── Deep link: ?category=<slug> ──────────────────────────────────────────
+  //
+  // Set when a customer taps a salon while filtering by a category, so the
+  // salon page opens on that category's services instead of making them find
+  // it again (see SalonCardComponent.detailQueryParams).
+  //
+  // Applied in an effect rather than ngOnInit because SERVICES LOAD ASYNC:
+  // at init, serviceCategories() is empty and there is nothing to match
+  // against. This waits for them, then runs exactly once — _deepLinkApplied
+  // guards re-entry so the user closing the accordion is not fought by the
+  // effect immediately reopening it.
+  private _deepLinkApplied = false;
+
+  private _applyCategoryDeepLink(): void {
+    if (this._deepLinkApplied) return;
+
+    const slug = this._route.snapshot.queryParamMap.get(RouteQueryParam.CATEGORY);
+    if (!slug) {
+      this._deepLinkApplied = true; // nothing to do; stop watching
+      return;
+    }
+
+    const categories = this.serviceCategories();
+    if (categories.length === 0) return; // services not loaded yet — wait
+
+    // Mark applied BEFORE the match check: if this salon has no service in
+    // that category, that is a settled answer, not a reason to keep retrying
+    // on every recompute.
+    this._deepLinkApplied = true;
+
+    const match = categories.find((c) => c.slug === slug);
+    if (!match) return; // salon does not offer it — leave the default tab
+
+    this.visit.landingTab.set('services');
+    this.setCategoryOpen(match.id, true);
+    this._scrollCategoryIntoView(match.id);
+  }
+
+  // Deferred to after the next render: the tab switch above only renders the
+  // Services panel on the following change detection pass, so the element does
+  // not exist yet at this point.
+  //
+  // afterNextRender, NOT requestAnimationFrame — rAF fires on the next frame,
+  // which is merely *usually* after Angular has rendered. That is a timing
+  // guess that can miss on a slow device and silently skip the scroll.
+  // afterNextRender is the actual guarantee, and it is a no-op on the server.
+  private _scrollCategoryIntoView(categoryId: string): void {
+    afterNextRender(
+      () => {
+        this._document
+          .getElementById(`service-category-${categoryId}`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      },
+      { injector: this._injector },
+    );
+  }
 
   // Per-category accordion open state. A single category is always expanded
   // (nothing to collapse against); with multiple categories, all start

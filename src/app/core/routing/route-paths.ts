@@ -33,6 +33,13 @@ export const RouteQueryParam = {
   TRANSACTION_ID: 'transaction_id',
   // Which audience tab the How It Works page shows — see RouteParamValue.HowItWorksTab.
   TAB: 'tab',
+  /**
+   * Carries the category a customer was filtering by when they tapped through
+   * to a salon, so the salon page can open on that category's services rather
+   * than making them find it again. Holds the category SLUG (readable and
+   * shareable in the URL); the salon page resolves it to an id locally.
+   */
+  CATEGORY: 'category',
 } as const;
 
 // Values for RouteQueryParam.TAB on the How It Works page — a real enum

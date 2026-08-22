@@ -5,7 +5,7 @@
       <p class="mt-1 text-sm text-gray-500">Join HairMela and manage your salon</p>
     </div>
 
-    <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="space-y-4">
+    <form #formEl [formGroup]="form" (ngSubmit)="submit()" novalidate class="space-y-4">
 
       @if (errorMessage()) {
         <div class="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700" role="alert">

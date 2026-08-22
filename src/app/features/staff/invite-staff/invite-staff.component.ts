@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, viewChild, ElementRef, Injector, afterNextRender } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -8,6 +8,7 @@ import { SalonRole } from '../../../core/salon-context/membership.types';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
+import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
 
 @Component({
   selector: 'app-invite-staff',
@@ -15,6 +16,11 @@ import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
   imports: [ReactiveFormsModule, FieldErrorComponent, PageHeaderComponent],
 })
 export class InviteStaffComponent {
+  // The <form> element, so a blocked submit can scroll to the first
+  // invalid field — see scrollToFirstInvalidControl.
+  private readonly _formEl = viewChild<ElementRef<HTMLElement>>('formEl');
+  private readonly _scrollInjector = inject(Injector);
+
   protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
@@ -62,6 +68,12 @@ export class InviteStaffComponent {
     if (this.blocked()) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      // Deferred: markAllAsTouched only renders the error messages on the next
+      // change detection pass, and those messages shift layout.
+      afterNextRender(
+        () => scrollToFirstInvalidControl(this._formEl()?.nativeElement),
+        { injector: this._scrollInjector },
+      );
       return;
     }
     this._staffService.invite(this._salonId, {

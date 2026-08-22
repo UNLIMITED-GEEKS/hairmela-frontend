@@ -30,9 +30,15 @@
 @if (visit.loading()) {
   <div class="h-mobile-content bg-white px-4 py-8">
     <div class="max-w-md mx-auto">
-      <app-skeleton variant="avatar-row" [count]="1" />
+      <app-skeleton variant="list-item" [count]="1" />
       <div class="mt-6">
         <app-skeleton variant="list-item" [count]="3" />
+      </div>
+      <div class="mt-10">
+        <app-skeleton variant="list-item" [count]="3" />
+      </div>
+      <div class="mt-6">
+        <app-skeleton variant="list-item" [count]="2" />
       </div>
     </div>
   </div>

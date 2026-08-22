@@ -6,7 +6,12 @@ import { ApiConfiguration } from '../../api/api-configuration';
 import { publicSalonsControllerFindListing } from '../../api/fn/salons/public-salons-controller-find-listing';
 import { SalonListingItemDto } from '../../api/models/salon-listing-item-dto';
 import { PaginatedMetaDto } from '../../api/models/paginated-meta-dto';
-import { TtlGate } from '../../core/caching/ttl/ttl-gate';
+import { CacheRegistry, Clearable } from '../../core/caching/cache-registry/cache-registry.service';
+
+interface CachedPage {
+  readonly items: SalonListingItemDto[];
+  readonly meta: PaginatedMetaDto | null;
+}
 
 export interface ListingFilters {
   state: string;
@@ -16,15 +21,15 @@ export interface ListingFilters {
 }
 
 const PAGE_SIZE = 18; // 6 rows x 3 columns on desktop
-const TTL_MS = 300_000; // 5 minutes — skip refetch on unchanged filters/page (e.g. back-navigation)
 
 // Homepage salon listing — search/filter/pagination against GET /salons
 // (public, no auth). Debounces search input so every keystroke doesn't fire
 // a request; state/city changes and page changes go straight through.
 @Injectable({ providedIn: 'root' })
-export class SalonListingService {
+export class SalonListingService implements Clearable {
   private readonly _http = inject(HttpClient);
   private readonly _apiConfig = inject(ApiConfiguration);
+  private readonly _cacheRegistry = inject(CacheRegistry);
 
   private readonly _items = signal<SalonListingItemDto[]>([]);
   private readonly _meta = signal<PaginatedMetaDto | null>(null);
@@ -46,13 +51,28 @@ export class SalonListingService {
   private readonly _searchInput$ = new Subject<string>();
   private readonly _refetch$ = new Subject<void>();
 
-  // Guards against refetching the exact same filters+page within the TTL
-  // window (e.g. the user navigates to a salon and hits back) — any actual
-  // change in filters/page always bypasses this and fetches immediately.
-  private readonly _ttl = new TtlGate(TTL_MS);
-  private _lastFetchKey = '';
+  // SESSION CACHE, keyed by filters+page. Each distinct combination is
+  // fetched once and reused for the rest of the session.
+  //
+  // This replaced a single-key TTL gate that only remembered the LAST fetch:
+  // toggling category A -> B -> A refetched A, because the key no longer
+  // matched. It guarded against re-requesting the same thing twice in a row,
+  // which is not the pattern users actually have — they toggle between
+  // filters.
+  //
+  // NO TTL, deliberately (product decision): switching back to a viewed
+  // filter is instant for the whole session. The accepted trade-off is that
+  // each card's `isOpen` badge is a server-computed boolean, so a salon that
+  // opens or closes mid-session keeps its stale badge until reload. The
+  // listing payload carries no operating hours, so it cannot be recomputed
+  // client-side without a backend change.
+  private readonly _cache = new Map<string, CachedPage>();
+  // The key of the request currently in flight — see the subscribe below.
+  private _pendingKey = '';
 
   constructor() {
+    this._cacheRegistry.register(this);
+
     this._searchInput$
       .pipe(debounceTime(500), distinctUntilChanged(), takeUntilDestroyed())
       .subscribe((search) => {
@@ -67,10 +87,19 @@ export class SalonListingService {
         switchMap(() => {
           const { state, city, search, category } = this._filters();
           const key = JSON.stringify({ state, city, search, category, page: this._page() });
-          if (key === this._lastFetchKey && this._ttl.isFresh()) {
+
+          // Cache hit — render immediately, no request. This is the whole
+          // point: toggling between categories the user has already seen
+          // costs nothing.
+          const cached = this._cache.get(key);
+          if (cached) {
+            this._items.set(cached.items);
+            this._meta.set(cached.meta);
+            this._loading.set(false);
             return EMPTY;
           }
-          this._lastFetchKey = key;
+
+          this._pendingKey = key;
           this._loading.set(true);
           return publicSalonsControllerFindListing(this._http, this._apiConfig.rootUrl, {
             state: state || undefined,
@@ -84,10 +113,16 @@ export class SalonListingService {
         takeUntilDestroyed(),
       )
       .subscribe((res) => {
-        this._items.set(res.body.data ?? []);
-        this._meta.set(res.body.meta ?? null);
+        const items = res.body.data ?? [];
+        const meta = res.body.meta ?? null;
+        // Keyed by the filters that were live when the request STARTED —
+        // switchMap cancels superseded requests, so a fast toggle can only
+        // ever resolve the latest one, but reading _filters() here would
+        // still be the wrong source of truth.
+        this._cache.set(this._pendingKey, { items, meta });
+        this._items.set(items);
+        this._meta.set(meta);
         this._loading.set(false);
-        this._ttl.markFetched();
       });
 
     this._refetch$.next();
@@ -109,6 +144,29 @@ export class SalonListingService {
   setCategory(category: string): void {
     this._filters.update((f) => ({ ...f, category }));
     this._page.set(1);
+    this._refetch$.next();
+  }
+
+  /**
+   * Drops every cached page. Called by CacheRegistry on logout so one user's
+   * browse results never survive into another's session.
+   */
+  clear(): void {
+    this._cache.clear();
+  }
+
+  /**
+   * Forces a refetch of the current filters, bypassing the cache.
+   *
+   * Needed because there is no TTL: without this, a page cached early in the
+   * session would never update, and pull-to-refresh would appear to do
+   * nothing on the listing.
+   */
+  refresh(): void {
+    const { state, city, search, category } = this._filters();
+    this._cache.delete(
+      JSON.stringify({ state, city, search, category, page: this._page() }),
+    );
     this._refetch$.next();
   }
 

@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, signal, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, signal, OnInit, viewChild, ElementRef, Injector, afterNextRender } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -22,6 +22,7 @@ import { endAfterStart } from '../../../core/utils/time-range.validator';
 import { COUNTRIES } from '../../../core/geo/countries-states.data';
 import { CURRENCIES } from '../../../core/geo/currencies.data';
 import { CreateSalonDto } from '../../../api/models/create-salon-dto';
+import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -46,6 +47,11 @@ const TIMEZONES = [
   imports: [ReactiveFormsModule, FieldErrorComponent, InlineSpinnerComponent, TimePickerComponent],
 })
 export class CreateSalonComponent implements OnInit {
+  // The <form> element, so a blocked submit can scroll to the first
+  // invalid field — see scrollToFirstInvalidControl.
+  private readonly _formEl = viewChild<ElementRef<HTMLElement>>('formEl');
+  private readonly _scrollInjector = inject(Injector);
+
   private readonly _location = inject(Location);
   private readonly _router = inject(Router);
   private readonly _route = inject(ActivatedRoute);
@@ -167,6 +173,13 @@ export class CreateSalonComponent implements OnInit {
     if (this.saving()) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      // Deferred: markAllAsTouched only renders the error messages on the next
+      // change detection pass, and those messages shift layout — scrolling
+      // before they exist lands at the wrong offset.
+      afterNextRender(
+        () => scrollToFirstInvalidControl(this._formEl()?.nativeElement),
+        { injector: this._scrollInjector },
+      );
       return;
     }
     this.saving.set(true);

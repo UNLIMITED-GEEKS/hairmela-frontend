@@ -1,10 +1,11 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, viewChild, ElementRef, Injector, afterNextRender } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { EditProfileService } from './edit-profile.service';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { RoutePath } from '../../../core/routing/route-paths';
+import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
 
 @Component({
   selector: 'app-edit-profile',
@@ -12,6 +13,11 @@ import { RoutePath } from '../../../core/routing/route-paths';
   imports: [ReactiveFormsModule, RouterLink, FieldErrorComponent],
 })
 export class EditProfileComponent implements OnInit {
+  // The <form> element, so a blocked submit can scroll to the first
+  // invalid field — see scrollToFirstInvalidControl.
+  private readonly _formEl = viewChild<ElementRef<HTMLElement>>('formEl');
+  private readonly _scrollInjector = inject(Injector);
+
   private readonly _fb = inject(FormBuilder);
   protected readonly _currentUser = inject(CurrentUserStore);
   private readonly _editProfile = inject(EditProfileService);
@@ -40,6 +46,12 @@ export class EditProfileComponent implements OnInit {
   protected save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      // Deferred: markAllAsTouched only renders the error messages on the next
+      // change detection pass, and those messages shift layout.
+      afterNextRender(
+        () => scrollToFirstInvalidControl(this._formEl()?.nativeElement),
+        { injector: this._scrollInjector },
+      );
       return;
     }
     const { firstName, lastName, nickname, phone } = this.form.getRawValue();

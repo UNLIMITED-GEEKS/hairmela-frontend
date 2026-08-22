@@ -12,7 +12,7 @@
     </div>
 
     <!-- Form -->
-    <form [formGroup]="form" (ngSubmit)="save()" class="space-y-5">
+    <form #formEl [formGroup]="form" (ngSubmit)="save()" class="space-y-5">
 
       <!-- First Name -->
       <div>

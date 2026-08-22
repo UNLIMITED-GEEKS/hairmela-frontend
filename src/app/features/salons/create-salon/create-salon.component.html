@@ -10,7 +10,7 @@
       }
     </div>
 
-    <form [formGroup]="form" (ngSubmit)="save()" class="space-y-6">
+    <form #formEl [formGroup]="form" (ngSubmit)="save()" class="space-y-6">
 
       <!-- Name -->
       <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">

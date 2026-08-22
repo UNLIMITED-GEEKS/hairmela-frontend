@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, viewChild, ElementRef, Injector, afterNextRender } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { switchMap } from 'rxjs';
@@ -9,6 +9,7 @@ import { isApiError } from '../../../core/errors/api-error.types';
 import { RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 import { PasswordToggleDirective } from '../../../shared/directives/password-toggle.directive';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
 
 @Component({
   selector: 'app-register',
@@ -16,6 +17,11 @@ import { FieldErrorComponent } from '../../../shared/components/field-error/fiel
   templateUrl: './register.component.html',
 })
 export class RegisterComponent {
+  // The <form> element, so a blocked submit can scroll to the first
+  // invalid field — see scrollToFirstInvalidControl.
+  private readonly _formEl = viewChild<ElementRef<HTMLElement>>('formEl');
+  private readonly _scrollInjector = inject(Injector);
+
   private readonly _auth = inject(AuthService);
   private readonly _guestStore = inject(GuestStore);
   private readonly _router = inject(Router);
@@ -45,6 +51,12 @@ export class RegisterComponent {
     if (this.loading()) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      // Deferred: markAllAsTouched only renders the error messages on the next
+      // change detection pass, and those messages shift layout.
+      afterNextRender(
+        () => scrollToFirstInvalidControl(this._formEl()?.nativeElement),
+        { injector: this._scrollInjector },
+      );
       return;
     }
 

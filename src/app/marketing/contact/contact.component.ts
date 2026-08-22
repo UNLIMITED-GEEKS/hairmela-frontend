@@ -1,10 +1,11 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, viewChild, ElementRef, Injector, afterNextRender } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ToastService } from '../../core/toast/toast.service';
 import { FieldErrorComponent } from '../../shared/components/field-error/field-error.component';
 import { ApiConfiguration } from '../../api/api-configuration';
 import { contactControllerSubmit } from '../../api/fn/contact/contact-controller-submit';
+import { scrollToFirstInvalidControl } from '../../core/utils/scroll-to-first-invalid';
 
 // Public contact form — submits to POST /v1/contact.
 @Component({
@@ -13,6 +14,11 @@ import { contactControllerSubmit } from '../../api/fn/contact/contact-controller
   imports: [ReactiveFormsModule, FieldErrorComponent],
 })
 export class ContactComponent {
+  // The <form> element, so a blocked submit can scroll to the first
+  // invalid field — see scrollToFirstInvalidControl.
+  private readonly _formEl = viewChild<ElementRef<HTMLElement>>('formEl');
+  private readonly _scrollInjector = inject(Injector);
+
   private readonly _fb = inject(FormBuilder);
   private readonly _toast = inject(ToastService);
   private readonly _http = inject(HttpClient);
@@ -31,6 +37,12 @@ export class ContactComponent {
   protected submit(): void {
     if (this.form.invalid || this.submitting()) {
       this.form.markAllAsTouched();
+      // Deferred: markAllAsTouched only renders the error messages on the next
+      // change detection pass, and those messages shift layout.
+      afterNextRender(
+        () => scrollToFirstInvalidControl(this._formEl()?.nativeElement),
+        { injector: this._scrollInjector },
+      );
       return;
     }
 

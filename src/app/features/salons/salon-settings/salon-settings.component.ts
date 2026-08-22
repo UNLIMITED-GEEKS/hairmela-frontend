@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, signal, computed, OnInit, effect } from '@angular/core';
+import { Component, DestroyRef, inject, signal, computed, OnInit, effect, viewChild, ElementRef, Injector, afterNextRender } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -32,6 +32,7 @@ import { ErrorCodes } from '../../../core/errors/error-codes';
 import { COUNTRIES } from '../../../core/geo/countries-states.data';
 import { CURRENCIES } from '../../../core/geo/currencies.data';
 import { UpdateSalonDto } from '../../../api/models/update-salon-dto';
+import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const TIMEZONES = [
@@ -64,6 +65,11 @@ const TIMEZONES = [
   ],
 })
 export class SalonSettingsComponent implements OnInit {
+  // The <form> element, so a blocked submit can scroll to the first
+  // invalid field — see scrollToFirstInvalidControl.
+  private readonly _formEl = viewChild<ElementRef<HTMLElement>>('formEl');
+  private readonly _scrollInjector = inject(Injector);
+
   protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _fb = inject(FormBuilder);
@@ -240,6 +246,13 @@ export class SalonSettingsComponent implements OnInit {
   protected save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      // Deferred: markAllAsTouched only renders the error messages on the next
+      // change detection pass, and those messages shift layout — scrolling
+      // before they exist lands at the wrong offset.
+      afterNextRender(
+        () => scrollToFirstInvalidControl(this._formEl()?.nativeElement),
+        { injector: this._scrollInjector },
+      );
       return;
     }
 

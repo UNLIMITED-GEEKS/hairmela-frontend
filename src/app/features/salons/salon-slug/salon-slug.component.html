@@ -14,7 +14,7 @@
         This is the public link customers use to join your queue. Changing it will break any printed QR codes.
       </p>
 
-      <form [formGroup]="form" (ngSubmit)="save()" class="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
+      <form #formEl [formGroup]="form" (ngSubmit)="save()" class="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
 
         <div>
           <label for="slug" class="block text-sm font-medium text-gray-700 mb-1.5">Slug</label>

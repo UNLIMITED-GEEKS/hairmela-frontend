@@ -18,7 +18,7 @@
         </div>
       }
 
-      <form [formGroup]="form" (ngSubmit)="save()" [tierFreeze]="salonContext.isFrozen()" class="space-y-6">
+      <form #formEl [formGroup]="form" (ngSubmit)="save()" [tierFreeze]="salonContext.isFrozen()" class="space-y-6">
 
         <!-- Actions — sticky to the top of the page's scroll container
              (auth-shell's <main>), not fixed to the bottom, so it's always

@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, viewChild, ElementRef, Injector, afterNextRender } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -10,6 +10,7 @@ import { SalonsStore } from '../../../core/salon-context/salons.store';
 import { PersistentStore } from '../../../core/storage/persistent-store';
 import { LAST_SALON_KEY } from '../../../core/salon-context/salon-context.service';
 import { RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
+import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
 
 @Component({
   selector: 'app-login',
@@ -17,6 +18,11 @@ import { RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
   templateUrl: './login.component.html',
 })
 export class LoginComponent {
+  // The <form> element, so a blocked submit can scroll to the first
+  // invalid field — see scrollToFirstInvalidControl.
+  private readonly _formEl = viewChild<ElementRef<HTMLElement>>('formEl');
+  private readonly _scrollInjector = inject(Injector);
+
   private readonly _auth = inject(AuthService);
   private readonly _router = inject(Router);
   private readonly _route = inject(ActivatedRoute);
@@ -53,6 +59,12 @@ export class LoginComponent {
     if (this.loading()) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      // Deferred: markAllAsTouched only renders the error messages on the next
+      // change detection pass, and those messages shift layout.
+      afterNextRender(
+        () => scrollToFirstInvalidControl(this._formEl()?.nativeElement),
+        { injector: this._scrollInjector },
+      );
       return;
     }
 
