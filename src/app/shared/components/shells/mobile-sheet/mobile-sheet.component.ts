@@ -36,10 +36,12 @@ export class MobileSheetComponent {
 
   readonly isOwner = computed(() => this.membership()?.role === SalonRole.OWNER);
 
-  // Org-scoped, deliberately outside the "Salon Controls" block — see the
-  // matching comment in SidebarComponent for why a lapsed plan otherwise
-  // leaves an owner with no route to the billing page.
-  readonly ownedOrgId = computed(() => this._orgContext.ownedOrg()?.id ?? null);
+  // Org-scoped and owner-gated — see the matching comment in SidebarComponent
+  // for both why this sits outside "Salon Controls" and why the org id alone
+  // is not proof of ownership.
+  readonly billingOrgId = computed(() =>
+    this.isOwner() ? (this._orgContext.ownedOrg()?.id ?? null) : null,
+  );
 
   protected sheetItems(): NavItem[] {
     return this.navItems().filter((i) => i.sheet);

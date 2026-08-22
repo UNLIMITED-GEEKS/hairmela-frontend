@@ -139,17 +139,18 @@ export class SidebarComponent implements OnInit {
   readonly isOwner = computed(() => this.membership()?.role === SalonRole.OWNER);
 
   // Billing lives on the org, NOT the salon — deliberately kept out of the
-  // "Salon Controls" block above. That block only renders when there is an
-  // active salon AND a membership for it, and BOTH vanish when a plan lapses
-  // (expired trial / cancelled): the salons are hidden, so the owner lost the
-  // only route back to the page where they could pay. Sourced from
-  // OrgContextService instead, which is org-scoped and survives the lapse.
+  // "Salon Controls" block above, which needs an active salon and disappears
+  // when a lapsed plan hides the salons (the case where an owner most needs
+  // to reach billing).
   //
-  // Owner-only comes free: /organizations/mine only ever returns orgs this
-  // user OWNS, so staff and customers resolve to null and render nothing.
-  // That is also why this does not reuse isOwner() above — that is a
-  // salon-role check, and it goes away in exactly the lapsed case this fixes.
-  readonly ownedOrgId = computed(() => this._orgContext.ownedOrg()?.id ?? null);
+  // Gated on isOwner() because /organizations/mine returns orgs the user is
+  // ASSOCIATED with, not only ones they own — staff get their employer's org
+  // back, so the org id alone is not proof of ownership and was showing this
+  // link to staff. Returns the id (not a boolean) so the template can bind it
+  // with @if (...; as orgId).
+  readonly billingOrgId = computed(() =>
+    this.isOwner() ? (this._orgContext.ownedOrg()?.id ?? null) : null,
+  );
 
   readonly sidebarItems = computed(() => this.navItems().filter((i) => i.sidebar && !i.action));
 
