@@ -137,8 +137,12 @@
       }
     </div>
 
-    <!-- Cancel -->
-    @if (currentTier() > 0 && status() !== 'CANCELLED' && !isTrialing()) {
+    <!-- Cancel — hidden once a change is already scheduled (pendingTier), so
+         we never offer "Cancel plan" underneath a notice that already says the
+         plan is ending or moving tier at period end. pendingTier === 0 IS a
+         scheduled cancellation; cancelling a cancellation is meaningless, and
+         cancelling a scheduled downgrade here would silently discard it. -->
+    @if (currentTier() > 0 && status() !== 'CANCELLED' && !isTrialing() && pendingTier() === null) {
       <div class="mt-6 text-center">
         <button type="button" (click)="cancelPlan()"
           class="text-sm font-medium text-red-600 hover:text-red-800 transition-colors">
