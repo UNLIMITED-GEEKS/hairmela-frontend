@@ -17,13 +17,13 @@ import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.com
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { InstallPromptService } from '../../core/pwa/install-prompt.service';
 import { HowItWorksTab, RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
-import { RestoreListingScrollDirective } from '../../shared/directives/restore-listing-scroll.directive';
+import { ListingScrollMemoryDirective } from '../../shared/directives/listing-scroll-memory.directive';
 
 @Component({
   selector: 'app-landing',
   templateUrl: './landing.component.html',
   imports: [
-    RestoreListingScrollDirective,
+    ListingScrollMemoryDirective,
     RouterLink,
     SalonCardComponent,
     CategoryPillsComponent,

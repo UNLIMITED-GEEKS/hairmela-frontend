@@ -6,7 +6,6 @@ import { FavoritesService } from '../../../core/favorites/favorites.service';
 import { MediaUrlPipe } from '../../pipes/media-url.pipe';
 import { IconComponent } from '../icon/icon.component';
 import { RoutePath, RouteSegment, RouteQueryParam } from '../../../core/routing/route-paths';
-import { LastViewedSalonService, ListingSurface } from '../../../core/scroll/last-viewed-salon.service';
 
 // Shared salon "card" — identical shape used by the homepage listing and the
 // favourites page (FRONTEND-FAVORITES-LISTING-HANDOFF §3). Always links to the
@@ -21,19 +20,7 @@ import { LastViewedSalonService, ListingSurface } from '../../../core/scroll/las
   // default — the host itself must also stretch (block-level custom elements
   // don't inherit that height automatically) so the template's h-full <a>
   // actually has a full row-height box to fill.
-  // data-salon-id is what RestoreListingScrollDirective queries for when
-  // scrolling the last-opened salon back into view. On the HOST rather than
-  // the inner <a> so the element found is the card's full box.
-  host: {
-    'class': 'block h-full',
-    '[attr.data-salon-id]': 'salon().id',
-    // pointerdown, not click: the listing container is torn down and rebuilt
-    // while the page settles, and a click that starts on a card destroyed
-    // mid-gesture never completes — so the tap went unrecorded and the
-    // listing restored to whichever salon was opened first. pointerdown fires
-    // immediately on press, before any rebuild can steal the element.
-    '(pointerdown)': 'onCardClick()',
-  },
+  host: { class: 'block h-full' },
 })
 export class SalonCardComponent {
   readonly salon = input.required<SalonListingItemDto>();
@@ -54,19 +41,9 @@ export class SalonCardComponent {
    */
   readonly activeCategory = input<string>('');
 
-  /**
-   * Which listing this card belongs to. Set it wherever a return-to-listing
-   * scroll restore is wanted; left unset (the branch picker, for instance) the
-   * card records nothing and no restore happens.
-   *
-   * An input for the same reason activeCategory is: the card renders on
-   * several surfaces and must not guess which one it is on.
-   */
-  readonly surface = input<ListingSurface | null>(null);
 
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _favorites = inject(FavoritesService);
-  private readonly _lastViewed = inject(LastViewedSalonService);
 
   // Fallback photo for salons with no uploaded image — drop the file at
   // public/salon-placeholder.jpg (served at the site root, no import needed).
@@ -92,17 +69,6 @@ export class SalonCardComponent {
     return category ? { [RouteQueryParam.CATEGORY]: category } : {};
   });
 
-  // Recorded on the way out so returning to the listing can scroll this card
-  // back into view. Fires on the host click, which covers the whole card
-  // (including the photo and the name bar), not just the anchor text.
-  //
-  // The favourite heart calls stopPropagation(), so favouriting a salon does
-  // NOT record it here — only a tap that actually opens the salon does.
-  protected onCardClick(): void {
-    const surface = this.surface();
-    if (!surface) return;
-    this._lastViewed.record(surface, this.salon().id);
-  }
 
   // branchCount is nullable on the wire, so fall back to a count-free label
   // rather than rendering a badge with a blank number in it.

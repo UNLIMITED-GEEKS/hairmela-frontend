@@ -19,7 +19,7 @@ import { InstallPromptService } from '../../core/pwa/install-prompt.service';
 import { CreateSalonCardComponent } from '../../shared/components/create-salon-card/create-salon-card.component';
 import { RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
 import { AppPlatformService } from '../../core/native/app-platform.service';
-import { RestoreListingScrollDirective } from '../../shared/directives/restore-listing-scroll.directive';
+import { ListingScrollMemoryDirective } from '../../shared/directives/listing-scroll-memory.directive';
 
 // Local-time greeting. Boundaries follow common usage: morning until noon,
 // afternoon until 17:00, evening after.
@@ -33,7 +33,7 @@ function timeOfDayGreeting(hour: number): string {
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
   imports: [
-    RestoreListingScrollDirective,
+    ListingScrollMemoryDirective,
     RouterLink,
     SkeletonComponent,
     PendingInvitesComponent,

@@ -10,13 +10,13 @@ import { CategoriesService } from '../../core/categories/categories.service';
 import { FavoritesService } from '../../core/favorites/favorites.service';
 import { CurrentUserStore } from '../../core/auth/current-user.store';
 import { RouteQueryParam } from '../../core/routing/route-paths';
-import { RestoreListingScrollDirective } from '../../shared/directives/restore-listing-scroll.directive';
+import { ListingScrollMemoryDirective } from '../../shared/directives/listing-scroll-memory.directive';
 
 @Component({
   selector: 'app-search',
   templateUrl: './search.component.html',
   imports: [
-    RestoreListingScrollDirective,IconComponent, SalonCardComponent, CategoryPillsComponent, PaginationComponent, SkeletonComponent],
+    ListingScrollMemoryDirective,IconComponent, SalonCardComponent, CategoryPillsComponent, PaginationComponent, SkeletonComponent],
 })
 export class SearchComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);

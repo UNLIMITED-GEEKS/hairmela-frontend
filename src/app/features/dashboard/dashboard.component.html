@@ -75,10 +75,10 @@
       </div>
     } @else {
       <div class="flex gap-3 overflow-x-auto themed-scrollbar no-scrollbar-mobile pb-6"
-        appRestoreListingScroll surface="dashboard" [items]="listing.items()">
+        appListingScrollMemory surface="dashboard" [items]="listing.items()">
         @for (salon of listing.items(); track salon.id) {
           <div class="shrink-0 w-[65%] xs:w-[55%] sm:w-[38%] md:w-[22%] h-64 md:h-64">
-            <app-salon-card [salon]="salon" [activeCategory]="listing.filters().category" surface="dashboard" />
+            <app-salon-card [salon]="salon" [activeCategory]="listing.filters().category" />
           </div>
         }
       </div>
