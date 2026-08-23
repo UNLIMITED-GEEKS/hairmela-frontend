@@ -32,10 +32,31 @@ export class LastViewedSalonService {
     this._lastViewed.set({ surface, salonId });
   }
 
-  /** The salon to restore for this surface, or null if it wasn't the one. */
+  /**
+   * The salon to restore for this surface, or null if it wasn't the one.
+   *
+   * Reads WITHOUT consuming, for callers that only need to look. Restoring
+   * code should use consumeFor() instead — see the note there.
+   */
   forSurface(surface: ListingSurface): string | null {
     const last = this._lastViewed();
     return last && last.surface === surface ? last.salonId : null;
+  }
+
+  /**
+   * Takes the pending restore for this surface, clearing it so it cannot fire
+   * again.
+   *
+   * A restore is a ONE-SHOT instruction: "the user just came back, put this
+   * card in view". Leaving it set made it standing state instead, and the
+   * listing re-scrolled on every later change to the list — which the user
+   * experiences as the strip fighting them, snapping back while they are
+   * scrolling it by hand.
+   */
+  consumeFor(surface: ListingSurface): string | null {
+    const salonId = this.forSurface(surface);
+    if (salonId) this._lastViewed.set(null);
+    return salonId;
   }
 
   // The scroll offset that put the recorded card in view. Held here rather

@@ -37,7 +37,7 @@
            single row under 4 results, since a sparse/empty second row isn't
            worth it. -->
       <div class="md:hidden"
-        appRestoreListingScroll surface="search" [ready]="listing.items().length">
+        appRestoreListingScroll surface="search" [items]="listing.items()">
         @if (useSingleRow()) {
           <div class="flex gap-3 overflow-x-auto themed-scrollbar no-scrollbar-mobile pb-2">
             @for (salon of listing.items(); track salon.id) {
@@ -66,7 +66,7 @@
 
       <!-- Desktop: plain 4-column grid, no horizontal scroll. -->
       <div class="hidden md:grid md:grid-cols-4 gap-4"
-        appRestoreListingScroll surface="search" [ready]="listing.items().length">
+        appRestoreListingScroll surface="search" [items]="listing.items()">
         @for (salon of listing.items(); track salon.id) {
           <div class="h-64">
             <app-salon-card [salon]="salon" [activeCategory]="listing.filters().category" surface="search" />

@@ -17,7 +17,7 @@
       </div>
     } @else {
       <div class="grid grid-cols-1 sm:grid-cols-4 gap-4"
-        appRestoreListingScroll surface="favorites" [ready]="favorites.list().length">
+        appRestoreListingScroll surface="favorites" [items]="favorites.list()">
         @for (salon of favorites.list(); track salon.id) {
           <div class="h-64">
             <app-salon-card [salon]="salon" [showStreet]="true" surface="favorites" />

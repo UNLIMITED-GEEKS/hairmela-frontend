@@ -14,6 +14,24 @@ const fakeSocket = {
   disconnect: vi.fn(),
 };
 
+// FIXME: this spec fails intermittently (~1 run in 6) in the FULL suite, while
+// passing every time in isolation. Failures show as "Number of calls: 0" on
+// fakeSocket.emit across most tests at once, which means connect() stored a
+// REAL socket.io client instead of the fake below — i.e. this vi.mock did not
+// apply for that run.
+//
+// vi.mock is hoisted and module-scoped: whichever spec file loads
+// socket.io-client FIRST in a shared Vitest worker wins for the whole worker.
+// Any other spec that transitively imports QueueSocketService (via
+// SalonVisitService, for instance) can therefore win the race and leave this
+// file's mock inert. Declaring the same mock in the other file was tried and
+// did not fix it.
+//
+// The service itself is not suspected — only the test isolation. Likely fixes:
+// move this mock into a shared Vitest setup file so it applies worker-wide
+// regardless of load order, or give this spec its own worker (isolate/threads
+// config). Until then, a failure here is very likely THIS bug rather than a
+// regression: re-run the suite before investigating.
 vi.mock('socket.io-client', () => ({
   io: () => fakeSocket,
 }));

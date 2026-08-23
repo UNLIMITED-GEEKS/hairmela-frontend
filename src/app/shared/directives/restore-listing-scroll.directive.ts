@@ -9,163 +9,230 @@ import {
 } from '@angular/core';
 import { LastViewedSalonService, ListingSurface } from '../../core/scroll/last-viewed-salon.service';
 
+/** How far past a container edge still counts as "inside" it. */
+const EDGE_TOLERANCE_PX = 2;
+/** Gap left above a revealed row so it does not sit flush against the edge. */
+const REVEAL_MARGIN_PX = 16;
+
+interface Axis {
+  readonly overflow: 'overflowX' | 'overflowY';
+  readonly scrollSize: 'scrollWidth' | 'scrollHeight';
+  readonly clientSize: 'clientWidth' | 'clientHeight';
+  readonly start: 'left' | 'top';
+  readonly end: 'right' | 'bottom';
+}
+
+const HORIZONTAL: Axis = {
+  overflow: 'overflowX',
+  scrollSize: 'scrollWidth',
+  clientSize: 'clientWidth',
+  start: 'left',
+  end: 'right',
+};
+
+const VERTICAL: Axis = {
+  overflow: 'overflowY',
+  scrollSize: 'scrollHeight',
+  clientSize: 'clientHeight',
+  start: 'top',
+  end: 'bottom',
+};
+
 /**
  * Scrolls the salon card the user last opened back into view when they return
  * to a listing. Put it on the element that CONTAINS the cards:
  *
- *   <div class="grid ..." appRestoreListingScroll surface="search" [ready]="listing.items().length">
+ *   <div class="grid ..."
+ *        appRestoreListingScroll
+ *        surface="search"
+ *        [items]="listing.items()">
  *
- * One directive covers every listing because scrollIntoView with
- * block/inline: 'nearest' resolves the axis itself — it scrolls whichever
- * ancestor actually overflows and leaves an axis alone when the element is
- * already visible on it. That matters here: search is a horizontal strip on
- * mobile and a vertical grid on desktop, and its mobile layout further splits
- * results across two rows. None of that needs to be known at this level.
+ * One directive covers every listing because two axes are handled explicitly:
+ * the card is brought into view within its horizontal strip (search on mobile,
+ * the landing and dashboard rows) AND within the page's own vertical scroller
+ * (the auth/guest shells scroll an inner <main>, not the window, so the
+ * router's own scroll restoration cannot reach it).
  *
- * `ready` exists because the cards usually do not exist yet at mount — the
- * listing may still be resolving from cache or a fetch. Passing the item count
- * lets the effect wait for a non-zero render before measuring, the same way
- * the category pills wait for their categories to load.
+ * Nothing moves when the card is already in view — a listing that repositions
+ * itself under a user who can already see what they came back for is worse
+ * than one that does nothing.
  */
 @Directive({
   selector: '[appRestoreListingScroll]',
 })
 export class RestoreListingScrollDirective {
   readonly surface = input.required<ListingSurface>();
-  /** Item count — any change re-checks; a non-zero value means cards exist. */
-  readonly ready = input<number>(0);
+
+  /**
+   * The rendered list. Passed as the array itself, not a count: the effect
+   * needs a dependency that genuinely changes when the list does, and a plain
+   * number silently disables the whole feature if a caller ever passes a
+   * constant.
+   */
+  readonly items = input.required<readonly { id: string }[]>();
 
   private readonly _host = inject(ElementRef<HTMLElement>);
   private readonly _injector = inject(Injector);
   private readonly _lastViewed = inject(LastViewedSalonService);
 
-  // The id we last scrolled to, NOT a boolean "have we restored".
-  //
-  // A boolean latched for the lifetime of the directive, and Angular REUSES a
-  // routed component instance across back-navigation rather than recreating
-  // it — so after the first restore the flag stayed true and every later
-  // return was ignored, leaving the user looking at the first salon they ever
-  // opened. Keying on the id means a newly-opened salon is always a fresh
-  // restore, while a repeat of the same id (pagination, a filter edit, any
-  // other items() change) correctly does nothing.
   // No per-instance "have we restored" state: the container is destroyed and
-  // rebuilt several times while the page settles, so a fresh directive with
-  // empty state is the norm, not the exception. The achieved scroll offset
-  // lives on LastViewedSalonService instead, which outlives every rebuild.
-
+  // rebuilt many times while a page settles (the dashboard rebuilt it ~14
+  // times in one browsing session), so a fresh directive with empty state is
+  // the norm, not the exception. The achieved scroll offset lives on
+  // LastViewedSalonService, which outlives every rebuild.
   constructor() {
     effect(() => {
-      const count = this.ready();
+      const items = this.items();
       const surface = this.surface();
-      if (count === 0) return;
+      if (items.length === 0) return;
 
       const salonId = this._lastViewed.forSurface(surface);
       if (!salonId) return;
 
-      afterNextRender(() => this._apply(salonId, surface), { injector: this._injector });
+      afterNextRender(
+        () => {
+          const card = this._findCard(salonId);
+          // Cards not rendered yet — leave the restore pending for the render
+          // that has them, rather than spending it on an empty container.
+          if (!card) return;
+
+          // A restore is a ONE-SHOT instruction: "the user just came back, put
+          // this card in view". Consuming it here is what stops it becoming
+          // standing state — left set, it re-fired on every later change to
+          // the list and yanked the strip back while the user was scrolling it
+          // by hand.
+          //
+          // The remembered OFFSET is deliberately not cleared with it: the
+          // container is rebuilt several times as a page settles, and this
+          // directive is recreated with it, so _apply still needs to correct a
+          // freshly-rebuilt strip back to where the restore put it. That path
+          // only touches a strip sitting at scrollLeft 0 (see _restoreStrip),
+          // so it cannot interfere with a user who has scrolled since.
+          this._lastViewed.consumeFor(surface);
+          this._apply(salonId, surface);
+        },
+        { injector: this._injector },
+      );
     });
   }
 
   private _apply(salonId: string, surface: ListingSurface): void {
-    const host = this._host.nativeElement as HTMLElement;
-    const card = Array.from(host.querySelectorAll<HTMLElement>('[data-salon-id]')).find(
-      (el) => el.dataset['salonId'] === salonId,
-    );
-    if (!card) {
-      return;
+    const card = this._findCard(salonId);
+    if (!card) return;
+
+    const strip = this._scrollParent(card, HORIZONTAL);
+    if (strip) {
+      this._restoreStrip(card, strip, salonId, surface);
+    } else if (!this._isInView(card, HORIZONTAL)) {
+      card.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'auto' });
     }
 
-    const scroller = this._scrollParent(card);
-    if (!scroller) {
-      if (!this._isFullyVisible(card)) {
-        card.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'auto' });
-      }
-      return;
-    }
+    // Always considered, whatever happened horizontally: being in view WITHIN
+    // a strip says nothing about whether that strip is on screen at all, and
+    // on a long page the row is usually below the fold.
+    this._reveal(card, VERTICAL);
+  }
 
-    // A rebuilt container starts at 0 with the same content and geometry, so a
-    // previously-achieved offset is still exactly right. Re-applying it is
-    // both cheaper and more reliable than re-deriving it via scrollIntoView on
-    // an element that may be replaced again a frame later.
-    // Re-apply the offset that previously put THIS salon's card in view. Only
-    // a fresh container (scrollLeft 0) is a rebuild worth correcting; a user
-    // who has since scrolled somewhere else is left alone.
+  /**
+   * Brings the card into view within its horizontal strip, and records the
+   * offset that achieved it.
+   *
+   * The offset is recorded ONLY when an actual scroll computed it. This method
+   * also runs at tap time, when the card is by definition already visible and
+   * the strip is simply wherever the user left it — recording that would
+   * overwrite a good offset with an arbitrary one, and the same salon would
+   * remember a different position after every tap.
+   */
+  private _restoreStrip(
+    card: HTMLElement,
+    strip: HTMLElement,
+    salonId: string,
+    surface: ListingSurface,
+  ): void {
+    // A rebuilt strip starts at 0 with identical content and geometry, so a
+    // previously-achieved offset is still exactly right — and re-applying it
+    // is more reliable than re-deriving it on an element that may be replaced
+    // again a frame later. A strip the user has since scrolled is left alone.
     const remembered = this._lastViewed.offsetFor(surface, salonId);
-    if (remembered && scroller.scrollLeft === 0 && remembered.left > 0) {
-      scroller.scrollLeft = remembered.left;
-      if (remembered.top > 0) scroller.scrollTop = remembered.top;
-      // Deliberately NOT returning: fall through and verify the card really is
-      // in view now. A remembered offset can be stale if the list changed
-      // (a salon added, removed, or reordered), and returning here would trust
-      // it blindly.
+    if (remembered && strip.scrollLeft === 0 && remembered.left > 0) {
+      strip.scrollLeft = remembered.left;
+      if (remembered.top > 0) strip.scrollTop = remembered.top;
+      // Falls through to the check below rather than trusting the offset: it
+      // can be stale if the list changed (a salon added, removed, reordered).
     }
 
-    if (this._isFullyVisible(card)) {
-      // Deliberately does NOT save the offset here. This branch runs on the
-      // TAP as well as on the return, and at tap time scrollLeft is simply
-      // wherever the user happened to be — saving it overwrote the good offset
-      // with an arbitrary one, and the same salon ended up with a different
-      // "remembered" position every time it was tapped.
-      return;
-    }
+    if (this._isInView(card, HORIZONTAL)) return;
 
     card.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'auto' });
-    // Only a position we actually COMPUTED is worth remembering — it is the
-    // one that genuinely brings this card into view, so a rebuilt container
-    // can be corrected back to it.
-    this._lastViewed.rememberOffset(surface, salonId, scroller.scrollLeft, scroller.scrollTop);
+    this._lastViewed.rememberOffset(surface, salonId, strip.scrollLeft, strip.scrollTop);
   }
 
-  // Visibility is judged against the element that actually SCROLLS, not the
-  // window. These cards usually sit in an overflow-x-auto strip: a card can be
-  // scrolled out of that strip while still inside the viewport box, and a
-  // card at viewport-x 1472 may be perfectly in view once the strip's own
-  // scrollLeft is taken into account. Measuring against the window produced
-  // exactly that contradiction — the same card read as "fully visible" and
-  // "needs scrolling" depending on which container it was measured in.
-  private _isFullyVisible(el: HTMLElement): boolean {
-    const rect = el.getBoundingClientRect();
+  /** Scrolls the card into view on one axis, if it is not already. */
+  private _reveal(card: HTMLElement, axis: Axis): void {
+    if (this._isInView(card, axis)) return;
 
-    // Walk up to the nearest actually-scrollable ancestor, if any.
-    const scroller = this._scrollParent(el);
-    if (scroller) {
-      const box = scroller.getBoundingClientRect();
-      // TOLERANCE is essential, not defensive. getBoundingClientRect returns
-      // fractional pixels, and the LAST card in a strip sits flush against the
-      // container edge once scrollLeft is maxed out — so an exact
-      // `rect.right <= box.right` fails by a fraction of a pixel and the card
-      // is judged "not visible" even though it is perfectly in place. That
-      // made the re-apply loop run to exhaustion on the final card while
-      // scrollLeft never actually moved.
-      const T = 2;
-      return (
-        rect.top >= box.top - T &&
-        rect.bottom <= box.bottom + T &&
-        rect.left >= box.left - T &&
-        rect.right <= box.right + T
-      );
+    const scroller = this._scrollParent(card, axis);
+    const rect = card.getBoundingClientRect();
+
+    if (!scroller) {
+      window.scrollBy({ top: rect.top - REVEAL_MARGIN_PX, behavior: 'auto' });
+      return;
     }
 
-    const T = 2;
-    const viewportH = window.innerHeight || 0;
-    const viewportW = window.innerWidth || 0;
+    const box = scroller.getBoundingClientRect();
+    scroller.scrollTop += rect[axis.start] - box[axis.start] - REVEAL_MARGIN_PX;
+  }
+
+  private _findCard(salonId: string): HTMLElement | null {
+    const host = this._host.nativeElement as HTMLElement;
+    // Matched on the dataset rather than via a selector built by string
+    // concatenation: salon ids come from the server, and CSS.escape is absent
+    // in some environments (jsdom, older WebViews) so it cannot be relied on
+    // to make a concatenated selector safe.
     return (
-      rect.top >= -T &&
-      rect.bottom <= viewportH + T &&
-      rect.left >= -T &&
-      rect.right <= viewportW + T
+      Array.from(host.querySelectorAll<HTMLElement>('[data-salon-id]')).find(
+        (el) => el.dataset['salonId'] === salonId,
+      ) ?? null
     );
   }
 
-  /** Nearest ancestor that can actually scroll on either axis, else null. */
-  private _scrollParent(el: HTMLElement): HTMLElement | null {
+  /**
+   * Whether the card sits inside its scroll container on the given axis,
+   * falling back to the viewport when nothing scrolls on that axis.
+   *
+   * Measured against the CONTAINER, not the window: a card scrolled out of a
+   * horizontal strip can still be within the viewport box, and vice versa.
+   * Measuring against the window made the same card read as both "visible"
+   * and "needs scrolling" depending on which container it was measured in.
+   *
+   * The tolerance is essential, not defensive. getBoundingClientRect returns
+   * fractional pixels, and the LAST card in a strip sits flush against the
+   * container edge once scroll is maxed out — so an exact comparison fails by
+   * a fraction of a pixel and that card can never be judged visible.
+   */
+  private _isInView(el: HTMLElement, axis: Axis): boolean {
+    const rect = el.getBoundingClientRect();
+    const scroller = this._scrollParent(el, axis);
+    const T = EDGE_TOLERANCE_PX;
+
+    if (scroller) {
+      const box = scroller.getBoundingClientRect();
+      return rect[axis.start] >= box[axis.start] - T && rect[axis.end] <= box[axis.end] + T;
+    }
+
+    const viewportEnd = axis === VERTICAL ? window.innerHeight || 0 : window.innerWidth || 0;
+    return rect[axis.start] >= -T && rect[axis.end] <= viewportEnd + T;
+  }
+
+  /** Nearest ancestor that actually scrolls on the given axis, else null. */
+  private _scrollParent(el: HTMLElement, axis: Axis): HTMLElement | null {
     let node = el.parentElement;
     while (node && node !== document.body) {
-      const canScrollX = node.scrollWidth > node.clientWidth;
-      const canScrollY = node.scrollHeight > node.clientHeight;
-      if (canScrollX || canScrollY) {
-        const style = getComputedStyle(node);
-        const overflow = style.overflowX + style.overflowY;
+      // Size check first — a cheap property read. Skipping getComputedStyle
+      // for the many non-scrolling ancestors keeps this walk off the
+      // forced-reflow path.
+      if (node[axis.scrollSize] > node[axis.clientSize]) {
+        const overflow = getComputedStyle(node)[axis.overflow];
         if (/(auto|scroll|overlay)/.test(overflow)) return node;
       }
       node = node.parentElement;

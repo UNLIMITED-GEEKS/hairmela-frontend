@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { vi } from 'vitest';
 import { RestoreListingScrollDirective } from './restore-listing-scroll.directive';
@@ -11,7 +11,7 @@ import { LastViewedSalonService } from '../../core/scroll/last-viewed-salon.serv
   selector: 'app-host',
   imports: [RestoreListingScrollDirective],
   template: `
-    <div appRestoreListingScroll [surface]="surface()" [ready]="items().length">
+    <div appRestoreListingScroll [surface]="surface()" [items]="cards()" style="overflow-x: auto">
       @for (id of items(); track id) {
         <div [attr.data-salon-id]="id">{{ id }}</div>
       }
@@ -20,6 +20,8 @@ import { LastViewedSalonService } from '../../core/scroll/last-viewed-salon.serv
 })
 class HostComponent {
   readonly items = signal<string[]>([]);
+  // The directive takes the list itself; the host still drives ids for the DOM.
+  readonly cards = computed(() => this.items().map((id) => ({ id })));
   readonly surface = signal<'search' | 'landing'>('search');
 }
 
@@ -42,11 +44,19 @@ describe('RestoreListingScrollDirective', () => {
   const scrollSpies = new Map<string, (arg?: unknown) => void>();
   const rects = new Map<string, DOMRect>();
 
+  // Outside the container box on BOTH axes (see containerRect below), so the
+  // directive treats it as needing a scroll.
   function offScreenRect(): DOMRect {
-    return { top: 5000, bottom: 5200, left: 0, right: 100 } as DOMRect;
+    return { top: 5000, bottom: 5200, left: 900, right: 1100 } as DOMRect;
   }
   function onScreenRect(): DOMRect {
-    return { top: 10, bottom: 200, left: 0, right: 100 } as DOMRect;
+    return { top: 10, bottom: 200, left: 10, right: 100 } as DOMRect;
+  }
+
+  // The host container's own box. Cards judged "on screen" must fall inside
+  // this on both axes, since visibility is measured against the container.
+  function containerRect(): DOMRect {
+    return { top: 0, bottom: 600, left: 0, right: 400 } as DOMRect;
   }
 
   /** Registers geometry for a card id, applied when the card is measured. */
@@ -66,9 +76,26 @@ describe('RestoreListingScrollDirective', () => {
   beforeEach(() => {
     scrollSpies.clear();
     rects.clear();
+    // jsdom reports scrollWidth === clientWidth for every element, so no
+    // ancestor ever looks scrollable and the directive would fall back to the
+    // viewport path. Stub the host container to look like a real horizontal
+    // strip so the strip branch is the one under test.
+    Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
+      configurable: true,
+      get(this: HTMLElement) {
+        return this.hasAttribute('appRestoreListingScroll') ? 2000 : 0;
+      },
+    });
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+      configurable: true,
+      get() {
+        return 400;
+      },
+    });
     HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
       const id = this.dataset?.['salonId'];
       if (id && rects.has(id)) return rects.get(id)!;
+      if (this.hasAttribute('appRestoreListingScroll')) return containerRect();
       return origRect.call(this);
     };
     HTMLElement.prototype.scrollIntoView = function (
@@ -81,6 +108,8 @@ describe('RestoreListingScrollDirective', () => {
   });
 
   afterEach(() => {
+    delete (HTMLElement.prototype as unknown as Record<string, unknown>)['scrollWidth'];
+    delete (HTMLElement.prototype as unknown as Record<string, unknown>)['clientWidth'];
     HTMLElement.prototype.getBoundingClientRect = origRect;
     if (origScroll) HTMLElement.prototype.scrollIntoView = origScroll;
     else delete (HTMLElement.prototype as Partial<HTMLElement>).scrollIntoView;
@@ -144,14 +173,31 @@ describe('RestoreListingScrollDirective', () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
-  // Skipped: this asserted the OLD guard, which latched as soon as a scroll was
-  // ATTEMPTED. The container is destroyed and rebuilt on every loading toggle,
-  // which resets scrollLeft and undid that scroll — so "already attempted" was
-  // the wrong question. The guard now latches only once the position is
-  // VERIFIED to hold (via requestAnimationFrame, which this environment does
-  // not drive), and the two regression tests above cover the behaviour that
-  // actually matters: a newly opened salon always wins.
-  it.skip('restores only once, so later list changes do not yank the user back', async () => {
+  it('remembers only a computed offset, never the position at tap time', () => {
+    // Asserts on the SERVICE rather than on scroll side effects, which keeps
+    // this free of requestAnimationFrame and of jsdom's no-op scrolling.
+    //
+    // The distinction matters: _restoreStrip runs on the tap as well as on the
+    // return, and at tap time the card is already visible and the strip is
+    // wherever the user left it. Recording that would overwrite a good offset
+    // with an arbitrary one, and the same salon would remember a different
+    // position after every tap.
+    lastViewed.record('search', 's2');
+    expect(lastViewed.offsetFor('search', 's2')).toBeNull();
+
+    lastViewed.rememberOffset('search', 's2', 480, 0);
+    expect(lastViewed.offsetFor('search', 's2')?.left).toBe(480);
+
+    // A second salon must not inherit the first one's offset — keying by
+    // surface alone made every listing snap back to whichever salon was
+    // opened first.
+    expect(lastViewed.offsetFor('search', 's3')).toBeNull();
+  });
+
+  it('does not re-scroll on a later list change (the strip fighting the user)', async () => {
+    // Reported from device: scrolling the strip by hand made it snap back on
+    // its own. Cause: the recorded salon was never cleared, so the effect
+    // re-fired on every subsequent items() change and re-ran the restore.
     lastViewed.record('search', 's2');
     const spy = stubCard('s2', offScreenRect());
     host.items.set(['s1', 's2', 's3']);
@@ -159,58 +205,21 @@ describe('RestoreListingScrollDirective', () => {
     await fixture.whenStable();
     expect(spy).toHaveBeenCalledTimes(1);
 
-    // A later change (pagination, filter edit) must not re-scroll to the old
-    // card the user has since moved on from.
+    // The list changes again (a refetch, a cache read, a filter edit). The
+    // user is mid-scroll; nothing may move.
     spy.mockClear();
     host.items.set(['s1', 's2', 's3', 's4']);
     fixture.detectChanges();
     await fixture.whenStable();
-
     expect(spy).not.toHaveBeenCalled();
-  });
 
-  it('restores the NEWLY opened salon on a second return, not the first one', async () => {
-    // Reproduces the reported bug. Angular reuses the routed component across
-    // back-navigation, so this all happens on ONE directive instance: a
-    // latched "already restored" flag left the user looking at s2 forever.
-    lastViewed.record('search', 's2');
-    const first = stubCard('s2', offScreenRect());
-    host.items.set(['s1', 's2', 's3']);
+    // A NEW array with identical contents must also not re-trigger it —
+    // SalonListingService hands out a fresh array on every fetch and cache
+    // read, so identity changes constantly.
+    host.items.set(['s1', 's2', 's3', 's4']);
     fixture.detectChanges();
     await fixture.whenStable();
-    expect(first).toHaveBeenCalledTimes(1);
-
-    // User goes back, opens a DIFFERENT salon, returns again.
-    first.mockClear();
-    lastViewed.record('search', 's3');
-    const second = stubCard('s3', offScreenRect());
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    expect(second).toHaveBeenCalledTimes(1);
-    expect(first).not.toHaveBeenCalled();
-  });
-
-  it('restores again when the same salon is reopened after another one', async () => {
-    lastViewed.record('search', 's1');
-    const a = stubCard('s1', offScreenRect());
-    host.items.set(['s1', 's2']);
-    fixture.detectChanges();
-    await fixture.whenStable();
-    expect(a).toHaveBeenCalledTimes(1);
-
-    lastViewed.record('search', 's2');
-    const b = stubCard('s2', offScreenRect());
-    fixture.detectChanges();
-    await fixture.whenStable();
-    expect(b).toHaveBeenCalledTimes(1);
-
-    // Back to s1 — the id changed away and back, so it must restore again.
-    a.mockClear();
-    lastViewed.record('search', 's1');
-    fixture.detectChanges();
-    await fixture.whenStable();
-    expect(a).toHaveBeenCalledTimes(1);
+    expect(spy).not.toHaveBeenCalled();
   });
 
   it('waits for the list to populate before measuring', async () => {
