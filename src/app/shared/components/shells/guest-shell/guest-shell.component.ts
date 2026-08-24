@@ -42,6 +42,14 @@ export class GuestShellComponent implements OnInit, AfterViewInit, OnDestroy {
 
   protected readonly navItems: NavItem[] = [
     {
+      label: 'Search',
+      icon: 'search',
+      url: RoutePath.guestSearch()[0],
+      bottomNav: true,
+      sidebar: true,
+      sheet: true,
+    },
+    {
       label: 'My History',
       icon: 'queue',
       url: RoutePath.guestQueues()[0],

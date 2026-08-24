@@ -240,6 +240,25 @@ export class SalonVisitService implements Clearable {
     return (settings?.['showPrice'] as boolean) ?? false;
   });
 
+  /**
+   * Whether this salon requires a booking fee before joining or booking.
+   *
+   * Read from the already-loaded salon settings rather than the quote
+   * endpoint, because the dialogs need it BEFORE the customer acts — it is
+   * what decides whether their button says "Next" (a payment step follows) or
+   * submits straight away. The quote itself is only fetched once they commit.
+   *
+   * The quote's own `enforced` flag stays authoritative for whether payment is
+   * actually required; this is the cheap up-front hint.
+   */
+  readonly enforcesBookingFee = computed(() => {
+    const settings = this.salon()?.settings as Record<string, unknown> | undefined;
+    return (settings?.['enforceBookingFee'] as boolean) ?? false;
+  });
+
+  /** Where customers should send a booking fee. Null when unconfigured. */
+  readonly paymentDetails = computed(() => this.salon()?.paymentDetails ?? null);
+
   /** The live timeline entry for a specific entryId (the position page's entry). */
   myEntry(entryId: string): TimelineEntryDto | null {
     return this.timeline().find((e) => e.entryId === entryId) ?? null;
@@ -658,6 +677,9 @@ export class SalonVisitService implements Clearable {
     // booking-level free text field, not a comment. Fired after the entry
     // exists; never blocks or fails the booking.
     note?: PostCommentInput,
+    // Proof the booking fee was paid, for salons that enforce one. Trailing
+    // and optional so existing callers are unchanged.
+    receiptVerificationId?: string,
   ): void {
     if (this.booking()) return;
     this.booking.set(true);
@@ -666,6 +688,7 @@ export class SalonVisitService implements Clearable {
       startTime,
       members: members.map((m) => ({ memberName: m.name.trim(), serviceId: m.serviceId })),
       notes,
+      receiptVerificationId,
     };
 
     bookingControllerBookAppointment(this._http, this._apiConfig.rootUrl, {

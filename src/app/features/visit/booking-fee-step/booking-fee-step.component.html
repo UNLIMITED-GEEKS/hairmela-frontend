@@ -1,0 +1,180 @@
+<div class="space-y-4">
+  <!-- `!quote()` and not just fee.quoting(): the quote is kicked off by an
+       effect AFTER this renders, so for the first frame nothing is in flight
+       yet and every branch below would be false — a blank panel exactly where
+       the customer just tapped Next. Treating "no quote yet, no error" as
+       loading covers that frame and any gap before a retry starts. -->
+  @if (!quote() && !quoteFailed()) {
+    <div class="py-8 flex flex-col items-center gap-2">
+      <app-inline-spinner sizeClass="w-5 h-5" label="Checking booking fee" />
+      <p class="text-sm text-text-secondary">Checking the booking fee…</p>
+    </div>
+  } @else if (quoteFailed()) {
+    <div class="py-6 text-center space-y-3">
+      <p class="text-sm text-text-secondary">Couldn't check the booking fee.</p>
+      <button type="button" (click)="retryQuote()"
+        class="min-h-11 px-4 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+        Try again
+      </button>
+    </div>
+  } @else if (quote(); as q) {
+    <!-- The amount is rendered exactly as the server gave it. Never recompute
+         it here: the receipt check recalculates from the same service rows,
+         and a second implementation is the only way they could disagree. -->
+    <div class="rounded-2xl bg-secondary-light px-4 py-4 text-center">
+      <p class="text-xs font-medium text-gray-500">Booking fee</p>
+      <p class="mt-1 text-2xl font-bold text-gray-900">{{ amountLabel() }}</p>
+      <p class="mt-1 text-xs text-gray-500">{{ basisLabel() }}</p>
+    </div>
+
+    <!-- Where to send it. Paid directly to the salon — this app never handles
+         the money, so the details have to be visible and copyable. -->
+    @if (paymentDetails(); as pay) {
+      <div class="rounded-2xl border border-gray-200 bg-white px-4 py-4 space-y-2">
+        <p class="text-sm font-semibold text-gray-900">Pay the salon directly</p>
+
+        @if (pay.type === 'bank') {
+          @if (pay.bankName) {
+            <div class="flex justify-between gap-3 text-sm">
+              <span class="text-gray-500">Bank</span>
+              <span class="font-medium text-gray-800 text-right">{{ pay.bankName }}</span>
+            </div>
+          }
+          @if (pay.accountName) {
+            <div class="flex justify-between gap-3 text-sm">
+              <span class="text-gray-500">Account name</span>
+              <span class="font-medium text-gray-800 text-right">{{ pay.accountName }}</span>
+            </div>
+          }
+          @if (pay.accountNumber) {
+            <div class="flex justify-between gap-2 text-sm items-center">
+              <span class="text-gray-500 shrink-0">Account number</span>
+              <span class="flex items-center gap-1 min-w-0">
+                <span class="font-mono font-semibold text-gray-900 truncate">{{ pay.accountNumber }}</span>
+                <button type="button" (click)="copy(pay.accountNumber, 'Account number')"
+                  aria-label="Copy account number"
+                  class="shrink-0 flex items-center justify-center min-w-11 min-h-11 -mr-2 text-gray-400 hover:text-primary transition-colors">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+                </button>
+              </span>
+            </div>
+          }
+        } @else if (pay.paymentLink) {
+          <div class="flex items-center gap-2">
+            <a [href]="pay.paymentLink" target="_blank" rel="noopener noreferrer"
+              class="flex-1 flex items-center justify-center min-h-12 rounded-xl bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover transition-colors">
+              Open payment link
+            </a>
+            <button type="button" (click)="copy(pay.paymentLink, 'Payment link')"
+              aria-label="Copy payment link"
+              class="shrink-0 flex items-center justify-center min-w-12 min-h-12 rounded-xl border border-gray-300 text-gray-500 hover:text-primary hover:border-primary transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+            </button>
+          </div>
+        }
+
+        @if (pay.description) {
+          <!-- A boxed note, not a faint footnote: this is the salon's own
+               payment instruction (a transfer reference, a cut-off time), and
+               missing it can mean the payment can't be matched to the booking.
+               whitespace-pre-line keeps the line breaks they typed. -->
+          <div class="mt-1 rounded-xl bg-gray-50 border border-gray-200 px-3 py-2.5">
+            <p class="text-sm text-gray-700 whitespace-pre-line">{{ pay.description }}</p>
+          </div>
+        }
+      </div>
+    } @else {
+      <p class="rounded-xl bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+        This salon hasn't published payment details yet. Please contact them directly before paying.
+      </p>
+    }
+
+    <!-- Receipt upload. Images only; the backend rejects PDFs. -->
+    <div class="space-y-2">
+      <p class="text-sm font-semibold text-gray-900">Upload your receipt</p>
+      <p class="text-xs text-gray-500">
+        After paying, add a photo of the receipt. It's checked before your place is held
+      </p>
+      <!-- Bank apps hand out PDF receipts constantly, and the backend only
+           accepts images — so say the way out before they hit the wall. -->
+      <p class="text-xs text-gray-400">
+        If your bank gave you a PDF, take a screenshot of it and upload that instead.
+      </p>
+
+      @if (receiptPreviewUrl(); as preview) {
+        <!-- The image is where the customer is looking while it uploads, so
+             the wait is shown ON it — the footer button's spinner alone is
+             easy to miss, and the upload (Cloudinary, then our own check) is
+             the slowest thing in this whole flow on a phone connection. -->
+        <!-- Full-width wrapper with the image centred inside it: the preview
+             was inline-block, so a narrow receipt sat left-aligned and the
+             "Checking…" overlay only covered the image's own width rather than
+             the panel. Fixed padding keeps the × from being clipped. -->
+        <div class="relative w-full rounded-xl bg-gray-50 border border-gray-200 px-4 py-4 flex items-center justify-center">
+          <img [src]="preview" alt="Your receipt"
+            [class]="'max-h-40 max-w-full rounded-lg border transition-opacity ' +
+              (fee.verifying() ? 'opacity-40 border-gray-200 ' : '') +
+              (receiptRejected() ? 'border-red-300 opacity-60' : 'border-gray-200')" />
+
+          @if (fee.verifying()) {
+            <div class="absolute inset-0 flex flex-col items-center justify-center gap-1.5 rounded-xl bg-white/70">
+              <app-inline-spinner sizeClass="w-6 h-6" label="Checking your receipt" />
+              <span class="text-xs font-semibold text-gray-700">Checking your receipt…</span>
+            </div>
+          } @else {
+            <button type="button" (click)="removeReceipt()" aria-label="Remove receipt"
+              class="absolute top-2 right-2 flex h-9 w-9 items-center justify-center rounded-full bg-white border border-gray-300 text-gray-500 hover:text-red-500 shadow-sm">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          }
+        </div>
+      } @else {
+        <label class="flex items-center justify-center gap-2 min-h-12 rounded-xl border-2 border-dashed border-primary/30 text-primary text-sm font-semibold cursor-pointer hover:bg-secondary-light transition-colors">
+          <input type="file" accept="image/jpeg,image/png,image/webp" class="sr-only"
+            (change)="onReceiptPicked($event)" />
+          + Add receipt photo
+        </label>
+      }
+
+      @if (receiptError(); as err) {
+        <p class="text-xs text-red-600" role="alert">{{ err }}</p>
+      }
+      <!-- A rejected receipt can't be fixed by pressing the button again, so
+           point at the only thing that helps: a different image. -->
+      @if (receiptRejected()) {
+        <label class="inline-flex items-center justify-center gap-1 min-h-11 px-4 rounded-xl border border-primary/30 text-primary text-xs font-semibold cursor-pointer hover:bg-secondary-light transition-colors">
+          <input type="file" accept="image/jpeg,image/png,image/webp" class="sr-only"
+            (change)="onReceiptPicked($event)" />
+          Choose a different photo
+        </label>
+      }
+    </div>
+  }
+</div>
+
+@if (quote()) {
+  <div class="shrink-0 flex gap-3 pt-4">
+    <button type="button" (click)="back.emit()" [disabled]="fee.verifying()"
+      class="flex-1 min-h-12 rounded-2xl border-2 border-gray-200 bg-white text-gray-600 font-semibold text-sm hover:bg-gray-50 disabled:opacity-50 transition-colors">
+      Back
+    </button>
+    <button type="button" (click)="submitReceipt()"
+      [disabled]="!receipt() || fee.verifying() || receiptRejected()"
+      class="flex-1 min-h-12 rounded-2xl bg-primary text-white font-semibold text-sm disabled:opacity-50 hover:bg-secondary-light hover:text-primary transition-colors flex items-center justify-center gap-2">
+      @if (fee.verifying()) {
+        <app-inline-spinner sizeClass="w-4 h-4" label="Checking receipt" />
+        <span>Checking…</span>
+      } @else {
+        <span>Confirm payment</span>
+      }
+    </button>
+  </div>
+}

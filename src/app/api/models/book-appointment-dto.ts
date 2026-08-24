@@ -6,5 +6,6 @@ export interface BookAppointmentDto {
   date: string;
   members: Array<BookMemberDto>;
   notes?: string;
+  receiptVerificationId?: string;
   startTime: string;
 }

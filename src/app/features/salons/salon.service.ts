@@ -54,16 +54,21 @@ export class SalonService {
   // choosing a parent). onError gets the raw error code so each caller can
   // show its own targeted message for ALREADY_A_BRANCH/BRANCH_DIFFERENT_ORG/
   // INVALID_BRANCH — see error-codes.ts.
+  // copyServices duplicates the parent's active services into this branch —
+  // additive (existing kept, duplicate names skipped) and one-shot, never
+  // re-synced. Only the create-branch flow offers it; Settings' "mark as
+  // branch" omits it, so that call is unchanged.
   attachBranch(
     salonId: string,
     parentSalonId: string,
     destroyRef: DestroyRef,
     onSuccess?: (salon: Salon) => void,
     onError?: (code: ErrorCode | null) => void,
+    copyServices?: boolean,
   ): void {
     salonsControllerBranch(this._http, this._apiConfig.rootUrl, {
       salonId,
-      body: { parentSalonId },
+      body: { parentSalonId, copyServices },
     })
       .pipe(takeUntilDestroyed(destroyRef))
       .subscribe({

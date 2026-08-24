@@ -1,17 +1,17 @@
-import { Component, inject, OnInit, computed } from '@angular/core';
+import { Component, inject, OnInit, computed, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { QueueEntry } from '../../../api/models/queue-entry';
 import { ActiveQueuesService } from './active-queues.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { RescheduleDialogComponent } from '../../visit/reschedule-dialog/reschedule-dialog.component';
+import { canReschedule, withinChangeWindow } from '../../../core/appointments/reschedule-policy';
 import { RoutePath } from '../../../core/routing/route-paths';
-
-const DEFAULT_CANCELLATION_WINDOW_MINUTES = 60;
 
 @Component({
   selector: 'app-auth-queues',
   templateUrl: './auth-queues.component.html',
-  imports: [PageHeaderComponent, DatePipe],
+  imports: [PageHeaderComponent, DatePipe, RescheduleDialogComponent],
 })
 export class AuthQueuesComponent implements OnInit {
   private readonly _router = inject(Router);
@@ -28,6 +28,9 @@ export class AuthQueuesComponent implements OnInit {
   protected readonly appointmentEntries = computed(() =>
     this.entries().filter((e) => e.type === 'APPOINTMENT'),
   );
+
+  /** The appointment being rescheduled, or null when the dialog is closed. */
+  protected readonly rescheduleEntry = signal<QueueEntry | null>(null);
 
   ngOnInit(): void {
     this._service.load();
@@ -67,19 +70,23 @@ export class AuthQueuesComponent implements OnInit {
       .join(', ');
   }
 
-  // Salon.settings is an untyped blob on the wire (backend doesn't declare
-  // its shape in Swagger — same bracket-index-and-cast pattern used by
-  // salon-settings.component.ts and salon-visit.service.ts's showPrice).
-  private _cancellationWindowMinutes(entry: QueueEntry): number {
-    const settings = entry.queue?.salon?.settings as Record<string, unknown> | undefined;
-    return (settings?.['cancellationWindow'] as number) ?? DEFAULT_CANCELLATION_WINDOW_MINUTES;
-  }
-
   /** Whether this appointment is still far enough out that cancelling is allowed. */
   protected canCancel(entry: QueueEntry): boolean {
-    if (!entry.scheduledAt) return false;
-    const windowMs = this._cancellationWindowMinutes(entry) * 60 * 1000;
-    return new Date(entry.scheduledAt).getTime() - Date.now() >= windowMs;
+    return withinChangeWindow(entry);
+  }
+
+  protected canReschedule(entry: QueueEntry): boolean {
+    return canReschedule(entry);
+  }
+
+  protected openReschedule(entry: QueueEntry): void {
+    this.rescheduleEntry.set(entry);
+  }
+
+  protected onRescheduled(): void {
+    // The moved appointment has a new scheduledAt (and rescheduledAt), so this
+    // list is stale — refetch rather than patching the row by hand.
+    this._service.refresh();
   }
 
   protected cancelAppointment(entry: QueueEntry): void {

@@ -1,0 +1,36 @@
+<div>
+  <label class="block text-sm font-medium text-gray-700 mb-1.5">
+    Date
+    <ng-content select="[slotPickerDateHint]" />
+  </label>
+  <app-mini-month-calendar
+    [viewedMonth]="viewedMonth()"
+    [selectedDate]="selectedDate()"
+    [minDate]="minDate()"
+    [badgeFor]="badgeFor()"
+    (monthChange)="onMonthChange($event)"
+    (daySelect)="onDaySelect($event)" />
+</div>
+
+@if (selectedDate()) {
+  <div class="mt-4">
+    <label class="block text-sm font-medium text-gray-700 mb-1.5">Time</label>
+    @if (slotsLoading()) {
+      <p class="text-sm text-text-secondary">Loading available times…</p>
+    } @else if (selectedDaySlots().length === 0) {
+      <p class="text-sm text-text-secondary">No slots available this day — try another date.</p>
+    } @else {
+      <div class="grid grid-cols-3 gap-2">
+        @for (slot of selectedDaySlots(); track slot.startTime) {
+          <button type="button" (click)="selectSlot(slot)"
+            [class]="'min-h-10 rounded-xl text-sm font-medium border transition-colors ' +
+              (selectedStartTime() === slot.startTime
+                ? 'bg-primary text-white border-primary'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-secondary-light')">
+            {{ formatTime(slot.startTime) }}
+          </button>
+        }
+      </div>
+    }
+  </div>
+}

@@ -13,15 +13,31 @@
        multi-branch root still carries its own isOpen, so both show; only
        the open/closed pill is colored by state, the locations pill stays
        neutral white regardless. -->
-  <div class="absolute top-3 left-3 flex items-center gap-1.5">
-    <span class="rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-md bg-secondary-100/70 border border-white/20"
+  <!-- right-3 caps the row's width so pills can't run under the heart button;
+       the distance pill then wraps to its own line when a Locations pill is
+       also present, instead of all three squeezing onto one row and breaking
+       their labels mid-word. items-start keeps each row's pills hugging the
+       left rather than stretching. -->
+  <div class="absolute top-3 left-3 right-3 flex flex-wrap items-start gap-1.5">
+    <span class="rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap backdrop-blur-md bg-secondary-100/70 border border-white/20"
       [class.text-open]="salon().isOpen"
       [class.text-white]="!salon().isOpen">
       {{ salon().isOpen ? 'Open' : 'Closed' }}
     </span>
     @if (salon().hasBranches) {
-      <span class="rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-md bg-secondary-100/70 border border-white/20 text-white">
+      <span class="rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap backdrop-blur-md bg-secondary-100/70 border border-white/20 text-white">
         {{ branchCountLabel() }}
+      </span>
+    }
+    <!-- Nearby results only — absent (null) on every other surface. A forced
+         break before it when the Locations pill is there, so it starts a new
+         row instead of being wedged in beside two other pills. -->
+    @if (distanceKm() !== null) {
+      @if (salon().hasBranches) {
+        <span class="basis-full h-0" aria-hidden="true"></span>
+      }
+      <span class="rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap backdrop-blur-md bg-secondary-100/70 border border-white/20 text-white">
+        {{ distanceLabel() }}
       </span>
     }
   </div>

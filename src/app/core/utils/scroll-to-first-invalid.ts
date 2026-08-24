@@ -27,7 +27,21 @@
 export function scrollToFirstInvalidControl(formEl: HTMLElement | null | undefined): void {
   if (!formEl) return;
 
-  const candidates = formEl.querySelectorAll<HTMLElement>('[formControlName].ng-invalid');
+  // Two ways a control announces itself as invalid:
+  //
+  //  - `[formControlName].ng-invalid` — reactive forms, where Angular applies
+  //    the class for us. This covers the page-level forms.
+  //  - `[data-invalid]` — signal-driven fields, which have no FormControl and
+  //    therefore no ng-invalid. The join dialog validates guest name, phone
+  //    and service with plain signals; without this they were invisible here
+  //    and its submit button silently did nothing.
+  //
+  // Both are matched in ONE query so the result stays in document order across
+  // the two kinds — a dialog mixing signal fields with a FormArray (which the
+  // join dialog does) must still find whichever comes first on screen.
+  const candidates = formEl.querySelectorAll<HTMLElement>(
+    '[formControlName].ng-invalid, [data-invalid="true"]',
+  );
 
   for (const el of Array.from(candidates)) {
     // Skip anything with no layout box — a control inside a collapsed section
@@ -56,7 +70,16 @@ export function scrollToFirstInvalidControl(formEl: HTMLElement | null | undefin
 }
 
 /**
- * Whether the element's box sits entirely within the viewport.
+ * Whether the element's box sits entirely within the area that would have to
+ * scroll to reveal it.
+ *
+ * Measured against the nearest SCROLLING ancestor, not the viewport. Forms do
+ * not sit directly on the page here: the auth and guest shells trap scrolling
+ * inside <main class="overflow-y-auto">, and every dialog puts its fields in
+ * an inner overflow-y-auto panel. Against window.innerHeight a field below a
+ * dialog's fold measures as perfectly visible — it IS inside the viewport —
+ * so it was judged fine and never scrolled to, which is the exact case this
+ * function exists to catch. Falls back to the viewport when nothing scrolls.
  *
  * Deliberately strict — a field half-cut by the fold is "visible" to
  * getBoundingClientRect but its error message underneath may not be, and that
@@ -64,5 +87,27 @@ export function scrollToFirstInvalidControl(formEl: HTMLElement | null | undefin
  */
 function isFullyVisible(el: HTMLElement): boolean {
   const rect = el.getBoundingClientRect();
+  const scroller = verticalScrollParent(el);
+
+  if (scroller) {
+    const box = scroller.getBoundingClientRect();
+    return rect.top >= box.top && rect.bottom <= box.bottom;
+  }
+
   return rect.top >= 0 && rect.bottom <= (window.innerHeight || 0);
+}
+
+/** Nearest ancestor that actually scrolls vertically, else null. */
+function verticalScrollParent(el: HTMLElement): HTMLElement | null {
+  let node = el.parentElement;
+  while (node && node !== document.body) {
+    // Size check first — a cheap property read. Skipping getComputedStyle for
+    // the many non-scrolling ancestors keeps this off the forced-reflow path.
+    if (node.scrollHeight > node.clientHeight) {
+      const overflowY = getComputedStyle(node).overflowY;
+      if (/(auto|scroll|overlay)/.test(overflowY)) return node;
+    }
+    node = node.parentElement;
+  }
+  return null;
 }

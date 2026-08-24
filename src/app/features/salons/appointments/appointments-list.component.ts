@@ -3,6 +3,8 @@ import { ActivatedRoute } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { AppointmentsCalendarService } from './appointments-calendar.service';
 import { QueueEntry } from '../../../api/models/queue-entry';
+import { RescheduleDialogComponent } from '../../visit/reschedule-dialog/reschedule-dialog.component';
+import { canReschedule } from '../../../core/appointments/reschedule-policy';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { MiniMonthCalendarComponent } from '../../../shared/components/mini-month-calendar/mini-month-calendar.component';
@@ -35,6 +37,7 @@ function toIsoDate(d: Date): string {
     MiniMonthCalendarComponent,
     AccordionComponent,
     CommentsThreadComponent,
+    RescheduleDialogComponent,
   ],
 })
 export class AppointmentsListComponent implements OnInit {
@@ -52,8 +55,34 @@ export class AppointmentsListComponent implements OnInit {
   protected readonly viewedMonth = signal(this._startOfMonth(new Date()));
   protected readonly selectedDate = signal<string | null>(null);
 
+  /** The appointment being rescheduled, or null when the dialog is closed. */
+  protected readonly rescheduleEntry = signal<QueueEntry | null>(null);
+
+  // Staff and admins reach this same list from two routes; both act with staff
+  // authority, so both use the staff endpoint (any appointment in the salon).
+  protected canReschedule(entry: QueueEntry): boolean {
+    return canReschedule(entry);
+  }
+
+  protected openReschedule(entry: QueueEntry): void {
+    this.rescheduleEntry.set(entry);
+  }
+
+  protected onRescheduled(): void {
+    // The appointment may have moved to a different DAY, so it can leave this
+    // day's list entirely. refresh(), not load() — load is cache-backed and
+    // would hand back the pre-move range unchanged.
+    const { from, to } = this._monthRange(this.viewedMonth());
+    this.calendar.refresh(this._salonId, this._staffId, from, to);
+  }
+
   private get _salonId(): string {
     return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
+  }
+
+  /** Same value, exposed for the reschedule dialog's salonId input. */
+  protected get salonId(): string {
+    return this._salonId;
   }
 
   private get _staffId(): string {
@@ -144,11 +173,17 @@ export class AppointmentsListComponent implements OnInit {
   }
 
   private _loadMonth(month: Date): void {
+    const { from, to } = this._monthRange(month);
+    this.calendar.load(this._salonId, this._staffId, from, to);
+  }
+
+  private _monthRange(month: Date): { from: string; to: string } {
     const year = month.getFullYear();
     const monthIndex = month.getMonth();
-    const from = toIsoDate(new Date(year, monthIndex, 1));
-    const to = toIsoDate(new Date(year, monthIndex + 1, 0));
-    this.calendar.load(this._salonId, this._staffId, from, to);
+    return {
+      from: toIsoDate(new Date(year, monthIndex, 1)),
+      to: toIsoDate(new Date(year, monthIndex + 1, 0)),
+    };
   }
 
   private _startOfMonth(d: Date): Date {

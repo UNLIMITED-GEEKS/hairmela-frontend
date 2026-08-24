@@ -53,6 +53,24 @@ export const ErrorCodes = {
   SLOT_NOT_AVAILABLE: 'SLOT_NOT_AVAILABLE',
   SLOT_IN_PAST: 'SLOT_IN_PAST',
   CANCELLATION_WINDOW_PASSED: 'CANCELLATION_WINDOW_PASSED',
+  ALREADY_RESCHEDULED: 'ALREADY_RESCHEDULED',
+
+  // ── Booking fee / receipts ────────────────────────────────────────────────────
+  // A salon with enforceBookingFee on takes payment DIRECTLY — HairMela never
+  // holds the money. The customer pays, uploads a receipt image, and the
+  // backend verifies it before the join or booking is allowed.
+  //
+  // RECEIPT_NOT_VALID is the one that blocks: the model rejected the image, so
+  // there is no proof of payment and the join cannot proceed. RECEIPT_INVALID
+  // is recoverable by paying again — receipts expire after 30 minutes and are
+  // single-use.
+  RECEIPT_REQUIRED: 'RECEIPT_REQUIRED',
+  RECEIPT_NOT_VALID: 'RECEIPT_NOT_VALID',
+  RECEIPT_INVALID: 'RECEIPT_INVALID',
+  RECEIPT_IMAGE_INVALID: 'RECEIPT_IMAGE_INVALID',
+  // The salon switched the fee on without saying where to send the money.
+  // Also guarded in Salon Settings, which cannot save that combination.
+  PAYMENT_DETAILS_REQUIRED: 'PAYMENT_DETAILS_REQUIRED',
 
   // ── Tiers ─────────────────────────────────────────────────────────────────────
   TIER_REQUIRED: 'TIER_REQUIRED',

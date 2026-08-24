@@ -1,6 +1,12 @@
-import { Component, DestroyRef, inject, input, output, signal, computed, effect, untracked } from '@angular/core';
+import { Component, DestroyRef, inject, input, output, signal, computed, effect, untracked,
+  ElementRef,
+  Injector,
+  afterNextRender,
+  viewChild,
+} from '@angular/core';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
 import { QueueConsoleService } from '../queue-console/queue-console.service';
 import { AvailableSlotDto } from '../../../api/models/available-slot-dto';
 import { availabilityControllerGetSlots } from '../../../api/fn/schedules/availability-controller-get-slots';
@@ -43,6 +49,8 @@ export class AddClientModalComponent {
   readonly closed = output<void>();
 
   protected readonly console = inject(QueueConsoleService);
+  private readonly _appointmentFieldsEl = viewChild<ElementRef<HTMLElement>>('appointmentFieldsEl');
+  private readonly _scrollInjector = inject(Injector);
   private readonly _http = inject(HttpClient);
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _destroyRef = inject(DestroyRef);
@@ -70,8 +78,11 @@ export class AddClientModalComponent {
   // -1 offset. Plain getters, not computed(): FormArray length isn't a
   // signal, so this relies on the same template change-detection the
   // existing `@if (appointmentMembers.length > 1)` check already does.
+  //
+  // Counts SERVICES, not people: one person booked for three services is three
+  // members on the wire, so three against the cap.
   protected get walkInAtMaxPartySize(): boolean {
-    return this.addQueueMembers.length >= this.console.maxPartySize();
+    return this._atCap(this.addQueueMembers);
   }
 
   // ── Appointment mode — month-at-a-time availability, refetched only on
@@ -104,7 +115,7 @@ export class AddClientModalComponent {
   }
 
   protected get appointmentAtMaxPartySize(): boolean {
-    return this.appointmentMembers.length >= this.console.maxPartySize();
+    return this._atCap(this.appointmentMembers);
   }
 
   constructor() {
@@ -154,17 +165,13 @@ export class AddClientModalComponent {
   // ── Walk-in mode actions ─────────────────────────────────────────────────
 
   protected staffAddToQueue(): void {
-    const rows = this.addQueueMembers.value as { name: string; serviceId: string; phone: string }[];
-    const valid = rows.filter((r) => r.name?.trim());
-    if (valid.length === 0) return;
+    const rows = this.addQueueMembers.value as { name: string; serviceIds: string[]; phone: string }[];
+    const members = this._flatten(rows, false);
+    if (members.length === 0) return;
     this.console.staffAddToQueue(
       this.salonId(),
       this.queueId(),
-      valid.map((r) => ({
-        memberName: r.name.trim(),
-        serviceId: r.serviceId || undefined,
-        ...(r.phone?.trim() ? { phone: r.phone.trim() } : {}),
-      })),
+      members,
       () => this.closed.emit(),
     );
   }
@@ -221,18 +228,25 @@ export class AddClientModalComponent {
     if (!date || !startTime) return;
     if (this.appointmentMembers.invalid) {
       this.appointmentMembers.markAllAsTouched();
+      // Scoped to the appointment panel, not the whole modal: the walk-in
+      // panel above it holds its own members FormArray, and querying the modal
+      // as a whole could scroll to a field in the mode the user is not in.
+      afterNextRender(
+        () => scrollToFirstInvalidControl(this._appointmentFieldsEl()?.nativeElement),
+        { injector: this._scrollInjector },
+      );
       return;
     }
-    const rows = this.appointmentMembers.value as { name: string; serviceId: string }[];
-    const valid = rows.filter((r) => r.name?.trim() && r.serviceId);
-    if (valid.length === 0) return;
+    const rows = this.appointmentMembers.value as { name: string; serviceIds: string[] }[];
+    const members = this._flatten(rows, true);
+    if (members.length === 0) return;
 
     this.console.staffBookAppointment(
       this.salonId(),
       this.queueId(),
       date,
       startTime,
-      valid.map((r) => ({ memberName: r.name.trim(), serviceId: r.serviceId })),
+      members.map((m) => ({ memberName: m.memberName, serviceId: m.serviceId! })),
       () => this.closed.emit(),
       // On failure, stay open on the appointment step (e.g. slot was just
       // taken) so the barber can pick another — refetch to show current slots.
@@ -262,14 +276,72 @@ export class AddClientModalComponent {
       });
   }
 
+  // One row is one PERSON; serviceIds holds the services they're booked for.
+  // The wire format is flat — one members[] entry per service, all sharing the
+  // person's name — so these are expanded at submit (see _flatten).
   private _buildWalkInRow(serviceId = '') {
-    return this._fb.group({ name: ['', Validators.required], serviceId: [serviceId], phone: [''] });
+    return this._fb.group({
+      name: ['', Validators.required],
+      serviceIds: this._fb.array([this._fb.control(serviceId)]),
+      phone: [''],
+    });
   }
 
   private _buildAppointmentRow(serviceId = '') {
     return this._fb.group({
       name: ['', Validators.required],
-      serviceId: [serviceId, Validators.required],
+      serviceIds: this._fb.array([this._fb.control(serviceId, Validators.required)]),
     });
+  }
+
+  /**
+   * People -> wire members[]: one entry per service, sharing memberName.
+   *
+   * A person with three services is three members, which is exactly how the
+   * backend counts them against maxPartySize (PARTY_TOO_LARGE).
+   */
+  private _flatten(
+    rows: { name: string; serviceIds: string[]; phone?: string }[],
+    requireService: boolean,
+  ): { memberName: string; serviceId?: string; phone?: string }[] {
+    return rows
+      .filter((r) => r.name?.trim())
+      .flatMap((r) => {
+        const name = r.name.trim();
+        const phone = r.phone?.trim() ? { phone: r.phone.trim() } : {};
+        const ids = (r.serviceIds ?? []).filter((id) => !!id);
+        // Walk-ins may be added without a service; appointments may not.
+        if (ids.length === 0) return requireService ? [] : [{ memberName: name, ...phone }];
+        return ids.map((serviceId) => ({ memberName: name, serviceId, ...phone }));
+      });
+  }
+
+  /** Total services across everyone — what maxPartySize actually caps. */
+  private _countServices(members: FormArray): number {
+    return members.controls.reduce((total, row) => {
+      const ids = (row.get('serviceIds') as FormArray | null)?.length ?? 0;
+      // A person with no service selected still occupies one slot.
+      return total + Math.max(ids, 1);
+    }, 0);
+  }
+
+  protected serviceIdsAt(members: FormArray, i: number): FormArray {
+    return members.at(i).get('serviceIds') as FormArray;
+  }
+
+  protected addServiceTo(members: FormArray, i: number): void {
+    if (this._atCap(members)) return;
+    this.serviceIdsAt(members, i).push(this._fb.control(''));
+  }
+
+  protected removeServiceFrom(members: FormArray, i: number, serviceIndex: number): void {
+    const ids = this.serviceIdsAt(members, i);
+    // Never leave a person with zero service rows — the first one stays.
+    if (ids.length <= 1) return;
+    ids.removeAt(serviceIndex);
+  }
+
+  private _atCap(members: FormArray): boolean {
+    return this._countServices(members) >= this.console.maxPartySize();
   }
 }

@@ -1,14 +1,31 @@
 <div class="py-6 px-2 space-y-6">
 
-  <!-- Search -->
-  <div class="relative">
-    <app-icon name="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400" />
-    <input type="text" placeholder="Search for a salon"
-      [value]="initialSearch"
-      (input)="onSearchInput($event)"
-      class="w-full min-h-12 pl-10 pr-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400
-             focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
+  <!-- Search: what (name) and where (fuzzy location, matched across city,
+       street, state and country). Stacked on mobile, side by side from sm. -->
+  <div class="flex flex-col sm:flex-row gap-2">
+    <div class="relative flex-1">
+      <app-icon name="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400" />
+      <input type="text" placeholder="Search for a salon by name"
+        [value]="initialSearch"
+        (input)="onSearchInput($event)"
+        class="w-full min-h-12 pl-10 pr-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400
+               focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
+    </div>
+    <div class="relative flex-1 sm:flex-none sm:w-48">
+      <app-icon name="location-pin" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400" />
+      <input type="text" placeholder="Search for any location" aria-label="Filter by location"
+        [value]="listing.filters().location"
+        (input)="onLocationInput($event)"
+        class="w-full min-h-12 pl-10 pr-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400
+               focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
+    </div>
+    <app-nearby-button />
   </div>
+
+  @if (listing.nearbyActive()) {
+    <p class="text-xs text-gray-500">
+    </p>
+  }
 
   <!-- Categories -->
   <div>
@@ -29,7 +46,11 @@
       </div>
     } @else if (listing.items().length === 0) {
       <div class="py-16 text-center h-64 flex justify-around items-center">
-        <p class="text-sm text-gray-400">No salons found. Try a different search or category.</p>
+        @if (listing.nearbyActive()) {
+          <p class="text-sm text-gray-400">No salons found near you yet.</p>
+        } @else {
+          <p class="text-sm text-gray-400">No salons found. Try a different search or category.</p>
+        }
       </div>
     } @else {
       <!-- Mobile: two-row horizontal-scroll carousel (see topRow/bottomRow
@@ -42,7 +63,7 @@
             appListingScrollMemory surface="search" [items]="listing.items()">
             @for (salon of listing.items(); track salon.id) {
               <div class="shrink-0 w-[65%] xs:w-[55%] sm:w-[38%] h-64">
-                <app-salon-card [salon]="salon" [activeCategory]="listing.filters().category" />
+                <app-salon-card [salon]="salon" [activeCategory]="listing.filters().category" [distanceKm]="listing.distanceOf(salon)" />
               </div>
             }
           </div>
@@ -51,7 +72,7 @@
             appListingScrollMemory surface="search-top" [items]="topRow()">
            @for (salon of topRow(); track salon.id) {
             <div class="shrink-0 w-[65%] xs:w-[55%] sm:w-[38%] h-64">
-              <app-salon-card [salon]="salon" [activeCategory]="listing.filters().category" />
+              <app-salon-card [salon]="salon" [activeCategory]="listing.filters().category" [distanceKm]="listing.distanceOf(salon)" />
             </div>
           }
         </div>
@@ -59,7 +80,7 @@
             appListingScrollMemory surface="search-bottom" [items]="bottomRow()">
             @for (salon of bottomRow(); track salon.id) {
             <div class="shrink-0 w-[65%] xs:w-[55%] sm:w-[38%] h-64">
-              <app-salon-card [salon]="salon" [activeCategory]="listing.filters().category" />
+              <app-salon-card [salon]="salon" [activeCategory]="listing.filters().category" [distanceKm]="listing.distanceOf(salon)" />
             </div>
           }
         </div>
@@ -70,7 +91,7 @@
       <div class="hidden md:grid md:grid-cols-4 gap-4">
         @for (salon of listing.items(); track salon.id) {
           <div class="h-64">
-            <app-salon-card [salon]="salon" [activeCategory]="listing.filters().category" />
+            <app-salon-card [salon]="salon" [activeCategory]="listing.filters().category" [distanceKm]="listing.distanceOf(salon)" />
           </div>
         }
       </div>

@@ -109,6 +109,9 @@ export class CreateSalonComponent implements OnInit {
     currency: ['NGN', Validators.required],
     defaultSlotDuration: [30, [Validators.required, Validators.min(5), Validators.max(240)]],
     showPrice: [false],
+    // Branch-creation only — ignored (and its toggle hidden) when
+    // creating a standalone salon, which has no parent to copy from.
+    copyServices: [true],
     operatingHours: this._fb.array(
       DAYS.map((_, i) =>
         this._fb.group(
@@ -263,6 +266,7 @@ export class CreateSalonComponent implements OnInit {
               this.saving.set(false);
               this._router.navigate(RoutePath.salon(salon.id));
             },
+            v.copyServices ?? false,
           );
           return;
         }

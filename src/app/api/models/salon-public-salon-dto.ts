@@ -4,6 +4,7 @@
 import { Address } from '../models/address';
 import { Organization } from '../models/organization';
 import { Salon } from '../models/salon';
+import { SalonPaymentDetailsDto } from '../models/salon-payment-details-dto';
 export interface SalonPublicSalonDto {
   about: string | null;
   address: Address;
@@ -23,6 +24,12 @@ export interface SalonPublicSalonDto {
   parent: (Salon & {
 }) | null;
   parentId: string | null;
+
+  /**
+   * The salon's own bank account or payment link. Public by design — a customer asked for a booking fee has to see where to send it.
+   */
+  paymentDetails: (SalonPaymentDetailsDto & {
+}) | null;
   phone: string | null;
   photoUrl: string | null;
   settings: {

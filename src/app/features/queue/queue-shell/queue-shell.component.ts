@@ -78,8 +78,16 @@ export class QueueShellComponent implements OnInit, OnDestroy {
   }
 
   protected callNext(): void {
-    this.console.callNext(this.salonId, this.queueId, () => {
-      this._location.back();
-    });
+    // Both paths land on current-client: on success because that's where the
+    // just-called client now shows, and on the conflict error (someone is
+    // already SERVING) because that's the entry the barber has to resolve.
+    // Hardcoded rather than _location.back() for the same reason the back
+    // chevron above is — queue-list can be reached from several places.
+    this.console.callNext(this.salonId, this.queueId, () => this._goToCurrentClient());
+    if (this.onQueueListRoute()) this._goToCurrentClient();
+  }
+
+  private _goToCurrentClient(): void {
+    void this._router.navigate(this.currentClientLink);
   }
 }

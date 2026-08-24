@@ -5,7 +5,11 @@ export interface Address {
   city: string;
   country: string;
   createdAt: string;
+  geocodeTier: string | null;
+  geocodedAt: string | null;
   id: string;
+  latitude: string | null;
+  longitude: string | null;
   state: string;
   street: string;
 }

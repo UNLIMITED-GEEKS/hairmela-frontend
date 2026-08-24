@@ -2,18 +2,28 @@
   <div
     animate.enter="modal-backdrop-enter"
     animate.leave="modal-backdrop-leave"
-    class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-4 pb-4 sm:pb-0" role="dialog" aria-modal="true" aria-label="Book an appointment">
+    class="fixed inset-0 z-50 flex  items-end sm:items-center justify-center bg-black/40 px-4 pb-4 sm:pb-0" role="dialog" aria-modal="true" aria-label="Book an appointment">
     <div
       animate.enter="modal-card-enter"
       animate.leave="modal-card-leave"
-      class="w-full max-w-sm bg-surface rounded-3xl p-6 space-y-5 shadow-xl max-h-85dvh flex flex-col">
+      class="w-full max-w-sm bg-surface rounded-3xl p-6  space-y-5 shadow-xl max-h-85dvh flex flex-col">
 
       <div class="shrink-0">
         <h2 class="text-lg font-bold text-gray-900">Book an appointment</h2>
         <p class="text-sm text-text-secondary mt-1">Pick a date and time that works for you.</p>
       </div>
 
-      <div class="flex-1 overflow-y-auto themed-scrollbar scroll-fade space-y-4">
+      @if (step() === 'fee') {
+        <div class="flex-1 overflow-y-auto themed-scrollbar scroll-fade">
+          <app-booking-fee-step
+            [salonId]="salonId()"
+            [queueId]="feeQueueId()"
+            [serviceIds]="pendingServiceIds()"
+            (verified)="onFeeVerified($event)"
+            (back)="backToForm()" />
+        </div>
+      } @else {
+      <div #fieldsEl class="flex-1 overflow-y-auto themed-scrollbar scroll-fade space-y-4">
         @if (needsStaffPicker() && !selectedStaff()) {
           @if (!pickerServiceId()) {
             <!-- Step 1 of 2: service first — the customer picks WHAT before
@@ -62,61 +72,60 @@
             </div>
           }
         } @else {
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1.5">
-            Date
-            @if (selectedStaff(); as staff) {
-              <span class="font-normal text-gray-500">
-                — with {{ staff.firstName }}@if (staff.nickname) { ({{ staff.nickname }}) }
-              </span>
-            }
-          </label>
-          <app-mini-month-calendar
-            [viewedMonth]="viewedMonth()"
-            [selectedDate]="selectedDate()"
-            [minDate]="minDate"
-            [badgeFor]="badgeFor()"
-            (monthChange)="onMonthChange($event)"
-            (daySelect)="onDaySelect($event)" />
-        </div>
+        <app-slot-picker
+          [salonId]="salonId()"
+          [staffId]="selectedStaff()?.staffId ?? null"
+          [minDate]="minDate"
+          [resetToken]="slotResetToken()"
+          [(selectedDate)]="selectedDate"
+          [(selectedStartTime)]="selectedStartTime">
+          @if (selectedStaff(); as staff) {
+            <span slotPickerDateHint class="font-normal text-gray-500">
+              — with {{ staff.firstName }}@if (staff.nickname) { ({{ staff.nickname }}) }
+            </span>
+          }
+        </app-slot-picker>
 
-        @if (selectedDate()) {
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">Time</label>
-            @if (slotsLoading()) {
-              <p class="text-sm text-text-secondary">Loading available times…</p>
-            } @else if (selectedDaySlots().length === 0) {
-              <p class="text-sm text-text-secondary">No slots available this day — try another date.</p>
-            } @else {
-              <div class="grid grid-cols-3 gap-2">
-                @for (slot of selectedDaySlots(); track slot.startTime) {
-                  <button type="button" (click)="selectSlot(slot)"
-                    [class]="'min-h-10 rounded-xl text-sm font-medium border transition-colors ' +
-                      (selectedStartTime() === slot.startTime
-                        ? 'bg-primary text-white border-primary'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-secondary-light')">
-                    {{ slot.startTime }}
+        <!-- Your service — leader is always the signed-in customer, no name field -->
+        <div>
+          <label class="block text-sm font-medium mt-6 text-gray-700 mb-1.5">
+            {{ leaderServiceIds().length > 1 ? 'Services' : 'Service' }}
+          </label>
+          <!-- One select per service. Each becomes its own members[] entry
+               sharing your name, and counts separately against the party
+               limit. -->
+          <div class="space-y-2">
+            @for (id of leaderServiceIds(); track $index; let i = $index) {
+              <div class="flex gap-2 items-center">
+                <select
+                  [attr.data-invalid]="i === 0 && leaderServiceTouched() && !id ? 'true' : null"
+                  [value]="id"
+                  (change)="setLeaderServiceAt(i, $any($event.target).value)"
+                  (blur)="leaderServiceTouched.set(true)"
+                  class="flex-1 min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors">
+                  <option value="" disabled>Select a service</option>
+                  @for (s of staffServices(); track s.id) {
+                    <option [value]="s.id">{{ s.name }}</option>
+                  }
+                </select>
+                @if (leaderServiceIds().length > 1) {
+                  <button type="button" (click)="removeLeaderService(i)"
+                    class="text-gray-300 hover:text-red-500 min-w-10 min-h-10 flex items-center justify-center shrink-0"
+                    aria-label="Remove service">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
                   </button>
                 }
               </div>
             }
           </div>
-        }
-
-        <!-- Your service — leader is always the signed-in customer, no name field -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1.5">Service</label>
-          <select
-            [value]="leaderServiceId()"
-            (change)="leaderServiceId.set($any($event.target).value)"
-            (blur)="leaderServiceTouched.set(true)"
-            class="w-full min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors">
-            <option value="" disabled>Select a service</option>
-            @for (s of staffServices(); track s.id) {
-              <option [value]="s.id">{{ s.name }}</option>
-            }
-          </select>
-          @if (leaderServiceTouched() && !leaderServiceId()) {
+          <button type="button" (click)="addLeaderService()" [disabled]="atMaxPartySize"
+            [title]="atMaxPartySize ? 'Party limit reached (' + visit.maxPartySize() + ' services)' : ''"
+            class="mt-2 inline-flex items-center gap-1 min-h-11 px-3 rounded-xl border border-dashed border-primary/30 text-xs font-semibold text-primary hover:bg-secondary-light disabled:text-gray-400 disabled:border-gray-200 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors">
+            + Add another service
+          </button>
+          @if (leaderServiceTouched() && !leaderServiceIds()[0]) {
             <p class="mt-1.5 text-xs text-red-600">Please select a service.</p>
           }
         </div>
@@ -130,14 +139,35 @@
                   <input formControlName="name" type="text" [placeholder]="'Person ' + (i + 1) + ' name'"
                     class="w-full border border-primary/10 rounded-xl px-3 py-2 text-sm min-h-11 focus:outline-none focus:ring-2 focus:ring-primary/30">
                   <app-field-error [control]="ctrl.get('name')" [messages]="{ required: 'Enter a name.' }" />
-                  <select formControlName="serviceId"
-                    class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30">
-                    <option value="" disabled>Select a service</option>
-                    @for (s of staffServices(); track s.id) {
-                      <option [value]="s.id">{{ s.name }}</option>
+                  <div formArrayName="serviceIds" class="space-y-2">
+                    @for (svcCtrl of memberServiceIds(i).controls; track $index; let si = $index) {
+                      <div class="flex gap-2 items-start">
+                        <div class="flex-1">
+                          <select [formControlName]="si"
+                            class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30">
+                            <option value="" disabled>Select a service</option>
+                            @for (s of staffServices(); track s.id) {
+                              <option [value]="s.id">{{ s.name }}</option>
+                            }
+                          </select>
+                          <app-field-error [control]="svcCtrl" [messages]="{ required: 'Select a service.' }" />
+                        </div>
+                        @if (memberServiceIds(i).length > 1) {
+                          <button type="button" (click)="removeMemberService(i, si)"
+                            class="text-gray-300 hover:text-red-500 min-w-11 min-h-11 flex items-center justify-center shrink-0"
+                            aria-label="Remove service">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                          </button>
+                        }
+                      </div>
                     }
-                  </select>
-                  <app-field-error [control]="ctrl.get('serviceId')" [messages]="{ required: 'Select a service.' }" />
+                  </div>
+                  <button type="button" (click)="addMemberService(i)" [disabled]="atMaxPartySize"
+                    class="inline-flex items-center gap-1 min-h-11 px-3 rounded-xl border border-dashed border-primary/30 text-xs font-semibold text-primary hover:bg-secondary-light disabled:text-gray-400 disabled:border-gray-200 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors">
+                    + Add another service
+                  </button>
                 </div>
                 <button (click)="removeMember(i)" type="button"
                   class="text-gray-300 hover:text-red-500 min-w-10 min-h-10 flex items-center justify-center"
@@ -149,12 +179,11 @@
               </div>
             }
           </div>
-          @if (membersArray.length < visit.maxPartySize() - 1) {
-            <button (click)="addMember()" type="button"
-              class="mt-2 w-full min-h-11 rounded-2xl border-2 border-dashed border-primary/30 text-primary text-sm font-medium hover:bg-secondary-light transition-colors">
-              + Add another person
-            </button>
-          }
+          <button (click)="addMember()" type="button" [disabled]="atMaxPartySize"
+            [title]="atMaxPartySize ? 'Party limit reached (' + visit.maxPartySize() + ' services)' : ''"
+            class="mt-2 w-full min-h-11 rounded-2xl border-2 border-dashed border-primary/30 text-primary text-sm font-medium hover:bg-secondary-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+            + Add another person
+          </button>
         </div>
 
         <!-- One-shot note at intake — write-only, sent as the first comment
@@ -185,7 +214,7 @@
               </button>
             </div>
           } @else {
-            <label class="mt-2 inline-flex items-center gap-1.5 min-h-9 px-3 rounded-lg border border-primary/40 text-primary text-xs font-semibold cursor-pointer hover:bg-primary/5 transition-colors relative">
+            <label class="mt-2 mb-4 inline-flex items-center gap-1.5 min-h-9 px-3 rounded-lg border border-primary/40 text-primary text-xs font-semibold cursor-pointer hover:bg-primary/5 transition-colors relative">
               <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M3 16.5V18a2 2 0 002 2h14a2 2 0 002-2v-1.5M16 10l-4-4m0 0L8 10m4-4v12" />
@@ -206,6 +235,8 @@
           Cancel
         </button>
         @if (!needsStaffPicker() || selectedStaff()) {
+          <!-- "Next" only when a payment step actually follows; a salon with no
+               booking fee books straight from here as it always did. -->
           <button
             (click)="confirmBooking()"
             [disabled]="!selectedDate() || !selectedStartTime() || visit.booking()"
@@ -215,11 +246,12 @@
               <app-inline-spinner sizeClass="w-4 h-4" label="Booking" />
               <span>Booking…</span>
             } @else {
-              <span>Book appointment</span>
+              <span>{{ visit.enforcesBookingFee() ? 'Next' : 'Book appointment' }}</span>
             }
           </button>
         }
       </div>
+      }
     </div>
   </div>
 }

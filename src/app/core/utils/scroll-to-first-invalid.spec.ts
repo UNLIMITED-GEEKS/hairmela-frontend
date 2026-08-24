@@ -184,4 +184,66 @@ describe('scrollToFirstInvalidControl', () => {
   it('does not throw on a null form element', () => {
     expect(() => scrollToFirstInvalidControl(null)).not.toThrow();
   });
+
+  it('scrolls a field below a DIALOG fold, not just below the viewport fold', () => {
+    // The dialogs put their fields in an inner overflow-y-auto panel. Measured
+    // against window.innerHeight such a field IS inside the viewport, so it
+    // was judged visible and never scrolled to — the exact case this exists
+    // for, in the surface where it matters most.
+    const panel = document.createElement('div');
+    // Looks like a real scroller: taller content than box, and overflow set.
+    Object.defineProperty(panel, 'scrollHeight', { value: 2000, configurable: true });
+    Object.defineProperty(panel, 'clientHeight', { value: 300, configurable: true });
+    panel.style.overflowY = 'auto';
+    // Panel occupies the top of the screen.
+    panel.getBoundingClientRect = () => ({ top: 0, bottom: 300 }) as DOMRect;
+    document.body.appendChild(panel);
+
+    const field = document.createElement('input');
+    field.setAttribute('data-invalid', 'true');
+    Object.defineProperty(field, 'offsetParent', { value: panel, configurable: true });
+    // Below the PANEL's fold, but comfortably inside the viewport — the case
+    // a window-based measurement wrongly called visible.
+    field.getBoundingClientRect = () => ({ top: 400, bottom: 440 }) as DOMRect;
+    const spy = vi.fn();
+    field.scrollIntoView = spy;
+    panel.appendChild(field);
+
+    scrollToFirstInvalidControl(panel);
+
+    expect(spy).toHaveBeenCalled();
+    document.body.removeChild(panel);
+  });
+
+  it('finds signal-driven fields marked with data-invalid', () => {
+    // The join dialog validates guest name, phone and service with signals,
+    // which have no FormControl and therefore no ng-invalid class.
+    const host = document.createElement('div');
+    const field = document.createElement('input');
+    field.setAttribute('data-invalid', 'true');
+    Object.defineProperty(field, 'offsetParent', { value: host, configurable: true });
+    field.getBoundingClientRect = () => ({ top: 5000, bottom: 5040 }) as DOMRect;
+    const spy = vi.fn();
+    field.scrollIntoView = spy;
+    host.appendChild(field);
+
+    scrollToFirstInvalidControl(host);
+
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('ignores a data-invalid field once it is no longer invalid', () => {
+    const host = document.createElement('div');
+    const field = document.createElement('input');
+    // Bound with [attr.data-invalid]="... ? 'true' : null", so a valid field
+    // has the attribute removed entirely rather than set to "false".
+    Object.defineProperty(field, 'offsetParent', { value: host, configurable: true });
+    const spy = vi.fn();
+    field.scrollIntoView = spy;
+    host.appendChild(field);
+
+    scrollToFirstInvalidControl(host);
+
+    expect(spy).not.toHaveBeenCalled();
+  });
 });

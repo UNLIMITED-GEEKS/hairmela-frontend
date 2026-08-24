@@ -3,7 +3,7 @@
 
 export interface CommentResponseDto {
   authorName: string;
-  authorRole: 'CUSTOMER' | 'STAFF';
+  authorRole: 'CUSTOMER' | 'STAFF' | 'SYSTEM';
   body: string;
   createdAt: string;
   id: string;

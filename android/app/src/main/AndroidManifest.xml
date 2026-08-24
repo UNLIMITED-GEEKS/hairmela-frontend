@@ -76,4 +76,24 @@
          shown. Without it FCM still delivers, but our local notification is
          silently dropped — delivery succeeds and the user sees nothing. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- "Near me" salon search (navigator.geolocation in the WebView). BOTH
+         are declared deliberately: Android 12+ shows the user a Precise /
+         Approximate choice, and picking Approximate grants only COARSE. If
+         FINE alone were declared, that choice would deny us outright rather
+         than degrade; with both, Approximate still yields a usable (~2km)
+         fix, which is enough to rank salons by distance.
+
+         required="false" on the feature keeps the app installable on devices
+         with no GPS hardware — nearby search is one button, not the app.
+
+         No Java needed: Capacitor's BridgeWebChromeClient already implements
+         onGeolocationPermissionsShowPrompt (the WebView denies geolocation
+         outright without it) and requests both permissions together, with an
+         explicit Android 12+ path that still grants the page when only COARSE
+         came back. These declarations are what make that request legal. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-feature android:name="android.hardware.location" android:required="false" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 </manifest>

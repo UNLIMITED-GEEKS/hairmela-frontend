@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { PushService } from '../../../core/push/push.service';
 import { ToastService } from '../../../core/toast/toast.service';
+import { AppPlatformService } from '../../../core/native/app-platform.service';
 
 // Account-level push control — a way back in for users who dismissed the
 // contextual prompt, and a way out for those who want to stop. Reflects the
@@ -12,14 +13,17 @@ import { ToastService } from '../../../core/toast/toast.service';
 export class NotificationsToggleComponent {
   private readonly _push = inject(PushService);
   private readonly _toast = inject(ToastService);
+  protected readonly platform = inject(AppPlatformService);
 
   protected readonly busy = signal(false);
 
   protected readonly supported = this._push.isSupported;
   protected readonly subscribed = this._push.subscribed;
 
-  // Permission was explicitly denied at the browser level — the user must
-  // re-enable in browser settings; an in-app toggle can't override that.
+  // Permission was explicitly denied at the OS/browser level — the user must
+  // re-enable in settings; an in-app toggle can't override that. See
+  // AppPlatformService.settingsLocation for why the wording is platform-aware:
+  // "browser settings" is meaningless inside the installed app.
   // permissionState() (signal) rather than permission (getter) so this
   // re-evaluates when native's async permission lookup settles.
   protected readonly blockedByBrowser = computed(() => this._push.permissionState() === 'denied');
@@ -33,7 +37,9 @@ export class NotificationsToggleComponent {
     if (result === 'enabled') {
       this._toast.success('Notifications on.');
     } else if (result === 'denied') {
-      this._toast.info('Permission blocked — enable notifications in your device settings.');
+      this._toast.info(
+        `Permission blocked — enable notifications in your ${this.platform.settingsLocation}.`,
+      );
     } else {
       // Permission granted, but registration or the server call failed — a
       // settings-related message would send the user somewhere that can't help.

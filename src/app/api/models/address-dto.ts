@@ -4,6 +4,8 @@
 export interface AddressDto {
   city: string;
   country: string;
+  latitude?: number;
+  longitude?: number;
   state: string;
   street: string;
 }

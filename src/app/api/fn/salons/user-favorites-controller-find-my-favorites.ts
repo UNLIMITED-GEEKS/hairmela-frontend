@@ -14,6 +14,7 @@ export interface UserFavoritesControllerFindMyFavorites$Params {
   state?: string;
   city?: string;
   search?: string;
+  location?: string;
   category?: string;
   page?: number;
   limit?: number;
@@ -28,6 +29,7 @@ export function userFavoritesControllerFindMyFavorites(http: HttpClient, rootUrl
     rb.query('state', params.state, {});
     rb.query('city', params.city, {});
     rb.query('search', params.search, {});
+    rb.query('location', params.location, {});
     rb.query('category', params.category, {});
     rb.query('page', params.page, {});
     rb.query('limit', params.limit, {});

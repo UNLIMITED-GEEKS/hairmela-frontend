@@ -4,10 +4,12 @@ import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import {
+  AbstractControl,
   AbstractControlOptions,
   FormBuilder,
   FormArray,
   ReactiveFormsModule,
+  ValidationErrors,
   Validators,
 } from '@angular/forms';
 import { SalonSettingsService } from './salon-settings.service';
@@ -49,6 +51,40 @@ const TIMEZONES = [
   'Asia/Dubai',
   'Asia/Kolkata',
 ];
+
+/**
+ * A salon charging a booking fee must say where the money goes.
+ *
+ * Cross-field, so it lives on the group: bank mode needs an account name,
+ * link mode needs a link. The backend enforces this too
+ * (PAYMENT_DETAILS_REQUIRED) — this exists so the owner is told at the point
+ * of editing rather than having every customer's join fail later.
+ *
+ * Returns null whenever the fee is off, so a salon that isn't charging can
+ * leave the whole payment section blank.
+ */
+function paymentDetailsRequiredWhenFeeEnforced(group: AbstractControl): ValidationErrors | null {
+  if (!group.get('enforceBookingFee')?.value) return null;
+
+  const errors: ValidationErrors = {};
+
+  // Account name is needed either way — whoever is paying has to know whose
+  // account it is, whether they transfer manually or follow a payment link.
+  if (!group.get('accountName')?.value?.trim()) errors['paymentDetailsRequired'] = true;
+  if (group.get('paymentType')?.value === 'link' && !group.get('paymentLink')?.value?.trim()) {
+    errors['paymentLinkRequired'] = true;
+  }
+
+  // Both fee figures are required, not alternatives: percent is used normally,
+  // and the fixed amount is what the backend falls back to when every booked
+  // service has dynamic pricing and no percentage can be worked out.
+  const percent = group.get('bookingFeePercent')?.value;
+  const fixed = group.get('bookingFeeFixed')?.value;
+  if (percent === null || percent === '' || Number(percent) <= 0) errors['feePercentRequired'] = true;
+  if (fixed === null || fixed === '' || Number(fixed) <= 0) errors['feeFixedRequired'] = true;
+
+  return Object.keys(errors).length ? errors : null;
+}
 
 @Component({
   selector: 'app-salon-settings',
@@ -136,6 +172,40 @@ export class SalonSettingsComponent implements OnInit {
     showPrice: [false],
     maxPartySize: [5, [Validators.required, Validators.min(1), Validators.max(20)]],
     noShowWindow: [10, [Validators.required, Validators.min(1)]],
+    // ── Booking fee ────────────────────────────────────────────────────────
+    // Off by default. When on, customers are quoted a fee and must upload a
+    // payment receipt before joining or booking. HairMela never handles the
+    // money — it goes straight to the salon, which is why paymentDetails
+    // below is required before this can be switched on.
+    enforceBookingFee: [false],
+    bookingFeePercent: [0, [Validators.min(0), Validators.max(100)]],
+    bookingFeeFixed: [0, [Validators.min(0)]],
+    // Service-total threshold above which the fee stops being a percentage and
+    // becomes a flat amount equal to this number.
+    //
+    //   total <= threshold  -> pay bookingFeePercent% of the total
+    //   total >  threshold  -> pay exactly bookingFeeThreshold
+    //
+    // A percentage of an expensive booking becomes an unreasonable deposit
+    // (10% of N200,000 is N20,000), so the salon caps what it asks for.
+    //
+    // This is DISCONTINUOUS at the threshold by design: with 10% and a
+    // N10,000 threshold, N9,999 of service pays N1,000 while N10,001 pays
+    // N10,000 — a 10x jump for N2 more, and very nearly the whole job. The
+    // hint in the template says so, because a salon picking this number
+    // casually will surprise its own customers.
+    //
+    // 0 disables it; the percentage then applies at every total. Not part of
+    // the required-fields validator for that reason.
+    bookingFeeThreshold: [0, [Validators.min(0)]],
+    // type drives which of the two groups below is required; both are kept in
+    // the form so switching back and forth doesn't lose what was typed.
+    paymentType: ['bank' as 'bank' | 'link'],
+    bankName: [''],
+    accountName: [''],
+    accountNumber: [''],
+    paymentLink: [''],
+    paymentDescription: ['', Validators.maxLength(200)],
     operatingHours: this._fb.array(
       DAYS.map((_, i) =>
         this._fb.group(
@@ -149,7 +219,43 @@ export class SalonSettingsComponent implements OnInit {
         ),
       ),
     ),
-  });
+  }, { validators: paymentDetailsRequiredWhenFeeEnforced } as AbstractControlOptions);
+
+  /**
+   * A worked example of the threshold's step, shown to the OWNER while they
+   * choose the number.
+   *
+   * This is not the customer's fee — that is always quoted by the backend
+   * (see BookingFeeService: never recompute an actual fee client-side). This
+   * only illustrates the salon's own configuration, using the values in this
+   * form, so the discontinuity is visible before it surprises a customer.
+   *
+   * Null when the threshold is off, or when the numbers can't produce a
+   * meaningful illustration.
+   */
+  protected get feeThresholdExample(): {
+    below: string;
+    belowFee: string;
+    above: string;
+  } | null {
+    const v = this.form.getRawValue();
+    const threshold = Number(v.bookingFeeThreshold ?? 0);
+    const percent = Number(v.bookingFeePercent ?? 0);
+    if (threshold <= 0 || percent <= 0) return null;
+
+    const currency = v.currency ?? '';
+    const fmt = (n: number) => `${currency} ${Math.round(n).toLocaleString()}`;
+    return {
+      below: fmt(threshold),
+      belowFee: fmt((threshold * percent) / 100),
+      above: fmt(threshold + 1),
+    };
+  }
+
+  protected readonly paymentTypes = [
+    { value: 'bank' as const, label: 'Bank transfer' },
+    { value: 'link' as const, label: 'Payment link' },
+  ];
 
   protected get hoursArray(): FormArray {
     return this.form.get('operatingHours') as FormArray;
@@ -174,6 +280,17 @@ export class SalonSettingsComponent implements OnInit {
         showPrice: (settings['showPrice'] as boolean) ?? false,
         maxPartySize: (settings['maxPartySize'] as number) ?? 5,
         noShowWindow: (settings['noShowWindow'] as number) ?? 10,
+        enforceBookingFee: (settings['enforceBookingFee'] as boolean) ?? false,
+        bookingFeePercent: (settings['bookingFeePercent'] as number) ?? 0,
+        bookingFeeFixed: (settings['bookingFeeFixed'] as number) ?? 0,
+        bookingFeeThreshold: (settings['bookingFeeThreshold'] as number) ?? 0,
+        // null when the salon has never configured where to be paid.
+        paymentType: s.paymentDetails?.type ?? 'bank',
+        bankName: s.paymentDetails?.bankName ?? '',
+        accountName: s.paymentDetails?.accountName ?? '',
+        accountNumber: s.paymentDetails?.accountNumber ?? '',
+        paymentLink: s.paymentDetails?.paymentLink ?? '',
+        paymentDescription: s.paymentDetails?.description ?? '',
         currency: s.currency ?? 'NGN',
         address: {
           country: s.address?.country ?? '',
@@ -290,18 +407,47 @@ export class SalonSettingsComponent implements OnInit {
           street: v.address!.street!,
         },
         currency: v.currency as UpdateSalonDto['currency'],
+        paymentDetails: this._paymentDetailsPayload(),
       },
       {
         allowWalkIns: v.allowWalkIns!,
         showPrice: v.showPrice!,
         maxPartySize: v.maxPartySize!,
         noShowWindow: v.noShowWindow!,
+        enforceBookingFee: v.enforceBookingFee!,
+        bookingFeePercent: v.bookingFeePercent ?? 0,
+        bookingFeeFixed: v.bookingFeeFixed ?? 0,
+        bookingFeeThreshold: v.bookingFeeThreshold ?? 0,
       },
     );
     // Optimistic: the UI already reflects the change, so tell the user now
     // rather than waiting on the network round-trip. If the save actually
     // fails, the service's revert path shows its own error toast.
     this._toast.success('Settings saved');
+  }
+
+  /**
+   * Only the fields for the chosen type, omitting blanks.
+   *
+   * undefined (not an empty object) when nothing is filled in, so a salon that
+   * has never configured payment isn't sent a hollow record — the API treats
+   * absent as "unconfigured", which is what null paymentDetails means to
+   * customers reading the public salon page.
+   */
+  private _paymentDetailsPayload(): UpdateSalonDto['paymentDetails'] {
+    const v = this.form.getRawValue();
+    const description = v.paymentDescription?.trim() || undefined;
+
+    if (v.paymentType === 'link') {
+      const paymentLink = v.paymentLink?.trim();
+      return paymentLink ? { type: 'link', paymentLink, description } : undefined;
+    }
+
+    const bankName = v.bankName?.trim();
+    const accountName = v.accountName?.trim();
+    const accountNumber = v.accountNumber?.trim();
+    if (!bankName && !accountName && !accountNumber) return undefined;
+    return { type: 'bank', bankName, accountName, accountNumber, description };
   }
 
   protected markAsBranch(): void {

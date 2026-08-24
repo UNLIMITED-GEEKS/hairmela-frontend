@@ -83,6 +83,23 @@ export class AppPlatformService {
    */
   readonly homeLink: string[] = this.isAppContext ? RoutePath.dashboard() : RoutePath.root();
 
+  /**
+   * Where a user has to go to undo a permission they denied — for use inside a
+   * sentence, e.g. "allow location in your device settings".
+   *
+   * Browsers and Android both REMEMBER a denial: the prompt does not reappear
+   * on a later tap, the request just fails immediately. So the only way out is
+   * settings, and telling someone in the installed app to check their "browser
+   * settings" sends them somewhere that does not exist for them.
+   *
+   * One term, not a ternary at each call site, so every permission message
+   * (location, notifications, camera) says the same thing.
+   */
+  readonly settingsLocation: string = this.isAppContext ? 'device settings' : 'browser settings';
+
+  /** Sentence-cased: what the permission was denied FOR — "this app"/"this site". */
+  readonly appOrSiteNoun: string = this.isAppContext ? 'this app' : 'this site';
+
   constructor() {
     // Marks <html> so stylesheets can target the native shell (e.g. suppressing
     // the Android WebView's overscroll stretch, which fights the custom

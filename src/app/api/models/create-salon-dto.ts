@@ -4,6 +4,7 @@
 import { AddressDto } from '../models/address-dto';
 import { InitialServiceDto } from '../models/initial-service-dto';
 import { OperatingHourDto } from '../models/operating-hour-dto';
+import { SalonPaymentDetailsDto } from '../models/salon-payment-details-dto';
 import { UpdateSalonSettingsDto } from '../models/update-salon-settings-dto';
 export interface CreateSalonDto {
   about?: string;
@@ -12,6 +13,7 @@ export interface CreateSalonDto {
   defaultSlotDuration?: number;
   name: string;
   operatingHours?: Array<OperatingHourDto>;
+  paymentDetails?: SalonPaymentDetailsDto;
   phone: string;
   referralCode?: string;
   service: InitialServiceDto;

@@ -1,12 +1,7 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, computed, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { SalonListingService } from './salon-listing.service';
 import { BillingService } from '../../features/organization/billing/billing.service';
-// Geolocation-based location default disabled for now — inaccurate results
-// (IP-based geolocation resolves to the nearest ISP hub, not the visitor's
-// actual city). See geo-location.service.ts. Re-enable by restoring the
-// import and the resolveLocation() call in ngOnInit below.
-// import { GeoLocationService } from './geo-location.service';
 import { FavoritesService } from '../../core/favorites/favorites.service';
 import { CurrentUserStore } from '../../core/auth/current-user.store';
 import { CategoriesService } from '../../core/categories/categories.service';
@@ -39,7 +34,13 @@ export class LandingComponent implements OnInit {
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _route = inject(ActivatedRoute);
   private readonly _billing = inject(BillingService);
-  // private readonly _geoLocation = inject(GeoLocationService);
+
+  // Guests land on the guest-shell copy of the search page; signed-in users
+  // on the auth-shell one. Same component either way — only the chrome
+  // differs (see app.routes.ts).
+  protected readonly searchLink = computed(() =>
+    this._currentUser.user() ? RoutePath.search() : RoutePath.guestSearch(),
+  );
 
   protected readonly registerLink = RoutePath.register();
   protected readonly howToInstallLink = RoutePath.download();
@@ -82,11 +83,6 @@ export class LandingComponent implements OnInit {
       this._favorites.ensureIdsLoaded();
     }
 
-    // Location default (handoff §3) — DISABLED, see the import comment above.
-    // void this._geoLocation.resolveLocation().then((location) => {
-    //   if (location) this.listing.setLocation(location.state, location.city);
-    // });
-
     this._handlePaymentReturnIfPresent();
   }
 
@@ -107,11 +103,6 @@ export class LandingComponent implements OnInit {
     if (!orgId) return;
 
     this._billing.handlePaymentReturn(orgId, status, txRef);
-  }
-
-  protected onSearchInput(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.listing.setSearch(value);
   }
 
   protected onCategorySelect(slug: string): void {

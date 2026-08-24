@@ -1,4 +1,17 @@
-import { Component, computed, inject, input, output, signal, effect, untracked } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  Injector,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SalonVisitService } from '../salon-visit.service';
@@ -6,10 +19,12 @@ import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { SalonPublicStaffDto } from '../../../api/models/salon-public-staff-dto';
 import { JoinMemberDto } from '../../../api/models/join-member-dto';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
 import { RoutePath } from '../../../core/routing/route-paths';
 import { groupByServiceCategory } from '../../../core/utils/group-by-category';
 import { registerOverlayWhileOpen } from '../../../core/overlay/overlay-registry';
 import { Service } from '../../../api/models/service';
+import { BookingFeeStepComponent } from '../booking-fee-step/booking-fee-step.component';
 
 const ALLOWED_NOTE_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_NOTE_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -22,7 +37,7 @@ const MAX_NOTE_IMAGE_BYTES = 5 * 1024 * 1024;
 @Component({
   selector: 'app-join-dialog',
   templateUrl: './join-dialog.component.html',
-  imports: [ReactiveFormsModule, FieldErrorComponent],
+  imports: [ReactiveFormsModule, FieldErrorComponent, BookingFeeStepComponent],
 })
 export class JoinDialogComponent {
   readonly open = input.required<boolean>();
@@ -39,6 +54,8 @@ export class JoinDialogComponent {
   readonly closed = output<void>();
 
   protected readonly visit = inject(SalonVisitService);
+  private readonly _fieldsEl = viewChild<ElementRef<HTMLElement>>('fieldsEl');
+  private readonly _scrollInjector = inject(Injector);
   private readonly _router = inject(Router);
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _fb = inject(FormBuilder);
@@ -47,8 +64,44 @@ export class JoinDialogComponent {
   protected readonly guestPhone = signal('');
   protected readonly guestNameTouched = signal(false);
   protected readonly guestPhoneTouched = signal(false);
-  protected readonly leaderServiceId = signal('');
+  // The joining customer's services. A list, not a single id: one person can
+  // book several services in one visit, and each becomes its own members[]
+  // entry sharing their name. Index 0 is the primary one.
+  protected readonly leaderServiceIds = signal<string[]>(['']);
   protected readonly leaderServiceTouched = signal(false);
+
+  // ── Booking fee step ──────────────────────────────────────────────────────
+  // Salons with enforceBookingFee on get a payment step between the form and
+  // the actual join: quote -> pay the salon directly -> upload receipt. The
+  // form step keeps everything it had; only the button changes ("Next" instead
+  // of "Join queue") and a second step follows.
+  protected readonly step = signal<'form' | 'fee'>('form');
+  // Held from the moment the form is validated until the join fires, because
+  // the fee step needs the exact same service ids the quote was made with.
+  private readonly _pendingMembers = signal<JoinMemberDto[] | null>(null);
+  private readonly _pendingNote = signal<{ body: string; image: File | null } | undefined>(undefined);
+
+  /** The ids sent to both the quote and the receipt check — one per member. */
+  protected readonly pendingServiceIds = computed(() =>
+    (this._pendingMembers() ?? [])
+      .map((m) => m.serviceId)
+      .filter((id): id is string => !!id),
+  );
+
+  /** Total services across the leader and every kid — what maxPartySize caps. */
+  // Plain GETTERS, not computed(): these read a FormArray's length, which
+  // is not a signal, so a computed() would cache the first value and never
+  // see a person being added — the cap silently stopped applying. Getters
+  // re-evaluate on each change-detection pass, which is how the template's
+  // own `kidsArray.length` checks already work (and what add-client-modal
+  // does for the same reason).
+  protected get totalServices(): number {
+    return this.leaderServiceIds().length + this.kidsServiceCount();
+  }
+
+  protected get atMaxPartySize(): boolean {
+    return this.totalServices >= this.visit.maxPartySize();
+  }
 
   // One-shot note at intake — write-only here; it becomes the first entry in
   // the "View notes" thread on My Position, never rendered in this dialog.
@@ -101,7 +154,10 @@ export class JoinDialogComponent {
         this.guestPhone.set('');
         this.guestNameTouched.set(false);
         this.guestPhoneTouched.set(false);
-        this.leaderServiceId.set(this.initialServiceId() ?? '');
+        this.step.set('form');
+        this._pendingMembers.set(null);
+        this._pendingNote.set(undefined);
+        this.leaderServiceIds.set([this.initialServiceId() ?? '']);
         this.leaderServiceTouched.set(false);
         this.kidsArray.clear();
         this.noteBody.set('');
@@ -111,12 +167,55 @@ export class JoinDialogComponent {
   }
 
   protected addKid(): void {
-    if (this.kidsArray.length >= this.visit.maxPartySize() - 1) return;
-    this.kidsArray.push(this._buildKidGroup(this.leaderServiceId()));
+    if (this.atMaxPartySize) return;
+    this.kidsArray.push(this._buildKidGroup(this.leaderServiceIds()[0] ?? ''));
   }
 
   protected removeKid(i: number): void {
     this.kidsArray.removeAt(i);
+  }
+
+  // ── Multiple services per person ─────────────────────────────────────────
+  // Each service is a separate members[] entry on the wire, sharing that
+  // person's name, and so counts separately against maxPartySize.
+
+  protected setLeaderServiceAt(index: number, serviceId: string): void {
+    this.leaderServiceIds.update((ids) => ids.map((id, i) => (i === index ? serviceId : id)));
+  }
+
+  protected addLeaderService(): void {
+    if (this.atMaxPartySize) return;
+    this.leaderServiceIds.update((ids) => [...ids, '']);
+  }
+
+  protected removeLeaderService(index: number): void {
+    // Never leave the leader with no service row — the first one stays.
+    this.leaderServiceIds.update((ids) => (ids.length <= 1 ? ids : ids.filter((_, i) => i !== index)));
+  }
+
+  protected kidServiceIds(i: number): FormArray {
+    return this.kidsArray.at(i).get('serviceIds') as FormArray;
+  }
+
+  protected addKidService(i: number): void {
+    if (this.atMaxPartySize) return;
+    this.kidServiceIds(i).push(this._fb.control(''));
+  }
+
+  protected removeKidService(i: number, serviceIndex: number): void {
+    const ids = this.kidServiceIds(i);
+    if (ids.length <= 1) return;
+    ids.removeAt(serviceIndex);
+  }
+
+  // FormArray length isn't a signal, so this is read during change detection
+  // like the template's own kidsArray.length checks — totalServices() reads it
+  // to keep the cap honest across both.
+  protected kidsServiceCount(): number {
+    return this.kidsArray.controls.reduce((total, row) => {
+      const ids = (row.get('serviceIds') as FormArray | null)?.length ?? 0;
+      return total + Math.max(ids, 1);
+    }, 0);
   }
 
   protected onNoteImagePicked(event: Event): void {
@@ -163,33 +262,83 @@ export class JoinDialogComponent {
       ? this.guestName().trim()
       : (this._currentUser.user()?.firstName ?? '');
     const phone = this.isGuest ? this.guestPhone().trim() : undefined;
-    if (this.isGuest && (!leaderName || !phone)) return;
-    if (!leaderName) return;
-    // A service is mandatory for every join — no path submits without one.
-    if (!this.leaderServiceId()) {
+
+    // Mark every field the user has not yet blurred, so its error actually
+    // renders. Previously these paths just returned: the errors were gated on
+    // `touched`, an untouched field showed nothing, and the button read as
+    // broken. A service is mandatory for every join — no path submits without
+    // one.
+    const missingGuestFields = this.isGuest && (!leaderName || !phone);
+    const missingService = !this.leaderServiceIds().some((id) => !!id);
+    if (missingGuestFields || missingService || !leaderName) {
+      if (this.isGuest) {
+        this.guestNameTouched.set(true);
+        this.guestPhoneTouched.set(true);
+      }
       this.leaderServiceTouched.set(true);
+      afterNextRender(() => scrollToFirstInvalidControl(this._fieldsEl()?.nativeElement), {
+        injector: this._scrollInjector,
+      });
       return;
     }
 
-    const leader: JoinMemberDto = {
-      memberName: leaderName,
-      phone,
-      serviceId: this.leaderServiceId(),
-    };
-    const kids = (this.kidsArray.value as { name: string; serviceId: string }[])
+    // One members[] entry per service, all sharing that person's name — the
+    // backend counts these individually against maxPartySize.
+    const leaderEntries = this.leaderServiceIds()
+      .filter((id) => !!id)
+      .map((serviceId): JoinMemberDto => ({ memberName: leaderName, phone, serviceId }));
+    const kids = (this.kidsArray.value as { name: string; serviceIds: string[] }[])
       .filter((k) => k.name?.trim())
-      .map((k): JoinMemberDto => ({ memberName: k.name.trim(), serviceId: k.serviceId || undefined }));
+      .flatMap((k): JoinMemberDto[] => {
+        const name = k.name.trim();
+        const ids = (k.serviceIds ?? []).filter((id) => !!id);
+        // A kid with no service chosen still joins — service is optional here.
+        if (ids.length === 0) return [{ memberName: name, serviceId: undefined }];
+        return ids.map((serviceId) => ({ memberName: name, serviceId }));
+      });
 
     const note =
       this.noteBody().trim() || this.noteImage()
         ? { body: this.noteBody().trim(), image: this.noteImage() }
         : undefined;
 
+    const members = [...leaderEntries, ...kids];
+
+    // Salons that charge a fee get a payment step first. The dialog stays
+    // OPEN here (unlike the direct path below, which closes and navigates) —
+    // there is a second step to show.
+    if (this.visit.enforcesBookingFee()) {
+      this._pendingMembers.set(members);
+      this._pendingNote.set(note);
+      this.step.set('fee');
+      return;
+    }
+
     this.closed.emit();
-    this._submitJoin([leader, ...kids], note);
+    this._submitJoin(members, note);
   }
 
-  private _submitJoin(members: JoinMemberDto[], note?: { body: string; image: File | null }): void {
+  /**
+   * The fee step is done: either the receipt was accepted (id present), or the
+   * salon turned out not to be charging after all (null). Either way the join
+   * proceeds — the id is what proves payment to the backend.
+   */
+  protected onFeeVerified(receiptVerificationId: string | null): void {
+    const members = this._pendingMembers();
+    if (!members) return;
+    this.closed.emit();
+    this._submitJoin(members, this._pendingNote(), receiptVerificationId ?? undefined);
+  }
+
+  protected backToForm(): void {
+    this.step.set('form');
+  }
+
+  private _submitJoin(
+    members: JoinMemberDto[],
+    note?: { body: string; image: File | null },
+    receiptVerificationId?: string,
+  ): void {
     const salonId = this.salonId();
     const queueId = this.queueId();
     const slug = this.slug();
@@ -205,10 +354,13 @@ export class JoinDialogComponent {
     const joiningUrl = RoutePath.visitJoining(prefix, slug, queueId);
     this._router.navigate(joiningUrl);
 
-    this.visit.joinQueue(salonId, queueId, slug, { members }, note);
+    this.visit.joinQueue(salonId, queueId, slug, { members, receiptVerificationId }, note);
   }
 
   private _buildKidGroup(serviceId = '') {
-    return this._fb.group({ name: ['', Validators.required], serviceId: [serviceId] });
+    return this._fb.group({
+      name: ['', Validators.required],
+      serviceIds: this._fb.array([this._fb.control(serviceId)]),
+    });
   }
 }

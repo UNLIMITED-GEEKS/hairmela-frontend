@@ -148,6 +148,29 @@
         </label>
       </div>
 
+      <!-- Copy the parent's services. Branch creation only: a standalone
+           salon has no parent to copy from. Sits outside the `service`
+           formGroup below because it belongs to the branch-attach call, not
+           to CreateSalonDto. -->
+      @if (parentSalonId()) {
+        <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+          <h2 class="text-sm font-semibold text-gray-700">Services</h2>
+
+          <label class="flex items-center justify-between min-h-11 cursor-pointer">
+            <span>
+              <span class="block text-sm text-gray-700">Copy services from the main salon</span>
+              <span class="block text-xs text-gray-400">
+                Copies the main salon's current services into this branch so you don't retype them.
+                Done once, now — later changes to the main salon's services won't carry over, and
+                you can edit or remove this branch's services independently.
+              </span>
+            </span>
+            <input type="checkbox" formControlName="copyServices"
+              class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/40 shrink-0" />
+          </label>
+        </div>
+      }
+
       <!-- Address -->
       <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-4" formGroupName="address">
         <h2 class="text-sm font-semibold text-gray-700">Address</h2>
@@ -250,7 +273,14 @@
       <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-4" formGroupName="service">
         <div>
           <h2 class="text-sm font-semibold text-gray-700">First service</h2>
-          <p class="text-xs text-gray-400 mt-0.5">You can add more after your salon is created.</p>
+          @if (parentSalonId()) {
+            <p class="text-xs text-gray-400 mt-0.5">
+              Required for every new location. It's added alongside any copied services (a matching
+              name is skipped, not duplicated).
+            </p>
+          } @else {
+            <p class="text-xs text-gray-400 mt-0.5">You can add more after your salon is created.</p>
+          }
         </div>
 
         <div class="space-y-1.5">

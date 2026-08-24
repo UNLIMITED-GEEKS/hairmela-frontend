@@ -3,6 +3,7 @@
 
 import { AddressDto } from '../models/address-dto';
 import { OperatingHourDto } from '../models/operating-hour-dto';
+import { SalonPaymentDetailsDto } from '../models/salon-payment-details-dto';
 export interface UpdateSalonDto {
   about?: string;
   address?: AddressDto;
@@ -10,6 +11,7 @@ export interface UpdateSalonDto {
   defaultSlotDuration?: number;
   name?: string;
   operatingHours?: Array<OperatingHourDto>;
+  paymentDetails?: SalonPaymentDetailsDto;
   phone?: string;
   timezone?: string;
 }

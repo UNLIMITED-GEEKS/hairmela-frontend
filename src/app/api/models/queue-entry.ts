@@ -6,6 +6,7 @@ import { QueueEntryMember } from '../models/queue-entry-member';
 import { SalonStaff } from '../models/salon-staff';
 import { User } from '../models/user';
 export interface QueueEntry {
+  bookingFeeVerified: boolean | null;
   createdAt: string;
   guestId: string | null;
   id: string;
@@ -19,6 +20,7 @@ export interface QueueEntry {
   notifiedWait5At: string | null;
   queue: Queue;
   queueId: string;
+  rescheduledAt: string | null;
   scheduledAt: string | null;
   scheduledEndAt: string | null;
   staff: SalonStaff;

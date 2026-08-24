@@ -3,7 +3,11 @@
 
 export interface UpdateSalonSettingsDto {
   allowWalkIns?: boolean;
+  bookingFeeFixed?: number;
+  bookingFeePercent?: number;
+  bookingFeeThreshold?: number;
   cancellationWindow?: number;
+  enforceBookingFee?: boolean;
   maxActiveAppointments?: number;
   maxActiveWalkIns?: number;
   maxAdvanceBookingDays?: number;

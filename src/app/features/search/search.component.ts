@@ -11,12 +11,13 @@ import { FavoritesService } from '../../core/favorites/favorites.service';
 import { CurrentUserStore } from '../../core/auth/current-user.store';
 import { RouteQueryParam } from '../../core/routing/route-paths';
 import { ListingScrollMemoryDirective } from '../../shared/directives/listing-scroll-memory.directive';
+import { NearbyButtonComponent } from '../../shared/components/nearby-button/nearby-button.component';
 
 @Component({
   selector: 'app-search',
   templateUrl: './search.component.html',
   imports: [
-    ListingScrollMemoryDirective,IconComponent, SalonCardComponent, CategoryPillsComponent, PaginationComponent, SkeletonComponent],
+    ListingScrollMemoryDirective,IconComponent, SalonCardComponent, CategoryPillsComponent, PaginationComponent, SkeletonComponent, NearbyButtonComponent],
 })
 export class SearchComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
@@ -57,6 +58,11 @@ export class SearchComponent implements OnInit {
   protected onSearchInput(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     this.listing.setSearch(value);
+  }
+
+  protected onLocationInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.listing.setLocation(value);
   }
 
   protected onCategorySelect(slug: string): void {

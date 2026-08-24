@@ -40,6 +40,24 @@ export class SalonCardComponent {
    * lie about context it does not have.
    */
   readonly activeCategory = input<string>('');
+  /**
+   * Straight-line distance to this salon, when rendering nearby results.
+   * null everywhere else, which is every other surface this card appears on.
+   *
+   * Deliberately "away", never "travel time": the backend measures
+   * point-to-point, and many salons are positioned from their city rather
+   * than their street, so neighbouring salons can legitimately show the same
+   * figure.
+   */
+  readonly distanceKm = input<number | null>(null);
+
+  // One decimal under 10km, whole numbers above — 0.4 km and 12 km both read
+  // naturally, 12.3 km is false precision on a city-level coordinate.
+  protected readonly distanceLabel = computed(() => {
+    const km = this.distanceKm();
+    if (km === null) return '';
+    return km < 10 ? `${km.toFixed(1)} km away` : `${Math.round(km)} km away`;
+  });
 
 
   private readonly _currentUser = inject(CurrentUserStore);

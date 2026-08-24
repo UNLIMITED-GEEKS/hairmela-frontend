@@ -59,6 +59,10 @@ export type { UserSalonsControllerAddFavorite$Params as UserSalonsControllerAddF
 export { userSalonsControllerAddFavorite as userSalonsControllerAddFavorite } from './fn/salons/user-salons-controller-add-favorite';
 export type { UserSalonsControllerRemoveFavorite$Params as UserSalonsControllerRemoveFavorite$Params } from './fn/salons/user-salons-controller-remove-favorite';
 export { userSalonsControllerRemoveFavorite as userSalonsControllerRemoveFavorite } from './fn/salons/user-salons-controller-remove-favorite';
+export type { PublicSalonsControllerFindNearby$Params as PublicSalonsControllerFindNearby$Params } from './fn/salons/public-salons-controller-find-nearby';
+export { publicSalonsControllerFindNearby as publicSalonsControllerFindNearby } from './fn/salons/public-salons-controller-find-nearby';
+export type { PublicSalonsControllerGetBookingFee$Params as PublicSalonsControllerGetBookingFee$Params } from './fn/salons/public-salons-controller-get-booking-fee';
+export { publicSalonsControllerGetBookingFee as publicSalonsControllerGetBookingFee } from './fn/salons/public-salons-controller-get-booking-fee';
 export type { PublicSalonsControllerFindBySlug$Params as PublicSalonsControllerFindBySlug$Params } from './fn/salons/public-salons-controller-find-by-slug';
 export { publicSalonsControllerFindBySlug as publicSalonsControllerFindBySlug } from './fn/salons/public-salons-controller-find-by-slug';
 export type { PublicSalonsControllerFindBranchesBySlug$Params as PublicSalonsControllerFindBranchesBySlug$Params } from './fn/salons/public-salons-controller-find-branches-by-slug';
@@ -213,8 +217,12 @@ export type { BookingControllerBookAppointment$Params as BookingControllerBookAp
 export { bookingControllerBookAppointment as bookingControllerBookAppointment } from './fn/queues/booking-controller-book-appointment';
 export type { BookingControllerCancelAppointment$Params as BookingControllerCancelAppointment$Params } from './fn/queues/booking-controller-cancel-appointment';
 export { bookingControllerCancelAppointment as bookingControllerCancelAppointment } from './fn/queues/booking-controller-cancel-appointment';
+export type { BookingControllerRescheduleAppointment$Params as BookingControllerRescheduleAppointment$Params } from './fn/queues/booking-controller-reschedule-appointment';
+export { bookingControllerRescheduleAppointment as bookingControllerRescheduleAppointment } from './fn/queues/booking-controller-reschedule-appointment';
 export type { StaffBookingControllerStaffBookAppointment$Params as StaffBookingControllerStaffBookAppointment$Params } from './fn/queues/staff-booking-controller-staff-book-appointment';
 export { staffBookingControllerStaffBookAppointment as staffBookingControllerStaffBookAppointment } from './fn/queues/staff-booking-controller-staff-book-appointment';
+export type { StaffBookingControllerStaffRescheduleAppointment$Params as StaffBookingControllerStaffRescheduleAppointment$Params } from './fn/queues/staff-booking-controller-staff-reschedule-appointment';
+export { staffBookingControllerStaffRescheduleAppointment as staffBookingControllerStaffRescheduleAppointment } from './fn/queues/staff-booking-controller-staff-reschedule-appointment';
 export type { StaffAppointmentsControllerGetStaffAppointments$Params as StaffAppointmentsControllerGetStaffAppointments$Params } from './fn/queues/staff-appointments-controller-get-staff-appointments';
 export { staffAppointmentsControllerGetStaffAppointments as staffAppointmentsControllerGetStaffAppointments } from './fn/queues/staff-appointments-controller-get-staff-appointments';
 export type { StaffAppointmentsControllerGetSalonAppointments$Params as StaffAppointmentsControllerGetSalonAppointments$Params } from './fn/queues/staff-appointments-controller-get-salon-appointments';
@@ -223,6 +231,8 @@ export type { CommentsControllerList$Params as CommentsControllerList$Params } f
 export { commentsControllerList as commentsControllerList } from './fn/queues/comments-controller-list';
 export type { CommentsControllerCreate$Params as CommentsControllerCreate$Params } from './fn/queues/comments-controller-create';
 export { commentsControllerCreate as commentsControllerCreate } from './fn/queues/comments-controller-create';
+export type { ReceiptVerificationControllerVerify$Params as ReceiptVerificationControllerVerify$Params } from './fn/queues/receipt-verification-controller-verify';
+export { receiptVerificationControllerVerify as receiptVerificationControllerVerify } from './fn/queues/receipt-verification-controller-verify';
 export type { NotificationsControllerGetInbox$Params as NotificationsControllerGetInbox$Params } from './fn/notifications/notifications-controller-get-inbox';
 export { notificationsControllerGetInbox as notificationsControllerGetInbox } from './fn/notifications/notifications-controller-get-inbox';
 export type { NotificationsControllerMarkAsRead$Params as NotificationsControllerMarkAsRead$Params } from './fn/notifications/notifications-controller-mark-as-read';

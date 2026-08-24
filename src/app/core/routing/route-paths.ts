@@ -274,4 +274,5 @@ export const RoutePath = {
     RouteSegment.POSITION,
   ],
   guestQueues: () => ['/g/queues'],
+  guestSearch: () => ['/g/search'],
 } as const;

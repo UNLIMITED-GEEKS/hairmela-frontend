@@ -45,6 +45,14 @@
                   class="flex-1 min-h-9 rounded-xl border border-primary/30 text-primary text-xs font-semibold hover:bg-secondary-light transition-colors">
                   View
                 </button>
+                <!-- Absent once used or too close to the appointment — see
+                     canReschedule in reschedule-policy.ts. -->
+                @if (canReschedule(entry)) {
+                  <button type="button" (click)="openReschedule(entry)"
+                    class="flex-1 min-h-9 rounded-xl border border-primary/30 text-primary text-xs font-semibold hover:bg-secondary-light transition-colors">
+                    Reschedule
+                  </button>
+                }
                 @if (canCancel(entry)) {
                   <button type="button" (click)="cancelAppointment(entry)" [disabled]="cancelling() === entry.id"
                     class="flex-1 min-h-9 rounded-xl border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-50 disabled:opacity-50 transition-colors">
@@ -96,3 +104,11 @@
 
   }
 </div>
+
+<app-reschedule-dialog
+  [open]="!!rescheduleEntry()"
+  [entry]="rescheduleEntry()"
+  [salonId]="rescheduleEntry()?.queue?.salon?.id ?? ''"
+  actor="customer"
+  (closed)="rescheduleEntry.set(null)"
+  (rescheduled)="onRescheduled()" />

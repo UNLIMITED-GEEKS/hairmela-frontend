@@ -1,0 +1,21 @@
+<div>
+  <button type="button" (click)="toggle()" [disabled]="listing.nearbyLocating()"
+    [attr.aria-pressed]="listing.nearbyActive()"
+    [class]="'inline-flex items-center gap-1.5 min-h-12 px-4 rounded-xl border text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap ' +
+      (listing.nearbyActive()
+        ? 'bg-primary text-white border-primary'
+        : 'bg-white text-gray-700 border-gray-200 hover:border-primary hover:text-primary')">
+    <app-icon name="location-pin" class="w-4.5 h-4.5 shrink-0" />
+    {{ listing.nearbyLocating() ? 'Locating…' : 'Find salons near me' }}
+  </button>
+
+  @if (listing.nearbyError(); as err) {
+    <p class="mt-1.5 text-xs text-gray-500" role="status">
+      @if (err === 'denied') {
+        Location access was blocked. Allow it in your {{ platform.settingsLocation }} to see salons near you.
+      } @else {
+        {{ platform.isAppContext ? "This device can't share your location." : "This browser can't share your location." }}
+      }
+    </p>
+  }
+</div>

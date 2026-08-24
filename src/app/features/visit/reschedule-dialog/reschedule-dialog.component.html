@@ -1,0 +1,75 @@
+@if (open() && entry(); as currentEntry) {
+  <div
+    animate.enter="modal-backdrop-enter"
+    animate.leave="modal-backdrop-leave"
+    class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-4 pb-4 sm:pb-0"
+    role="dialog" aria-modal="true" aria-label="Reschedule appointment">
+    <div
+      animate.enter="modal-card-enter"
+      animate.leave="modal-card-leave"
+      class="w-full max-w-sm bg-surface rounded-3xl p-6 space-y-5 shadow-xl max-h-85dvh flex flex-col">
+
+      <div class="shrink-0">
+        <h2 class="text-lg font-bold text-gray-900">Reschedule appointment</h2>
+        <p class="text-sm text-text-secondary mt-1">
+          Pick a new date and time. An appointment can only be moved once.
+        </p>
+      </div>
+
+      <div class="flex-1 overflow-y-auto themed-scrollbar scroll-fade space-y-4">
+        <app-slot-picker
+          [salonId]="salonId()"
+          [staffId]="staffId()"
+          [resetToken]="slotResetToken()"
+          [(selectedDate)]="selectedDate"
+          [(selectedStartTime)]="selectedStartTime" />
+
+        <!-- Members are fixed: rescheduling edits the existing party (each
+             needs its memberId), it never adds or removes people. Names are
+             read-only; only the service can change. -->
+        @if (members().length) {
+          <div class="space-y-2 mb-6">
+            <label class="block text-sm font-medium mt-6 text-gray-700">Services</label>
+            @for (m of members(); track m.id) {
+              <div class="bg-white border border-gray-200 rounded-2xl px-3 py-3 space-y-2">
+                <p class="text-sm font-medium text-gray-800">
+                  {{ m.memberName }}
+                  @if (m.isLeader) {
+                    <span class="text-xs font-normal text-gray-500">(you)</span>
+                  }
+                </p>
+                <select
+                  [value]="serviceIdFor(m.id)"
+                  (change)="setServiceFor(m.id, $any($event.target).value)"
+                  class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 bg-white
+                         focus:outline-none focus:ring-2 focus:ring-primary/30">
+                  <option value="" disabled>Select a service</option>
+                  @for (s of staffServices(); track s.id) {
+                    <option [value]="s.id">{{ s.name }}</option>
+                  }
+                </select>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="shrink-0 flex gap-3">
+        <button type="button" (click)="cancel()"
+          class="flex-1 min-h-12 rounded-2xl border-2 border-gray-200 bg-white text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors">
+          Cancel
+        </button>
+        <button type="button" (click)="confirm()" [disabled]="!canSubmit()"
+          class="flex-1 min-h-12 rounded-2xl bg-primary text-white font-semibold text-sm disabled:opacity-50
+                 hover:bg-secondary-light hover:text-primary transition-colors flex items-center justify-center gap-2">
+          @if (reschedule.saving()) {
+            <app-inline-spinner sizeClass="w-4 h-4" label="Rescheduling" />
+            <span>Rescheduling…</span>
+          } @else {
+            <span>Reschedule</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

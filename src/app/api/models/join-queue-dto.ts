@@ -5,4 +5,5 @@ import { JoinMemberDto } from '../models/join-member-dto';
 export interface JoinQueueDto {
   members: Array<JoinMemberDto>;
   notes?: string;
+  receiptVerificationId?: string;
 }

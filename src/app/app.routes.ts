@@ -150,6 +150,14 @@ export const routes: Routes = [
           ),
       },
       {
+        // Same component as the auth shell's /search — it already no-ops the
+        // favorites load when there's no user. Duplicated per shell (like
+        // queues and s/:slug above) so each audience keeps its own chrome.
+        path: RouteSegment.SEARCH,
+        loadComponent: () =>
+          import('./features/search/search.component').then((m) => m.SearchComponent),
+      },
+      {
         path: `${RouteSegment.S}/:${RouteParam.SLUG}`,
         data: { shellPrefix: '/g' },
         loadChildren: () => import('./features/visit/visit.routes').then((m) => m.visitRoutes),

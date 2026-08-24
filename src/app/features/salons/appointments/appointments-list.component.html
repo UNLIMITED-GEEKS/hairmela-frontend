@@ -55,6 +55,15 @@
                   </p>
                 }
 
+                <!-- Absent once used or too close to the appointment — see
+                     canReschedule in reschedule-policy.ts. -->
+                @if (canReschedule(entry)) {
+                  <button type="button" (click)="openReschedule(entry)"
+                    class="mt-2 min-h-9 px-3 rounded-xl border border-primary/30 text-primary text-xs font-semibold hover:bg-secondary-light transition-colors">
+                    Reschedule
+                  </button>
+                }
+
                 <!-- Party breakdown — replaces the old flattened comma-joined
                      service list, which with a party said "Cut, Cut, Braids"
                      without saying WHO gets what, exactly what the barber
@@ -106,3 +115,11 @@
   }
 
 </div>
+
+<app-reschedule-dialog
+  [open]="!!rescheduleEntry()"
+  [entry]="rescheduleEntry()"
+  [salonId]="salonId"
+  actor="staff"
+  (closed)="rescheduleEntry.set(null)"
+  (rescheduled)="onRescheduled()" />
