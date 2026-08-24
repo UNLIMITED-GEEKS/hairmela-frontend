@@ -101,9 +101,36 @@
       <p class="text-xs text-gray-500">
         After paying, add a photo of the receipt. It's checked before your place is held
       </p>
+      <!-- Bank transfers only: name what the check actually looks for, so a
+           cropped screenshot missing the amount isn't discovered by rejection.
+           A payment-link receipt looks nothing like this, hence the gate. -->
+      @if (paymentDetails()?.type === 'bank') {
+        <div class="rounded-xl bg-gray-50 border border-gray-200 px-3 py-2.5">
+          <p class="text-xs font-semibold text-gray-700">Your image must clearly show:</p>
+          <ul class="mt-1 space-y-0.5 text-xs text-gray-600">
+            <li>• The bank name</li>
+            <li>• The account name it was sent to</li>
+            <li>• The account number it was sent to</li>
+            <li>• The amount paid</li>
+          </ul>
+        </div>
+      }
+
+      <!-- A payment-link receipt carries no bank name or account number, so
+           only the two fields that do appear on one are asked for. -->
+      @if (paymentDetails()?.type === 'link') {
+        <div class="rounded-xl bg-gray-50 border border-gray-200 px-3 py-2.5">
+          <p class="text-xs font-semibold text-gray-700">Your image must clearly show:</p>
+          <ul class="mt-1 space-y-0.5 text-xs text-gray-600">
+            <li>• The account name it was sent to</li>
+            <li>• The amount paid</li>
+          </ul>
+        </div>
+      }
+
       <!-- Bank apps hand out PDF receipts constantly, and the backend only
            accepts images — so say the way out before they hit the wall. -->
-      <p class="text-xs text-gray-400">
+      <p class="text-xs text-gray-600">
         If your bank gave you a PDF, take a screenshot of it and upload that instead.
       </p>
 

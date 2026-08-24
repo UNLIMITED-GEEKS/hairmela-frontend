@@ -58,6 +58,10 @@ export class SlotPickerComponent {
   protected readonly monthSlots = signal<AvailableSlotDto[]>([]);
   protected readonly slotsLoading = signal(false);
 
+  // Distinguishes "this component was just constructed" from "the parent asked
+  // for a reset" — see the effect in the constructor.
+  private _firstRun = true;
+
   /** Days in the visible month with at least one bookable slot — calendar dots. */
   protected readonly badgeFor = computed(() => {
     const days = new Set(
@@ -84,9 +88,32 @@ export class SlotPickerComponent {
     // single-date input in the booking dialog; keeping the guard here is what
     // lets the extraction preserve the fix.)
     effect(() => {
-      this.resetToken();
-      this.staffId();
+      const token = this.resetToken();
+      const staffId = this.staffId();
       untracked(() => {
+        // First run with a date the parent already holds = this component was
+        // just RECREATED around an existing choice, not asked to start over.
+        //
+        // The booking dialog's fee step is an @if sibling, so stepping forward
+        // DESTROYS this picker and stepping Back builds a new one. Resetting
+        // here wiped the slot the customer had already chosen — they pressed
+        // Back and their time was gone. The parent's date/time survive that
+        // destruction (they are its own signals), so honour them and just
+        // refetch the month they belong to.
+        const isRecreatedWithSelection = this._firstRun && !!this.selectedDate();
+        this._firstRun = false;
+
+        if (isRecreatedWithSelection) {
+          this.viewedMonth.set(startOfMonth(new Date(this.selectedDate()!)));
+          this.monthSlots.set([]);
+          this._fetchMonth();
+          return;
+        }
+
+        // A genuine reset: the dialog reopened, or a different staff member
+        // was picked, so any previous choice is meaningless.
+        void token;
+        void staffId;
         this.viewedMonth.set(startOfMonth(new Date()));
         // Auto-select the earliest allowed day so the Time section is visible
         // immediately, rather than only after a manual tap.
