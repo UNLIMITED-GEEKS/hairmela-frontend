@@ -135,7 +135,7 @@
 
         <!-- Notes — self-contained, only one row's open at a time -->
         <div class="mt-2">
-          <app-accordion title="Notes" [open]="openNotesEntryId() === entry.entryId"
+          <app-accordion title="View chat" [open]="openNotesEntryId() === entry.entryId"
             (openChange)="onRowNotesOpenChange(entry.entryId, $event)">
             <app-comments-thread [queueId]="_queueId" [entryId]="entry.entryId"
               [callPhone]="entry.members[0].phone"
