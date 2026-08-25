@@ -47,6 +47,25 @@ export class MobileSheetComponent {
     return this.navItems().filter((i) => i.sheet);
   }
 
+  /**
+   * True when every section of this sheet is gated off, so opening it would
+   * show an empty panel.
+   *
+   * Read by the mobile top bar to hide its toggle entirely. Computed HERE
+   * rather than in the top bar so the two can never disagree — this component
+   * owns the three @if conditions in its own template, and a customer with no
+   * salon and no owned org fails all of them. (The auth shell sets no
+   * `sheet: true` on its nav items, so that first section is always empty
+   * there; only the guest shell populates it.)
+   */
+  readonly isEmpty = computed(
+    () =>
+      this.sheetItems().length === 0 &&
+      this.visibleControls().length === 0 &&
+      !this.activeSalonId() &&
+      !this.billingOrgId(),
+  );
+
   // Items with a staffScopedLink (Photos, Services): STAFF goes to their own
   // staff/:staffId page (Membership already carries staffId — no fetch
   // needed); OWNER/ADMIN get the salon-wide page..

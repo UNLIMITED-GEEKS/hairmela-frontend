@@ -14,6 +14,10 @@ import { IconComponent } from '../icon/icon.component';
   selector: 'app-nearby-button',
   templateUrl: './nearby-button.component.html',
   imports: [IconComponent],
+  // Custom elements are inline by default, which ignores the alignment
+  // utilities a flex parent puts on this host (self-end / ml-auto). block
+  // makes the host a real flex item that can be positioned.
+  host: { class: 'block' },
 })
 export class NearbyButtonComponent {
   protected readonly listing = inject(SalonListingService);

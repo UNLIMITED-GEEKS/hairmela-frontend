@@ -36,15 +36,15 @@
       </div>
     </div>
 
-    <!-- Search -->
-    <div class="relative">
-      <app-icon name="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400" />
-      <input type="text" placeholder="Search for a salon"
-        (input)="onSearchInput($event)"
-        (keydown.enter)="onSearchSubmit($event)"
-        class="w-full min-h-12 pl-10 pr-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400
-               focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
-    </div>
+    <!-- Search hands off to the search page rather than filtering here: name,
+         location and "near me" all live there, and typing in two places that
+         drive the same listing service was the confusing part. -->
+    <a [routerLink]="searchLink"
+      class="flex items-center gap-2 w-full min-h-12 px-3.5 rounded-xl border border-gray-200 bg-white
+             text-sm text-gray-500 hover:border-primary hover:text-primary transition-colors">
+      <app-icon name="search" class="w-4.5 h-4.5 shrink-0" />
+      <span>Search for a salon</span>
+    </a>
 
     <app-join-banner [entries]="activeEntries()" [searchLink]="searchLink" (scanQrCode)="showScanner.set(true)" />
 

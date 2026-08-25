@@ -14,6 +14,13 @@ export class MobileTopBarComponent {
   private readonly _membershipStore = inject(MembershipStore);
 
   readonly sheetOpen = input(false);
+  /**
+   * Hides the hamburger entirely — set when the projected sheet has nothing to
+   * show, so the button can't open an empty panel. The sheet computes its own
+   * emptiness (MobileSheetComponent.isEmpty) and the shell wires it here,
+   * rather than this component re-deriving the same gating.
+   */
+  readonly hideSheetToggle = input(false);
   readonly sheetToggle = output<void>();
   readonly salons = input<MySalonDto[]>([]);
   readonly activeSalonId = input<string | null>(null);

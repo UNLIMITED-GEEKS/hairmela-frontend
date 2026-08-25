@@ -17,7 +17,7 @@ import { SalonListingService } from '../../marketing/landing/salon-listing.servi
 import { ToastService } from '../../core/toast/toast.service';
 import { InstallPromptService } from '../../core/pwa/install-prompt.service';
 import { CreateSalonCardComponent } from '../../shared/components/create-salon-card/create-salon-card.component';
-import { RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
+import { RoutePath } from '../../core/routing/route-paths';
 import { AppPlatformService } from '../../core/native/app-platform.service';
 import { ListingScrollMemoryDirective } from '../../shared/directives/listing-scroll-memory.directive';
 
@@ -86,16 +86,6 @@ export class DashboardComponent implements OnInit {
     this._dashboardService.load();
     this._activeQueues.load();
     this.categoriesService.load();
-  }
-
-  protected onSearchInput(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.listing.setSearch(value);
-  }
-
-  protected onSearchSubmit(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this._router.navigate(RoutePath.search(), { queryParams: { [RouteQueryParam.SEARCH]: value } });
   }
 
   protected onCategorySelect(slug: string): void {

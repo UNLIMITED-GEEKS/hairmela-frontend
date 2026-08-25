@@ -62,7 +62,10 @@
         </div>
       }
 
-      <!-- Hamburger -->
+      <!-- Hamburger. Absent when the sheet has nothing in it — a customer with
+           no salon and no owned org gates off every section, so the button
+           would open an empty panel. -->
+      @if (!hideSheetToggle()) {
       <button
         (click)="sheetToggle.emit()"
         [attr.aria-expanded]="sheetOpen()"
@@ -78,6 +81,7 @@
           </svg>
         }
       </button>
+      }
 
     </div>
 
