@@ -31,17 +31,43 @@ export class SearchComponent implements OnInit {
 
   // Two-row horizontal-scroll layout — split into two explicit rows instead
   // of relying on CSS grid-flow-col, which wasn't reliably wrapping/scrolling
-  // extra columns on mobile. Column-major order (item 0 -> row1, item 1 ->
-  // row2, item 2 -> row1, ...) so consecutive results sit in the same column.
-  // Below 4 results there's nothing to gain from a second row (bottomRow
-  // would end up sparse/empty), so those render as a single row instead.
+  // extra columns on mobile. Below 4 results there's nothing to gain from a
+  // second row (the bottom row would end up sparse/empty), so those render as
+  // a single row instead.
   protected readonly useSingleRow = computed(() => this.listing.items().length < 4);
-  protected readonly topRow = computed(() =>
-    this.listing.items().filter((_, i) => i % 2 === 0),
-  );
-  protected readonly bottomRow = computed(() =>
-    this.listing.items().filter((_, i) => i % 2 === 1),
-  );
+
+  /**
+   * How the two rows are filled, which depends on what the order MEANS.
+   *
+   * Normally column-major (0 -> top, 1 -> bottom, 2 -> top, ...) so
+   * consecutive results sit in the same column — the long-standing layout for
+   * browsing, where no single result claims to be "first".
+   *
+   * NEARBY results are ranked by distance, and column-major breaks that: each
+   * row restarts at its own smallest value (top begins at the nearest, bottom
+   * at the second-nearest), so scanning either row alone shows an interleaved
+   * half of the ranking. Row-major keeps the order readable — the nearest
+   * salons run left-to-right along the top row, and only once it is full does
+   * the ranking continue into the bottom one.
+   *
+   * ceil on the split so the top row is never shorter than the bottom: with 7
+   * results the nearest 4 lead, and 3 follow.
+   */
+  private readonly _splitIndex = computed(() => Math.ceil(this.listing.items().length / 2));
+
+  protected readonly topRow = computed(() => {
+    const items = this.listing.items();
+    return this.listing.nearbyActive()
+      ? items.slice(0, this._splitIndex())
+      : items.filter((_, i) => i % 2 === 0);
+  });
+
+  protected readonly bottomRow = computed(() => {
+    const items = this.listing.items();
+    return this.listing.nearbyActive()
+      ? items.slice(this._splitIndex())
+      : items.filter((_, i) => i % 2 === 1);
+  });
 
   ngOnInit(): void {
     this.categoriesService.load();
