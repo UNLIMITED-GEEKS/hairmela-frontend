@@ -20,9 +20,11 @@
     <!-- Owner-facing copy (bookings and queue activity, not "your turn").
          Self-gates via PushPromptComponent, same as the queue console's and
          the customer-facing ones. -->
-    <app-push-prompt
-      title="Get notified about your salon?"
-      body="We'll alert you when someone joins your queue or books an appointment, even when the app is closed." />
+    <div class="mb-4">
+      <app-push-prompt
+        title="Get notified about your salon?"
+        body="We'll alert you when someone joins your queue or books an appointment, even when the app is closed." />
+    </div>
 
     <!-- Header -->
     <div class="flex items-start gap-4">
