@@ -21,7 +21,7 @@
         <span>Loading available times…</span>
       </p>
     } @else if (selectedDaySlots().length === 0) {
-      <p class="text-sm text-text-secondary">No slots available this day — try another date.</p>
+      <p class="text-sm text-text-secondary">No slots available this day, try another date.</p>
     } @else {
       <div class="grid grid-cols-3 gap-2">
         @for (slot of selectedDaySlots(); track slot.startTime) {

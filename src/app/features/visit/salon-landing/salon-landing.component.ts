@@ -262,15 +262,6 @@ export class SalonLandingComponent implements OnInit {
   // absent (not disabled) for guest/anonymous visitors on this shared route.
   protected readonly showHeart = computed(() => !!this._currentUser.user());
 
-  // Get-notified nudge only makes sense once the customer already has an
-  // active entry somewhere in this salon (any queue) — not for anonymous
-  // browsers who haven't joined anything yet. activeEntries is salon-wide
-  // (not scoped to one queue like waitingEntries), so match on salonId.
-  protected readonly hasActiveEntryHere = computed(() => {
-    const salonId = this.visit.salon()?.id;
-    return !!salonId && this.visit.activeEntries().some((e) => e.salonId === salonId);
-  });
-
   // "Book ahead" is the walk-in fallback for a closed salon — while open,
   // customers use the per-staff "Book an appointment" section on the
   // live-queue page instead (staff already known there).

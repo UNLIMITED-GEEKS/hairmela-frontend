@@ -88,12 +88,12 @@
         </button>
       }
 
-      <!-- Get-notified nudge — contextual, only once the customer already has an active entry in this salon -->
-      @if (hasActiveEntryHere()) {
-        <div class="mt-5">
-          <app-push-prompt />
-        </div>
-      }
+      <!-- Get-notified nudge. Not gated on having an active entry here: see
+           live-queue.component.html for why permission is asked up front.
+           PushPromptComponent self-gates on support/permission/dismissal. -->
+      <div class="mt-5">
+        <app-push-prompt />
+      </div>
 
       <!-- About / Services / Staffs tabs -->
       <app-tabs class="block mt-8 mb-4" [tabs]="landingTabs" [activeId]="activeTab()" (tabChange)="setTab($event)" />

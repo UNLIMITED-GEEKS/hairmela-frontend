@@ -12,7 +12,7 @@
     <div class="text-center">
       <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Get the app</p>
       <h1 class="mt-1 text-2xl sm:text-3xl font-bold text-gray-900">Install HairMela to your device</h1>
-      <p class="mt-2 text-sm text-gray-500">No app store needed — it installs straight from your browser, in seconds.</p>
+      <p class="mt-2 text-sm text-gray-500">No app store needed, it installs straight from your browser, in seconds.</p>
       <button type="button" (click)="print()"
         class="print:hidden mt-5 inline-flex items-center gap-2 rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -28,7 +28,7 @@
       <!-- Android section -->
       <div class="install-card rounded-2xl border border-gray-200 bg-white p-6 print:p-3">
         <h2 class="text-lg font-bold text-gray-900 print:text-base">Android</h2>
-        <p class="mt-1 text-sm text-gray-500 print:text-xs">Works in any browser — Chrome, Samsung Internet, Edge, and more.</p>
+        <p class="mt-1 text-sm text-gray-500 print:text-xs">Works in any browser, Chrome, Samsung Internet, Edge, and more.</p>
 
         @if (!printMode() && install.platform === 'android' && install.installed()) {
           <button type="button" disabled
@@ -61,7 +61,7 @@
             </li>
             <li class="flex gap-3 print:gap-2">
               <span class="shrink-0 flex items-center justify-center w-6 h-6 print:w-4 print:h-4 rounded-full bg-primary text-white text-xs print:text-[10px] font-bold">4</span>
-              <span>Confirm — HairMela's icon appears on your home screen and app drawer.</span>
+              <span>Confirm, HairMela's icon appears on your home screen and app drawer.</span>
             </li>
           </ol>
         }
@@ -84,7 +84,7 @@
           @if (!printMode() && install.platform === 'ios' && !install.isIosSafari) {
             <div class="mt-5 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
               You're not using Safari. Chrome, Firefox, and other iPhone browsers
-              can't install apps to your device — copy this link and open it in
+              can't install apps to your device, copy this link and open it in
               <strong>Safari</strong> first.
             </div>
           }
@@ -104,7 +104,7 @@
             </li>
             <li class="flex gap-3 print:gap-2">
               <span class="shrink-0 flex items-center justify-center w-6 h-6 print:w-4 print:h-4 rounded-full bg-primary text-white text-xs print:text-[10px] font-bold">4</span>
-              <span>Tap <strong>Add</strong> in the top-right corner — HairMela's icon appears on your home screen.</span>
+              <span>Tap <strong>Add</strong> in the top-right corner, HairMela's icon appears on your home screen.</span>
             </li>
           </ol>
         }

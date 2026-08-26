@@ -45,7 +45,7 @@
                 @if (frozen()) {
                   Not available at the moment
                 } @else {
-                  {{ a.joinable ? 'Available' : 'Unavailable — ' + a.label }}
+                  {{ a.joinable ? 'Available' : 'Unavailable, ' + a.label }}
                 }
               </span>
             }
@@ -83,12 +83,14 @@
       <app-icon name="clock" class="w-8 h-8 text-primary shrink-0" />
     </div>
 
-    <!-- Get-notified nudge — contextual, only once the customer has joined this queue -->
-    @if (hasMyEntries()) {
-      <div class="shrink-0 mx-3 mb-6">
-        <app-push-prompt />
-      </div>
-    }
+    <!-- Get-notified nudge. Deliberately NOT gated on having joined: asking
+         only afterwards leaves the first minutes of a wait uncovered if the
+         customer closes the tab before responding, and permission granted up
+         front is ready the moment they join. PushPromptComponent still
+         self-gates on support/permission/dismissal. -->
+    <div class="shrink-0 mx-3 mb-6">
+      <app-push-prompt />
+    </div>
 
     <!-- Book an appointment — unauthenticated tap redirects to register.
          Hidden when the salon is frozen: the backend rejects appointments for

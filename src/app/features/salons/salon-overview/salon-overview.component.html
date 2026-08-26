@@ -17,6 +17,13 @@
     <app-frozen-banner />
     <app-no-photo-banner />
 
+    <!-- Owner-facing copy (bookings and queue activity, not "your turn").
+         Self-gates via PushPromptComponent, same as the queue console's and
+         the customer-facing ones. -->
+    <app-push-prompt
+      title="Get notified about your salon?"
+      body="We'll alert you when someone joins your queue or books an appointment, even when the app is closed." />
+
     <!-- Header -->
     <div class="flex items-start gap-4">
       <div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">

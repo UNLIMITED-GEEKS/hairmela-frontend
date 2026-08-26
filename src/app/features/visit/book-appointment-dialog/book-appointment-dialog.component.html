@@ -81,7 +81,7 @@
           [(selectedStartTime)]="selectedStartTime">
           @if (selectedStaff(); as staff) {
             <span slotPickerDateHint class="font-normal text-gray-500">
-              — with {{ staff.firstName }}@if (staff.nickname) { ({{ staff.nickname }}) }
+              with {{ staff.firstName }}@if (staff.nickname) { ({{ staff.nickname }}) }
             </span>
           }
         </app-slot-picker>

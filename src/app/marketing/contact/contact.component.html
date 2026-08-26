@@ -21,7 +21,7 @@
             </svg>
           </div>
           <h2 class="mt-4 text-lg font-bold text-gray-900">Message sent</h2>
-          <p class="mt-1 text-sm text-gray-500">Thanks for reaching out — we'll get back to you soon.</p>
+          <p class="mt-1 text-sm text-gray-500">Thanks for reaching out, we'll get back to you soon.</p>
           <button type="button" (click)="sendAnother()"
             class="mt-5 text-sm font-semibold text-primary hover:text-primary-hover transition-colors">
             Send another message
@@ -92,7 +92,7 @@
               [class.border-red-400]="form.get('message')?.invalid && form.get('message')?.touched"></textarea>
             <app-field-error
               [control]="form.get('message')"
-              [messages]="{ required: 'Please write a message.', minlength: 'Message is a little short — add a few more details.' }" />
+              [messages]="{ required: 'Please write a message.', minlength: 'Message is a little short, add a few more details.' }" />
           </div>
 
           <button type="submit" [disabled]="submitting()"

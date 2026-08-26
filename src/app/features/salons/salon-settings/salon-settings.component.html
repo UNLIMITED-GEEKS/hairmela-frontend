@@ -282,7 +282,7 @@
                  "+ Add" buttons, so the wording has to say so or owners will
                  set this expecting it to mean people. -->
             <p class="mt-1.5 text-xs text-gray-400">
-              The most one customer can book in a single visit. This counts services, not people —
+              The most one customer can book in a single visit. This counts services, not people,
               one person booking a cut and a beard trim uses two, and two people having two
               services each uses four.
             </p>
@@ -357,8 +357,8 @@
               <p class="rounded-xl bg-red-50 px-3 py-2.5 text-xs text-red-700" role="alert">
                 {{
                   form.controls.paymentType.value === 'link'
-                    ? 'Add a payment link below — customers need somewhere to send the fee.'
-                    : 'Add an account name below — customers need somewhere to send the fee.'
+                    ? 'Add a payment link below, customers need somewhere to send the fee.'
+                    : 'Add an account name below, customers need somewhere to send the fee.'
                 }}
               </p>
             }
@@ -593,7 +593,7 @@
         @if (isBranch()) {
           <h2 class="text-sm font-semibold text-gray-700">Branch</h2>
           <p class="text-sm text-gray-500">
-            This salon is a branch — its name is locked to match the main branch. Remove it from the
+            This salon is a branch, its name is locked to match the main branch. Remove it from the
             branch group to rename it again.
           </p>
           <button
