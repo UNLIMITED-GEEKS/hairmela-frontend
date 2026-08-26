@@ -16,7 +16,10 @@
   <div class="mt-4">
     <label class="block text-sm font-medium text-gray-700 mb-1.5">Time</label>
     @if (slotsLoading()) {
-      <p class="text-sm text-text-secondary">Loading available times…</p>
+      <p class="flex items-center gap-2 text-sm text-text-secondary">
+        <app-inline-spinner sizeClass="w-4 h-4" label="Loading available times" />
+        <span>Loading available times…</span>
+      </p>
     } @else if (selectedDaySlots().length === 0) {
       <p class="text-sm text-text-secondary">No slots available this day — try another date.</p>
     } @else {

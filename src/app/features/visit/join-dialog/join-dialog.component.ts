@@ -67,6 +67,28 @@ export class JoinDialogComponent {
   // The joining customer's services. A list, not a single id: one person can
   // book several services in one visit, and each becomes its own members[]
   // entry sharing their name. Index 0 is the primary one.
+  // FIXME: the leader's services are a plain signal + hand-wired <select>,
+  // while every OTHER member is a FormArray row with formControlName. Two
+  // mechanisms for one concept in a single form, and only this half carries
+  // the bugs that come with driving a <select> by hand:
+  //
+  //   * [value] writes only when the bound value CHANGES, so a <select>
+  //     recreated by the step @if (going to the part-payment step and back)
+  //     came back showing its first option. Fixed by binding [selected] per
+  //     option in the template.
+  //   * a <select> cannot hold a value with no matching <option>, so opening
+  //     before the services load dropped a pre-filled ?serviceId=. Fixed by
+  //     _applyInitialServiceOnLoad below.
+  //
+  // Angular's SelectControlValueAccessor already handles BOTH cases, and the
+  // member rows have never hit either. The real fix is to make the leader a
+  // FormArray row like everyone else and delete the manual binding plus both
+  // workarounds above — not a third patch when the next symptom appears.
+  //
+  // Deferred because it spans this dialog and book-appointment-dialog, and
+  // touches the submit path and the maxPartySize counting; it wants doing
+  // deliberately with the booking flow retestable, the way the slot-picker
+  // extraction was.
   protected readonly leaderServiceIds = signal<string[]>(['']);
   protected readonly leaderServiceTouched = signal(false);
 
@@ -111,6 +133,21 @@ export class JoinDialogComponent {
   protected readonly noteImageError = signal<string | null>(null);
 
   protected readonly staffServices = computed(() => this.visit.staffServices(this.staff()));
+
+  /**
+   * The leader's pre-filled service, once it is actually selectable.
+   *
+   * The dialog can open BEFORE the salon's services have loaded, and a
+   * <select> cannot hold a value that matches no <option> — the browser falls
+   * back to displaying the first one while the signal still holds the real id,
+   * so the pre-filled service looked wrong (and could submit something the
+   * customer never picked).
+   *
+   * Reconciling here means the select shows a value only once its option
+   * exists; the effect below re-applies initialServiceId the moment the
+   * services arrive.
+   */
+  private readonly _servicesReady = computed(() => this.staffServices().length > 0);
   protected readonly staffServiceGroups = computed(() =>
     groupByServiceCategory(this.staffServices(), (s: Service) => s),
   );
@@ -165,6 +202,28 @@ export class JoinDialogComponent {
       });
     });
   }
+
+  // Re-applies the pre-selected service once the options exist. Without this a
+  // dialog opened during the services fetch keeps a value the <select> cannot
+  // display, and the first option is shown instead. Runs only while nothing
+  // has been chosen yet, so it can never overwrite a real choice.
+  private readonly _applyInitialServiceOnLoad = effect(() => {
+    if (!this.open() || !this._servicesReady()) return;
+    const initial = this.initialServiceId();
+    if (!initial) return;
+    untracked(() => {
+      const ids = this.leaderServiceIds();
+      const onlySlotIsEmptyOrInitial = ids.length === 1 && (!ids[0] || ids[0] === initial);
+      if (!onlySlotIsEmptyOrInitial) return;
+      // Only if the barber actually offers it — otherwise leave it unset so
+      // the customer picks, rather than silently showing a different service.
+      if (this.staffServices().some((svc) => svc.id === initial)) {
+        this.leaderServiceIds.set([initial]);
+      } else {
+        this.leaderServiceIds.set(['']);
+      }
+    });
+  });
 
   protected addKid(): void {
     if (this.atMaxPartySize) return;

@@ -10,8 +10,8 @@
 
       <div class="shrink-0">
         @if (step() === 'fee') {
-          <h2 class="text-lg font-bold text-gray-900">Booking fee</h2>
-          <p class="text-sm text-text-secondary mt-1">This salon requires a booking fee</p>
+          <h2 class="text-lg font-bold text-gray-900">Part payment</h2>
+          <p class="text-sm text-text-secondary mt-1">This salon requires a part payment</p>
         } @else if (isGuest) {
           <h2 class="text-lg font-bold text-gray-900">Your details</h2>
           <p class="text-sm text-text-secondary mt-1">We need your name to add you to the queue.</p>
@@ -59,11 +59,16 @@
                   (change)="setLeaderServiceAt(i, $any($event.target).value)"
                   (blur)="leaderServiceTouched.set(true)"
                   class="flex-1 min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors">
+                  <!-- Rendered even when a real service is chosen (not just as a
+                       placeholder): while the services are still loading this is
+                       the ONLY option, so the select has something valid to show
+                       instead of silently falling back to the first real option
+                       once they arrive. -->
                   <option value="" disabled>Select a service</option>
                   @for (group of staffServiceGroups(); track group.id) {
                     <optgroup [label]="group.name">
                       @for (s of group.items; track s.id) {
-                        <option [value]="s.id">{{ s.name }}</option>
+                        <option [value]="s.id" [selected]="s.id === id">{{ s.name }}</option>
                       }
                     </optgroup>
                   }
@@ -225,7 +230,7 @@
           Cancel
         </button>
         <!-- "Next" only when a payment step actually follows; a salon with no
-             booking fee submits straight from here as it always did. -->
+             part payment submits straight from here as it always did. -->
         <button
           (click)="confirmJoin()"
           [disabled]="!leaderServiceIds()[0] || (isGuest && (!guestName().trim() || !guestPhone().trim())) || visit.joining()"

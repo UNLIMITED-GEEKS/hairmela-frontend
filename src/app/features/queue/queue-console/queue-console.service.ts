@@ -13,6 +13,7 @@ import { Queue } from '../../../api/models/queue';
 import { ExtendMemberDto } from '../../../api/models/extend-member-dto';
 import { publicQueueControllerGetTimeline } from '../../../api/fn/queues/public-queue-controller-get-timeline';
 import { publicQueueControllerGetQueue } from '../../../api/fn/queues/public-queue-controller-get-queue';
+import { SalonSettingsService } from '../../salons/salon-settings/salon-settings.service';
 import { queueManagementControllerSetStatus } from '../../../api/fn/queues/queue-management-controller-set-status';
 import { queueManagementControllerCallNext } from '../../../api/fn/queues/queue-management-controller-call-next';
 import { queueManagementControllerServeMember } from '../../../api/fn/queues/queue-management-controller-serve-member';
@@ -87,6 +88,7 @@ export class QueueConsoleService {
   private readonly _confirmDialog = inject(ConfirmDialogService);
   private readonly _toast = inject(ToastService);
   private readonly _destroyRef = inject(DestroyRef);
+  private readonly _salonStore = inject(SalonSettingsService);
 
   private readonly _tick = signal(0);
   private _tickInterval: ReturnType<typeof setInterval> | null = null;
@@ -139,10 +141,38 @@ export class QueueConsoleService {
   // an untyped blob (backend doesn't declare its shape in Swagger) — same
   // bracket-index-and-cast pattern as SalonVisitService.maxPartySize/showPrice
   // and salon-settings.component.ts.
-  readonly maxPartySize = computed(() => {
-    const settings = this.queue()?.salon?.settings as { maxPartySize?: number } | undefined;
-    return settings?.maxPartySize ?? 5;
-  });
+  /**
+   * The salon's settings blob.
+   *
+   * Read from SalonSettingsService rather than `queue().salon`: GET
+   * /v1/queues/:id returns only { id, salonId, staffId, status, ... } with NO
+   * nested salon, so anything reading queue().salon.settings silently gets
+   * undefined and falls back to its default. maxPartySize below had exactly
+   * that bug.
+   *
+   * That service already owns fetching a salon by id and is cache-backed and
+   * root-provided, so the console shares its result with the settings page
+   * instead of issuing a second identical request.
+   */
+  private readonly _salonSettings = computed(
+    () => (this._salonStore.salon()?.settings as Record<string, unknown> | undefined) ?? null,
+  );
+
+  /**
+   * Whether this salon takes walk-ins. When off, the add-client modal drops
+   * its Walk-in tab and opens straight into Appointment — there is no walk-in
+   * queue for the barber to add anyone to.
+   */
+  readonly allowsWalkIns = computed(
+    () => (this._salonSettings()?.['allowWalkIns'] as boolean) ?? true,
+  );
+
+  // Same source as allowsWalkIns. This previously read queue().salon.settings,
+  // which the queue payload does not include — so every salon silently got the
+  // default of 5 no matter what its owner had configured.
+  readonly maxPartySize = computed(
+    () => (this._salonSettings()?.['maxPartySize'] as number) ?? 5,
+  );
   readonly loading = signal(true);
   readonly error = signal(false);
   // Global lock — for actions with no single entry/member target (status change).
@@ -1244,6 +1274,11 @@ export class QueueConsoleService {
         next: (res) => this.staffServices.set(res.body),
         error: () => this._toast.error('Could not load queue status'),
       });
+
+    // Cache-backed and shared with the settings page; a no-op when that page
+    // already loaded this salon. Every consumer of _salonSettings has a sane
+    // default, so a failure here degrades rather than breaking the console.
+    this._salonStore.load(salonId);
   }
 
   private _startTick(): void {

@@ -172,6 +172,12 @@ export class SalonSettingsComponent implements OnInit {
     showPrice: [false],
     maxPartySize: [5, [Validators.required, Validators.min(1), Validators.max(20)]],
     noShowWindow: [10, [Validators.required, Validators.min(1)]],
+    // How close to an appointment a customer may still cancel or reschedule.
+    // Read by reschedule-policy.ts to decide whether those buttons appear at
+    // all; the backend enforces it too (CANCELLATION_WINDOW_PASSED). Was
+    // previously stuck at the 60-minute fallback because nothing here could
+    // set it.
+    cancellationWindow: [60, [Validators.required, Validators.min(0)]],
     // ── Booking fee ────────────────────────────────────────────────────────
     // Off by default. When on, customers are quoted a fee and must upload a
     // payment receipt before joining or booking. HairMela never handles the
@@ -280,6 +286,7 @@ export class SalonSettingsComponent implements OnInit {
         showPrice: (settings['showPrice'] as boolean) ?? false,
         maxPartySize: (settings['maxPartySize'] as number) ?? 5,
         noShowWindow: (settings['noShowWindow'] as number) ?? 10,
+        cancellationWindow: (settings['cancellationWindow'] as number) ?? 60,
         enforceBookingFee: (settings['enforceBookingFee'] as boolean) ?? false,
         bookingFeePercent: (settings['bookingFeePercent'] as number) ?? 0,
         bookingFeeFixed: (settings['bookingFeeFixed'] as number) ?? 0,
@@ -414,6 +421,7 @@ export class SalonSettingsComponent implements OnInit {
         showPrice: v.showPrice!,
         maxPartySize: v.maxPartySize!,
         noShowWindow: v.noShowWindow!,
+        cancellationWindow: v.cancellationWindow!,
         enforceBookingFee: v.enforceBookingFee!,
         bookingFeePercent: v.bookingFeePercent ?? 0,
         bookingFeeFixed: v.bookingFeeFixed ?? 0,

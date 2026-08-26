@@ -105,7 +105,7 @@
                   class="flex-1 min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors">
                   <option value="" disabled>Select a service</option>
                   @for (s of staffServices(); track s.id) {
-                    <option [value]="s.id">{{ s.name }}</option>
+                    <option [value]="s.id" [selected]="s.id === id">{{ s.name }}</option>
                   }
                 </select>
                 @if (leaderServiceIds().length > 1) {
@@ -236,7 +236,7 @@
         </button>
         @if (!needsStaffPicker() || selectedStaff()) {
           <!-- "Next" only when a payment step actually follows; a salon with no
-               booking fee books straight from here as it always did. -->
+               part payment books straight from here as it always did. -->
           <button
             (click)="confirmBooking()"
             [disabled]="!selectedDate() || !selectedStartTime() || visit.booking()"

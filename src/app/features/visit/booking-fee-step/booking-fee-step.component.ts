@@ -86,7 +86,7 @@ export class BookingFeeStepComponent {
       case 'threshold':
         return 'A flat deposit for larger bookings.';
       case 'fixed':
-        return 'A fixed booking fee for this salon.';
+        return 'A fixed part payment for this salon.';
       default:
         return '';
     }

@@ -17,6 +17,7 @@ import { MiniMonthCalendarComponent } from '../../../shared/components/mini-mont
 import { groupByServiceCategory } from '../../../core/utils/group-by-category';
 import { StaffService } from '../../../api/models/staff-service';
 import { registerOverlayWhileOpen } from '../../../core/overlay/overlay-registry';
+import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 
 function toIsoDate(d: Date): string {
   const yyyy = d.getFullYear();
@@ -38,7 +39,7 @@ function startOfMonth(d: Date): Date {
 @Component({
   selector: 'app-add-client-modal',
   templateUrl: './add-client-modal.component.html',
-  imports: [ReactiveFormsModule, FieldErrorComponent, MiniMonthCalendarComponent],
+  imports: [ReactiveFormsModule, FieldErrorComponent, MiniMonthCalendarComponent, InlineSpinnerComponent],
 })
 export class AddClientModalComponent {
   readonly open = input.required<boolean>();
@@ -136,7 +137,6 @@ export class AddClientModalComponent {
     effect(() => {
       if (!this.open()) return;
       untracked(() => {
-        this.mode.set('walk-in');
         this.addQueueMembers.clear();
         this.addQueueMembers.push(this._buildWalkInRow(this.staffServices()[0]?.serviceId ?? ''));
         this.viewedMonth.set(startOfMonth(new Date()));
@@ -147,6 +147,17 @@ export class AddClientModalComponent {
         this.selectedStartTime.set(null);
         this.appointmentMembers.clear();
         this.appointmentMembers.push(this._buildAppointmentRow(this.staffServices()[0]?.serviceId ?? ''));
+
+        // Appointments-only salons have no walk-in queue to add to, so open
+        // straight into Appointment — the toggle is hidden in that case too.
+        //
+        // LAST, and via setMode() rather than mode.set(), for two reasons:
+        // availability is fetched when appointment mode is ENTERED (setting
+        // the signal directly left an empty slot grid with no hidden tab to
+        // trigger it), and setMode's fetch must run AFTER the monthSlots
+        // reset above — otherwise that reset wipes the result it just asked
+        // for.
+        this.setMode(this.console.allowsWalkIns() ? 'walk-in' : 'appointment');
       });
     });
   }

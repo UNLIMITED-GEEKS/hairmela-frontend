@@ -6,12 +6,12 @@
        loading covers that frame and any gap before a retry starts. -->
   @if (!quote() && !quoteFailed()) {
     <div class="py-8 flex flex-col items-center gap-2">
-      <app-inline-spinner sizeClass="w-5 h-5" label="Checking booking fee" />
-      <p class="text-sm text-text-secondary">Checking the booking fee…</p>
+      <app-inline-spinner sizeClass="w-5 h-5" label="Checking part payment" />
+      <p class="text-sm text-text-secondary">Checking the part payment…</p>
     </div>
   } @else if (quoteFailed()) {
     <div class="py-6 text-center space-y-3">
-      <p class="text-sm text-text-secondary">Couldn't check the booking fee.</p>
+      <p class="text-sm text-text-secondary">Couldn't check the part payment.</p>
       <button type="button" (click)="retryQuote()"
         class="min-h-11 px-4 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
         Try again
@@ -22,7 +22,7 @@
          it here: the receipt check recalculates from the same service rows,
          and a second implementation is the only way they could disagree. -->
     <div class="rounded-2xl bg-secondary-light px-4 py-4 text-center">
-      <p class="text-xs font-medium text-gray-500">Booking fee</p>
+      <p class="text-xs font-medium text-gray-500">Part payment</p>
       <p class="mt-1 text-2xl font-bold text-gray-900">{{ amountLabel() }}</p>
       <p class="mt-1 text-xs text-gray-500">{{ basisLabel() }}</p>
     </div>

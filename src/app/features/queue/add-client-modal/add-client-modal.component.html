@@ -19,7 +19,10 @@
         </button>
       </div>
 
-      <!-- Mode toggle -->
+      <!-- Mode toggle. Hidden when the salon takes appointments only: there is
+           no walk-in queue to add anyone to, so a one-option switch would just
+           be noise (the modal already opens in Appointment mode). -->
+      @if (console.allowsWalkIns()) {
       <div class="shrink-0 flex mb-4 rounded-xl bg-gray-100 p-1">
         <button type="button" (click)="setMode('walk-in')"
           [class]="'flex-1 min-h-9 rounded-lg text-xs font-semibold transition-colors ' +
@@ -32,6 +35,7 @@
           Appointment
         </button>
       </div>
+      }
 
       @if (mode() === 'walk-in') {
         <div [formGroup]="addQueueForm" class="contents">
@@ -120,7 +124,10 @@
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1.5">Time</label>
               @if (slotsLoading()) {
-                <p class="text-sm text-gray-500">Loading available times…</p>
+                <p class="flex items-center gap-2 text-sm text-gray-500">
+                  <app-inline-spinner sizeClass="w-4 h-4" label="Loading available times" />
+                  <span>Loading available times…</span>
+                </p>
               } @else if (selectedDaySlots().length === 0) {
                 <p class="text-sm text-gray-500">No slots available this day — try another date.</p>
               } @else {

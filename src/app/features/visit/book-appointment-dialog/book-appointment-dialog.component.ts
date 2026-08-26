@@ -157,6 +157,28 @@ export class BookAppointmentDialogComponent {
   // A LIST because one person can book several services in a single visit;
   // each becomes its own members[] entry sharing their name, and so counts
   // separately against maxPartySize. Index 0 is the primary one.
+  // FIXME: the leader's services are a plain signal + hand-wired <select>,
+  // while every OTHER member is a FormArray row with formControlName. Two
+  // mechanisms for one concept in a single form, and only this half carries
+  // the bugs that come with driving a <select> by hand:
+  //
+  //   * [value] writes only when the bound value CHANGES, so a <select>
+  //     recreated by the step @if (going to the part-payment step and back)
+  //     came back showing its first option. Fixed by binding [selected] per
+  //     option in the template.
+  //   * a <select> cannot hold a value with no matching <option>, so opening
+  //     before the services load dropped a pre-filled ?serviceId=. Fixed by
+  //     _applyInitialServiceOnLoad below.
+  //
+  // Angular's SelectControlValueAccessor already handles BOTH cases, and the
+  // member rows have never hit either. The real fix is to make the leader a
+  // FormArray row like everyone else and delete the manual binding plus both
+  // workarounds above — not a third patch when the next symptom appears.
+  //
+  // Deferred because it spans this dialog and book-appointment-dialog, and
+  // touches the submit path and the maxPartySize counting; it wants doing
+  // deliberately with the booking flow retestable, the way the slot-picker
+  // extraction was.
   protected readonly leaderServiceIds = signal<string[]>(['']);
   protected readonly leaderServiceTouched = signal(false);
 

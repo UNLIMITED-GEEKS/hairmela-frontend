@@ -241,6 +241,18 @@ export class SalonVisitService implements Clearable {
   });
 
   /**
+   * Whether this salon takes walk-ins at all.
+   *
+   * When off it is appointments only: the live-queue page's primary button
+   * becomes "Book" and opens the appointment dialog instead of the join-queue
+   * one, since there is no walk-in queue to join.
+   */
+  readonly allowsWalkIns = computed(() => {
+    const settings = this.salon()?.settings as Record<string, unknown> | undefined;
+    return (settings?.['allowWalkIns'] as boolean) ?? true;
+  });
+
+  /**
    * Whether this salon requires a booking fee before joining or booking.
    *
    * Read from the already-loaded salon settings rather than the quote

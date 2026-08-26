@@ -14,6 +14,7 @@ import { SalonVisitService } from '../../../features/visit/salon-visit.service';
 import { AvailableSlotDto } from '../../../api/models/available-slot-dto';
 import { MiniMonthCalendarComponent } from '../mini-month-calendar/mini-month-calendar.component';
 import { toIsoDate, startOfMonth, monthRange, formatSlotTime } from './iso-date';
+import { InlineSpinnerComponent } from '../inline-spinner/inline-spinner.component';
 
 /**
  * "Pick a bookable slot" — month calendar + availability + time grid, as one
@@ -33,7 +34,7 @@ import { toIsoDate, startOfMonth, monthRange, formatSlotTime } from './iso-date'
 @Component({
   selector: 'app-slot-picker',
   templateUrl: './slot-picker.component.html',
-  imports: [MiniMonthCalendarComponent],
+  imports: [MiniMonthCalendarComponent, InlineSpinnerComponent],
 })
 export class SlotPickerComponent {
   readonly salonId = input.required<string>();

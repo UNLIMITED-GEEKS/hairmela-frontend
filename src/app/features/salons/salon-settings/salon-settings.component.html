@@ -253,14 +253,17 @@
         <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
           <h2 class="text-sm font-semibold text-gray-700">Queue</h2>
 
-          <!-- Allow walk-ins toggle hidden for now — form control (allowWalkIns,
-               defaults true) stays wired and still submits on save.
-          <label class="flex items-center justify-between min-h-11 cursor-pointer">
-            <span class="text-sm text-gray-700">Allow walk-ins</span>
+          <label class="flex items-center justify-between min-h-11 cursor-pointer gap-4">
+            <span class="min-w-0">
+              <span class="block text-sm text-gray-700">Allow walk-ins</span>
+              <span class="block text-xs text-gray-400">
+                Lets customers join the queue on the spot without booking ahead. Turn this off to
+                take appointments only.
+              </span>
+            </span>
             <input type="checkbox" formControlName="allowWalkIns"
-              class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/40" />
+              class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/40 shrink-0" />
           </label>
-          -->
 
           <div>
             <label for="s-party" class="block text-sm font-medium text-gray-700 mb-1.5"
@@ -274,6 +277,15 @@
               max="20"
               class="w-full min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
             />
+            <!-- Counts SERVICES, not heads — that is how the backend enforces
+                 it (PARTY_TOO_LARGE) and how the join/booking dialogs cap their
+                 "+ Add" buttons, so the wording has to say so or owners will
+                 set this expecting it to mean people. -->
+            <p class="mt-1.5 text-xs text-gray-400">
+              The most one customer can book in a single visit. This counts services, not people —
+              one person booking a cut and a beard trim uses two, and two people having two
+              services each uses four.
+            </p>
             <app-field-error [control]="form.controls.maxPartySize" />
           </div>
 
@@ -288,16 +300,38 @@
               min="1"
               class="w-full min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
             />
+            <p class="mt-1.5 text-xs text-gray-400">
+              How long the system waits after an appointment's start time before marking it as a no-show. Set 15 to mark a customer as a no-show 15 minutes after their appointment was due to start.
+            </p>
             <app-field-error [control]="form.controls.noShowWindow" />
+          </div>
+
+          <div>
+            <label for="s-cancel-window" class="block text-sm font-medium text-gray-700 mb-1.5"
+              >Cancellation window (mins)</label
+            >
+            <input
+              id="s-cancel-window"
+              type="number"
+              formControlName="cancellationWindow"
+              min="0"
+              class="w-full min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+            />
+            <p class="mt-1.5 text-xs text-gray-400">
+              How long before an appointment a customer can still cancel or reschedule it. Set 60
+              to stop changes an hour beforehand, so a late drop-out can't leave the slot empty.
+              0 lets them change it right up to the start time.
+            </p>
+            <app-field-error [control]="form.controls.cancellationWindow" />
           </div>
         </div>
 
-        <!-- Booking fee + where customers pay you. Deliberately only here and
+        <!-- Part payment + where customers pay you. Deliberately only here and
              not on the create-salon form: it needs bank details a new owner
              may not have to hand, and it can be switched on any time later. -->
         <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
           <div>
-            <h2 class="text-sm font-semibold text-gray-700">Booking fee</h2>
+            <h2 class="text-sm font-semibold text-gray-700">Part payment</h2>
             <p class="text-xs text-gray-400 mt-0.5">
               Customers pay you directly and upload their receipt before joining or booking.
               HairMela never holds the money.
@@ -306,7 +340,7 @@
 
           <label class="flex items-center justify-between min-h-11 cursor-pointer gap-4">
             <span class="min-w-0">
-              <span class="block text-sm text-gray-700">Require a booking fee</span>
+              <span class="block text-sm text-gray-700">Require a part payment</span>
               <span class="block text-xs text-gray-400">
                 Customers must upload proof of payment before their place is held.
               </span>
@@ -405,7 +439,7 @@
               <div>
                 <h3 class="text-sm font-semibold text-gray-700">Payment details</h3>
                 <p class="text-xs text-gray-400 mt-0.5">
-                  Shown to customers when they pay the booking fee. Choose one method below.
+                  Shown to customers when they make the part payment. Choose one method below.
                 </p>
               </div>
 
@@ -440,7 +474,7 @@
                   class="w-full min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
                 />
                 @if (form.errors?.['paymentDetailsRequired']) {
-                  <p class="mt-1.5 text-xs text-red-600">Required while a booking fee is on.</p>
+                  <p class="mt-1.5 text-xs text-red-600">Required while part payment is on.</p>
                 }
               </div>
 
@@ -483,7 +517,7 @@
                     class="w-full min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
                   />
                   @if (form.errors?.['paymentLinkRequired']) {
-                    <p class="mt-1.5 text-xs text-red-600">Required while a booking fee is on.</p>
+                    <p class="mt-1.5 text-xs text-red-600">Required while part payment is on.</p>
                   }
                 </div>
               }

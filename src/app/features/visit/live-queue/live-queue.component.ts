@@ -137,6 +137,18 @@ export class LiveQueueComponent {
     () => (this.availability()?.joinable ?? false) && !this.frozen(),
   );
 
+  /**
+   * Whether the primary button is enabled, which depends on what it DOES.
+   *
+   * Walk-in salons use joinable() — a closed or paused queue can't be joined.
+   * Appointments-only salons must not inherit that: booking ahead is precisely
+   * what you do when the queue is shut, and the existing "Book an appointment"
+   * button below gates on frozen() alone for the same reason.
+   */
+  protected readonly canStartVisit = computed(() =>
+    this.visit.allowsWalkIns() ? this.joinable() : !this.frozen(),
+  );
+
   protected get myQueuesUrl() {
     return this._shellPrefix ? RoutePath.guestQueues() : RoutePath.queues();
   }
@@ -145,6 +157,21 @@ export class LiveQueueComponent {
   // register redirect, existing entry -> position redirect are handled there
   // and both navigate away themselves; this only opens for a genuine fresh join).
   protected readonly joinDialogOpen = signal(false);
+
+  /**
+   * The primary action on this page: join the walk-in queue, or — for a salon
+   * that has turned walk-ins off — book an appointment instead.
+   *
+   * One handler rather than two buttons so the label (see the template) and
+   * the dialog it opens are driven by the same condition and cannot disagree.
+   */
+  protected startVisit(): void {
+    if (!this.visit.allowsWalkIns()) {
+      this.openBookDialog();
+      return;
+    }
+    this.openJoin();
+  }
 
   protected openJoin(): void {
     const staff = this.visit.staffForQueue(this._queueId());
