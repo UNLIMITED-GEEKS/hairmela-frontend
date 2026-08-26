@@ -21,7 +21,9 @@ export class PushPromptComponent {
   private readonly _toast = inject(ToastService);
 
   readonly title = input("Get notified when it's your turn?");
-  readonly body = input("We'll send a notification when the staff is ready for you — even if this tab is closed.");
+  readonly body = input(
+    "We'll send a notification when the staff is ready for you, even if this tab is closed.",
+  );
 
   private readonly _dismissed = signal(false);
   protected readonly busy = signal(false);
