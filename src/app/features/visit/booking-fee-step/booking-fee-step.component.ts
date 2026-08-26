@@ -199,16 +199,10 @@ export class BookingFeeStepComponent {
       this._destroyRef,
       (result) => {
         if (!result.verified) {
-          // The call succeeded but the receipt was rejected.
-          //
-          // Deliberately generic rather than result.reason: the backend's
-          // wording describes what the model saw ("this image shows an HTML
-          // tutorial..."), which reads as an internal detail to a customer.
-          // Restore the line below to surface it again.
-          // this.receiptError.set(
-          //   result.reason ?? "That receipt couldn't be verified. Please try another photo.",
-          // );
-          this.receiptError.set("That receipt couldn't be verified. Please try another photo.");
+          this.receiptError.set(
+            result.reason ?? "That receipt couldn't be verified. Please try another photo.",
+          );
+          // this.receiptError.set("That receipt couldn't be verified. Please try another photo.");
           this.receiptRejected.set(true);
           return;
         }
