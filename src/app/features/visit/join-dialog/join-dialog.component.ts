@@ -88,7 +88,7 @@ export class JoinDialogComponent {
   // Deferred because it spans this dialog and book-appointment-dialog, and
   // touches the submit path and the maxPartySize counting; it wants doing
   // deliberately with the booking flow retestable, the way the slot-picker
-  // extraction was.
+  // extraction was
   protected readonly leaderServiceIds = signal<string[]>(['']);
   protected readonly leaderServiceTouched = signal(false);
 
@@ -101,13 +101,13 @@ export class JoinDialogComponent {
   // Held from the moment the form is validated until the join fires, because
   // the fee step needs the exact same service ids the quote was made with.
   private readonly _pendingMembers = signal<JoinMemberDto[] | null>(null);
-  private readonly _pendingNote = signal<{ body: string; image: File | null } | undefined>(undefined);
+  private readonly _pendingNote = signal<{ body: string; image: File | null } | undefined>(
+    undefined,
+  );
 
   /** The ids sent to both the quote and the receipt check — one per member. */
   protected readonly pendingServiceIds = computed(() =>
-    (this._pendingMembers() ?? [])
-      .map((m) => m.serviceId)
-      .filter((id): id is string => !!id),
+    (this._pendingMembers() ?? []).map((m) => m.serviceId).filter((id): id is string => !!id),
   );
 
   /** Total services across the leader and every kid — what maxPartySize caps. */
@@ -249,7 +249,9 @@ export class JoinDialogComponent {
 
   protected removeLeaderService(index: number): void {
     // Never leave the leader with no service row — the first one stays.
-    this.leaderServiceIds.update((ids) => (ids.length <= 1 ? ids : ids.filter((_, i) => i !== index)));
+    this.leaderServiceIds.update((ids) =>
+      ids.length <= 1 ? ids : ids.filter((_, i) => i !== index),
+    );
   }
 
   protected kidServiceIds(i: number): FormArray {
