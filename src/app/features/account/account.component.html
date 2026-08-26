@@ -63,6 +63,14 @@
         <app-create-salon-card />
       </div>
 
+      <!-- Above Log out: getting help shouldn't sit below the destructive
+           actions, and the footer that normally carries it is hidden inside
+           the installed app. -->
+      <a [routerLink]="contactLink"
+        class="flex items-center justify-center w-full py-3 rounded-xl border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors min-h-11">
+        Contact us
+      </a>
+
       <button
         (click)="_auth.logout()"
         class="w-full py-3 rounded-xl border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors min-h-11">

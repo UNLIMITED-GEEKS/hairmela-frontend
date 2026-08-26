@@ -34,6 +34,7 @@ export class AccountComponent {
   private readonly _salonContext = inject(SalonContextService);
 
   protected readonly dashboardLink = RoutePath.dashboard();
+  protected readonly contactLink = RoutePath.contact();
   protected readonly deleteAccountLink = RoutePath.deleteAccount();
   protected readonly editProfileLink = RoutePath.editProfile();
 
