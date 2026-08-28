@@ -61,6 +61,7 @@ export const RouteSegment = {
   QUEUES: 'queues',
   FAVORITES: 'favorites',
   SEARCH: 'search',
+  REFERRALS: 'internal-referrals',
   SALONS: 'salons',
   NEW: 'new',
   ORG: 'org',
@@ -123,6 +124,8 @@ export const RoutePath = {
   queues: () => ['/queues'],
   favorites: () => ['/favorites'],
   search: () => ['/search'],
+  // Internal referral stats — gated by a shared key the backend validates.
+  referrals: () => ['/internal-referrals'],
   login: () => ['/login'],
   register: () => ['/register'],
   forgotPassword: () => ['/forgot-password'],

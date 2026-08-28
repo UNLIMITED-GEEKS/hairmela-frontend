@@ -223,6 +223,13 @@ export const routes: Routes = [
           import('./features/search/search.component').then((m) => m.SearchComponent),
       },
       {
+        // Internal referral stats. Authenticated like every other child here,
+        // and additionally gated by a shared key the backend validates.
+        path: RouteSegment.REFERRALS,
+        loadComponent: () =>
+          import('./features/referrals/referrals.component').then((m) => m.ReferralsComponent),
+      },
+      {
         path: `${RouteSegment.S}/:${RouteParam.SLUG}`,
         data: { shellPrefix: '' },
         loadChildren: () => import('./features/visit/visit.routes').then((m) => m.visitRoutes),

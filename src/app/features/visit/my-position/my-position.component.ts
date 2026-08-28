@@ -24,6 +24,7 @@ import { CommentsThreadComponent } from '../../comments/comments-thread/comments
 import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
 import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 import { ordinalSuffix } from '../../../core/utils/queue-format';
+import { AddToCalendarComponent } from '../../../shared/components/add-to-calendar/add-to-calendar.component';
 
 // Ring geometry — must match the r="125" circle in the template's SVG. Kept
 // smaller than the tick-marks' inner edge (~143, per queue-ticks.svg's major
@@ -46,6 +47,7 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
     CommentsThreadComponent,
     MediaUrlPipe,
     DatePipe,
+    AddToCalendarComponent,
   ],
 })
 export class MyPositionComponent {
@@ -211,6 +213,27 @@ export class MyPositionComponent {
   // is noise on the page you land on right after booking, but a bare time is
   // ambiguous for something days out. Uses the salon's own scheduledAt string
   // rather than recomputing from a local clock.
+  // ── Add to calendar (appointments only) ──────────────────────────────────
+  // A walk-in has no scheduled time, so the template gates on isAppointment()
+  // as well as on a non-null scheduledAt.
+  protected readonly calendarStart = computed(() => this.entryStatus()?.scheduledAt ?? null);
+
+  protected readonly calendarTitle = computed(
+    () => `Appointment at ${this.visit.salon()?.name ?? 'the salon'}`,
+  );
+
+  protected readonly calendarLocation = computed(() => {
+    const a = this.visit.salon()?.address;
+    return a ? [a.street, a.city, a.state].filter(Boolean).join(', ') : '';
+  });
+
+  protected readonly calendarDetails = computed(() =>
+    this.partyMembers()
+      .map((m) => m.serviceName)
+      .filter((n): n is string => !!n)
+      .join(', '),
+  );
+
   protected readonly scheduledLabel = computed(() => {
     const scheduledAt = this.entryStatus()?.scheduledAt;
     if (!scheduledAt) return null;

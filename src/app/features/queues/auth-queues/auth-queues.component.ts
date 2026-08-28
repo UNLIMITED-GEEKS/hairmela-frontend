@@ -5,13 +5,14 @@ import { QueueEntry } from '../../../api/models/queue-entry';
 import { ActiveQueuesService } from './active-queues.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { RescheduleDialogComponent } from '../../visit/reschedule-dialog/reschedule-dialog.component';
+import { AddToCalendarComponent } from '../../../shared/components/add-to-calendar/add-to-calendar.component';
 import { canReschedule, withinChangeWindow } from '../../../core/appointments/reschedule-policy';
 import { RoutePath } from '../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-auth-queues',
   templateUrl: './auth-queues.component.html',
-  imports: [PageHeaderComponent, DatePipe, RescheduleDialogComponent],
+  imports: [PageHeaderComponent, DatePipe, RescheduleDialogComponent, AddToCalendarComponent],
 })
 export class AuthQueuesComponent implements OnInit {
   private readonly _router = inject(Router);
@@ -44,6 +45,13 @@ export class AuthQueuesComponent implements OnInit {
     const slug = entry.queue?.salon?.slug;
     if (!slug) return;
     this._router.navigate(RoutePath.visitPosition('', slug, entry.queueId, entry.id));
+  }
+
+  /** Street/city for the calendar event's location field. */
+  protected salonAddress(entry: QueueEntry): string {
+    const a = entry.queue?.salon?.address;
+    if (!a) return '';
+    return [a.street, a.city, a.state].filter(Boolean).join(', ');
   }
 
   protected salonName(entry: QueueEntry): string {

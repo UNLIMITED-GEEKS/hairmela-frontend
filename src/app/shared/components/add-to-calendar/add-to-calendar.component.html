@@ -1,0 +1,39 @@
+@if (usable()) {
+  <div class="relative">
+    <button type="button" (click)="toggle()"
+      [attr.aria-expanded]="open()"
+      class="flex items-center justify-center gap-1.5 w-full min-h-11 rounded-xl border border-primary/30 text-primary text-xs font-semibold hover:bg-secondary-light transition-colors">
+      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+      Add to my calendar
+    </button>
+
+    @if (open()) {
+      <!-- Click-catcher so tapping anywhere else closes the menu. -->
+      <div class="fixed inset-0 z-10" (click)="open.set(false)" aria-hidden="true"></div>
+
+      <div class="absolute left-0 right-0 z-20 mt-1 rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
+        <a [href]="googleUrl()" target="_blank" rel="noopener noreferrer" (click)="open.set(false)"
+          class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+          Google Calendar
+        </a>
+        <!-- Apple Calendar, Outlook desktop and anything else standards-based
+             all import the same .ics file. -->
+        <button type="button" (click)="downloadIcs()"
+          class="block w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+          Apple Calendar
+        </button>
+        <a [href]="outlookUrl()" target="_blank" rel="noopener noreferrer" (click)="open.set(false)"
+          class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+          Outlook.com
+        </a>
+        <button type="button" (click)="downloadIcs()"
+          class="block w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+          Other (.ics file)
+        </button>
+      </div>
+    }
+  </div>
+}

@@ -60,6 +60,20 @@
                   </button>
                 }
               </div>
+
+              <!-- Appointments only: this whole section loops appointmentEntries(),
+                   so a walk-in (which has no scheduledAt to add) never reaches here. -->
+              @if (entry.scheduledAt) {
+                <div class="mt-2">
+                  <app-add-to-calendar
+                    [title]="'Appointment at ' + salonName(entry)"
+                    [start]="entry.scheduledAt"
+                    [end]="entry.scheduledEndAt"
+                    [details]="serviceNames(entry)"
+                    [location]="salonAddress(entry)"
+                    [uid]="entry.id" />
+                </div>
+              }
             </div>
           }
         </div>

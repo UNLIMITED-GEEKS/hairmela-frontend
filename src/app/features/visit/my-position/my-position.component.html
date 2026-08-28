@@ -96,6 +96,20 @@
         </p>
       }
 
+      <!-- Add to calendar. APPOINTMENTS ONLY, and only while the visit is
+           still ahead — a walk-in has no scheduled time to add, and a finished
+           appointment has nothing to remind anyone about. -->
+      @if (isAppointment() && !serviceComplete() && calendarStart(); as startAt) {
+        <div class="w-full mb-4">
+          <app-add-to-calendar
+            [title]="calendarTitle()"
+            [start]="startAt"
+            [details]="calendarDetails()"
+            [location]="calendarLocation()"
+            [uid]="_entryId()" />
+        </div>
+      }
+
       <!-- Get-notified nudge — contextual, only while still waiting -->
       @if (!serviceComplete()) {
         <div class="w-full mb-4">
