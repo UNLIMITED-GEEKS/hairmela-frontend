@@ -5,7 +5,7 @@ import { BranchPickerService } from './branch-picker.service';
 import { SalonCardComponent } from '../../../shared/components/salon-card/salon-card.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
-import { RouteParam } from '../../../core/routing/route-paths';
+import { RouteParam, RouteQueryParam } from '../../../core/routing/route-paths';
 
 // Its own top-level page (/branches/:slug, /g/branches/:slug), not part of
 // the /s/:slug visit flow — /s/:slug always shows that salon's own real page
@@ -28,6 +28,15 @@ export class BranchPickerComponent {
   // stale under Angular's default route reuse.
   private readonly _paramMap = toSignal(this._route.paramMap, { requireSync: true });
   private readonly _slug = computed(() => this._paramMap().get(RouteParam.SLUG) ?? '');
+
+  // The category the customer was filtering by arrives on this page's own URL
+  // (the listing card appends it to the /branches link too) and has to be
+  // handed on to the branch cards — otherwise picking a branch loses the
+  // category, and the branch's salon page opens with nothing expanded.
+  private readonly _queryParamMap = toSignal(this._route.queryParamMap, { requireSync: true });
+  protected readonly activeCategory = computed(
+    () => this._queryParamMap().get(RouteQueryParam.CATEGORY) ?? '',
+  );
 
   constructor() {
     effect(() => {

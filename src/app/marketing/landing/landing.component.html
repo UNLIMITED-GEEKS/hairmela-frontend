@@ -89,7 +89,7 @@
         appListingScrollMemory surface="landing" [items]="listing.items()">
         @for (salon of listing.items(); track salon.id) {
           <div class="shrink-0 w-[70%] xs:w-[55%] sm:w-[38%] md:w-[calc(25%-0.75rem)] h-64 md:h-64">
-            <app-salon-card [salon]="salon" [distanceKm]="listing.distanceOf(salon)" />
+            <app-salon-card [salon]="salon" [activeCategory]="listing.filters().category" [distanceKm]="listing.distanceOf(salon)" />
           </div>
         }
       </div>
