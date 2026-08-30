@@ -10,11 +10,11 @@
 
     <!-- Heading -->
     <div class="text-center">
-      <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Get the app</p>
-      <h1 class="mt-1 text-2xl sm:text-3xl font-bold text-gray-900">Install HairMela to your device</h1>
-      <p class="mt-2 text-sm text-gray-500">No app store needed, it installs straight from your browser, in seconds.</p>
+      <p class="text-xs font-medium uppercase tracking-wide text-text-disabled">Get the app</p>
+      <h1 class="mt-1 text-2xl sm:text-3xl font-bold text-text-primary">Install HairMela to your device</h1>
+      <p class="mt-2 text-sm text-text-secondary">No app store needed, it installs straight from your browser, in seconds.</p>
       <button type="button" (click)="print()"
-        class="print:hidden mt-5 inline-flex items-center gap-2 rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+        class="print:hidden mt-5 inline-flex items-center gap-2 rounded-full border border-border-strong px-5 py-2.5 text-sm font-semibold text-text-body hover:bg-surface-sunken transition-colors">
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z" />
@@ -26,9 +26,9 @@
     <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-2 print:gap-4">
 
       <!-- Android section -->
-      <div class="install-card rounded-2xl border border-gray-200 bg-white p-6 print:p-3">
-        <h2 class="text-lg font-bold text-gray-900 print:text-base">Android</h2>
-        <p class="mt-1 text-sm text-gray-500 print:text-xs">Works in any browser, Chrome, Samsung Internet, Edge, and more.</p>
+      <div class="install-card rounded-2xl border border-border bg-surface-card p-6 print:p-3">
+        <h2 class="text-lg font-bold text-text-primary print:text-base">Android</h2>
+        <p class="mt-1 text-sm text-text-secondary print:text-xs">Works in any browser, Chrome, Samsung Internet, Edge, and more.</p>
 
         @if (!printMode() && install.platform === 'android' && install.installed()) {
           <button type="button" disabled
@@ -46,7 +46,7 @@
         } @else {
           <!-- No beforeinstallprompt available (browser doesn't support one-click
                install, or Chrome has stopped offering it) — manual steps instead. -->
-          <ol class="mt-6 print:mt-3 space-y-3 print:space-y-2 text-sm print:text-xs text-gray-700">
+          <ol class="mt-6 print:mt-3 space-y-3 print:space-y-2 text-sm print:text-xs text-text-body">
             <li class="flex gap-3 print:gap-2">
               <span class="shrink-0 flex items-center justify-center w-6 h-6 print:w-4 print:h-4 rounded-full bg-primary text-white text-xs print:text-[10px] font-bold">1</span>
               <span>Open this page in Chrome (or your browser of choice).</span>
@@ -68,9 +68,9 @@
       </div>
 
       <!-- iOS section -->
-      <div class="install-card rounded-2xl border border-gray-200 bg-white p-6 print:p-3">
-        <h2 class="text-lg font-bold text-gray-900 print:text-base">iPhone &amp; iPad</h2>
-        <p class="mt-1 text-sm text-gray-500 print:text-xs">Only Safari can install HairMela to your device.</p>
+      <div class="install-card rounded-2xl border border-border bg-surface-card p-6 print:p-3">
+        <h2 class="text-lg font-bold text-text-primary print:text-base">iPhone &amp; iPad</h2>
+        <p class="mt-1 text-sm text-text-secondary print:text-xs">Only Safari can install HairMela to your device.</p>
 
         @if (!printMode() && install.platform === 'ios' && install.installed()) {
           <button type="button" disabled
@@ -89,7 +89,7 @@
             </div>
           }
 
-          <ol class="mt-5 print:mt-3 space-y-3 print:space-y-2 text-sm print:text-xs text-gray-700">
+          <ol class="mt-5 print:mt-3 space-y-3 print:space-y-2 text-sm print:text-xs text-text-body">
             <li class="flex gap-3 print:gap-2">
               <span class="shrink-0 flex items-center justify-center w-6 h-6 print:w-4 print:h-4 rounded-full bg-primary text-white text-xs print:text-[10px] font-bold">1</span>
               <span>Open this page in <strong>Safari</strong>.</span>
@@ -111,9 +111,9 @@
       </div>
 
       <!-- Desktop section — screen only, not part of the printed sheet -->
-      <div class="install-card print:hidden rounded-2xl border border-gray-200 bg-white p-6">
-        <h2 class="text-lg font-bold text-gray-900">Desktop</h2>
-        <p class="mt-1 text-sm text-gray-500">Works in Chrome, Edge, and other Chromium browsers.</p>
+      <div class="install-card print:hidden rounded-2xl border border-border bg-surface-card p-6">
+        <h2 class="text-lg font-bold text-text-primary">Desktop</h2>
+        <p class="mt-1 text-sm text-text-secondary">Works in Chrome, Edge, and other Chromium browsers.</p>
 
         @if (!printMode() && install.platform === 'desktop' && install.installed()) {
           <button type="button" disabled
@@ -132,7 +132,7 @@
           <!-- No beforeinstallprompt available (Safari/Firefox desktop don't
                support one-click install) — point at the browser's own install
                icon in the address bar instead. -->
-          <ol class="mt-6 space-y-3 text-sm text-gray-700">
+          <ol class="mt-6 space-y-3 text-sm text-text-body">
             <li class="flex gap-3">
               <span class="shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-bold">1</span>
               <span>Open this page in Chrome or Edge.</span>
@@ -155,7 +155,7 @@
 
     </div>
 
-    <p class="mt-10 text-center text-xs text-gray-400">
+    <p class="mt-10 text-center text-xs text-text-disabled">
       Trouble installing? Email
       <a href="mailto:hello@contact.hairmela.com" class="text-white font-medium hover:underline">hello&#64;hairmela.com</a>
     </p>

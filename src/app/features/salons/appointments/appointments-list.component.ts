@@ -4,7 +4,7 @@ import { DatePipe } from '@angular/common';
 import { AppointmentsCalendarService } from './appointments-calendar.service';
 import { QueueEntry } from '../../../api/models/queue-entry';
 import { RescheduleDialogComponent } from '../../visit/reschedule-dialog/reschedule-dialog.component';
-import { canReschedule } from '../../../core/appointments/reschedule-policy';
+import { canReschedule, hasChatCounterparty } from '../../../core/appointments/reschedule-policy';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { MiniMonthCalendarComponent } from '../../../shared/components/mini-month-calendar/mini-month-calendar.component';
@@ -60,6 +60,11 @@ export class AppointmentsListComponent implements OnInit {
 
   // Staff and admins reach this same list from two routes; both act with staff
   // authority, so both use the staff endpoint (any appointment in the salon).
+  /** Staff-added entries have nobody to chat with — see hasChatCounterparty. */
+  protected showChat(entry: QueueEntry): boolean {
+    return hasChatCounterparty(entry);
+  }
+
   protected canReschedule(entry: QueueEntry): boolean {
     return canReschedule(entry);
   }

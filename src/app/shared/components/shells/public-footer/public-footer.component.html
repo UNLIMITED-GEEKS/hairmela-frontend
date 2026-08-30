@@ -1,4 +1,4 @@
-<footer class="w-full border-t border-gray-200 bg-primary/2">
+<footer class="w-full border-t border-border bg-primary/2">
   <div class="max-w-6xl mx-auto px-5 pt-14 py-8 md:py-14">
 
     <!-- Link columns -->
@@ -53,8 +53,34 @@
 
     <!-- Copyright + socials. flex-col-reverse on mobile puts the icons above
          the copyright line; md:flex-row splits them left/right. -->
-    <div class="mt-12 flex flex-col-reverse items-start justify-between gap-4 border-t border-gray-200 pt-6 md:flex-row md:items-center">
-      <p class="text-sm text-text-secondary">© {{ year }} HairMela. All rights reserved.</p>
+    <div class="mt-12 flex flex-col-reverse items-start justify-between gap-4 border-t border-border pt-6 md:flex-row md:items-center">
+      <div class="flex items-center gap-3">
+        <p class="text-sm text-text-secondary">© {{ year }} HairMela. All rights reserved.</p>
+
+        <!-- Dark mode. An icon button rather than the labelled switch used in
+             account settings: this is a footer utility for signed-out visitors,
+             and a full toggle row would compete with the links above it. -->
+        <button type="button" (click)="theme.toggle()"
+          [attr.aria-pressed]="theme.mode() === 'dark'"
+          class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-medium text-text-secondary hover:text-primary hover:border-primary transition-colors">
+          @if (theme.mode() === 'dark') {
+            <!-- Sun: tapping returns to light -->
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+          } @else {
+            <!-- Moon: tapping switches to dark -->
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+            </svg>
+          }
+          <!-- Names the DESTINATION, not the current state: the icon alone
+               was unreadable as a control in a footer full of links. -->
+          <span>{{ theme.mode() === 'dark' ? 'Light mode' : 'Dark mode' }}</span>
+        </button>
+      </div>
 
       <ul class="flex items-center gap-2">
         @for (social of socialLinks; track social.url) {

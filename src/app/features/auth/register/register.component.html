@@ -1,8 +1,8 @@
 <div class="flex items-center justify-center min-h-screen px-6">
   <div class="w-full max-w-sm">
     <div class="mb-8 text-center">
-      <h1 class="text-2xl font-bold text-gray-900">Create an account</h1>
-      <p class="mt-1 text-sm text-gray-500">Join HairMela and manage your salon</p>
+      <h1 class="text-2xl font-bold text-text-primary">Create an account</h1>
+      <p class="mt-1 text-sm text-text-secondary">Join HairMela and manage your salon</p>
     </div>
 
     <form #formEl [formGroup]="form" (ngSubmit)="submit()" novalidate class="space-y-4">
@@ -18,26 +18,26 @@
 
       <div class="flex gap-3">
         <div class="flex-1">
-          <label for="firstName" class="block text-sm font-medium text-gray-700 mb-1">First name</label>
+          <label for="firstName" class="block text-sm font-medium text-text-body mb-1">First name</label>
           <input
             id="firstName"
             type="text"
             formControlName="firstName"
             autocomplete="given-name"
-            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            class="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             [class.border-red-400]="form.controls.firstName.invalid && form.controls.firstName.touched"
             placeholder="Ada"
           />
           <app-field-error [control]="form.controls.firstName" />
         </div>
         <div class="flex-1">
-          <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">Last name</label>
+          <label for="lastName" class="block text-sm font-medium text-text-body mb-1">Last name</label>
           <input
             id="lastName"
             type="text"
             formControlName="lastName"
             autocomplete="family-name"
-            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            class="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             [class.border-red-400]="form.controls.lastName.invalid && form.controls.lastName.touched"
             placeholder="Obi"
           />
@@ -46,13 +46,13 @@
       </div>
 
       <div>
-        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <label for="email" class="block text-sm font-medium text-text-body mb-1">Email</label>
         <input
           id="email"
           type="email"
           formControlName="email"
           autocomplete="email"
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          class="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
           [class.border-red-400]="form.controls.email.invalid && form.controls.email.touched"
           placeholder="you@example.com"
         />
@@ -60,14 +60,14 @@
       </div>
 
       <div>
-        <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+        <label for="password" class="block text-sm font-medium text-text-body mb-1">Password</label>
         <input
           id="password"
           type="password"
           appPasswordToggle
           formControlName="password"
           autocomplete="new-password"
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          class="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
           [class.border-red-400]="form.controls.password.invalid && form.controls.password.touched"
           placeholder="Min. 8 characters"
         />
@@ -75,13 +75,13 @@
       </div>
 
       <div>
-        <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+        <label for="phone" class="block text-sm font-medium text-text-body mb-1">Phone</label>
         <input
           id="phone"
           type="tel"
           formControlName="phone"
           autocomplete="tel"
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          class="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
           [class.border-red-400]="form.controls.phone.invalid && form.controls.phone.touched"
           placeholder="+234 800 000 0000"
         />
@@ -98,7 +98,7 @@
 
     </form>
 
-    <p class="mt-6 text-center text-sm text-gray-500">
+    <p class="mt-6 text-center text-sm text-text-secondary">
       Already have an account?
       <a [routerLink]="loginLink" [queryParams]="loginQueryParams" class="font-medium text-primary hover:underline">Sign in</a>
     </p>
@@ -108,7 +108,7 @@
          screen when installed, so one link covers both with no platform check.
          Matters most on iOS standalone, which has no hardware back button. -->
     <a routerLink="/"
-      class="mt-4 flex items-center justify-center gap-2 min-h-11 w-full rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
+      class="mt-4 flex items-center justify-center gap-2 min-h-11 w-full rounded-xl border border-border text-text-muted text-sm font-medium hover:bg-surface-sunken transition-colors">
       <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
       </svg>

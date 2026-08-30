@@ -1,5 +1,5 @@
 <a [routerLink]="detailLink()" [queryParams]="detailQueryParams()"
-  class="group relative block h-full w-full rounded-xl overflow-hidden bg-gray-100 hover:shadow-md transition-shadow">
+  class="group relative block h-full w-full rounded-xl overflow-hidden bg-surface-overlay hover:shadow-md transition-shadow">
 
   <!-- Full-bleed photo — the card IS the photo; name/location/badges are
        glassmorphic overlays on top of it, not a separate info block below. -->
@@ -19,13 +19,13 @@
        their labels mid-word. items-start keeps each row's pills hugging the
        left rather than stretching. -->
   <div class="absolute top-3 left-3 right-3 flex flex-wrap items-start gap-1.5">
-    <span class="rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap backdrop-blur-md bg-secondary-100/70 border border-white/20"
+    <span class="rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap backdrop-blur-md bg-glass border border-white/20"
       [class.text-open]="salon().isOpen"
       [class.text-white]="!salon().isOpen">
       {{ salon().isOpen ? 'Open' : 'Closed' }}
     </span>
     @if (salon().hasBranches) {
-      <span class="rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap backdrop-blur-md bg-secondary-100/70 border border-white/20 text-white">
+      <span class="rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap backdrop-blur-md bg-glass border border-white/20 text-white">
         {{ branchCountLabel() }}
       </span>
     }
@@ -36,7 +36,7 @@
       @if (salon().hasBranches) {
         <span class="basis-full h-0" aria-hidden="true"></span>
       }
-      <span class="rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap backdrop-blur-md bg-secondary-100/70 border border-white/20 text-white">
+      <span class="rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap backdrop-blur-md bg-glass border border-white/20 text-white">
         {{ distanceLabel() }}
       </span>
     }
@@ -47,7 +47,7 @@
     <button type="button" (click)="toggleFavorite($event)"
       [attr.aria-label]="isFavorited() ? 'Remove from favourites' : 'Add to favourites'"
       [attr.aria-pressed]="isFavorited()"
-      class="absolute top-3 right-3 flex h-10 w-10 items-center justify-center rounded-full bg-secondary-100/70 backdrop-blur-md border border-white/20 hover:scale-105 transition-transform">
+      class="absolute top-3 right-3 flex h-10 w-10 items-center justify-center rounded-full bg-glass backdrop-blur-md border border-white/20 hover:scale-105 transition-transform">
       <app-icon [name]="isFavorited() ? 'heart-filled' : 'heart'"
         class="h-5 w-5 transition-colors"
         [class.text-primary]="isFavorited()"
@@ -56,7 +56,7 @@
   }
 
   <!-- Name/location — glassmorphic bar pinned to the bottom of the photo. -->
-  <div class="absolute inset-x-0 bottom-0 px-4 py-3 bg-gray-900/40 backdrop-blur-md">
+  <div class="absolute inset-x-0 bottom-0 px-4 py-3 bg-glass-strong/40 backdrop-blur-md">
     @if (salon().hasBranches) {
       <!-- <p class="text-xs font-medium"
         [class.text-open]="salon().isOpen"

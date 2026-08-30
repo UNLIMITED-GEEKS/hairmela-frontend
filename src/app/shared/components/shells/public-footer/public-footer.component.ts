@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IconComponent } from '../../icon/icon.component';
 import { RoutePath } from '../../../../core/routing/route-paths';
+import { ThemeService } from '../../../../core/theme/theme.service';
 
 // Official HairMela accounts. Plain <a href> (not routerLink) — these leave
 // the app entirely; `icon` is the filename in public/svgs.
@@ -22,6 +23,7 @@ const SOCIAL_LINKS = [
   imports: [RouterLink, IconComponent],
 })
 export class PublicFooterComponent {
+  protected readonly theme = inject(ThemeService);
   protected readonly year = 2026;
   protected readonly socialLinks = SOCIAL_LINKS;
 

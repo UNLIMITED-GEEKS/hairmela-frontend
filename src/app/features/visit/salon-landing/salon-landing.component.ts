@@ -367,7 +367,7 @@ export class SalonLandingComponent implements OnInit {
       case 'OPEN':
         return {
           label: 'Open Now',
-          badgeClasses: 'bg-open-badge text-success border-success/20',
+          badgeClasses: 'bg-open-badge text-open-badge-text border-success/20',
         };
       case 'CLOSED_HOURS':
         return { label: 'Closed', badgeClasses: 'bg-error-light text-error border-error/20' };

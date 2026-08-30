@@ -25,6 +25,7 @@ import { groupByServiceCategory } from '../../../core/utils/group-by-category';
 import { registerOverlayWhileOpen } from '../../../core/overlay/overlay-registry';
 import { Service } from '../../../api/models/service';
 import { BookingFeeStepComponent } from '../booking-fee-step/booking-fee-step.component';
+import { scrollToNewRow } from '../../../core/utils/scroll-to-new-row';
 
 const ALLOWED_NOTE_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_NOTE_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -55,6 +56,7 @@ export class JoinDialogComponent {
 
   protected readonly visit = inject(SalonVisitService);
   private readonly _fieldsEl = viewChild<ElementRef<HTMLElement>>('fieldsEl');
+  private readonly _kidRows = viewChild<ElementRef<HTMLElement>>('kidRows');
   private readonly _scrollInjector = inject(Injector);
   private readonly _router = inject(Router);
   private readonly _currentUser = inject(CurrentUserStore);
@@ -228,6 +230,12 @@ export class JoinDialogComponent {
   protected addKid(): void {
     if (this.atMaxPartySize) return;
     this.kidsArray.push(this._buildKidGroup(this.leaderServiceIds()[0] ?? ''));
+    // Deferred: the row does not exist in the DOM until Angular has rendered
+    // the FormArray change.
+    afterNextRender(
+      () => scrollToNewRow(this._kidRows()?.nativeElement),
+      { injector: this._scrollInjector },
+    );
   }
 
   protected removeKid(i: number): void {

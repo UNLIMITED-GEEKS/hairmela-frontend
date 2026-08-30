@@ -1,5 +1,5 @@
 
-  <div class="max-w-6xl mb-15 md:mx-auto mx-5 ">
+  <div class="max-w-6xl mb-15 md:mx-auto mx-5 mt-6 ">
     <div class="rounded-2xl bg-primary px-6 py-12 sm:px-12 text-center">
       <h3 class="text-2xl sm:text-3xl font-bold text-white">HairMela, right on your phone.</h3>
       <p class="mt-3 mx-auto max-w-md text-sm text-white/80">
@@ -13,18 +13,18 @@
              remains the path. -->
         @if (install.canPromptInstall()) {
           <button type="button" (click)="install.promptInstall()"
-            class="min-h-12 px-8 rounded-full bg-white text-primary font-bold text-sm flex items-center justify-center hover:bg-white/90 transition-colors">
+            class="min-h-12 px-8 rounded-full bg-surface-card text-primary font-bold text-sm flex items-center justify-center hover:bg-surface-card/90 transition-colors">
             Install now
           </button>
           <!-- Secondary once a real Install button is present — outline style
                so the one-tap install reads as the primary action. -->
           <a [routerLink]="howToInstallLink"
-            class="min-h-12 px-8 rounded-full border border-white/60 text-white font-bold text-sm flex items-center justify-center hover:bg-white/10 transition-colors">
+            class="min-h-12 px-8 rounded-full border border-white/60 text-white font-bold text-sm flex items-center justify-center hover:bg-surface-card/10 transition-colors">
             How to install
           </a>
         } @else {
           <a [routerLink]="howToInstallLink"
-            class="min-h-12 px-8 rounded-full bg-white text-primary font-bold text-sm flex items-center justify-center hover:bg-white/90 transition-colors">
+            class="min-h-12 px-8 rounded-full bg-surface-card text-primary font-bold text-sm flex items-center justify-center hover:bg-surface-card/90 transition-colors">
             How to install
           </a>
         }

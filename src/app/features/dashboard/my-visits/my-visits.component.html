@@ -10,9 +10,9 @@
   @for (entry of entries(); track entry.id) {
     <button
       (click)="goToPosition(entry)"
-      class="w-full flex items-center gap-3 bg-white border border-border rounded-2xl px-4 py-3 text-left hover:border-primary/30 hover:shadow-card transition-all min-h-[60px]">
+      class="w-full flex items-center gap-3 bg-surface-card border border-border rounded-2xl px-4 py-3 text-left hover:border-primary/30 hover:shadow-card transition-all min-h-[60px]">
       <span class="shrink-0 w-2.5 h-2.5 rounded-full"
-        [class]="entry.status === 'WAITING' ? 'bg-warning' : entry.status === 'SERVING' ? 'bg-success' : 'bg-gray-300'">
+        [class]="entry.status === 'WAITING' ? 'bg-warning' : entry.status === 'SERVING' ? 'bg-success' : 'bg-surface-strong'">
       </span>
 
       <div class="flex-1 min-w-0">

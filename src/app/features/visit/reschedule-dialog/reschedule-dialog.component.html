@@ -10,7 +10,7 @@
       class="w-full max-w-sm bg-surface rounded-3xl p-6 space-y-5 shadow-xl max-h-85dvh flex flex-col">
 
       <div class="shrink-0">
-        <h2 class="text-lg font-bold text-gray-900">Reschedule appointment</h2>
+        <h2 class="text-lg font-bold text-text-primary">Reschedule appointment</h2>
         <p class="text-sm text-text-secondary mt-1">
           Pick a new date and time. An appointment can only be moved once.
         </p>
@@ -29,19 +29,19 @@
              read-only; only the service can change. -->
         @if (members().length) {
           <div class="space-y-2 mb-6">
-            <label class="block text-sm font-medium mt-6 text-gray-700">Services</label>
+            <label class="block text-sm font-medium mt-6 text-text-body">Services</label>
             @for (m of members(); track m.id) {
-              <div class="bg-white border border-gray-200 rounded-2xl px-3 py-3 space-y-2">
-                <p class="text-sm font-medium text-gray-800">
+              <div class="bg-surface-card border border-border rounded-2xl px-3 py-3 space-y-2">
+                <p class="text-sm font-medium text-text-strong">
                   {{ m.memberName }}
                   @if (m.isLeader) {
-                    <span class="text-xs font-normal text-gray-500">(you)</span>
+                    <span class="text-xs font-normal text-text-secondary">(you)</span>
                   }
                 </p>
                 <select
                   [value]="serviceIdFor(m.id)"
                   (change)="setServiceFor(m.id, $any($event.target).value)"
-                  class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 bg-white
+                  class="w-full border border-border rounded-xl px-3 py-2 text-sm min-h-11 bg-surface-card
                          focus:outline-none focus:ring-2 focus:ring-primary/30">
                   <option value="" disabled>Select a service</option>
                   @for (s of staffServices(); track s.id) {
@@ -56,7 +56,7 @@
 
       <div class="shrink-0 flex gap-3">
         <button type="button" (click)="cancel()"
-          class="flex-1 min-h-12 rounded-2xl border-2 border-gray-200 bg-white text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors">
+          class="flex-1 min-h-12 rounded-2xl border-2 border-border bg-surface-card text-text-muted font-semibold text-sm hover:bg-surface-sunken transition-colors">
           Cancel
         </button>
         <button type="button" (click)="confirm()" [disabled]="!canSubmit()"

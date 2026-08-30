@@ -1,0 +1,80 @@
+@if (open()) {
+  <div
+    animate.enter="modal-backdrop-enter"
+    animate.leave="modal-backdrop-leave"
+    class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-4 pb-4 sm:pb-0"
+    role="dialog" aria-modal="true" aria-label="Assign this service to staff">
+    <div
+      animate.enter="modal-card-enter"
+      animate.leave="modal-card-leave"
+      class="w-full max-w-sm bg-surface rounded-3xl p-6 shadow-xl max-h-85dvh flex flex-col">
+
+      <div class="shrink-0">
+        <h2 class="text-lg font-bold text-text-primary">Assign to staff?</h2>
+        <p class="mt-1 text-sm text-text-secondary">
+          Pick who can perform this service. You can change this later.
+        </p>
+      </div>
+
+      <div class="flex-1 overflow-y-auto themed-scrollbar scroll-fade mt-4">
+        @if (loading()) {
+          <app-skeleton variant="list-item" [count]="3" />
+        } @else if (staff().length === 0) {
+          <p class="py-6 text-center text-sm text-text-secondary">
+            No staff yet. You can assign this service once you add some.
+          </p>
+        } @else {
+          <ul class="space-y-2">
+            @for (item of staff(); track item.staff.id) {
+              <li>
+                <label class="flex items-center gap-3 rounded-2xl border px-3 py-3 cursor-pointer transition-colors"
+                  [class]="isPicked(item.staff.id)
+                    ? 'border-primary bg-secondary-light'
+                    : 'border-border bg-surface-card hover:border-border-strong'">
+                  <span class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 shrink-0">
+                    <span class="text-primary font-semibold text-sm">
+                      {{ staffName(item.staff).charAt(0).toUpperCase() }}
+                    </span>
+                  </span>
+
+                  <span class="flex-1 min-w-0">
+                    <span class="block text-sm font-medium text-text-primary truncate">
+                      {{ staffName(item.staff) }}
+                    </span>
+                    <span class="block text-xs text-text-secondary truncate">{{ item.staff.email }}</span>
+                  </span>
+
+                  <input
+                    type="checkbox"
+                    class="w-4 h-4 rounded border-border-strong text-primary focus:ring-primary/40 shrink-0"
+                    [checked]="isPicked(item.staff.id)"
+                    (change)="toggle(item.staff.id)" />
+                </label>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+
+      <div class="shrink-0 mt-4 space-y-2">
+        @if (staff().length > 0) {
+          <p class="text-center text-xs text-text-secondary">
+            {{ pickedCount() }} of {{ staff().length }} selected
+          </p>
+        }
+        <!-- Only one way out that isn't saving: this dialog is the submit step,
+             so confirming always saves, with or without a selection. -->
+        <div class="flex gap-3">
+          <button type="button" (click)="closed.emit()"
+            class="flex-1 min-h-12 rounded-2xl border-2 border-border bg-surface-card text-text-muted font-semibold text-sm hover:bg-surface-sunken transition-colors">
+            Back
+          </button>
+          <button type="button" (click)="confirm()"
+            class="flex-1 min-h-12 rounded-2xl bg-primary text-white font-semibold text-sm hover:bg-primary-hover transition-colors">
+            {{ confirmLabel() }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

@@ -16,6 +16,7 @@ import { NativeBackButtonService } from './core/native/back-button.service';
 import { DeepLinkService } from './core/native/deep-link.service';
 import { PersistentStore } from './core/storage/persistent-store';
 import { OnScreenErrorHandler } from './core/debug/on-screen-error-handler';
+import { ThemeService } from './core/theme/theme.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -40,6 +41,11 @@ export const appConfig: ApplicationConfig = {
     // hydrate() is idempotent so the two calls share one pass.
     provideAppInitializer(() => inject(PersistentStore).hydrate()),
     provideAppInitializer(sessionInit()),
+    // After the PersistentStore hydrate above (Angular runs initializers in
+    // parallel but this only reads the already-hydrated synchronous cache on
+    // web; on native the stored value simply applies a frame later). Runs
+    // before first paint either way, so there is no light-to-dark flash.
+    provideAppInitializer(() => inject(ThemeService).init()),
     provideCloudinaryLoader(`https://res.cloudinary.com/${environment.cloudinaryCloudName}`),
     provideServiceWorker('ngsw-worker.js', {
       // environment.serviceWorker is false only in the Capacitor native build,

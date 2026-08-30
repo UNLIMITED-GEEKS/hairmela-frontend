@@ -1,13 +1,13 @@
 @if (visible()) {
   <div
-    class="fixed inset-x-0 bottom-0 z-[200] border-t border-gray-200 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+    class="fixed inset-x-0 bottom-0 z-[200] border-t border-border bg-surface-card shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
     role="dialog"
     aria-modal="false"
     aria-label="Cookie preferences">
     <div class="max-w-3xl mx-auto px-5 py-5 max-h-[80vh] overflow-y-auto">
 
-      <h2 class="text-base font-bold text-gray-900">Cookie Preferences</h2>
-      <p class="mt-1 text-sm text-gray-500">
+      <h2 class="text-base font-bold text-text-primary">Cookie Preferences</h2>
+      <p class="mt-1 text-sm text-text-secondary">
         We use local storage and cookies to run HairMela. You can accept all, or reject everything
         except what’s strictly necessary.
         <a [routerLink]="privacyLink" class="text-primary font-medium hover:underline">Learn more</a>.
@@ -16,22 +16,22 @@
       <!-- Categories (informational — choice is all-or-nothing) -->
       <div class="mt-4 space-y-3">
         @for (category of categories; track category.title) {
-          <div class="rounded-lg border border-gray-200 p-3">
+          <div class="rounded-lg border border-border p-3">
             <div class="flex items-center justify-between gap-3">
-              <h3 class="text-sm font-semibold text-gray-900">{{ category.title }}</h3>
+              <h3 class="text-sm font-semibold text-text-primary">{{ category.title }}</h3>
               @if (category.locked) {
-                <span class="shrink-0 text-xs font-medium text-gray-400">Always on</span>
+                <span class="shrink-0 text-xs font-medium text-text-disabled">Always on</span>
               }
             </div>
-            <p class="mt-1 text-xs text-gray-500 leading-relaxed">{{ category.description }}</p>
-            <p class="mt-1 text-xs text-gray-400">Examples: {{ category.examples }}</p>
+            <p class="mt-1 text-xs text-text-secondary leading-relaxed">{{ category.description }}</p>
+            <p class="mt-1 text-xs text-text-disabled">Examples: {{ category.examples }}</p>
           </div>
         }
       </div>
 
       <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <button type="button" (click)="reject()"
-          class="min-h-11 px-5 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+          class="min-h-11 px-5 rounded-lg border border-border-strong text-sm font-semibold text-text-body hover:bg-surface-sunken transition-colors">
           Reject all
         </button>
         <button type="button" (click)="accept()"

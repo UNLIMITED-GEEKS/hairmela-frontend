@@ -8,6 +8,8 @@ import { referralsControllerGetStats } from '../../api/fn/referrals/referrals-co
 import { ReferralStatsDto } from '../../api/models/referral-stats-dto';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { InlineSpinnerComponent } from '../../shared/components/inline-spinner/inline-spinner.component';
+import { ToastService } from '../../core/toast/toast.service';
+import { copyToClipboard } from '../../core/clipboard/copy-to-clipboard';
 
 /**
  * Shared access key for the referral stats endpoint.
@@ -30,6 +32,7 @@ export class ReferralsComponent {
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _destroyRef = inject(DestroyRef);
   private readonly _fb = inject(FormBuilder);
+  private readonly _toast = inject(ToastService);
 
   protected readonly form = this._fb.group({
     key: ['', Validators.required],
@@ -85,6 +88,11 @@ export class ReferralsComponent {
       .filter(([, count]) => count > 0)
       .sort((a, b) => b[1] - a[1])
       .map(([tier, count]) => ({ tier, count }));
+  }
+
+  /** Referral codes are shared verbatim, so copying beats retyping. */
+  protected copyCode(code: string): void {
+    copyToClipboard(this._toast, code, 'Referral code');
   }
 
   protected openSalons(row: ReferralStatsDto): void {

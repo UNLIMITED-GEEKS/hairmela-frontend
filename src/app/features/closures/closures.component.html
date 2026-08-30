@@ -7,7 +7,7 @@
   </div>
 } @else if (error()) {
   <div class="py-16 flex flex-col items-center gap-3">
-    <p class="text-sm text-gray-500">Failed to load closures.</p>
+    <p class="text-sm text-text-secondary">Failed to load closures.</p>
     <button type="button" (click)="retry()"
       class="px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors">
       Retry
@@ -40,12 +40,12 @@
       <!-- Add form -->
       @if (showAddForm()) {
         <form [formGroup]="addForm" (ngSubmit)="add()" [tierFreeze]="salonContext.isFrozen()"
-          class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-          <h2 class="text-sm font-semibold text-gray-700">New closure</h2>
+          class="bg-surface-card rounded-xl border border-border p-5 space-y-4">
+          <h2 class="text-sm font-semibold text-text-body">New closure</h2>
           <div class="space-y-1.5">
-            <label class="text-sm font-medium text-gray-700">Date</label>
+            <label class="text-sm font-medium text-text-body">Date</label>
             <input formControlName="date" type="date"
-              class="w-full min-h-11 px-3 rounded-lg border border-gray-300 text-sm
+              class="w-full min-h-11 px-3 rounded-lg border border-border-strong text-sm
                      focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               [class.border-red-400]="addForm.get('date')?.invalid && addForm.get('date')?.touched" />
             <app-field-error
@@ -53,11 +53,11 @@
               [messages]="{ required: 'Date is required.' }" />
           </div>
           <div class="space-y-1.5">
-            <label class="text-sm font-medium text-gray-700">
-              Reason <span class="text-gray-400 font-normal">(optional)</span>
+            <label class="text-sm font-medium text-text-body">
+              Reason <span class="text-text-disabled font-normal">(optional)</span>
             </label>
             <input formControlName="reason" type="text" placeholder="e.g. Public holiday"
-              class="w-full min-h-11 px-3 rounded-lg border border-gray-300 text-sm
+              class="w-full min-h-11 px-3 rounded-lg border border-border-strong text-sm
                      focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" />
           </div>
           <div class="flex gap-3">
@@ -67,7 +67,7 @@
               Save
             </button>
             <button type="button" (click)="showAddForm.set(false)"
-              class="flex-1 min-h-11 border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+              class="flex-1 min-h-11 border border-border text-text-muted text-sm font-medium rounded-lg hover:bg-surface-sunken transition-colors">
               Cancel
             </button>
           </div>
@@ -77,18 +77,18 @@
       <div class="mt-4">
         <!-- Closure list -->
         @if (closures().length === 0) {
-          <div class="bg-white rounded-xl border border-gray-200 p-10 text-center">
-            <p class="text-sm text-gray-400">No closures scheduled</p>
+          <div class="bg-surface-card rounded-xl border border-border p-10 text-center">
+            <p class="text-sm text-text-disabled">No closures scheduled</p>
           </div>
         } @else {
-          <div class="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+          <div class="bg-surface-card rounded-xl border border-border divide-y divide-gray-100">
             <app-animated-list [items]="closures()">
               <ng-template let-closure>
                 <div class="flex items-center gap-3 px-4 py-4 min-h-14">
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900">{{ closure.date }}</p>
+                    <p class="text-sm font-medium text-text-primary">{{ closure.date }}</p>
                     @if (closure.reason) {
-                      <p class="text-xs text-gray-400 mt-0.5">{{ closure.reason }}</p>
+                      <p class="text-xs text-text-disabled mt-0.5">{{ closure.reason }}</p>
                     }
                   </div>
                   @if (!salonContext.isFrozen()) {

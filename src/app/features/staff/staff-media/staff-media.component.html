@@ -17,8 +17,8 @@
 
 
       <!-- Profile photo -->
-      <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-        <h2 class="text-sm font-semibold text-gray-700">Profile photo</h2>
+      <div class="bg-surface-card rounded-xl border border-border p-5 space-y-4">
+        <h2 class="text-sm font-semibold text-text-body">Profile photo</h2>
         <div class="flex items-start md:items-center gap-4">
           <button type="button" (click)="openProfilePreview()" [disabled]="!profilePhoto() || profilePhotoPending()"
             class="rounded-full disabled:cursor-default" aria-label="View profile photo">
@@ -36,11 +36,11 @@
            About tab). Tap a photo to preview in the read-only lightbox; the
            pen icon opens the drag/delete modal, which persists reorder via
            PATCH /v1/staff/{staffId}/media/reorder. -->
-      <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+      <div class="bg-surface-card rounded-xl border border-border p-5 space-y-4">
         <div class="flex items-center justify-between">
-          <h2 class="text-sm font-semibold text-gray-700">Gallery</h2>
+          <h2 class="text-sm font-semibold text-text-body">Gallery</h2>
           <div class="flex items-center gap-3">
-            <span class="text-xs text-gray-400">{{ galleryPhotos().length }}/8 photos</span>
+            <span class="text-xs text-text-disabled">{{ galleryPhotos().length }}/8 photos</span>
             @if (canEdit() && galleryPhotos().length > 0) {
               <button type="button" (click)="editOpen.set(true)" aria-label="Edit photos"
                 class="w-8 h-8 rounded-full flex items-center justify-center bg-primary text-white hover:bg-primary-hover transition-colors">
@@ -51,7 +51,7 @@
         </div>
 
         @if (galleryPhotos().length === 0) {
-          <p class="text-sm text-gray-400 text-center py-4">No photos yet</p>
+          <p class="text-sm text-text-disabled text-center py-4">No photos yet</p>
         } @else {
           <div class="grid grid-cols-4 gap-2">
             @for (photo of galleryPhotos(); track photo.id; let i = $index) {

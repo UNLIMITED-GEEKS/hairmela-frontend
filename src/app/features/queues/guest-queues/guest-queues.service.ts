@@ -6,10 +6,12 @@ import { QueueEntry } from '../../../api/models/queue-entry';
 import { guestEntriesControllerGetGuestEntries } from '../../../api/fn/queues/guest-entries-controller-get-guest-entries';
 import { SocketInvalidatedTtl } from '../../../core/caching/ttl/socket-invalidated-ttl';
 import { QueueSocketService } from '../../../core/socket/queue-socket.service';
+import { GuestStore } from '../../../core/guest/guest-store';
 
 @Injectable({ providedIn: 'root' })
 export class GuestQueuesService {
   private readonly _http = inject(HttpClient);
+  private readonly _guestStore = inject(GuestStore);
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _socket = inject(QueueSocketService);
 
@@ -28,6 +30,16 @@ export class GuestQueuesService {
   readonly error = this._error.asReadonly();
 
   load(): void {
+    // A visitor who has never joined a queue has no guest token, and this
+    // endpoint requires one — the request could only ever 401. Returning an
+    // empty list is the honest answer for "your queues" when they have none,
+    // and it avoids a guaranteed-failing call on every visit to this page.
+    if (!this._guestStore.hasToken()) {
+      this._entries.set([]);
+      this._loading.set(false);
+      this._error.set(false);
+      return;
+    }
     if (this._inflight || this._watch.isFresh()) return;
     this._inflight = true;
     this._loading.set(true);

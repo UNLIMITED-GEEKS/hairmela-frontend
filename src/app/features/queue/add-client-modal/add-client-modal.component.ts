@@ -18,6 +18,8 @@ import { groupByServiceCategory } from '../../../core/utils/group-by-category';
 import { StaffService } from '../../../api/models/staff-service';
 import { registerOverlayWhileOpen } from '../../../core/overlay/overlay-registry';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
+import { monthRange } from '../../../shared/components/slot-picker/iso-date';
+import { scrollToNewRow } from '../../../core/utils/scroll-to-new-row';
 
 function toIsoDate(d: Date): string {
   const yyyy = d.getFullYear();
@@ -51,6 +53,8 @@ export class AddClientModalComponent {
 
   protected readonly console = inject(QueueConsoleService);
   private readonly _appointmentFieldsEl = viewChild<ElementRef<HTMLElement>>('appointmentFieldsEl');
+  private readonly _walkInFieldsEl = viewChild<ElementRef<HTMLElement>>('walkInFieldsEl');
+  private readonly _appointmentRows = viewChild<ElementRef<HTMLElement>>('appointmentRows');
   private readonly _scrollInjector = inject(Injector);
   private readonly _http = inject(HttpClient);
   private readonly _apiConfig = inject(ApiConfiguration);
@@ -190,6 +194,7 @@ export class AddClientModalComponent {
   protected addWalkInRow(): void {
     if (this.walkInAtMaxPartySize) return;
     this.addQueueMembers.push(this._buildWalkInRow(this.staffServices()[0]?.serviceId ?? ''));
+    this._scrollToNewRow(this._walkInFieldsEl);
   }
 
   protected removeWalkInRow(i: number): void {
@@ -221,9 +226,19 @@ export class AddClientModalComponent {
     this.selectedStartTime.set(slot.startTime);
   }
 
+  private _scrollToNewRow(ref: typeof this._walkInFieldsEl): void {
+    // Deferred: the row does not exist in the DOM until Angular has rendered
+    // the FormArray change.
+    afterNextRender(
+      () => scrollToNewRow(ref()?.nativeElement),
+      { injector: this._scrollInjector },
+    );
+  }
+
   protected addAppointmentRow(): void {
     if (this.appointmentAtMaxPartySize) return;
     this.appointmentMembers.push(this._buildAppointmentRow());
+    this._scrollToNewRow(this._appointmentRows);
   }
 
   protected removeAppointmentRow(i: number): void {
@@ -267,8 +282,10 @@ export class AddClientModalComponent {
 
   private _fetchMonth(): void {
     const month = this.viewedMonth();
-    const from = toIsoDate(new Date(month.getFullYear(), month.getMonth(), 1));
-    const to = toIsoDate(new Date(month.getFullYear(), month.getMonth() + 1, 0));
+    // Same grid-not-month range the customer picker uses: the calendar pads
+    // out to whole weeks, so tapping a trailing day (Feb 3 while viewing
+    // January) needs that day's availability already fetched.
+    const { from, to } = monthRange(month);
     this.slotsLoading.set(true);
     this.monthSlots.set([]);
     availabilityControllerGetSlots(this._http, this._apiConfig.rootUrl, {

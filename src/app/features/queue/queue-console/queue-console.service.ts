@@ -1011,6 +1011,10 @@ export class QueueConsoleService {
     const now = new Date().toISOString();
     const tempEntry: TimelineEntryDto = {
       entryId: `temp_${crypto.randomUUID()}`,
+      // Added by the barber, so there is no customer account or guest
+      // session behind it — see hasChatCounterparty.
+      guestId: null,
+      userId: null,
       position: lastPosition + 1,
       estimatedWaitMinutes: lastWait,
       isUpcoming: false,
@@ -1132,6 +1136,10 @@ export class QueueConsoleService {
     const scheduledAt = new Date(`${date}T${startTime}:00`).toISOString();
     const tempEntry: TimelineEntryDto = {
       entryId: `temp_${crypto.randomUUID()}`,
+      // Added by the barber, so there is no customer account or guest
+      // session behind it — see hasChatCounterparty.
+      guestId: null,
+      userId: null,
       position: lastPosition + 1,
       estimatedWaitMinutes: lastWait,
       isUpcoming: true,

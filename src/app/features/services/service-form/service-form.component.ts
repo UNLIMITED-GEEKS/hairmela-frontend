@@ -15,6 +15,7 @@ import { InlineSpinnerComponent } from '../../../shared/components/inline-spinne
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
+import { AssignStaffDialogComponent } from '../assign-staff-dialog/assign-staff-dialog.component';
 
 @Component({
   selector: 'app-service-form',
@@ -27,6 +28,7 @@ import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first
     FieldErrorComponent,
     InlineSpinnerComponent,
     PageHeaderComponent,
+    AssignStaffDialogComponent,
   ],
 })
 export class ServiceFormComponent implements OnInit {
@@ -46,6 +48,7 @@ export class ServiceFormComponent implements OnInit {
 
   protected readonly loading = this._servicesService.loading;
   protected readonly staffLoading = this._staffService.loading;
+  protected readonly assignOpen = signal(false);
   // Guards against a double-tap firing two ngSubmits before navigation away
   // completes — each would create its own optimistic op + a real duplicate
   // server-side create (nothing else in the form/service call chain blocks it).
@@ -174,6 +177,32 @@ export class ServiceFormComponent implements OnInit {
       );
       return;
     }
+    // The assign-staff dialog IS the submit step — unless the user already
+    // used the staff checklist on the form itself. Asking again after they
+    // have explicitly chosen would be a pointless extra tap, and the dialog
+    // exists precisely for people who skipped past that section.
+    //
+    // `dirty` on the control is exactly "they touched the checklist", which is
+    // also what the submit below keys off to decide whether to send staffIds.
+    if (this.form.controls.staffIds.dirty) {
+      this._submit();
+      return;
+    }
+    this.assignOpen.set(true);
+  }
+
+  /** Confirmed from the dialog — this is where the request actually goes out. */
+  protected onAssignConfirmed(result: { staffIds: string[]; changed: boolean }): void {
+    this.assignOpen.set(false);
+    this.form.controls.staffIds.setValue(result.staffIds);
+    // Only mark dirty when the picks actually differ: on edit the backend
+    // treats an omitted staffIds as "leave assignments untouched", and the
+    // submit below keys off dirty to decide whether to send the field at all.
+    if (result.changed) this.form.controls.staffIds.markAsDirty();
+    this._submit();
+  }
+
+  private _submit(): void {
     this.submitting.set(true);
     const { categoryId, name, duration, price, description, staffIds, isDynamicPricing } =
       this.form.getRawValue();

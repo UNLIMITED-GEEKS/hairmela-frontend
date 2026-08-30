@@ -12,19 +12,19 @@
        isn't wired yet (backend can't distinguish who caused a queue update
        yet), so this is UI-only for now. -->
   @if (!soundPreference.enabled() && !soundOffBannerDismissed()) {
-    <div class="shrink-0 mb-4 flex items-start gap-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-      <svg class="w-4 h-4 text-gray-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <div class="shrink-0 mb-4 flex items-start gap-3 rounded-2xl border border-border bg-surface-sunken px-4 py-3">
+      <svg class="w-4 h-4 text-text-disabled shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 8m0-8l-4 8" />
       </svg>
       <div class="flex-1 min-w-0">
-        <p class="text-xs text-gray-600">
+        <p class="text-xs text-text-muted">
           Queue sound is off. Turn it on in
           <a [routerLink]="accountLink" class="font-semibold text-primary hover:underline">Account settings</a>.
         </p>
       </div>
       <button type="button" (click)="soundOffBannerDismissed.set(true)" aria-label="Dismiss"
-        class="shrink-0 text-gray-400 hover:text-gray-600">
+        class="shrink-0 text-text-disabled hover:text-text-muted">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
         </svg>
@@ -54,17 +54,17 @@
   <div class="flex-1 min-h-0 overflow-y-auto space-y-2 pr-0.5 pb-24">
     @for (entry of console.queueListEntries(); track entry.entryId) {
       @let isServing = entry.members.some(m => m.status === 'SERVING');
-      <div class="bg-white border border-primary/20 rounded-2xl px-3 py-3">
+      <div class="bg-surface-card border border-primary/20 rounded-2xl px-3 py-3">
        <div class="flex items-center justify-between min-h-[52px]">
         <div class="flex-1 min-w-0">
-          <span class="text-sm font-medium text-gray-800 block truncate">
+          <span class="text-sm font-medium text-text-strong block truncate">
             {{ entry.members[0].memberName }}
             @if (entry.members.length > 1) {
-              <span class="text-xs text-gray-500"> + {{ entry.members.length - 1 }} {{ entry.members.length - 1 === 1 ? 'more person' : 'more persons' }}</span>
+              <span class="text-xs text-text-secondary"> + {{ entry.members.length - 1 }} {{ entry.members.length - 1 === 1 ? 'more person' : 'more persons' }}</span>
             }
           </span>
           @if (entry.members[0].serviceName) {
-            <span class="text-xs text-gray-500 block truncate">{{ entry.members[0].serviceName }}</span>
+            <span class="text-xs text-text-secondary block truncate">{{ entry.members[0].serviceName }}</span>
           }
           @if (entry.members[0].phone) {
             <span class="flex items-center gap-1 mt-0.5">
@@ -72,7 +72,7 @@
                 {{ entry.members[0].phone }}
               </a>
               <button (click)="copyPhone(entry.members[0].phone!)" aria-label="Copy phone number"
-                class="shrink-0 text-gray-400 hover:text-primary transition-colors">
+                class="shrink-0 text-text-disabled hover:text-primary transition-colors">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
@@ -84,7 +84,7 @@
             <span class="flex items-center gap-1 mt-0.5">
               <span class="text-xs font-semibold text-primary bg-secondary-light px-1.5 py-0.5 rounded">Booking</span>
               @if (entry.scheduledAt) {
-                <span class="text-xs text-gray-500">{{ entry.scheduledAt | date: 'shortTime' }}</span>
+                <span class="text-xs text-text-secondary">{{ entry.scheduledAt | date: 'shortTime' }}</span>
               }
             </span>
           }
@@ -119,8 +119,8 @@
             <ul class="space-y-2">
               @for (member of entry.members; track member.memberId) {
                 <li class="flex flex-col gap-0.5 text-xs sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
-                  <span class="min-w-0 font-medium text-gray-700 wrap-break-word">{{ member.memberName }}</span>
-                  <span class="min-w-0 text-gray-500 wrap-break-word sm:text-right">
+                  <span class="min-w-0 font-medium text-text-body wrap-break-word">{{ member.memberName }}</span>
+                  <span class="min-w-0 text-text-secondary wrap-break-word sm:text-right">
                     @if (member.serviceName) {
                       {{ member.serviceName }} · {{ member.serviceDuration }} mins
                     } @else {
@@ -133,19 +133,23 @@
           </app-accordion>
         </div>
 
-        <!-- Notes — self-contained, only one row's open at a time -->
+        <!-- Notes — self-contained, only one row's open at a time. Hidden for
+             entries the barber added themselves: no account or guest session
+             behind them, so there is nobody on the other end to message. -->
+        @if (showChat(entry)) {
         <div class="mt-2">
           <app-accordion title="View chat" [open]="openNotesEntryId() === entry.entryId"
             (openChange)="onRowNotesOpenChange(entry.entryId, $event)">
             <app-comments-thread [queueId]="_queueId" [entryId]="entry.entryId"
               [callPhone]="entry.members[0].phone"
-              composerPlaceholder="Write a note to the client…" emptyLabel="No notes yet." />
+              composerPlaceholder="Write a message to the client…" emptyLabel="No chat yet." />
           </app-accordion>
         </div>
+        }
       </div>
     }
     @if (console.queueListEntries().length === 0) {
-      <div class="flex flex-col items-center justify-center py-16 text-gray-300">
+      <div class="flex flex-col items-center justify-center py-16 text-text-faint">
         <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
             d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.48-.634-2.07M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.768.231-1.48.634-2.07M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>

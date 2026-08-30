@@ -25,7 +25,7 @@
       <div class="absolute top-3 right-3 flex items-center gap-2">
         <button type="button" (click)="shareSalon()"
           aria-label="Share this salon"
-          class="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/20 hover:scale-105 transition-transform">
+          class="flex h-10 w-10 items-center justify-center rounded-full bg-surface-card/20 backdrop-blur-md border border-white/20 hover:scale-105 transition-transform">
           <app-icon name="share" class="h-5 w-5 text-white" />
         </button>
 
@@ -33,7 +33,7 @@
           <button type="button" (click)="toggleFavorite()"
             [attr.aria-label]="isFavorited() ? 'Remove from favourites' : 'Add to favourites'"
             [attr.aria-pressed]="isFavorited()"
-            class="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/20 hover:scale-105 transition-transform">
+            class="flex h-10 w-10 items-center justify-center rounded-full bg-surface-card/20 backdrop-blur-md border border-white/20 hover:scale-105 transition-transform">
             <app-icon [name]="isFavorited() ? 'heart-filled' : 'heart'"
               class="h-5 w-5 transition-colors"
               [class.text-primary]="isFavorited()"
@@ -44,7 +44,7 @@
 
       @if (!platform.isAppContext && !install.installed()) {
         <a [routerLink]="howToInstallLink"
-          class="absolute bottom-10 right-3 flex items-center gap-1.5 h-9 px-3 rounded-full bg-white/20 backdrop-blur-md border border-white/20 text-white text-xs font-semibold hover:scale-105 transition-transform">
+          class="absolute bottom-10 right-3 flex items-center gap-1.5 h-9 px-3 rounded-full bg-surface-card/20 backdrop-blur-md border border-white/20 text-white text-xs font-semibold hover:scale-105 transition-transform">
           <app-icon name="download" class="h-3.5 w-3.5" />
           Get the app
         </a>
@@ -64,7 +64,7 @@
       }
 
       <h1 class="mt-2 text-xl font-semibold text-text-primary">{{ s.name }}</h1>
-      <p class="mt-1 flex items-start gap-1 text-sm text-black/70">
+      <p class="mt-1 flex items-start gap-1 text-sm text-text-muted">
         <app-icon name="location-pin" class="h-4 w-4 shrink-0 mt-0.5" />
       {{s.address.street}} {{ s.address?.city }}{{ s.address?.state ? ', ' + s.address.state : '' }}
       </p>
@@ -99,18 +99,18 @@
       <app-tabs class="block mt-8 mb-4" [tabs]="landingTabs" [activeId]="activeTab()" (tabChange)="setTab($event)" />
 
       @if (frozen()) {
-        <div class="w-full rounded-2xl border border-gray-200 bg-gray-50 px-5 py-8 text-center">
-          <p class="text-sm font-semibold text-gray-700">Not available at the moment</p>
-          <p class="mt-1 text-sm text-gray-500">Please check back later.</p>
+        <div class="w-full rounded-2xl border border-border bg-surface-sunken px-5 py-8 text-center">
+          <p class="text-sm font-semibold text-text-body">Not available at the moment</p>
+          <p class="mt-1 text-sm text-text-secondary">Please check back later.</p>
         </div>
       } @else if (activeTab() === 'about') {
         <!-- Tab: About -->
         <div animate.enter="tab-content-enter">
-          <div class="space-y-2 text-sm text-gray-600">
+          <div class="space-y-2 text-sm text-text-muted">
             @if (s.about) {
               <p>{{ s.about }}</p>
             } @else {
-              <p class="text-gray-400">No description yet.</p>
+              <p class="text-text-disabled">No description yet.</p>
             }
           </div>
 
@@ -136,7 +136,7 @@
                 @for (day of weeklyHours(); track day.name) {
                   <div class="flex items-center justify-between text-sm"
                     [class.font-semibold]="day.isToday" [class.text-text-primary]="day.isToday"
-                    [class.text-gray-500]="!day.isToday">
+                    [class.text-text-secondary]="!day.isToday">
                     <span>{{ day.name }}</span>
                     <span>{{ day.label }}</span>
                   </div>
@@ -194,7 +194,7 @@
                 </div>
               }
               @if (staffForSelectedService().length === 0) {
-                <p class="col-span-2 text-sm text-gray-400 text-center py-8">No staff currently offer this service.</p>
+                <p class="col-span-2 text-sm text-text-disabled text-center py-8">No staff currently offer this service.</p>
               }
             </div>
           </div>
@@ -209,7 +209,7 @@
             </div>
           }
           @if (visit.staffList().length === 0) {
-            <p class="col-span-2 text-sm text-gray-400 text-center py-8">No staff yet.</p>
+            <p class="col-span-2 text-sm text-text-disabled text-center py-8">No staff yet.</p>
           }
         </div>
       }

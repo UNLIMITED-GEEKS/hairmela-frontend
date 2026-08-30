@@ -9,7 +9,7 @@
       class="w-full max-w-sm bg-surface rounded-3xl p-6  space-y-5 shadow-xl max-h-85dvh flex flex-col">
 
       <div class="shrink-0">
-        <h2 class="text-lg font-bold text-gray-900">Book an appointment</h2>
+        <h2 class="text-lg font-bold text-text-primary">Book an appointment</h2>
         <p class="text-sm text-text-secondary mt-1">Pick a date and time that works for you.</p>
       </div>
 
@@ -29,7 +29,7 @@
             <!-- Step 1 of 2: service first — the customer picks WHAT before
                  WHO, then the next step only shows staff who offer it. -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1.5">What would you like done?</label>
+              <label class="block text-sm font-medium text-text-body mb-1.5">What would you like done?</label>
               @if (pickerServiceGroups().length === 0) {
                 <p class="text-sm text-text-secondary">No services available to book right now.</p>
               } @else {
@@ -40,8 +40,8 @@
                       <div class="space-y-2">
                         @for (s of group.items; track s.id) {
                           <button type="button" (click)="pickPickerService(s.id)"
-                            class="w-full flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-2.5 text-left hover:bg-secondary-light transition-colors">
-                            <span class="text-sm font-medium text-gray-900">{{ s.name }}</span>
+                            class="w-full flex items-center gap-3 rounded-xl border border-border px-3 py-2.5 text-left hover:bg-secondary-light transition-colors">
+                            <span class="text-sm font-medium text-text-primary">{{ s.name }}</span>
                           </button>
                         }
                       </div>
@@ -54,7 +54,7 @@
             <!-- Step 2 of 2: staff who offer the chosen service -->
             <div>
               <div class="flex items-center justify-between mb-1.5">
-                <label class="block text-sm font-medium text-gray-700">Who would you like to see?</label>
+                <label class="block text-sm font-medium text-text-body">Who would you like to see?</label>
                 <button type="button" (click)="backToServicePicker()" class="text-xs font-semibold text-primary">
                   Change service
                 </button>
@@ -80,7 +80,7 @@
           [(selectedDate)]="selectedDate"
           [(selectedStartTime)]="selectedStartTime">
           @if (selectedStaff(); as staff) {
-            <span slotPickerDateHint class="font-normal text-gray-500">
+            <span slotPickerDateHint class="font-normal text-text-secondary">
               with {{ staff.firstName }}@if (staff.nickname) { ({{ staff.nickname }}) }
             </span>
           }
@@ -88,7 +88,7 @@
 
         <!-- Your service — leader is always the signed-in customer, no name field -->
         <div>
-          <label class="block text-sm font-medium mt-6 text-gray-700 mb-1.5">
+          <label class="block text-sm font-medium mt-6 text-text-body mb-1.5">
             {{ leaderServiceIds().length > 1 ? 'Services' : 'Service' }}
           </label>
           <!-- One select per service. Each becomes its own members[] entry
@@ -102,7 +102,7 @@
                   [value]="id"
                   (change)="setLeaderServiceAt(i, $any($event.target).value)"
                   (blur)="leaderServiceTouched.set(true)"
-                  class="flex-1 min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors">
+                  class="flex-1 min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-xl bg-surface-card focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors">
                   <option value="" disabled>Select a service</option>
                   @for (s of staffServices(); track s.id) {
                     <option [value]="s.id" [selected]="s.id === id">{{ s.name }}</option>
@@ -110,7 +110,7 @@
                 </select>
                 @if (leaderServiceIds().length > 1) {
                   <button type="button" (click)="removeLeaderService(i)"
-                    class="text-gray-300 hover:text-red-500 min-w-10 min-h-10 flex items-center justify-center shrink-0"
+                    class="text-text-secondary hover:text-red-500 min-w-10 min-h-10 flex items-center justify-center shrink-0"
                     aria-label="Remove service">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -122,8 +122,8 @@
           </div>
           <button type="button" (click)="addLeaderService()" [disabled]="atMaxPartySize"
             [title]="atMaxPartySize ? 'Party limit reached (' + visit.maxPartySize() + ' services)' : ''"
-            class="mt-2 inline-flex items-center gap-1 min-h-11 px-3 rounded-xl border border-dashed border-primary/30 text-xs font-semibold text-primary hover:bg-secondary-light disabled:text-gray-400 disabled:border-gray-200 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors">
-            + Add another service
+            class="mt-2 inline-flex items-center gap-1 min-h-11 px-3 rounded-xl border border-dashed border-primary/30 text-xs font-semibold text-primary hover:bg-secondary-light disabled:text-text-disabled disabled:border-border disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors">
+            + Add another service for yourself
           </button>
           @if (leaderServiceTouched() && !leaderServiceIds()[0]) {
             <p class="mt-1.5 text-xs text-red-600">Please select a service.</p>
@@ -132,9 +132,9 @@
 
         <!-- Optional extra party members -->
         <div [formGroup]="membersForm">
-          <div formArrayName="members" class="space-y-2">
+          <div #memberRows formArrayName="members" class="space-y-2">
             @for (ctrl of membersArray.controls; track $index; let i = $index) {
-              <div [formGroupName]="i" class="bg-white border border-gray-200 rounded-2xl px-3 py-4 flex gap-2 items-start">
+              <div [formGroupName]="i" class="bg-surface-card border border-border rounded-2xl px-3 py-4 flex gap-2 items-start">
                 <div class="flex-1 space-y-2">
                   <input formControlName="name" type="text" [placeholder]="'Person ' + (i + 1) + ' name'"
                     class="w-full border border-primary/10 rounded-xl px-3 py-2 text-sm min-h-11 focus:outline-none focus:ring-2 focus:ring-primary/30">
@@ -144,7 +144,7 @@
                       <div class="flex gap-2 items-start">
                         <div class="flex-1">
                           <select [formControlName]="si"
-                            class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30">
+                            class="w-full border border-border rounded-xl px-3 py-2 text-sm min-h-11 bg-surface-card focus:outline-none focus:ring-2 focus:ring-primary/30">
                             <option value="" disabled>Select a service</option>
                             @for (s of staffServices(); track s.id) {
                               <option [value]="s.id">{{ s.name }}</option>
@@ -154,7 +154,7 @@
                         </div>
                         @if (memberServiceIds(i).length > 1) {
                           <button type="button" (click)="removeMemberService(i, si)"
-                            class="text-gray-300 hover:text-red-500 min-w-11 min-h-11 flex items-center justify-center shrink-0"
+                            class="text-text-secondary hover:text-red-500 min-w-11 min-h-11 flex items-center justify-center shrink-0"
                             aria-label="Remove service">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -165,12 +165,12 @@
                     }
                   </div>
                   <button type="button" (click)="addMemberService(i)" [disabled]="atMaxPartySize"
-                    class="inline-flex items-center gap-1 min-h-11 px-3 rounded-xl border border-dashed border-primary/30 text-xs font-semibold text-primary hover:bg-secondary-light disabled:text-gray-400 disabled:border-gray-200 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors">
+                    class="inline-flex items-center gap-1 min-h-11 px-3 rounded-xl border border-dashed border-primary/30 text-xs font-semibold text-primary hover:bg-secondary-light disabled:text-text-disabled disabled:border-border disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors">
                     + Add another service
                   </button>
                 </div>
                 <button (click)="removeMember(i)" type="button"
-                  class="text-gray-300 hover:text-red-500 min-w-10 min-h-10 flex items-center justify-center"
+                  class="text-text-secondary hover:text-red-500 min-w-10 min-h-10 flex items-center justify-center"
                   aria-label="Remove person">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -190,13 +190,13 @@
              once the appointment entry exists. Visible later on My
              Position's "View notes". -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1.5">Note (optional)</label>
+          <label class="block text-sm font-medium text-text-body mb-1.5">Note (optional)</label>
           <textarea
             [value]="noteBody()"
             (input)="noteBody.set($any($event.target).value)"
             placeholder="Anything the salon should know?"
             rows="2"
-            class="w-full resize-none px-3 py-2.5 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+            class="w-full resize-none px-3 py-2.5 text-sm border border-border-strong rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
           ></textarea>
 
           @if (noteImageError()) {
@@ -207,7 +207,7 @@
             <div class="relative w-16 h-16 mt-2">
               <img [src]="preview" alt="" class="w-full h-full object-cover rounded-lg" />
               <button type="button" (click)="removeNoteImage()" aria-label="Remove image"
-                class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-gray-900 text-white flex items-center justify-center">
+                class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-surface-inverse text-white flex items-center justify-center">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -231,7 +231,7 @@
       <div class="shrink-0 flex gap-3">
         <button
           (click)="cancel()"
-          class="flex-1 min-h-12 rounded-2xl border-2 border-gray-200 bg-white text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors">
+          class="flex-1 min-h-12 rounded-2xl border-2 border-border bg-surface-card text-text-muted font-semibold text-sm hover:bg-surface-sunken transition-colors">
           Cancel
         </button>
         @if (!needsStaffPicker() || selectedStaff()) {

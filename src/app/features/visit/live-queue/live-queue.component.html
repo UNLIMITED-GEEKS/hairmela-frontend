@@ -34,14 +34,14 @@
           <div class="flex-1 min-w-0">
             <p class="text-base font-bold text-text-primary truncate">
               {{ staff.firstName }} {{ staff.lastName }}
-              @if (staff.nickname) { <span class="font-normal text-gray-500">({{ staff.nickname }})</span> }
+              @if (staff.nickname) { <span class="font-normal text-text-secondary">({{ staff.nickname }})</span> }
             </p>
             <!-- Reads joinable() (frozen-aware), not a.joinable: on a frozen
                  salon the raw availability is still "Available", which would
                  sit next to a disabled Join Queue button and read as a bug. -->
             @if (availability(); as a) {
               <span class="block text-xs font-medium mt-1.5"
-                [class.text-success]="joinable()" [class.text-gray-400]="!joinable()">
+                [class.text-success]="joinable()" [class.text-text-disabled]="!joinable()">
                 @if (frozen()) {
                   Not available at the moment
                 } @else {
@@ -76,7 +76,7 @@
       <div>
         <p class="text-xs font-semibold text-primary">Estimated Wait Time</p>
         <p class="mt-1 text-2xl font-bold text-primary" aria-live="polite">{{ estimatedWait() }}</p>
-        <p class="mt-0.5 text-xs text-black/80">
+        <p class="mt-0.5 text-xs text-text-body">
           {{ peopleAheadOfMe() }} {{ peopleAheadOfMe() === 1 ? 'person' : 'people' }} ahead of you
         </p>
       </div>
@@ -97,7 +97,7 @@
          a suspended salon, so offering it here only produces a failed booking. -->
     @if (!frozen()) {
     <button type="button" (click)="openBookDialog()"
-      class="shrink-0 mx-3 mb-6 flex items-center justify-between rounded-2xl border border-primary/20 bg-white px-4 py-3.5 text-left hover:bg-secondary-light transition-colors">
+      class="shrink-0 mx-3 mb-6 flex items-center justify-between rounded-2xl border border-primary/20 bg-surface-card px-4 py-3.5 text-left hover:bg-secondary-light transition-colors">
       <div>
         <p class="text-sm font-semibold text-text-primary">Not ready today?</p>
         <p class="text-xs text-text-secondary mt-0.5">Click here to Book an appointment for later</p>
@@ -120,7 +120,7 @@
         @let isMe = visit.isMine(entry.entryId);
         <div class="flex items-center justify-between border border-primary/10 rounded-2xl px-4 py-3 min-h-14"
           [class.bg-secondary-light]="isMe"
-          [class.bg-white]="!isMe">
+          [class.bg-surface-card]="!isMe">
           <span class="text-sm text-text-primary">
             <!-- Live entries show their true queue position (entry.position,
                  from the backend). An isUpcoming appointment (>10min out on
@@ -132,13 +132,13 @@
             }
             {{ isMe ? 'Me' : (entry.position !== null ? 'Client ' + entry.position : 'Booking') }}
             @if (entry.members.length > 1) {
-              <span class="text-xs text-gray-500"> + {{ entry.members.length - 1 }}  {{ entry.members.length - 1 === 1 ? 'more person' : 'more persons' }}</span>
+              <span class="text-xs text-text-secondary"> + {{ entry.members.length - 1 }}  {{ entry.members.length - 1 === 1 ? 'more person' : 'more persons' }}</span>
             }
             @if (entry.type === 'APPOINTMENT') {
               <span class="block mt-0.5">
                 <span class="text-xs font-semibold text-primary bg-secondary-light px-1.5 py-0.5 rounded">Booking</span>
                 @if (entry.scheduledAt) {
-                  <span class="text-xs text-gray-500 ml-1">{{ entry.scheduledAt | date: 'shortTime' }}</span>
+                  <span class="text-xs text-text-secondary ml-1">{{ entry.scheduledAt | date: 'shortTime' }}</span>
                 }
               </span>
             }
@@ -147,9 +147,9 @@
             @if (entry.isUpcoming) {
               <!-- Not yet in the live line — show its booked time, not a
                    "Waiting / 0m" label (which would misrepresent it). -->
-              <span class="block text-sm font-medium text-gray-400" aria-live="polite">Booked</span>
+              <span class="block text-sm font-medium text-text-disabled" aria-live="polite">Booked</span>
               @if (entry.scheduledAt) {
-                <span class="block text-xs text-gray-400">for {{ entry.scheduledAt | date: 'shortTime' }}</span>
+                <span class="block text-xs text-text-disabled">for {{ entry.scheduledAt | date: 'shortTime' }}</span>
               }
             } @else if (isServing) {
               <span class="block text-sm font-medium text-success" aria-live="polite">In Service</span>
@@ -161,14 +161,14 @@
         </div>
       }
       @if (visit.waitingEntries().length === 0) {
-        <div class="flex flex-col items-center justify-center py-16 text-gray-300">
+        <div class="flex flex-col items-center justify-center py-16 text-text-faint">
           <p class="text-sm font-medium">Queue is empty</p>
         </div>
       }
     </div>
 
     <!-- Fixed bottom bar -->
-    <div class="shrink-0 bg-surface border-t border-gray-100 px-3 pt-3 safe-area-bottom">
+    <div class="shrink-0 bg-surface border-t border-border-subtle px-3 pt-3 safe-area-bottom">
       <div class="flex gap-3">
         @if (!hasMyEntries()) {
           <!-- Appointments-only salons (allowWalkIns off) have no walk-in queue
@@ -185,7 +185,7 @@
         <button
           type="button"
           (click)="_location.back()"
-          class="flex-1 min-h-[45px] rounded-2xl border-2 border-primary/40 bg-white text-primary font-bold text-sm hover:bg-primary/20 transition-colors">
+          class="flex-1 min-h-[45px] rounded-2xl border-2 border-primary/40 bg-surface-card text-primary font-bold text-sm hover:bg-primary/20 transition-colors">
           Back
         </button>
       </div>

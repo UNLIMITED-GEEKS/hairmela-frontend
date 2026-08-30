@@ -21,6 +21,7 @@ import { groupByServiceCategory } from '../../../core/utils/group-by-category';
 import { Service } from '../../../api/models/service';
 import { registerOverlayWhileOpen } from '../../../core/overlay/overlay-registry';
 import { BookingFeeStepComponent } from '../booking-fee-step/booking-fee-step.component';
+import { scrollToNewRow } from '../../../core/utils/scroll-to-new-row';
 
 const ALLOWED_NOTE_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_NOTE_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -77,6 +78,7 @@ export class BookAppointmentDialogComponent {
 
   protected readonly visit = inject(SalonVisitService);
   private readonly _fieldsEl = viewChild<ElementRef<HTMLElement>>('fieldsEl');
+  private readonly _memberRows = viewChild<ElementRef<HTMLElement>>('memberRows');
   private readonly _scrollInjector = inject(Injector);
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _router = inject(Router);
@@ -270,6 +272,12 @@ export class BookAppointmentDialogComponent {
   protected addMember(): void {
     if (this.atMaxPartySize) return;
     this.membersArray.push(this._buildMemberGroup(this.leaderServiceIds()[0] ?? ''));
+    // Deferred: the row does not exist in the DOM until Angular has rendered
+    // the FormArray change.
+    afterNextRender(
+      () => scrollToNewRow(this._memberRows()?.nativeElement),
+      { injector: this._scrollInjector },
+    );
   }
 
   protected removeMember(i: number): void {

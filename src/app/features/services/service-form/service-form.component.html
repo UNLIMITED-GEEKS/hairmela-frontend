@@ -24,10 +24,10 @@
              (auth-shell's <main>), not fixed to the bottom, so it's always
              reachable without depending on the shell's height math or the
              sidebar's width on desktop. Same pattern as salon-settings. -->
-        <div class="sticky top-6 md:top-0 z-20 -mx-4 px-4 py-3 bg-surface border-b border-gray-100 flex gap-3">
+        <div class="sticky top-6 md:top-0 z-20 -mx-4 px-4 py-3 bg-surface border-b border-border-subtle flex gap-3">
           <button type="button" (click)="_location.back()"
-            class="flex-1 min-h-11 flex items-center justify-center border border-gray-300 text-gray-700
-                   text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+            class="flex-1 min-h-11 flex items-center justify-center border border-border-strong text-text-body
+                   text-sm font-medium rounded-lg hover:bg-surface-sunken transition-colors">
             Cancel
           </button>
           <button type="submit" [disabled]="submitting()"
@@ -37,18 +37,18 @@
           </button>
         </div>
 
-        <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+        <div class="bg-surface-card rounded-xl border border-border p-5 space-y-4">
 
           <!-- Category -->
           <div class="space-y-1.5">
-            <label class="text-sm font-medium text-gray-700 flex items-center gap-2">
+            <label class="text-sm font-medium text-text-body flex items-center gap-2">
               Category
               @if (categoriesService.loading()) {
                 <app-inline-spinner sizeClass="w-3.5 h-3.5" label="Loading categories" />
               }
             </label>
             <select formControlName="categoryId" [disabled]="categoriesService.loading()"
-              class="w-full min-h-11 px-3 rounded-lg border border-gray-300 text-sm bg-white
+              class="w-full min-h-11 px-3 rounded-lg border border-border-strong text-sm bg-surface-card
                      focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary
                      disabled:opacity-50">
               <option value="" disabled>
@@ -63,20 +63,20 @@
 
           <!-- Name -->
           <div class="space-y-1.5">
-            <label class="text-sm font-medium text-gray-700">Service name</label>
+            <label class="text-sm font-medium text-text-body">Service name</label>
             <input formControlName="name" type="text" placeholder="e.g. Classic Haircut"
-              class="w-full min-h-11 px-3 rounded-lg border border-gray-300 text-sm
+              class="w-full min-h-11 px-3 rounded-lg border border-border-strong text-sm
                      focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary
-                     disabled:bg-gray-50"
+                     disabled:bg-surface-sunken"
               [class.border-red-400]="form.get('name')?.invalid && form.get('name')?.touched" />
             <app-field-error [control]="form.get('name')" />
           </div>
 
           <!-- Duration -->
           <div class="space-y-1.5">
-            <label class="text-sm font-medium text-gray-700">Duration (minutes)</label>
+            <label class="text-sm font-medium text-text-body">Duration (minutes)</label>
             <input formControlName="duration" type="number" min="1" placeholder="30"
-              class="w-full min-h-11 px-3 rounded-lg border border-gray-300 text-sm
+              class="w-full min-h-11 px-3 rounded-lg border border-border-strong text-sm
                      focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               [class.border-red-400]="form.get('duration')?.invalid && form.get('duration')?.touched" />
             <app-field-error
@@ -86,9 +86,9 @@
 
           <!-- Price -->
           <div class="space-y-1.5">
-            <label class="text-sm font-medium text-gray-700">Price ({{ salonContext.currency() }})</label>
+            <label class="text-sm font-medium text-text-body">Price ({{ salonContext.currency() }})</label>
             <input formControlName="price" type="number" min="0" step="0.01" placeholder="0.00"
-              class="w-full min-h-11 px-3 rounded-lg border border-gray-300 text-sm
+              class="w-full min-h-11 px-3 rounded-lg border border-border-strong text-sm
                      focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               [class.border-red-400]="form.get('price')?.invalid && form.get('price')?.touched" />
             <app-field-error
@@ -98,11 +98,11 @@
 
           <!-- Description -->
           <div class="space-y-1.5">
-            <label class="text-sm font-medium text-gray-700">
-              Description <span class="text-gray-400 font-normal">(optional)</span>
+            <label class="text-sm font-medium text-text-body">
+              Description <span class="text-text-disabled font-normal">(optional)</span>
             </label>
             <textarea formControlName="description" rows="2" placeholder="Short description…"
-              class="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm resize-none
+              class="w-full px-3 py-2.5 rounded-lg border border-border-strong text-sm resize-none
                      focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
             </textarea>
           </div>
@@ -112,10 +112,10 @@
           <div class="space-y-1.5 mb-10">
             <label class="flex items-start gap-2.5 cursor-pointer">
               <input type="checkbox" formControlName="isDynamicPricing"
-                class="w-4 h-4 mt-0.5 rounded border-gray-300 text-primary focus:ring-primary/30" />
+                class="w-4 h-4 mt-0.5 rounded border-border-strong text-primary focus:ring-primary/30" />
               <span>
-                <span class="block text-sm font-medium text-gray-700">Dynamic pricing</span>
-                <span class="block text-xs text-gray-400 mt-0.5">
+                <span class="block text-sm font-medium text-text-body">Dynamic pricing</span>
+                <span class="block text-xs text-text-disabled mt-0.5">
                   If checked, customers see "Price is based on your choosen style" instead of a price amount.
                 </span>
               </span>
@@ -126,25 +126,25 @@
                just travels along with the create/update request so no separate
                per-staff assignment call is needed afterward. -->
           <div class="space-y-1.5">
-            <label class="text-sm font-medium text-gray-700 flex items-center gap-2">
-             Assign Staffs who offer this service <span class="text-gray-400 font-normal">(optional)</span>
+            <label class="text-sm font-medium text-text-body flex items-center gap-2">
+             Assign Staffs who offer this service <span class="text-text-disabled font-normal">(optional)</span>
               @if (staffLoading()) {
                 <app-inline-spinner sizeClass="w-3.5 h-3.5" label="Loading staff" />
               }
             </label>
             @if (!staffLoading() && assignableStaff().length === 0) {
-              <p class="text-xs text-gray-400">No active staff to assign yet.</p>
+              <p class="text-xs text-text-disabled">No active staff to assign yet.</p>
             } @else {
-              <div class="space-y-1.5 rounded-lg border border-gray-200 p-2">
+              <div class="space-y-1.5 rounded-lg border border-border p-2">
                 @for (s of assignableStaff(); track s.staff.id) {
-                  <label class="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <label class="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-surface-sunken cursor-pointer">
                     <input type="checkbox"
                       [checked]="isStaffChecked(s.staff.id)"
                       (change)="toggleStaff(s.staff.id, $any($event.target).checked)"
-                      class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/30" />
-                    <span class="text-sm text-gray-700 truncate">{{ staffName(s.staff) }}</span>
+                      class="w-4 h-4 rounded border-border-strong text-primary focus:ring-primary/30" />
+                    <span class="text-sm text-text-body truncate">{{ staffName(s.staff) }}</span>
                     @if (!s.staff.isAcceptingClients) {
-                      <span class="text-xs text-gray-400 shrink-0">Not accepting clients</span>
+                      <span class="text-xs text-text-disabled shrink-0">Not accepting clients</span>
                     }
                   </label>
                 }
@@ -159,3 +159,17 @@
     </div>
   </div>
 }
+
+<!-- The submit step. Opened by save() once the form validates; confirming it
+     is what actually fires the create/update request.
+     [staff] is assignableStaff(), NOT the raw list: it filters to ACTIVE staff
+     (the backend rejects assigning anyone else) and hides staff who are not
+     accepting clients unless they are already assigned. -->
+<app-assign-staff-dialog
+  [open]="assignOpen()"
+  [staff]="assignableStaff()"
+  [loading]="staffLoading()"
+  [selectedIds]="form.controls.staffIds.value ?? []"
+  [confirmLabel]="isEdit() ? 'Save changes' : 'Create service'"
+  (confirmed)="onAssignConfirmed($event)"
+  (closed)="assignOpen.set(false)" />

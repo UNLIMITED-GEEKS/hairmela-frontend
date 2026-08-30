@@ -1,7 +1,7 @@
 <button type="button" (click)="select.emit()"
-  class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3.5
+  class="w-full rounded-xl border border-border bg-surface-card px-4 py-3.5
          flex items-start gap-3 text-left
-         hover:bg-gray-50 transition-colors">
+         hover:bg-surface-sunken transition-colors">
 
   <div class="w-10 h-10 shrink-0 rounded-xl bg-secondary-light flex items-center justify-center">
     <app-icon name="scissors" class="w-3.5 h-4 text-primary" />
@@ -11,9 +11,9 @@
        row, and salons write long ones. wrap-break-word so an unbroken string
        (no spaces) still wraps instead of overflowing the container. -->
   <div class="flex-1 min-w-0 pt-1">
-    <h3 class="text-sm font-semibold text-gray-900 wrap-break-word">{{ service().name }}</h3>
+    <h3 class="text-sm font-semibold text-text-primary wrap-break-word">{{ service().name }}</h3>
     @if (service().description) {
-      <p class="text-xs text-gray-500 wrap-break-word">{{ service().description }}</p>
+      <p class="text-xs text-text-secondary wrap-break-word">{{ service().description }}</p>
     }
   </div>
 
@@ -21,13 +21,13 @@
 
     @if (showPrice()) {
       @if (service().isDynamicPricing) {
-        <p class="text-xs font-medium text-gray-600 wrap-break-word">Price is based on your choosen style</p>
+        <p class="text-xs font-medium text-text-muted wrap-break-word">Price is based on your choosen style</p>
       } @else {
-        <span class="text-xs text-gray-600">From</span>
-        <p class="text-sm font-bold text-gray-900">  {{ service().price | currencyNgn: currency() }}</p>
+        <span class="text-xs text-text-muted">From</span>
+        <p class="text-sm font-bold text-text-primary">  {{ service().price | currencyNgn: currency() }}</p>
       }
     }
-    <p class="text-xs text-gray-500">{{ service().duration }}mins</p>
+    <p class="text-xs text-text-secondary">{{ service().duration }}mins</p>
   </div>
 
 </button>

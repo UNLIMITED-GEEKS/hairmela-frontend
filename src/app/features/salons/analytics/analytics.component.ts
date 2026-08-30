@@ -11,6 +11,7 @@ import { SalonStaff } from '../../../api/models/salon-staff';
 import { RouteParam } from '../../../core/routing/route-paths';
 import { CurrencyNgnPipe } from '../../../shared/pipes/currency-ngn.pipe';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
+import { ThemeService } from '../../../core/theme/theme.service';
 
 @Component({
   selector: 'app-analytics',
@@ -20,6 +21,7 @@ import { SalonContextService } from '../../../core/salon-context/salon-context.s
 export class AnalyticsComponent implements OnInit {
   // Salon's currency, for price formatting.
   protected readonly salonContext = inject(SalonContextService);
+  protected readonly theme = inject(ThemeService);
   protected readonly analytics = inject(AnalyticsService);
   protected readonly staffService = inject(StaffService);
   protected readonly servicesService = inject(ServicesService);
@@ -64,12 +66,40 @@ export class AnalyticsComponent implements OnInit {
     };
   });
 
-  protected readonly barChartOptions: ChartOptions<'bar'> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } },
-    scales: { x: { stacked: false }, y: { beginAtZero: true, ticks: { stepSize: 1 } } },
-  };
+  // Chart.js paints its axis labels, legend and gridlines with hardcoded dark
+  // greys that disappear on a dark background — it has no idea our theme
+  // exists. These read the live token values off the document so the chrome
+  // follows [data-theme] like everything else. The SERIES colours above are
+  // left alone: they are saturated enough to read on either ground.
+  private _chartInk(): string {
+    return getComputedStyle(document.documentElement)
+      .getPropertyValue('--color-text-secondary')
+      .trim();
+  }
+
+  private _chartGrid(): string {
+    return getComputedStyle(document.documentElement)
+      .getPropertyValue('--color-border')
+      .trim();
+  }
+
+  protected readonly barChartOptions = computed<ChartOptions<'bar'>>(() => {
+    // Depend on the theme so the options object is rebuilt on a toggle.
+    this.theme.mode();
+    const ink = this._chartInk();
+    const grid = this._chartGrid();
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 12 }, color: ink } },
+      },
+      scales: {
+        x: { stacked: false, ticks: { color: ink }, grid: { color: grid } },
+        y: { beginAtZero: true, ticks: { stepSize: 1, color: ink }, grid: { color: grid } },
+      },
+    };
+  });
 
   // Pie chart — service breakdown
   protected readonly pieChartData = computed<ChartData<'pie'>>(() => {

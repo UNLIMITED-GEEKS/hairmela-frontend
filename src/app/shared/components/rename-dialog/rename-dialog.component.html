@@ -10,25 +10,25 @@
     <div class="fixed inset-0 bg-black/50 transition-opacity" (click)="cancel()"></div>
 
     <!-- Panel -->
-    <div class="relative w-full sm:max-w-sm bg-white rounded-2xl shadow-xl p-6 space-y-4 animate-fade-in">
+    <div class="relative w-full sm:max-w-sm bg-surface-card rounded-2xl shadow-xl p-6 space-y-4 animate-fade-in">
 
-      <h2 id="rename-dialog-title" class="text-base font-semibold text-gray-900">{{ state.title }}</h2>
-      <p class="text-sm text-gray-500 leading-relaxed">{{ state.message }}</p>
+      <h2 id="rename-dialog-title" class="text-base font-semibold text-text-primary">{{ state.title }}</h2>
+      <p class="text-sm text-text-secondary leading-relaxed">{{ state.message }}</p>
 
       <input
         type="text"
         [ngModel]="value()"
         (ngModelChange)="value.set($event)"
         (keydown.enter)="confirm(state.minLength)"
-        class="w-full min-h-11 px-3 py-2.5 text-sm border border-gray-300 rounded-lg
+        class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg
                focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors" />
 
       <div class="flex gap-3 pt-1">
         <button
           type="button"
           (click)="cancel()"
-          class="flex-1 min-h-11 border border-gray-300 text-gray-700 text-sm font-medium
-                 rounded-lg hover:bg-gray-50 active:scale-95 transition-all">
+          class="flex-1 min-h-11 border border-border-strong text-text-body text-sm font-medium
+                 rounded-lg hover:bg-surface-sunken active:scale-95 transition-all">
           {{ state.cancelLabel ?? 'Cancel' }}
         </button>
         <button

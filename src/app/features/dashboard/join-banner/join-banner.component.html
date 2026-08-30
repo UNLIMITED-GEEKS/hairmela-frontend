@@ -34,13 +34,13 @@
     <!-- Prev/next arrows -->
     @if (hasPrev()) {
       <button type="button" (click)="prev()" aria-label="Previous queue"
-        class="absolute -left-0.5 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-white hover:bg-white/30 transition-colors">
+        class="absolute -left-0.5 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-surface-card/20 backdrop-blur-md text-white hover:bg-surface-card/30 transition-colors">
         <app-icon name="chevron-left" class="w-2 h-3.5" />
       </button>
     }
     @if (hasNext()) {
       <button type="button" (click)="next()" aria-label="Next queue"
-        class="absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-white hover:bg-white/30 transition-colors rotate-180">
+        class="absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-surface-card/20 backdrop-blur-md text-white hover:bg-surface-card/30 transition-colors rotate-180">
         <app-icon name="chevron-left" class="w-2 h-3.5" />
       </button>
     }
@@ -54,7 +54,7 @@
             [class.w-4]="i === activeIndex()"
             [class.w-1.5]="i !== activeIndex()"
             [class.bg-primary]="i === activeIndex()"
-            [class.bg-white]="i !== activeIndex()">
+            [class.bg-surface-card]="i !== activeIndex()">
           </button>
         }
       </div>

@@ -18,10 +18,29 @@ export function startOfMonth(d: Date): Date {
 }
 
 /** First and last calendar day of `month`, as ISO dates. */
+/**
+ * The range the calendar GRID actually shows, not just the calendar month.
+ *
+ * MiniMonthCalendar pads each month out to whole weeks, so viewing January can
+ * display Dec 28-31 before it and Feb 1-4 after. Fetching only the 1st to the
+ * 31st left those trailing days with no availability data: tapping Feb 3 from
+ * the January grid selected it and then reported "No slots available this
+ * day", and the slots only appeared after paging forward to February.
+ *
+ * Mirrors the cell maths in mini-month-calendar.component.ts — leading blanks
+ * back to the preceding Sunday, then padded to a whole number of weeks.
+ */
 export function monthRange(month: Date): { from: string; to: string } {
+  const year = month.getFullYear();
+  const monthIndex = month.getMonth();
+  const firstOfMonth = new Date(year, monthIndex, 1);
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const leadingBlanks = firstOfMonth.getDay(); // 0 = Sunday
+  const totalCells = Math.ceil((leadingBlanks + daysInMonth) / 7) * 7;
+
   return {
-    from: toIsoDate(new Date(month.getFullYear(), month.getMonth(), 1)),
-    to: toIsoDate(new Date(month.getFullYear(), month.getMonth() + 1, 0)),
+    from: toIsoDate(new Date(year, monthIndex, 1 - leadingBlanks)),
+    to: toIsoDate(new Date(year, monthIndex, totalCells - leadingBlanks)),
   };
 }
 

@@ -7,7 +7,7 @@
   </div>
 } @else if (error()) {
   <div class="py-16 flex flex-col items-center gap-3">
-    <p class="text-sm text-gray-500">Failed to load schedule.</p>
+    <p class="text-sm text-text-secondary">Failed to load schedule.</p>
     <button type="button" (click)="retry()"
       class="px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors">
       Retry
@@ -20,7 +20,7 @@
     <div class="space-y-5">
 
 
-      <div class="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+      <div class="bg-surface-card rounded-xl border border-border divide-y divide-gray-100">
         @for (day of days; track $index) {
           @let schedule = scheduleForDay($index);
           @let isEditing = editingId() === schedule?.id;
@@ -28,15 +28,15 @@
 
           <div class="px-4 py-4 space-y-3">
             <div class="flex items-center justify-between min-h-10">
-              <span class="text-sm font-medium text-gray-900 w-28">{{ day }}</span>
+              <span class="text-sm font-medium text-text-primary w-28">{{ day }}</span>
 
               @if (schedule && !isEditing) {
-                <span class="text-sm text-gray-500 flex-1">
+                <span class="text-sm text-text-secondary flex-1">
                   {{ schedule.startTime }} – {{ schedule.endTime }}
                 </span>
                 <div class="flex gap-2 shrink-0">
                   <button type="button" (click)="startEdit(schedule)"
-                    class="min-h-8 px-3 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    class="min-h-8 px-3 text-xs font-medium text-text-muted border border-border rounded-lg hover:bg-surface-sunken transition-colors">
                     Edit
                   </button>
                   <button type="button" (click)="deleteSchedule(schedule)"
@@ -45,7 +45,7 @@
                   </button>
                 </div>
               } @else if (!schedule && !isAdding) {
-                <span class="text-xs text-gray-400 flex-1">Day off</span>
+                <span class="text-xs text-text-disabled flex-1">Day off</span>
                 <button type="button" (click)="startAdd($index)"
                   class="min-h-8 px-3 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors shrink-0">
                   Add hours
@@ -58,12 +58,12 @@
               <form [formGroup]="editForm" (ngSubmit)="saveEdit(schedule!)" class="space-y-2">
                 <div class="space-y-2">
                   <div class="space-y-1">
-                    <label class="text-xs text-gray-500">Start</label>
+                    <label class="text-xs text-text-secondary">Start</label>
                     <app-time-picker formControlName="startTime" ariaLabel="Start time" />
                     <app-field-error [control]="editForm.controls.startTime" />
                   </div>
                   <div class="space-y-1">
-                    <label class="text-xs text-gray-500">End</label>
+                    <label class="text-xs text-text-secondary">End</label>
                     <app-time-picker formControlName="endTime" ariaLabel="End time" />
                     <app-field-error [control]="editForm.controls.endTime" />
                   </div>
@@ -77,7 +77,7 @@
                     Save
                   </button>
                   <button type="button" (click)="cancelEdit()"
-                    class="flex-1 min-h-10 border border-gray-200 text-gray-600 text-xs font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                    class="flex-1 min-h-10 border border-border text-text-muted text-xs font-medium rounded-lg hover:bg-surface-sunken transition-colors">
                     Cancel
                   </button>
                 </div>
@@ -89,12 +89,12 @@
               <form [formGroup]="addForm" (ngSubmit)="saveAdd($index)" class="space-y-2">
                 <div class="space-y-2">
                   <div class="space-y-1">
-                    <label class="text-xs text-gray-500">Start</label>
+                    <label class="text-xs text-text-secondary">Start</label>
                     <app-time-picker formControlName="startTime" ariaLabel="Start time" />
                     <app-field-error [control]="addForm.controls.startTime" />
                   </div>
                   <div class="space-y-1">
-                    <label class="text-xs text-gray-500">End</label>
+                    <label class="text-xs text-text-secondary">End</label>
                     <app-time-picker formControlName="endTime" ariaLabel="End time" />
                     <app-field-error [control]="addForm.controls.endTime" />
                   </div>
@@ -108,7 +108,7 @@
                     Save
                   </button>
                   <button type="button" (click)="cancelAdd()"
-                    class="flex-1 min-h-10 border border-gray-200 text-gray-600 text-xs font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                    class="flex-1 min-h-10 border border-border text-text-muted text-xs font-medium rounded-lg hover:bg-surface-sunken transition-colors">
                     Cancel
                   </button>
                 </div>

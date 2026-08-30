@@ -5,10 +5,20 @@ import { TimelineMemberDto } from '../models/timeline-member-dto';
 export interface TimelineEntryDto {
   entryId: string;
   estimatedWaitMinutes: number;
+
+  /**
+   * Guest identity. Null publicly, and null for registered customers.
+   */
+  guestId: string | null;
   isUpcoming: boolean;
   members: Array<TimelineMemberDto>;
   position: number | null;
   scheduledAt: string | null;
   type: 'WALK_IN' | 'APPOINTMENT';
   updatedAt: string;
+
+  /**
+   * Registered customer id. Null publicly, and null for guests.
+   */
+  userId: string | null;
 }

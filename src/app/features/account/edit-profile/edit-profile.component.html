@@ -3,12 +3,12 @@
 
     <!-- Header -->
     <div class="flex items-center gap-3">
-      <a [routerLink]="accountLink" class="text-gray-500 hover:text-gray-700 min-h-11 min-w-11 flex items-center justify-center">
+      <a [routerLink]="accountLink" class="text-text-secondary hover:text-text-body min-h-11 min-w-11 flex items-center justify-center">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
         </svg>
       </a>
-      <h1 class="text-xl font-semibold text-gray-900">Edit Profile</h1>
+      <h1 class="text-xl font-semibold text-text-primary">Edit Profile</h1>
     </div>
 
     <!-- Form -->
@@ -16,9 +16,9 @@
 
       <!-- First Name -->
       <div>
-        <label for="firstName" class="block text-sm font-medium text-gray-700 mb-1">First name</label>
+        <label for="firstName" class="block text-sm font-medium text-text-body mb-1">First name</label>
         <input id="firstName" formControlName="firstName" type="text" autocomplete="given-name"
-          class="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+          class="w-full rounded-xl border border-border px-4 py-3 text-sm text-text-primary placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
           placeholder="First name" />
         <app-field-error
           [control]="form.controls.firstName"
@@ -27,9 +27,9 @@
 
       <!-- Last Name -->
       <div>
-        <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">Last name</label>
+        <label for="lastName" class="block text-sm font-medium text-text-body mb-1">Last name</label>
         <input id="lastName" formControlName="lastName" type="text" autocomplete="family-name"
-          class="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+          class="w-full rounded-xl border border-border px-4 py-3 text-sm text-text-primary placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
           placeholder="Last name" />
         <app-field-error
           [control]="form.controls.lastName"
@@ -38,36 +38,36 @@
 
       <!-- Nickname -->
       <div>
-        <label for="nickname" class="block text-sm font-medium text-gray-700 mb-1">Nickname <span class="text-gray-400">(optional)</span></label>
+        <label for="nickname" class="block text-sm font-medium text-text-body mb-1">Nickname <span class="text-text-disabled">(optional)</span></label>
         <input id="nickname" formControlName="nickname" type="text" autocomplete="nickname"
-          class="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+          class="w-full rounded-xl border border-border px-4 py-3 text-sm text-text-primary placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
           placeholder="e.g. J-Money" />
-        <p class="mt-1 text-xs text-gray-400">Shown in brackets next to your name where applicable</p>
+        <p class="mt-1 text-xs text-text-disabled">Shown in brackets next to your name where applicable</p>
         <app-field-error [control]="form.controls.nickname" />
       </div>
 
       <!-- Phone -->
       <div>
-        <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone number <span class="text-gray-400">(optional)</span></label>
+        <label for="phone" class="block text-sm font-medium text-text-body mb-1">Phone number <span class="text-text-disabled">(optional)</span></label>
         <input id="phone" formControlName="phone" type="tel" autocomplete="tel"
-          class="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+          class="w-full rounded-xl border border-border px-4 py-3 text-sm text-text-primary placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
           placeholder="+234 800 000 0000" />
         <app-field-error [control]="form.controls.phone" />
       </div>
 
       <!-- Email (read-only) -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-        <p class="px-4 py-3 text-sm text-gray-500 bg-gray-50 rounded-xl border border-gray-100">
+        <label class="block text-sm font-medium text-text-body mb-1">Email</label>
+        <p class="px-4 py-3 text-sm text-text-secondary bg-surface-sunken rounded-xl border border-border-subtle">
           {{ _currentUser.user()?.email }}
         </p>
-        <p class="mt-1 text-xs text-gray-400">Email cannot be changed</p>
+        <p class="mt-1 text-xs text-text-disabled">Email cannot be changed</p>
       </div>
 
       <!-- Actions -->
       <div class="flex gap-3 pt-2">
         <a [routerLink]="accountLink"
-          class="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 text-center hover:bg-gray-50 transition-colors min-h-11">
+          class="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-text-body text-center hover:bg-surface-sunken transition-colors min-h-11">
           Cancel
         </a>
         <button type="submit"

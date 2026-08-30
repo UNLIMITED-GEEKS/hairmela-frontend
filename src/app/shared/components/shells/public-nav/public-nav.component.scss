@@ -20,7 +20,9 @@
   // NOTE: the template also carries a `public-mobile-nav` class that is
   // defined NOWHERE in the codebase — presumably where this background was
   // meant to live. Left in place rather than removed as drive-by cleanup.
-  background-color: #fff;
+  // Token, not #fff: this is a component stylesheet, so it was missed by the
+  // template-level dark-mode migration and stayed a white panel on a dark page.
+  background-color: var(--color-surface-card);
 
   // 100vh fallback + @supports override for dvh — matches mobile-sheet's
   // pattern. NOT two declarations of the same property in one rule: Angular's

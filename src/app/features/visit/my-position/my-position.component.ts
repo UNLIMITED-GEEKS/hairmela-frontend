@@ -175,9 +175,46 @@ export class MyPositionComponent {
       });
   }
 
+  /**
+   * The visit is over, whatever the outcome — used to swap the live position
+   * ring for a final state and to hide everything that only applies while
+   * waiting (notifications nudge, add-to-calendar, party editing).
+   */
   protected readonly serviceComplete = computed(() => {
     const status = this.entryStatus()?.status;
     return status === 'SERVED' || status === 'NO_SHOW' || status === 'CANCELLED';
+  });
+
+  /**
+   * WHICH ending, so the page can say what actually happened.
+   *
+   * These three were previously all rendered as "Service complete" with a
+   * green tick — so leaving the queue congratulated you on a haircut you never
+   * had, and being marked a no-show looked like a success.
+   */
+  protected readonly outcome = computed(() => {
+    switch (this.entryStatus()?.status) {
+      case 'SERVED':
+        return {
+          label: 'Service complete',
+          detail: 'Thanks for visiting.',
+          tone: 'success' as const,
+        };
+      case 'CANCELLED':
+        return {
+          label: 'You left the queue',
+          detail: 'Your spot has been released.',
+          tone: 'neutral' as const,
+        };
+      case 'NO_SHOW':
+        return {
+          label: 'Marked as a no-show',
+          detail: 'You were called but not available.',
+          tone: 'warning' as const,
+        };
+      default:
+        return null;
+    }
   });
 
   // Can't leave once already being served — matches the "Leave queue"

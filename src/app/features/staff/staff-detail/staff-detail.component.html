@@ -18,26 +18,26 @@
     <div class="space-y-6">
 
       <!-- Profile card -->
-      <div class="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4">
+      <div class="bg-surface-card rounded-xl border border-border p-5 flex items-center gap-4">
         <div class="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
           <span class="text-primary font-bold text-lg">
             {{ staffName(s).charAt(0).toUpperCase() }}
           </span>
         </div>
         <div class="flex-1 min-w-0">
-          <p class="font-semibold text-gray-900 truncate">{{ staffName(s) }}</p>
-          <p class="text-sm text-gray-400 truncate">{{ s.email }}</p>
+          <p class="font-semibold text-text-primary truncate">{{ staffName(s) }}</p>
+          <p class="text-sm text-text-disabled truncate">{{ s.email }}</p>
           <div class="flex gap-2 mt-1.5">
             <span class="text-xs font-medium px-2 py-0.5 rounded-full"
               [class]="s.role === 'OWNER' ? 'bg-primary/10 text-primary' :
                        s.role === 'ADMIN' ? 'bg-blue-100 text-blue-700' :
-                       'bg-gray-100 text-gray-600'">
+                       'bg-surface-overlay text-text-muted'">
               {{ s.role }}
             </span>
             <span class="text-xs font-medium px-2 py-0.5 rounded-full"
               [class]="s.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
                        s.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
-                       'bg-gray-100 text-gray-500'">
+                       'bg-surface-overlay text-text-secondary'">
               {{ s.status }}
             </span>
           </div>
@@ -46,20 +46,20 @@
 
       <!-- Role management — OWNER/ADMIN only, not for the owner themselves -->
       @if (canManage() && s.role !== 'OWNER') {
-        <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-          <h2 class="text-sm font-semibold text-gray-700">Change role</h2>
+        <div class="bg-surface-card rounded-xl border border-border p-5 space-y-3">
+          <h2 class="text-sm font-semibold text-text-body">Change role</h2>
           <div class="flex gap-3">
             @if (s.role !== 'ADMIN') {
               <button type="button" (click)="changeRole('ADMIN')" [disabled]="actioning()"
-                class="flex-1 min-h-11 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg
-                       hover:bg-gray-50 disabled:opacity-50 active:scale-95 transition-all">
+                class="flex-1 min-h-11 border border-border-strong text-text-body text-sm font-medium rounded-lg
+                       hover:bg-surface-sunken disabled:opacity-50 active:scale-95 transition-all">
                 Make Admin
               </button>
             }
             @if (s.role !== 'STAFF') {
               <button type="button" (click)="changeRole('STAFF')" [disabled]="actioning()"
-                class="flex-1 min-h-11 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg
-                       hover:bg-gray-50 disabled:opacity-50 active:scale-95 transition-all">
+                class="flex-1 min-h-11 border border-border-strong text-text-body text-sm font-medium rounded-lg
+                       hover:bg-surface-sunken disabled:opacity-50 active:scale-95 transition-all">
                 Make Staff
               </button>
             }
@@ -96,33 +96,33 @@
       <div class="space-y-6">
         <div class="grid gap-3 md:grid-cols-2">
           <a [routerLink]="servicesLink"
-            class="flex items-center justify-between bg-white rounded-xl border border-gray-200 px-5 py-4 min-h-14 hover:bg-gray-50 transition-colors">
-            <span class="text-sm font-medium text-gray-900">Services offered</span>
-            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            class="flex items-center justify-between bg-surface-card rounded-xl border border-border px-5 py-4 min-h-14 hover:bg-surface-sunken transition-colors">
+            <span class="text-sm font-medium text-text-primary">Services offered</span>
+            <svg class="w-4 h-4 text-text-disabled" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
           </a>
 
           <a [routerLink]="appointmentsLink"
-            class="flex items-center justify-between bg-white rounded-xl border border-gray-200 px-5 py-4 min-h-14 hover:bg-gray-50 transition-colors">
-            <span class="text-sm font-medium text-gray-900">Appointments</span>
-            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            class="flex items-center justify-between bg-surface-card rounded-xl border border-border px-5 py-4 min-h-14 hover:bg-surface-sunken transition-colors">
+            <span class="text-sm font-medium text-text-primary">Appointments</span>
+            <svg class="w-4 h-4 text-text-disabled" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
           </a>
 
           @if (canManage()) {
             <a [routerLink]="schedulesLink"
-              class="flex items-center justify-between bg-white rounded-xl border border-gray-200 px-5 py-4 min-h-14 hover:bg-gray-50 transition-colors">
-              <span class="text-sm font-medium text-gray-900">Working hours</span>
-              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              class="flex items-center justify-between bg-surface-card rounded-xl border border-border px-5 py-4 min-h-14 hover:bg-surface-sunken transition-colors">
+              <span class="text-sm font-medium text-text-primary">Working hours</span>
+              <svg class="w-4 h-4 text-text-disabled" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>
             </a>
             <a [routerLink]="closuresLink"
-              class="flex items-center justify-between bg-white rounded-xl border border-gray-200 px-5 py-4 min-h-14 hover:bg-gray-50 transition-colors">
-              <span class="text-sm font-medium text-gray-900">Closures</span>
-              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              class="flex items-center justify-between bg-surface-card rounded-xl border border-border px-5 py-4 min-h-14 hover:bg-surface-sunken transition-colors">
+              <span class="text-sm font-medium text-text-primary">Closures</span>
+              <svg class="w-4 h-4 text-text-disabled" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>
             </a>
@@ -130,16 +130,16 @@
 
           @if (canManage()) {
             <a [routerLink]="mediaLink"
-              class="flex items-center justify-between bg-white rounded-xl border border-gray-200 px-5 py-4 min-h-14 hover:bg-gray-50 transition-colors">
-              <span class="text-sm font-medium text-gray-900">Photos</span>
-              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              class="flex items-center justify-between bg-surface-card rounded-xl border border-border px-5 py-4 min-h-14 hover:bg-surface-sunken transition-colors">
+              <span class="text-sm font-medium text-text-primary">Photos</span>
+              <svg class="w-4 h-4 text-text-disabled" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>
             </a>
           }
         </div>
 
-        <button type="button" (click)="_location.back()" class="block w-full text-center text-sm text-gray-400 hover:text-gray-600 py-2">
+        <button type="button" (click)="_location.back()" class="block w-full text-center text-sm text-text-disabled hover:text-text-muted py-2">
           ← Back to staff
         </button>
       </div>

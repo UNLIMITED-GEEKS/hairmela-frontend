@@ -142,25 +142,24 @@ button:not(:disabled) {
 
   /* ── Secondary ────────────────────────────────────────────────────────────── */
   --color-secondary-100: #858585A6;
-  --color-secondary-light: #F6E8D6;
 
-  /* ── Semantic (non-theme-dependent) ─────────────────────────────────────── */
+  /* NOTE: secondary-light and the *-light semantic tints are NOT here — they
+     are pale washes that stay bright on a dark page, so they live in the
+     [data-theme] blocks below with dark equivalents. The saturated base
+     colours (success/error/warning/info) stay here: they read on both
+     grounds, like the brand primary. */
   --color-success:           #16A34A;
-  --color-success-light:     #DCFCE7;
   --color-error:             #DC2626;
-  --color-error-light:       #FEE2E2;
   --color-warning:           #D97706;
-  --color-warning-light:     #FEF3C7;
   --color-info:              #2563EB;
-  --color-info-light:        #DBEAFE;
 
   /* "Open" badge on salon photo cards — bright brand green, distinct from the
      semantic --color-success used for other success states app-wide. */
   --color-open:              #01FF41;
 
-  /* "Open Now" status badge background (salon slug page) — soft green with
-     alpha already baked into the hex (30%); use as-is, no /opacity modifier. */
-  --color-open-badge:        #89DC864D;
+  /* NOTE: --color-open-badge is NOT here — a 30%-alpha green reads as a soft
+     mint pill on white and as a barely-there wash on a dark card, so it lives
+     in the [data-theme] blocks below with a dark equivalent. */
 
   /* "Available Now" text on staff cards (salon slug page) — distinct teal
      green from --color-open, used specifically for staff availability text. */
@@ -195,55 +194,334 @@ body {
 }
 
 /* ── Theme-mode tokens (light/dark) ──────────────────────────────────────────
-   Surface/text/border colors live here as plain CSS custom properties (not
-   inside @theme) so they can change at runtime via [data-theme] on <html>
-   once the light/dark toggle ships. @theme inline below registers them as
-   Tailwind utilities (bg-surface, text-text-primary, border-border, etc.)
-   that resolve through the CSS variable, so components never reference a
-   raw hex and automatically pick up the active theme.
-   Dark values are currently identical to light — drop in real dark hexes
-   here when available; no component changes will be needed. */
-:root, :root[data-theme='light'] {
-  --color-surface:           #FDFAF7;
-  --color-surface-raised:    #F9FAFB;
-  --color-surface-overlay:   #F3F4F6;
-  --color-border:            #E5E7EB;
-  --color-border-strong:     #D1D5DB;
+   Every surface/text/border colour in the app resolves through one of these,
+   so a component never names a raw Tailwind gray and the whole UI follows
+   [data-theme] on <html>.
 
-  --color-text-primary:      #111827;
-  --color-text-secondary:    #6B7280;
-  --color-text-disabled:     #9CA3AF;
+   LIGHT VALUES ARE COPIED VERBATIM FROM TAILWIND'S OWN PALETTE — the oklch()
+   values below are exactly what bg-white/bg-gray-50/text-gray-700/... already
+   emit. That is deliberate and load-bearing: migrating a component from
+   `bg-white` to `bg-surface-card` must change NOTHING in light mode, so any
+   visible light-mode difference after a migration is a bug, not a judgement
+   call. Do not "improve" a light value here.
+
+   Dark values are the additive half: they are the only thing that differs.
+
+   The brand primary scale is NOT here — it lives in @theme above and is
+   identical in both modes by design. */
+:root, :root[data-theme='light'] {
+  /* Page and card surfaces. `surface` is the app background; `card` is what
+     sits on it (was bg-white); `sunken` is a recessed panel (was bg-gray-50). */
+  --color-surface:           #FDFAF7;
+  --color-surface-card:      #FFFFFF;
+  --color-surface-sunken:    oklch(98.5% 0.002 247.839);   /* gray-50  */
+  --color-surface-raised:    oklch(98.5% 0.002 247.839);   /* gray-50  */
+  --color-surface-overlay:   oklch(96.7% 0.003 264.542);   /* gray-100 */
+  --color-surface-strong:    oklch(92.8% 0.006 264.531);   /* gray-200 */
+  --color-surface-inverse:   oklch(21%   0.034 264.665);   /* gray-900 */
+
+  /* Borders */
+  --color-border-subtle:     oklch(96.7% 0.003 264.542);   /* gray-100 */
+  --color-border:            oklch(92.8% 0.006 264.531);   /* gray-200 */
+  --color-border-strong:     oklch(87.2% 0.01  258.338);   /* gray-300 */
+
+  /* Text. `ink` is the body default (gray-700); the others step away from it. */
+  --color-text-primary:      oklch(21%   0.034 264.665);   /* gray-900 */
+  --color-text-strong:       oklch(27.8% 0.033 256.848);   /* gray-800 */
+  --color-text-body:         oklch(37.3% 0.034 259.733);   /* gray-700 */
+  --color-text-muted:        oklch(44.6% 0.03  256.802);   /* gray-600 */
+  --color-text-secondary:    oklch(55.1% 0.027 264.364);   /* gray-500 */
+  --color-text-disabled:     oklch(70.7% 0.022 261.325);   /* gray-400 */
+  --color-text-faint:        oklch(87.2% 0.01  258.338);   /* gray-300 */
   --color-text-inverse:      #FFFFFF;
+
+  /* Semantic state pairs. These had no token at all before — components used
+     raw red-50/red-600, green-50/green-700, amber-50/amber-800 directly, which
+     are unreadable on a dark ground. */
+  --color-danger-surface:    oklch(97.1% 0.013 17.38);     /* red-50    */
+  --color-danger-border:     oklch(88.5% 0.062 18.334);    /* red-200   */
+  --color-danger-text:       oklch(57.7% 0.245 27.325);    /* red-600   */
+  --color-success-surface:   oklch(98.2% 0.018 155.826);   /* green-50  */
+  --color-success-text:      oklch(52.7% 0.154 150.069);   /* green-700 */
+  --color-warning-surface:   oklch(98.7% 0.022 95.277);    /* amber-50  */
+  --color-warning-text:      oklch(47.3% 0.137 46.201);    /* amber-800 */
+
+  /* Pale brand/semantic washes. Light values are the exact hexes these had in
+     @theme, so nothing moves in light mode. */
+  --color-secondary-light:   #F6E8D6;
+  --color-success-light:     #DCFCE7;
+  --color-error-light:       #FEE2E2;
+  --color-warning-light:     #FEF3C7;
+  --color-info-light:        #DBEAFE;
+
+  /* "Open Now" badge on the salon page. Light value is the exact hex this had
+     in @theme (a 30%-alpha green), so nothing moves in light mode. */
+  --color-open-badge:        #89DC864D;
+  --color-open-badge-text:   #16A34A;
+
+  /* Glass overlays sitting ON PHOTOS (salon/staff card badges, the heart
+     button, the name bar). Their job is to darken the image behind white text,
+     so they are dark in BOTH themes — the light value is the #858585A6 /
+     gray-900 these already used. What broke in dark mode was resolving them
+     through surface tokens that flip light. */
+  --color-glass:             #858585A6;
+  --color-glass-strong:      oklch(21% 0.034 264.665);
 }
 
 :root[data-theme='dark'] {
-  --color-surface:           #FFFFFF;
-  --color-surface-raised:    #F9FAFB;
-  --color-surface-overlay:   #F3F4F6;
-  --color-border:            #E5E7EB;
-  --color-border-strong:     #D1D5DB;
+  /* Lifted off near-black. The first pass had surface at 20% and sunken at
+     17%, so a page, a card and a recessed tile were within three points of
+     each other and the whole UI read as one flat black sheet. These steps are
+     further apart and start higher, which is also easier on the eyes than a
+     true black for long sessions. */
+  /* Warm charcoal, not neutral black. Hue 15 sits just off the brand burgundy
+     (hue ~5), so the greys share the brand's family and the app reads as a
+     considered dark theme rather than a default one.
 
-  --color-text-primary:      #111827;
-  --color-text-secondary:    #6B7280;
-  --color-text-disabled:     #9CA3AF;
-  --color-text-inverse:      #FFFFFF;
+     Chroma stays low (0.014-0.018) deliberately: enough to feel warm at a
+     glance, not enough to tint salon photos or push white text toward pink.
+     Chosen over a cool slate (hue 265) and a deep plum (hue 5 at ~0.042) —
+     the plum tinted content too strongly, and the slate fought the warm
+     brand rather than sitting with it.
+
+     The borders and text ramp below share this hue for the same reason: cool
+     text on warm surfaces reads as a mistake rather than a choice. */
+  --color-surface:           oklch(24%   0.014 15);
+  --color-surface-card:      oklch(32%   0.016 15);
+  --color-surface-sunken:    oklch(28%   0.014 15);
+  --color-surface-raised:    oklch(36%   0.017 15);
+  --color-surface-overlay:   oklch(40%   0.018 15);
+  --color-surface-strong:    oklch(45%   0.018 15);
+  --color-surface-inverse:   oklch(96.7% 0.003 264.542);
+
+  --color-border-subtle:     oklch(36%   0.014 15);
+  --color-border:            oklch(42%   0.015 15);
+  --color-border-strong:     oklch(50%   0.016 15);
+
+  /* NOT a mirror of the light ramp. In light mode each step goes DARKER and so
+     gains contrast against white; copying that shape here made the bottom of
+     the scale vanish — text-disabled alone is used 146 times, mostly for the
+     helper line under a form field, which has to be readable.
+     So the dark ramp compresses: the steps still descend in emphasis, but the
+     floor sits high enough that the dimmest text is still legible. */
+  --color-text-primary:      oklch(97%   0.004 15);
+  --color-text-strong:       oklch(94%   0.005 15);
+  --color-text-body:         oklch(90%   0.006 15);
+  --color-text-muted:        oklch(85%   0.008 15);
+  --color-text-secondary:    oklch(80%   0.010 15);
+  --color-text-disabled:     oklch(74%   0.012 15);
+  --color-text-faint:        oklch(72%   0.014 15);
+  --color-text-inverse:      oklch(21%   0.034 264.665);
+
+  /* Tinted surfaces go dark-and-desaturated; the text goes light enough to
+     read on them rather than staying the light-mode ink. */
+  --color-danger-surface:    oklch(27%   0.055 25);
+  --color-danger-border:     oklch(38%   0.090 25);
+  --color-danger-text:       oklch(78%   0.130 20);
+  --color-success-surface:   oklch(26%   0.045 155);
+  --color-success-text:      oklch(80%   0.130 155);
+  --color-warning-surface:   oklch(28%   0.050 75);
+  --color-warning-text:      oklch(85%   0.120 80);
+
+  /* The pale washes, re-cut dark: same hue, low lightness, so the text that
+     sits on them stays readable instead of black-on-cream. */
+  --color-secondary-light:   oklch(30%   0.020 75);
+  --color-success-light:     oklch(27%   0.045 155);
+  --color-error-light:       oklch(28%   0.055 25);
+  --color-warning-light:     oklch(29%   0.050 75);
+  --color-info-light:        oklch(28%   0.050 255);
+
+  /* Opaque, not a 30% wash: alpha over a dark card leaves almost no colour at
+     all. The text lifts to match — mid-green (#16A34A) on a dark ground is
+     the low-contrast half of the problem. */
+  --color-open-badge:        oklch(42%   0.090 150);
+  --color-open-badge-text:   oklch(85%   0.150 150);
+
+  /* Darker than light mode: on a dark page a mid-grey scrim still reads as a
+     bright blob against the surrounding UI. */
+  --color-glass:             oklch(30% 0.006 265 / 0.72);
+  --color-glass-strong:      oklch(14% 0.006 265);
 }
 
 @theme inline {
-  --color-surface:         var(--color-surface);
-  --color-surface-raised:  var(--color-surface-raised);
-  --color-surface-overlay: var(--color-surface-overlay);
+  --color-surface:          var(--color-surface);
+  --color-surface-card:     var(--color-surface-card);
+  --color-surface-sunken:   var(--color-surface-sunken);
+  --color-surface-raised:   var(--color-surface-raised);
+  --color-surface-overlay:  var(--color-surface-overlay);
+  --color-surface-strong:   var(--color-surface-strong);
+  --color-surface-inverse:  var(--color-surface-inverse);
+
+  --color-border-subtle:    var(--color-border-subtle);
   --color-border:           var(--color-border);
   --color-border-strong:    var(--color-border-strong);
 
-  --color-text-primary:   var(--color-text-primary);
-  --color-text-secondary: var(--color-text-secondary);
-  --color-text-disabled:  var(--color-text-disabled);
-  --color-text-inverse:   var(--color-text-inverse);
+  --color-text-primary:     var(--color-text-primary);
+  --color-text-strong:      var(--color-text-strong);
+  --color-text-body:        var(--color-text-body);
+  --color-text-muted:       var(--color-text-muted);
+  --color-text-secondary:   var(--color-text-secondary);
+  --color-text-disabled:    var(--color-text-disabled);
+  --color-text-faint:       var(--color-text-faint);
+  --color-text-inverse:     var(--color-text-inverse);
+
+  --color-danger-surface:   var(--color-danger-surface);
+  --color-danger-border:    var(--color-danger-border);
+  --color-danger-text:      var(--color-danger-text);
+  --color-success-surface:  var(--color-success-surface);
+  --color-success-text:     var(--color-success-text);
+  --color-warning-surface:  var(--color-warning-surface);
+  --color-warning-text:     var(--color-warning-text);
+
+  --color-secondary-light:  var(--color-secondary-light);
+  --color-success-light:    var(--color-success-light);
+  --color-error-light:      var(--color-error-light);
+  --color-warning-light:    var(--color-warning-light);
+  --color-info-light:       var(--color-info-light);
+
+  --color-open-badge:       var(--color-open-badge);
+  --color-open-badge-text:  var(--color-open-badge-text);
+
+  --color-glass:            var(--color-glass);
+  --color-glass-strong:     var(--color-glass-strong);
+}
+
+/* Loading shimmer. Hardcoded hexes would stay light-gray on a dark page, so
+   the stops resolve through the theme tokens like everything else. */
+/* ── Brand ink/border in dark mode ───────────────────────────────────────────
+   --color-primary (#660029) is a deep burgundy: correct as a BACKGROUND with
+   white text on it, and effectively invisible AS text or a border on a dark
+   page — dark-red labels and outlines vanish into the surface.
+
+   Text and borders therefore drop the brand tint entirely in dark mode and use
+   the ordinary ink/line tokens, like any other label. Nothing reads as pink,
+   and contrast is as high as the design allows. The brand is still everywhere
+   it belongs: every filled button, header bar and badge keeps the real
+   burgundy, because BACKGROUND utilities are untouched here.
+
+   Redefined at the utility level rather than migrating 650+ template usages to
+   a second token. */
+:root[data-theme='dark'] .text-primary {
+  color: var(--color-text-primary);
+}
+
+:root[data-theme='dark'] .hover\:text-primary:hover {
+  color: var(--color-text-primary);
+}
+
+:root[data-theme='dark'] .border-primary {
+  border-color: var(--color-border-strong);
+}
+
+/* The /NN opacity variants compile to their own classes and bake the alpha
+   into a color-mix() against the base colour, so each needs the same
+   treatment or it stays the invisible burgundy. */
+:root[data-theme='dark'] .border-primary\/5   { border-color: color-mix(in oklab, var(--color-border-strong) 30%, transparent); }
+:root[data-theme='dark'] .border-primary\/10  { border-color: color-mix(in oklab, var(--color-border-strong) 40%, transparent); }
+:root[data-theme='dark'] .border-primary\/20  { border-color: color-mix(in oklab, var(--color-border-strong) 55%, transparent); }
+:root[data-theme='dark'] .border-primary\/25  { border-color: color-mix(in oklab, var(--color-border-strong) 60%, transparent); }
+:root[data-theme='dark'] .border-primary\/30  { border-color: color-mix(in oklab, var(--color-border-strong) 70%, transparent); }
+:root[data-theme='dark'] .border-primary\/40  { border-color: color-mix(in oklab, var(--color-border-strong) 85%, transparent); }
+
+/* Calendar day cells. Unselected days are bg-surface-sunken with no border —
+   against a white card that reads as a clear tile, but in dark mode the sunken
+   surface sits very close to the card behind it and the grid loses definition.
+   A border restores the cell edges without touching light mode. */
+:root[data-theme='dark'] app-mini-month-calendar button:not(:disabled) {
+  border: 1px solid var(--color-border);
+}
+
+/* ...except the neighbouring months' spill-over days, which have no tile
+   background — a border there would re-draw the box the missing background is
+   meant to remove, and the viewed month would stop standing out. */
+:root[data-theme='dark'] app-mini-month-calendar button.bg-transparent {
+  border-color: transparent;
+}
+
+/* The selected day already carries a solid brand fill, so it keeps a brand
+   edge rather than the neutral line. */
+:root[data-theme='dark'] app-mini-month-calendar button.bg-primary {
+  border-color: var(--color-primary);
+}
+
+/* TODAY, when it is not the selected day. It is marked with ring-primary,
+   which on a dark surface is a dark ring on a dark tile — nearly invisible
+   next to the solidly-filled selected day. A brand-tinted fill plus a brighter
+   ring makes it read as "notable" without competing with the actual selection,
+   which keeps the full-strength fill. */
+:root[data-theme='dark'] app-mini-month-calendar button.ring-primary:not(.bg-primary) {
+  background-color: color-mix(in oklab, var(--color-primary) 55%, transparent);
+  --tw-ring-color: var(--color-primary-100);
+  border-color: var(--color-primary-100);
+}
+
+/* Toggle switches. An "on" track filled with the brand burgundy is a dark
+   shape on a dark card — the switch reads as off, or as disabled. primary-200
+   is the same brand ramp, lifted just enough to register as an active control
+   without becoming the pink end of the scale.
+
+   Matched two ways because the app builds switches two ways: a peer-checked
+   utility (the account page's checkbox switch) and a role="switch" button
+   whose class is assembled in a binding (salon overview's accepting-clients
+   toggle). role=switch is the more reliable hook of the two — it says what the
+   element IS, rather than depending on which utility classes happen to be
+   concatenated. Ordinary bg-primary buttons are untouched: they sit on the
+   page rather than inside a card and already read fine. */
+:root[data-theme='dark'] .peer-checked\:bg-primary:is(:where(.peer):checked ~ *),
+:root[data-theme='dark'] [role='switch'].bg-primary {
+  background-color: var(--color-primary-200);
+}
+
+/* Opacity variants of the brand ink. .text-primary is remapped above, but
+   Tailwind compiles each /NN into its OWN class with the alpha baked into a
+   color-mix() against the base colour — so these kept resolving to the
+   invisible burgundy (the current-client ring's service name and finish time
+   were dark red on a dark ring). */
+:root[data-theme='dark'] .text-primary\/10 { color: color-mix(in oklab, var(--color-text-primary) 10%, transparent); }
+:root[data-theme='dark'] .text-primary\/70 { color: color-mix(in oklab, var(--color-text-primary) 70%, transparent); }
+:root[data-theme='dark'] .text-primary\/80 { color: color-mix(in oklab, var(--color-text-primary) 80%, transparent); }
+
+/* ── Faint brand tints in dark mode ──────────────────────────────────────────
+   bg-primary/5..20 are subtle washes — avatar circles, icon buttons, hover
+   states. Against a WHITE page a 10% burgundy reads as a soft pink disc; on a
+   dark surface the same colour is darker than the background it sits on, so
+   the shape disappears (the avatar initials floated with no visible circle).
+
+   In dark mode these become a light-tinted overlay instead: the same idea
+   (a subtle raised patch) achieved by lightening rather than darkening.
+   The solid fills (bg-primary/60 and up) are untouched — they read fine. */
+:root[data-theme='dark'] .bg-primary\/2  { background-color: color-mix(in oklab, var(--color-text-primary) 4%,  transparent); }
+:root[data-theme='dark'] .bg-primary\/3  { background-color: color-mix(in oklab, var(--color-text-primary) 5%,  transparent); }
+:root[data-theme='dark'] .bg-primary\/4  { background-color: color-mix(in oklab, var(--color-text-primary) 6%,  transparent); }
+:root[data-theme='dark'] .bg-primary\/5  { background-color: color-mix(in oklab, var(--color-text-primary) 7%,  transparent); }
+:root[data-theme='dark'] .bg-primary\/8  { background-color: color-mix(in oklab, var(--color-text-primary) 9%,  transparent); }
+:root[data-theme='dark'] .bg-primary\/10 { background-color: color-mix(in oklab, var(--color-text-primary) 11%, transparent); }
+:root[data-theme='dark'] .bg-primary\/15 { background-color: color-mix(in oklab, var(--color-text-primary) 15%, transparent); }
+:root[data-theme='dark'] .bg-primary\/20 { background-color: color-mix(in oklab, var(--color-text-primary) 18%, transparent); }
+
+/* Hover variants of the same tints. */
+:root[data-theme='dark'] .hover\:bg-primary\/5:hover  { background-color: color-mix(in oklab, var(--color-text-primary) 9%,  transparent); }
+:root[data-theme='dark'] .hover\:bg-primary\/10:hover { background-color: color-mix(in oklab, var(--color-text-primary) 14%, transparent); }
+:root[data-theme='dark'] .hover\:bg-primary\/20:hover { background-color: color-mix(in oklab, var(--color-text-primary) 22%, transparent); }
+
+/* Placeholders. Only two inputs in the app style theirs explicitly, so the
+   rest fall back to the browser default — a dark grey that is invisible on a
+   dark surface. Setting it here covers every input and textarea at once, and
+   text-secondary keeps a placeholder visibly quieter than real entered text
+   without dropping out of sight. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1; /* Firefox dims placeholders by default on top of the colour. */
 }
 
 .skeleton-pulse {
-  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-strong) 25%,
+    var(--color-surface-overlay) 50%,
+    var(--color-surface-strong) 75%
+  );
   background-size: 800px 100%;
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
 }

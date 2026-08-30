@@ -1,11 +1,11 @@
 <div class="flex flex-col items-center justify-center py-16 px-6 text-center">
-  <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+  <div class="w-16 h-16 rounded-full bg-surface-overlay flex items-center justify-center mb-4">
+    <svg class="w-8 h-8 text-text-disabled" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
         d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   </div>
-  <p class="text-gray-500 text-sm mb-6">{{ message() }}</p>
+  <p class="text-text-secondary text-sm mb-6">{{ message() }}</p>
   <button
     type="button"
     (click)="ctaClick.emit()"

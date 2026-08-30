@@ -4,7 +4,7 @@
   </div>
 } @else if (error()) {
   <div class="py-16 flex flex-col items-center gap-3">
-    <p class="text-sm text-gray-500">Failed to load your dashboard.</p>
+    <p class="text-sm text-text-secondary">Failed to load your dashboard.</p>
     <button type="button" (click)="_dashboardService.refresh()"
       class="px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors">
       Retry
@@ -18,7 +18,7 @@
       <div class="flex items-center gap-3">
         <app-avatar [name]="(user()?.firstName ?? '') + ' ' + (user()?.lastName ?? '')" size="md" />
         <div>
-          <h1 class="text-lg font-semibold font-family-lora text-text-primary">{{ greeting }} 👋</h1>
+          <h1 class="text-lg font-semibold font-family-lora text-text-primary">{{ greeting }}</h1>
           <p class="text-sm text-text-secondary font-family-geist font-medium">{{ user()?.firstName }} {{ user()?.lastName }}</p>
         </div>
       </div>
@@ -40,8 +40,8 @@
          location and "near me" all live there, and typing in two places that
          drive the same listing service was the confusing part. -->
     <a [routerLink]="searchLink"
-      class="flex items-center gap-2 w-full min-h-12 px-3.5 rounded-xl border border-gray-200 bg-white
-             text-sm text-gray-500 hover:border-primary hover:text-primary transition-colors">
+      class="flex items-center gap-2 w-full min-h-12 px-3.5 rounded-xl border border-border bg-surface-card
+             text-sm text-text-secondary hover:border-primary hover:text-primary transition-colors">
       <app-icon name="search" class="w-4.5 h-4.5 shrink-0" />
       <span>Search for a salon</span>
     </a>
@@ -71,7 +71,7 @@
       </div>
     } @else if (listing.items().length === 0) {
       <div class="py-10 text-center h-64 flex justify-around items-center">
-        <p class="text-sm text-gray-400">No salons found. Try a different search.</p>
+        <p class="text-sm text-text-disabled">No salons found. Try a different search.</p>
       </div>
     } @else {
       <div class="flex gap-3 overflow-x-auto themed-scrollbar no-scrollbar-mobile pb-6"
@@ -95,7 +95,7 @@
 
     <!-- How it works -->
     <a [routerLink]="howItWorksLink"
-      class="w-full flex mb-6 items-center gap-3 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+      class="w-full flex mb-6 items-center gap-3 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
       <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
         <app-icon name="help-circle" class="w-5 h-5 text-primary" />
       </div>
@@ -107,7 +107,7 @@
 
     <!-- Scan QR Code -->
     <button (click)="showScanner.set(true)" type="button"
-      class="w-full flex mb-6 md:mt-6 items-center gap-3 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+      class="w-full flex mb-6 md:mt-6 items-center gap-3 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
       <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
         <app-icon name="qr-code" class="w-5 h-5 text-primary" />
       </div>
@@ -120,7 +120,7 @@
     <!-- Get the app -->
     @if (!platform.isAppContext && !install.installed()) {
     <a [routerLink]="howToInstallLink"
-      class="w-full flex items-center gap-3 mb-6 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+      class="w-full flex items-center gap-3 mb-6 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
       <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
         <app-icon name="download" class="w-5 h-5 text-primary" />
       </div>

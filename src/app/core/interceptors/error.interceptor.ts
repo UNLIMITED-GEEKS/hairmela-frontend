@@ -32,7 +32,13 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       if (
         body.code === ErrorCodes.TOKEN_EXPIRED ||
         body.code === ErrorCodes.TOKEN_INVALID ||
-        body.code === ErrorCodes.TOKEN_MISSING
+        body.code === ErrorCodes.TOKEN_MISSING ||
+        // Any 401, including ones the backend sends with code: null (the
+        // guest-entries endpoint answers a missing guest token that way).
+        // Those fell through to the default branch below, which toasts
+        // body.message verbatim — surfacing a raw "No token provided" to a
+        // visitor who simply has not joined a queue yet.
+        err.status === 401
       ) {
         return throwError(() => err);
       }

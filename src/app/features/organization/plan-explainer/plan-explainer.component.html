@@ -3,16 +3,16 @@
   <div class="max-w-lg mx-auto space-y-6">
 
     <div>
-      <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Plans</p>
-      <h1 class="text-2xl font-bold text-gray-900">Choose a plan</h1>
-      <p class="text-sm text-gray-500 mt-1">Contact us to upgrade.</p>
+      <p class="text-xs text-text-disabled uppercase tracking-wide mb-1">Plans</p>
+      <h1 class="text-2xl font-bold text-text-primary">Choose a plan</h1>
+      <p class="text-sm text-text-secondary mt-1">Contact us to upgrade.</p>
     </div>
 
     @for (plan of plans; track plan.tier) {
-      <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-        <h2 class="text-base font-semibold text-gray-900">{{ plan.name }}</h2>
-        <p class="text-lg font-bold text-gray-900">{{ formatPlanPrice(plan.price) }}</p>
-        <ul class="space-y-2 text-sm text-gray-600">
+      <div class="bg-surface-card rounded-xl border border-border p-5 space-y-3">
+        <h2 class="text-base font-semibold text-text-primary">{{ plan.name }}</h2>
+        <p class="text-lg font-bold text-text-primary">{{ formatPlanPrice(plan.price) }}</p>
+        <ul class="space-y-2 text-sm text-text-muted">
           @for (line of [plan.salons, plan.staff].concat(plan.features); track line) {
             <li class="flex items-center gap-2">
               <span class="w-4 h-4 text-green-500">✓</span> {{ line }}

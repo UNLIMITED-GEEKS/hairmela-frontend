@@ -1,8 +1,8 @@
 <div class="flex items-center justify-center min-h-screen px-6">
   <div class="w-full max-w-sm">
     <div class="mb-8 text-center">
-      <h1 class="text-2xl font-bold text-gray-900">Welcome back</h1>
-      <p class="mt-1 text-sm text-gray-500">Sign in to your HairMela account</p>
+      <h1 class="text-2xl font-bold text-text-primary">Welcome back</h1>
+      <p class="mt-1 text-sm text-text-secondary">Sign in to your HairMela account</p>
     </div>
 
     <form #formEl [formGroup]="form" (ngSubmit)="submit()" novalidate class="space-y-4">
@@ -26,13 +26,13 @@
       }
 
       <div>
-        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <label for="email" class="block text-sm font-medium text-text-body mb-1">Email</label>
         <input
           id="email"
           type="email"
           formControlName="email"
           autocomplete="email"
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-gray-100"
+          class="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-overlay"
           [class.border-red-400]="form.controls.email.invalid && form.controls.email.touched"
           placeholder="you@example.com"
         />
@@ -41,7 +41,7 @@
 
       <div>
         <div class="flex items-center justify-between mb-1">
-          <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+          <label for="password" class="block text-sm font-medium text-text-body">Password</label>
           <a [routerLink]="forgotPasswordLink" class="text-xs font-medium text-primary hover:underline">Forgot password?</a>
         </div>
         <input
@@ -50,7 +50,7 @@
           appPasswordToggle
           formControlName="password"
           autocomplete="current-password"
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-gray-100"
+          class="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-overlay"
           [class.border-red-400]="form.controls.password.invalid && form.controls.password.touched"
           placeholder="••••••••"
         />
@@ -67,7 +67,7 @@
 
     </form>
 
-    <p class="mt-6 text-center text-sm text-gray-500">
+    <p class="mt-6 text-center text-sm text-text-secondary">
       Don't have an account?
       <a [routerLink]="registerLink" [queryParams]="registerQueryParams" class="font-medium text-primary hover:underline">Sign up</a>
     </p>
@@ -77,7 +77,7 @@
          screen when installed, so one link covers both with no platform check.
          Matters most on iOS standalone, which has no hardware back button. -->
     <a routerLink="/"
-      class="mt-4 flex items-center justify-center gap-2 min-h-11 w-full rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
+      class="mt-4 flex items-center justify-center gap-2 min-h-11 w-full rounded-xl border border-border text-text-muted text-sm font-medium hover:bg-surface-sunken transition-colors">
       <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
       </svg>

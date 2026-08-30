@@ -5,7 +5,7 @@
     role="status"
     [attr.aria-label]="pullState() === 'refreshing' ? 'Refreshing' : 'Pull to refresh'">
     <div
-      class="flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-md border border-gray-200 transition-transform duration-150"
+      class="flex h-9 w-9 items-center justify-center rounded-full bg-surface-card shadow-md border border-border transition-transform duration-150"
       [class.rotate-180]="pullState() === 'ready' || pullState() === 'refreshing'">
       @if (pullState() === 'refreshing') {
         <svg class="w-4 h-4 animate-spin text-primary" viewBox="0 0 24 24" fill="none" aria-hidden="true">

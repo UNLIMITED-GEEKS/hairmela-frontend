@@ -1,20 +1,20 @@
 @if (supported) {
-  <div class="bg-white rounded-xl border border-gray-200 p-5">
+  <div class="bg-surface-card rounded-xl border border-border p-5">
     <div class="flex items-center justify-between gap-4">
       <div class="min-w-0">
-        <p class="text-sm font-semibold text-gray-900">Turn notifications</p>
-        <p class="mt-0.5 text-sm text-gray-500">
+        <p class="text-sm font-semibold text-text-primary">Turn notifications</p>
+        <p class="mt-0.5 text-sm text-text-secondary">
           Get told when it's your turn in a queue, even with the app closed.
         </p>
       </div>
 
       @if (blockedByBrowser()) {
-        <span class="shrink-0 text-xs font-medium text-gray-400">
+        <span class="shrink-0 text-xs font-medium text-text-disabled">
           {{ platform.isAppContext ? 'Blocked in settings' : 'Blocked in browser' }}
         </span>
       } @else if (subscribed()) {
         <button type="button" (click)="disable()" [disabled]="busy()"
-          class="shrink-0 rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors">
+          class="shrink-0 rounded-lg border border-border-strong px-4 py-2 text-sm font-semibold text-text-body hover:bg-surface-sunken disabled:opacity-50 transition-colors">
           {{ busy() ? 'Working…' : 'Turn off' }}
         </button>
       } @else {

@@ -4,7 +4,7 @@
     [class]="'shrink-0 flex items-center justify-center min-h-9 min-w-20 px-4 md:px-10 rounded-xl text-sm font-semibold border transition-colors ' +
       (selected() === ''
         ? 'bg-primary text-white border-primary'
-        : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50')">
+        : 'bg-surface-card text-text-muted border-border hover:bg-surface-sunken')">
     All
   </button>
   @for (cat of categories(); track cat.id) {
@@ -13,7 +13,7 @@
       [class]="'shrink-0 flex items-center justify-center min-h-9 min-w-20 px-4 md:px-6 rounded-xl text-sm font-semibold border transition-colors ' +
         (selected() === cat.slug
           ? 'bg-primary text-white border-primary'
-          : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50')">
+          : 'bg-surface-card text-text-muted border-border hover:bg-surface-sunken')">
       {{ cat.name }}
     </button>
   }

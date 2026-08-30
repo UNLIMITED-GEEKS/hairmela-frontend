@@ -15,13 +15,13 @@
             d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
         </svg>
       </div>
-      <h1 class="text-lg font-bold text-gray-900">Console locked</h1>
-      <p class="text-sm text-gray-500">
+      <h1 class="text-lg font-bold text-text-primary">Console locked</h1>
+      <p class="text-sm text-text-secondary">
         Your salon has more staff than its plan allows, so your queue controls are paused.
         Ask the owner to upgrade to restore access.
       </p>
       <button type="button" (click)="_location.back()"
-        class="inline-block rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-surface transition-colors">
+        class="inline-block rounded-lg border border-border-strong px-5 py-2.5 text-sm font-semibold text-text-body hover:bg-surface transition-colors">
         Go back
       </button>
     </div>
@@ -30,13 +30,13 @@
   <div class="h-screen-minus-topbar bg-surface flex flex-col">
 
     <!-- Top bar: back + status pills + call next -->
-    <div class="shrink-0 bg-surface border-b border-gray-100 px-4 pt-4 md:pt-2  space-y-2">
+    <div class="shrink-0 bg-surface border-b border-border-subtle px-4 pt-4 md:pt-2  space-y-2">
 
-      <p class="text-xs text-gray-400 mb-1 ml-11">Tap to open, pause, or close your queue</p>
+      <p class="text-xs text-text-disabled mb-1 ml-11">Tap to open, pause, or close your queue</p>
       <div class="flex items-center gap-2">
         @if (onQueueListRoute()) {
           <a [routerLink]="currentClientLink" aria-label="Back to current client"
-            class="min-w-11 min-h-11 flex items-center justify-center text-gray-400 hover:text-primary -ml-2 shrink-0">
+            class="min-w-11 min-h-11 flex items-center justify-center text-text-disabled hover:text-primary -ml-2 shrink-0">
             <app-icon name="chevron-left" class="w-2 h-3.5" />
           </a>
         } @else {
@@ -52,7 +52,7 @@
                   ? (s === 'OPEN'   ? 'bg-primary text-white  shadow-sm'
                    : s === 'PAUSED' ? 'bg-warning text-white border-warning shadow-sm'
                                     : 'bg-red-600 text-white border-red-600 shadow-sm')
-                  : 'bg-white text-gray-500 border-gray-300 hover:bg-gray-50 hover:border-gray-400 disabled:opacity-40')">
+                  : 'bg-surface-card text-text-secondary border-border-strong hover:bg-surface-sunken hover:border-border-strong disabled:opacity-40')">
               {{ s === 'OPEN' ? 'Open' : s === 'PAUSED' ? 'Pause' : 'Close' }}
             </button>
           }

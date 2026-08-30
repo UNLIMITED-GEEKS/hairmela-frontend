@@ -2,7 +2,7 @@
 
   <!-- "Current Client" header pill -->
   <div class="shrink-0 mb-4">
-    <div class="w-full  bg-white border-b border-primary px-4 py-2.5 text-center">
+    <div class="w-full  bg-surface-card border-b border-primary px-4 py-2.5 text-center">
       <span class="text-sm font-bold tracking-wide text-primary uppercase">Current Client</span>
     </div>
   </div>
@@ -18,7 +18,10 @@
 
         <!-- Dynamic progress arc — time-based (fuller = closer to estimated finish) -->
         <svg class="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 326 326" aria-hidden="true">
-          <circle cx="163" cy="163" r="125" fill="none" stroke="var(--color-secondary-light)" stroke-width="10" />
+          <!-- Unfilled ring track. secondary-light is a warm cream that reads as a
+               muddy brown on a dark surface, so this uses the border token, which
+               is the "a line on the current background" colour in both themes. -->
+          <circle cx="163" cy="163" r="125" fill="none" stroke="var(--color-border)" stroke-width="10" />
           <circle cx="163" cy="163" r="125" fill="none" stroke="var(--color-primary)" stroke-width="10"
             stroke-linecap="round"
             [attr.stroke-dasharray]="console.ringCircumference"
@@ -26,7 +29,7 @@
             class="transition-[stroke-dashoffset] duration-500 ease-out" />
         </svg>
       } @else {
-        <div class="absolute inset-0 rounded-full border-4 border-gray-200"></div>
+        <div class="absolute inset-0 rounded-full border-4 border-border"></div>
       }
 
       <div class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-center px-4">
@@ -61,7 +64,7 @@
   @if (!console.callNextWaiting() && console.servingPartyMembers().length > 0) {
     <div class="flex-1 min-h-0 overflow-y-auto space-y-2 mt-3 pb-24">
       @for (member of console.servingPartyMembers(); track member.memberId) {
-        <div class="bg-white border border-primary/20 rounded-2xl px-3 py-2.5">
+        <div class="bg-surface-card border border-primary/20 rounded-2xl px-3 py-2.5">
           <div class="flex items-center gap-2">
             <span class="flex-1 min-w-0">
               <span class="block text-sm font-medium text-primary truncate">{{ member.memberName }}</span>
@@ -69,18 +72,18 @@
                 <span class="block text-xs text-primary/70 truncate">{{ member.serviceName }}</span>
               }
             </span>
-            <span [class]="'text-xs text-black/90 min-h-8 inline-flex items-center font-semibold px-2 py-0.5 rounded-xl shrink-0 ' +
-              (member.status === 'SERVING' ? 'bg-success-light text-success' : 'bg-gray-100 text-gray-500')">
+            <span [class]="'text-xs text-text-body min-h-8 inline-flex items-center font-semibold px-2 py-0.5 rounded-xl shrink-0 ' +
+              (member.status === 'SERVING' ? 'bg-success-light text-success' : 'bg-surface-overlay text-text-secondary')">
               {{ member.status === 'SERVING' ? 'Serving' : 'Waiting' }}
             </span>
             @if (member.status === 'WAITING') {
-              <span class="text-xs min-h-8 rounded-xl inline-flex items-center text-black/90 shrink-0" aria-live="polite">{{ console.memberWait(member.memberId) }}</span>
+              <span class="text-xs min-h-8 rounded-xl inline-flex items-center text-text-body shrink-0" aria-live="polite">{{ console.memberWait(member.memberId) }}</span>
               @if (console.isLocked(member.memberId)) {
                 <app-inline-spinner class="text-primary shrink-0" />
               } @else {
                 <button (click)="cancelMember(console.servingEntry()!.entryId, member.memberId)"
                   [disabled]="console.isLocked(member.memberId)"
-                  class="min-w-8 min-h-8 flex items-center justify-center text-gray-500 hover:text-red-500 shrink-0 disabled:opacity-40"
+                  class="min-w-8 min-h-8 flex items-center justify-center text-text-secondary hover:text-red-500 shrink-0 disabled:opacity-40"
                   aria-label="Remove from party">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -125,13 +128,13 @@
   <div class="fixed left-0 right-0 above-bottom-nav z-30 bg-surface px-6 md:px-13 pt-3 pb-4 flex gap-3
               md:left-(--sidebar-width) transition-[left] duration-250 ease-in-out">
     <a [routerLink]="queueUrl"
-      class="flex-1 min-h-[45px] rounded-2xl bg-white border-2 border-primary text-primary font-bold text-sm disabled:opacity-40 flex items-center justify-center transition-all hover:bg-primary-hover hover:text-white gap-2">
+      class="flex-1 min-h-[45px] rounded-2xl bg-surface-card border-2 border-primary text-primary font-bold text-sm disabled:opacity-40 flex items-center justify-center transition-all hover:bg-primary-hover hover:text-white gap-2">
       View Queue
     </a>
     <button
       (click)="endSession()"
       [disabled]="!console.servingEntry() || console.isLocked(console.servingEntry()!.entryId)"
-      class="flex-1 min-h-[45px] rounded-2xl bg-white border-2 border-primary text-primary font-bold text-sm disabled:opacity-40 transition-opacity flex items-center justify-center gap-2">
+      class="flex-1 min-h-[45px] rounded-2xl bg-surface-card border-2 border-primary text-primary font-bold text-sm disabled:opacity-40 transition-opacity flex items-center justify-center gap-2">
       @if (console.servingEntry() && console.isLocked(console.servingEntry()!.entryId)) {
         <app-inline-spinner />
       }
@@ -152,15 +155,15 @@
     <div
       animate.enter="modal-card-enter"
       animate.leave="modal-card-leave"
-      class="relative w-full max-w-sm bg-white rounded-3xl px-6 py-6 z-10">
-      <h2 class="text-base font-bold text-gray-900 mb-2">End session?</h2>
-      <p class="text-sm text-gray-500 mb-6">
+      class="relative w-full max-w-sm bg-surface-card rounded-3xl px-6 py-6 z-10">
+      <h2 class="text-base font-bold text-text-primary mb-2">End session?</h2>
+      <p class="text-sm text-text-secondary mb-6">
         This party has {{ console.servingPartyMembers().length }} members still in progress.
         End all of them, or go back to finish each one individually.
       </p>
       <div class="flex gap-3">
         <button (click)="showEndPartyModal.set(false)"
-          class="flex-1 min-h-12 rounded-2xl border-2 border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-colors">
+          class="flex-1 min-h-12 rounded-2xl border-2 border-border text-text-muted font-bold text-sm hover:bg-surface-sunken transition-colors">
           Go back
         </button>
         <button (click)="endAllMembers()"
@@ -183,11 +186,11 @@
     <div
       animate.enter="modal-card-enter"
       animate.leave="modal-card-leave"
-      class="relative w-full max-w-md bg-white rounded-3xl px-5 pt-5 pb-6 z-10">
+      class="relative w-full max-w-md bg-surface-card rounded-3xl px-5 pt-5 pb-6 z-10">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-base font-bold text-gray-900">Extend session</h2>
+        <h2 class="text-base font-bold text-text-primary">Extend session</h2>
         <button (click)="showExtendModal.set(false)"
-          class="min-w-10 min-h-10 flex items-center justify-center text-gray-400 hover:text-gray-600"
+          class="min-w-10 min-h-10 flex items-center justify-center text-text-secondary hover:text-text-primary"
           aria-label="Close">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -195,13 +198,13 @@
         </button>
       </div>
       <div class="mb-4">
-        <label class="text-sm font-medium text-gray-700 block mb-1.5">Extra minutes</label>
+        <label class="text-sm font-medium text-text-body block mb-1.5">Extra minutes</label>
         <input
           type="number" min="1"
           [value]="extendMinutes()"
           (input)="extendMinutes.set(+($any($event.target).value))"
           placeholder="Enter minutes"
-          class="w-full min-h-12 px-4 rounded-2xl border-2 border-gray-200 text-lg font-medium focus:outline-none focus:border-warning text-center">
+          class="w-full min-h-12 px-4 rounded-2xl border-2 border-border text-lg font-medium focus:outline-none focus:border-warning text-center">
       </div>
       <div class="flex gap-2 mb-5">
         @for (chip of [10, 20, 30, 40]; track chip) {
@@ -236,11 +239,11 @@
     <div
       animate.enter="modal-card-enter"
       animate.leave="modal-card-leave"
-      class="relative w-full max-w-md bg-white rounded-3xl px-5 pt-5 pb-0 z-10 max-h-80dvh flex flex-col" [formGroup]="addQueueForm">
+      class="relative w-full max-w-md bg-surface-card rounded-3xl px-5 pt-5 pb-0 z-10 max-h-80dvh flex flex-col" [formGroup]="addQueueForm">
       <div class="shrink-0 flex items-center justify-between mb-4">
-        <h2 class="text-base font-bold text-gray-900">Add client to queue</h2>
+        <h2 class="text-base font-bold text-text-primary">Add client to queue</h2>
         <button (click)="showAddQueueModal.set(false)"
-          class="min-w-10 min-h-10 flex items-center justify-center text-gray-400 hover:text-gray-600"
+          class="min-w-10 min-h-10 flex items-center justify-center text-text-secondary hover:text-text-primary"
           aria-label="Close">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -249,16 +252,16 @@
       </div>
       <div class="flex-1 overflow-y-auto space-y-3 mb-4" formArrayName="members">
         @for (ctrl of addQueueMembers.controls; track $index; let i = $index) {
-          <div [formGroupName]="i" class="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex flex-col gap-2">
+          <div [formGroupName]="i" class="bg-surface-sunken border border-border rounded-2xl px-4 py-3 flex flex-col gap-2">
             <div class="flex gap-3 items-start">
               <div class="flex-1">
                 <input formControlName="name" type="text" [placeholder]="'Client ' + (i + 1) + ' name'"
-                  class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 focus:outline-none focus:ring-2 focus:ring-primary/30">
+                  class="w-full border border-border rounded-xl px-3 py-2 text-sm min-h-11 focus:outline-none focus:ring-2 focus:ring-primary/30">
                 <app-field-error [control]="ctrl.get('name')" [messages]="{ required: 'Enter a name.' }" />
               </div>
               @if (addQueueMembers.length > 1) {
                 <button (click)="removeQueueMemberRow(i)"
-                  class="text-gray-300 hover:text-red-500 min-w-10 min-h-10 flex items-center justify-center shrink-0"
+                  class="text-text-secondary hover:text-red-500 min-w-10 min-h-10 flex items-center justify-center shrink-0"
                   aria-label="Remove">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -267,7 +270,7 @@
               }
             </div>
             <select formControlName="serviceId"
-              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-700">
+              class="w-full border border-border rounded-xl px-3 py-2 text-sm min-h-11 bg-surface-card focus:outline-none focus:ring-2 focus:ring-primary/30 text-text-body">
               @for (s of staffServices(); track s.serviceId) {
                 <option [value]="s.serviceId">{{ s.service.name }}</option>
               }
@@ -275,7 +278,7 @@
           </div>
         }
       </div>
-      <div class="shrink-0 flex gap-3 border-t border-gray-100 pt-3 pb-5">
+      <div class="shrink-0 flex gap-3 border-t border-border-subtle pt-3 pb-5">
         <button (click)="addQueueMemberRow()"
           class="flex-1 min-h-12 rounded-2xl border-2 border-dashed border-primary/30 text-primary text-sm font-medium hover:bg-primary-light/30 transition-colors">
           + Add another

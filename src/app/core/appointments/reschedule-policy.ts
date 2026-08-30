@@ -41,3 +41,27 @@ export function canReschedule(entry: QueueEntry): boolean {
   if (entry.rescheduledAt) return false;
   return withinChangeWindow(entry);
 }
+
+/**
+ * Whether this entry has a customer on the other end of a chat thread.
+ *
+ * A barber adding a walk-in or booking on someone's behalf creates an entry
+ * with no account and no guest session attached — there is nobody to receive a
+ * message, so the thread is shown to no one and the composer would be a box
+ * that talks to itself.
+ *
+ * ⚠️ STAFF-AUTHENTICATED VIEWS ONLY. Both ids are documented as "null
+ * publicly", so on a customer-facing surface every entry looks staff-added and
+ * this would hide every thread. Call it from the barber's queue console and
+ * the salon appointments list; never from the customer's live-queue or
+ * my-position pages.
+ *
+ * Takes the shared shape rather than QueueEntry so the queue console's
+ * TimelineEntryDto rows work too — both now carry these fields.
+ */
+export function hasChatCounterparty(entry: {
+  userId?: string | null;
+  guestId?: string | null;
+}): boolean {
+  return !!entry.userId || !!entry.guestId;
+}

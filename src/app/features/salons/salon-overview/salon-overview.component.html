@@ -4,7 +4,7 @@
   </div>
 } @else if (error()) {
   <div class="p-6 flex flex-col items-center gap-3 py-16">
-    <p class="text-sm text-gray-500">Failed to load salon.</p>
+    <p class="text-sm text-text-secondary">Failed to load salon.</p>
     <button type="button" (click)="retry()"
       class="px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors">
       Retry
@@ -39,7 +39,7 @@
         @if (myStaff(); as staff) {
           <span
             [class]="'inline-block mt-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full ' +
-              (isOwnerOrAdmin() ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-600')">
+              (isOwnerOrAdmin() ? 'bg-primary/10 text-primary' : 'bg-surface-overlay text-text-muted')">
             {{ staff.role }}
           </span>
         }
@@ -61,7 +61,7 @@
             </div>
           </a>
           <button type="button" (click)="copyMyQueueLink(salon.slug, queueId)"
-            class="col-span-2 flex items-center gap-3 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors text-left">
+            class="col-span-2 flex items-center gap-3 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors text-left">
             <svg class="w-5 h-5 shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
@@ -71,7 +71,7 @@
             </div>
           </button>
           <a [routerLink]="howItWorksLink"
-            class="col-span-2 flex items-center gap-3 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+            class="col-span-2 flex items-center gap-3 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
             <app-icon name="help-circle" class="w-5 h-5 shrink-0 text-primary" />
             <div>
               <span class="text-sm font-semibold text-text-primary">Need help?</span>
@@ -80,41 +80,41 @@
           </a>
         }
         <a [routerLink]="staffLink(salon.id)"
-          class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+          class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
           <span class="text-sm font-semibold text-text-primary">Staff</span>
           <span class="text-xs text-text-secondary">Manage your team</span>
         </a>
         <a [routerLink]="servicesLink(salon.id)"
-          class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+          class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
           <span class="text-sm font-semibold text-text-primary">Services</span>
           <span class="text-xs text-text-secondary">Manage services</span>
         </a>
         <a [routerLink]="settingsLink(salon.id)"
-          class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+          class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
           <span class="text-sm font-semibold text-text-primary">Settings</span>
           <span class="text-xs text-text-secondary">Hours & preferences</span>
         </a>
         <a [routerLink]="analyticsLink(salon.id)"
-          class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+          class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
           <span class="text-sm font-semibold text-text-primary">Analytics</span>
           <span class="text-xs text-text-secondary">Queue insights</span>
         </a>
         @if (myStaff(); as staff) {
           <a [routerLink]="staffAppointmentsLink(salon.id, staff.id)"
-            class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+            class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
             <span class="text-sm font-semibold text-text-primary">My Appointments</span>
             <span class="text-xs text-text-secondary">View your bookings</span>
           </a>
         }
         @if (!salon.parentId) {
           <a [routerLink]="newBranchLink()" [queryParams]="newBranchQueryParams(salon.id, salon.name)"
-            class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+            class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
             <span class="text-sm font-semibold text-text-primary">Create a new branch</span>
             <span class="text-xs text-text-secondary">Open another location</span>
           </a>
         }
         <a [routerLink]="shareLink(salon.id)"
-          class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+          class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
           <span class="text-sm font-semibold text-text-primary">Share</span>
           <span class="text-xs text-text-secondary">QR code & link</span>
         </a>
@@ -133,7 +133,7 @@
             </div>
           </a>
           <button type="button" (click)="copyMyQueueLink(salon.slug, queueId)"
-            class="col-span-2 flex items-center gap-3 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors text-left">
+            class="col-span-2 flex items-center gap-3 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors text-left">
             <svg class="w-5 h-5 shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
@@ -143,7 +143,7 @@
             </div>
           </button>
           <a [routerLink]="howItWorksLink"
-            class="col-span-2 flex items-center gap-3 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+            class="col-span-2 flex items-center gap-3 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
             <app-icon name="help-circle" class="w-5 h-5 shrink-0 text-primary" />
             <div>
               <span class="text-sm font-semibold text-text-primary">Need help?</span>
@@ -153,24 +153,24 @@
         }
         @if (myStaff(); as staff) {
           <a [routerLink]="myServicesLink(salon.id, staff.id)"
-            class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+            class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
             <span class="text-sm font-semibold text-text-primary">My Services</span>
             <span class="text-xs text-text-secondary">View assigned services</span>
           </a>
           <a [routerLink]="staffAppointmentsLink(salon.id, staff.id)"
-            class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+            class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
             <span class="text-sm font-semibold text-text-primary">My Appointments</span>
             <span class="text-xs text-text-secondary">View your bookings</span>
           </a>
         }
         <a [routerLink]="shareLink(salon.id)"
-          class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+          class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
           <span class="text-sm font-semibold text-text-primary">Share</span>
           <span class="text-xs text-text-secondary">QR code & link</span>
         </a>
         @if (myStaff(); as staff) {
           <a [routerLink]="myPhotosLink(salon.id, staff.id)"
-            class="flex flex-col gap-1 bg-white border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
+            class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors">
             <span class="text-sm font-semibold text-text-primary">Update my photos</span>
             <span class="text-xs text-text-secondary">Profile & gallery</span>
           </a>
@@ -180,7 +180,7 @@
 
     <!-- Accepting clients toggle -->
     @if (myStaff(); as staff) {
-      <div class="bg-white rounded-xl border border-border px-5 py-4 flex items-center justify-between min-h-14">
+      <div class="bg-surface-card rounded-xl border border-border px-5 py-4 flex items-center justify-between min-h-14">
         <div>
           <p class="text-sm font-medium text-text-primary">Accepting clients</p>
           <p class="text-xs text-text-secondary mt-0.5">
@@ -189,12 +189,12 @@
         </div>
         <button
           (click)="toggleAcceptingClients()"
-          [class]="'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 ' + (staff.isAcceptingClients ? 'bg-primary' : 'bg-gray-300')"
+          [class]="'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 ' + (staff.isAcceptingClients ? 'bg-primary' : 'bg-surface-strong')"
           role="switch"
           [attr.aria-checked]="staff.isAcceptingClients"
           aria-label="Toggle accepting clients">
           <span
-            [class]="'inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ' + (staff.isAcceptingClients ? 'translate-x-6' : 'translate-x-1')">
+            [class]="'inline-block h-4 w-4 rounded-full bg-surface-card shadow transition-transform ' + (staff.isAcceptingClients ? 'translate-x-6' : 'translate-x-1')">
           </span>
         </button>
       </div>
@@ -206,7 +206,7 @@
         <p class="text-xs text-text-secondary uppercase tracking-wide mb-2">My Invites</p>
         <div class="space-y-3">
           @for (invite of invites(); track invite.staffId) {
-            <div class="bg-white border border-border rounded-xl px-4 py-4">
+            <div class="bg-surface-card border border-border rounded-xl px-4 py-4">
               <div class="flex items-start justify-between gap-3">
                 <div>
                   <p class="text-sm font-semibold text-text-primary">{{ invite.salonName }}</p>
@@ -220,7 +220,7 @@
                   </button>
                   <button
                     (click)="declineInvite(invite)"
-                    class="px-3 py-1.5 bg-white border border-border text-text-primary text-xs font-semibold rounded-lg min-h-8">
+                    class="px-3 py-1.5 bg-surface-card border border-border text-text-primary text-xs font-semibold rounded-lg min-h-8">
                     Decline
                   </button>
                 </div>

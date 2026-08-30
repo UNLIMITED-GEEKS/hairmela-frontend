@@ -53,6 +53,35 @@
 
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest.webmanifest">
+  <!-- Applies the theme BEFORE Angular boots. ThemeService does the same
+       thing, but it runs as an app initializer — by then the first paint has
+       already happened, so a dark-mode user saw a white flash on every launch.
+
+       Reads localStorage directly: PersistentStore writes there on web, and on
+       native it mirrors into Capacitor Preferences while still keeping the
+       localStorage copy, so this works in the APK and iOS standalone too.
+       Absent or 'system' falls through to prefers-color-scheme, which every
+       target reports (Android WebView, iOS standalone, browsers).
+
+       Wrapped in try/catch: storage access throws outright in some private
+       modes, and a theme flash is not worth breaking boot over. -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('hm_theme');
+        // PersistentStore JSON-encodes, so a stored value arrives quoted.
+        if (saved) saved = saved.replace(/^"|"$/g, '');
+        var mode =
+          saved === 'dark' || saved === 'light'
+            ? saved
+            : window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+        document.documentElement.setAttribute('data-theme', mode);
+        document.documentElement.style.colorScheme = mode;
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
   <app-root></app-root>

@@ -23,12 +23,34 @@
 
       <!-- Position circle -->
       <div class="relative w-56 h-56 mt-6 mb-4 shrink-0">
-        @if (serviceComplete()) {
-          <div class="absolute inset-0 rounded-full border-4 border-success flex flex-col items-center justify-center gap-2 text-center px-4">
-            <svg class="w-10 h-10 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        <!-- Final state. The icon and colour follow the OUTCOME: a green tick
+             for a completed service, a neutral mark for leaving voluntarily,
+             and a warning for a no-show. All three used to render as "Service
+             complete", which congratulated people who had left. -->
+        @if (outcome(); as end) {
+          <div class="absolute inset-0 rounded-full border-4 flex flex-col items-center justify-center gap-2 text-center px-4"
+            [class]="end.tone === 'success' ? 'border-success'
+                   : end.tone === 'warning' ? 'border-warning'
+                   : 'border-border-strong'">
+            <svg class="w-10 h-10"
+              [class]="end.tone === 'success' ? 'text-success'
+                     : end.tone === 'warning' ? 'text-warning'
+                     : 'text-text-secondary'"
+              fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              @if (end.tone === 'success') {
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              } @else if (end.tone === 'warning') {
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 9v2m0 4h.01M5 19h14a2 2 0 001.84-2.75L13.74 4a2 2 0 00-3.48 0L3.16 16.25A2 2 0 005 19z"/>
+              } @else {
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              }
             </svg>
-            <span class="text-sm font-bold text-success">Service complete</span>
+            <span class="text-sm font-bold"
+              [class]="end.tone === 'success' ? 'text-success'
+                     : end.tone === 'warning' ? 'text-warning'
+                     : 'text-text-primary'">{{ end.label }}</span>
+            <span class="text-xs text-text-secondary">{{ end.detail }}</span>
           </div>
         } @else {
           <!-- Static tick-mark ring background -->
@@ -74,7 +96,7 @@
               </span>
               <span class="text-sm text-text-primary">In Queue</span>
             } @else {
-              <div class="w-16 h-16 rounded-full bg-gray-100 animate-pulse"></div>
+              <div class="w-16 h-16 rounded-full bg-surface-overlay animate-pulse"></div>
             }
           </div>
         }
@@ -121,7 +143,7 @@
       @if (partyMembers().length > 0) {
         <div class="w-full space-y-2 mb-4">
           @for (member of partyMembers(); track member.memberId) {
-            <div class="flex items-center justify-between gap-3 bg-white border border-primary/10 rounded-2xl px-4 py-3 min-h-12">
+            <div class="flex items-center justify-between gap-3 bg-surface-card border border-primary/10 rounded-2xl px-4 py-3 min-h-12">
               <span class="min-w-0 flex flex-col">
                 <span class="text-sm font-semibold  wrap-break-word">{{ member.memberName }}</span>
                 <!-- serviceName is nullable: a walk-in can join without picking
@@ -142,7 +164,7 @@
               @if (member.status === 'SERVING') {
                 <span class="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full bg-success-light text-success">Serving</span>
               } @else if (member.status === 'SERVED') {
-                <span class="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-500 text-gray-400">Served</span>
+                <span class="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full bg-text-secondary text-text-disabled">Served</span>
               } @else {
                 <span class="shrink-0 flex items-center gap-1">
                   <!-- Walk-ins only: for an appointment this is the gap to its
@@ -155,7 +177,7 @@
                     <app-inline-spinner class="text-primary shrink-0" />
                   } @else {
                     <button (click)="cancelMember(member.memberId)"
-                      class="min-w-8 min-h-8 flex items-center justify-center text-gray-500 hover:text-red-500 shrink-0"
+                      class="min-w-8 min-h-8 flex items-center justify-center text-text-secondary hover:text-red-500 shrink-0"
                       aria-label="Remove from party">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -176,7 +198,7 @@
            to an appointment means booking for a larger party up front. -->
       @if (!serviceComplete() && !isAppointment()) {
         <button (click)="openAddKids()"
-          class="w-full min-h-12 rounded-2xl bg-white border-2 border-primary/20 text-primary font-semibold text-sm hover:bg-primary/20 transition-colors mb-4">
+          class="w-full min-h-12 rounded-2xl bg-surface-card border-2 border-primary/20 text-primary font-semibold text-sm hover:bg-primary/20 transition-colors mb-4">
           + Add someone
         </button>
       }
@@ -190,7 +212,7 @@
           <app-accordion title="View chat" [open]="notesOpen()" (openChange)="onNotesOpenChange($event)">
             <app-comments-thread [queueId]="_queueId()" [entryId]="_entryId()"
               [callPhone]="callPhone()"
-              composerPlaceholder="Write a note to the salon…" emptyLabel="No notes yet." />
+              composerPlaceholder="Write a message to the salon…" emptyLabel="No chat yet." />
           </app-accordion>
         </div>
       }
@@ -199,7 +221,7 @@
     </div>
 
     <!-- Fixed bottom bar -->
-    <div class="shrink-0  border-t border-gray-100 px-5 pt-3 safe-area-bottom">
+    <div class="shrink-0  border-t border-border-subtle px-5 pt-3 safe-area-bottom">
       @if (serviceComplete()) {
         <a [routerLink]="salonUrl"
           class="flex w-full min-h-[45px] rounded-xl bg-primary text-white font-bold text-sm items-center justify-center hover:bg-primary/90 transition-colors">
@@ -234,9 +256,9 @@
       animate.leave="modal-card-leave"
       class="relative w-full max-w-md bg-surface rounded-3xl px-5 pt-5 pb-5 z-10 max-h-80dvh flex flex-col">
       <div class="shrink-0 flex items-center justify-between mb-3">
-        <h2 class="text-base font-semibold text-gray-900">Add someone</h2>
+        <h2 class="text-base font-semibold text-text-primary">Add someone</h2>
         <button (click)="closeAddKids()"
-          class="min-w-10 min-h-10 flex items-center justify-center text-gray-400 hover:text-gray-600"
+          class="min-w-10 min-h-10 flex items-center justify-center text-text-secondary hover:text-text-primary"
           aria-label="Close">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -245,8 +267,8 @@
       </div>
 
       <!-- Back-of-line note — factual: this is what's about to happen -->
-      <div class="shrink-0 rounded-2xl bg-white border border-primary/20 px-4 py-3 mb-4">
-        <p class="text-xs text-black/80 font-normal leading-relaxed">
+      <div class="shrink-0 rounded-2xl bg-surface-card border border-primary/20 px-4 py-3 mb-4">
+        <p class="text-xs text-text-body font-normal leading-relaxed">
           They'll join at the <span class="font-bold">back of the line</span>
           (about {{ visit.backOfLineWait() }}), as a separate spot from yours, not next to you.
         </p>
@@ -255,13 +277,13 @@
       <div class="flex-1 overflow-y-auto space-y-3 mb-4" [formGroup]="addKidsForm">
         <div formArrayName="members">
           @for (ctrl of membersArray.controls; track $index; let i = $index) {
-            <div [formGroupName]="i" class="bg-white border border-primary/5 mb-3 rounded-2xl px-4 py-4 flex gap-3 items-start">
+            <div [formGroupName]="i" class="bg-surface-card border border-primary/5 mb-3 rounded-2xl px-4 py-4 flex gap-3 items-start">
               <div class="flex-1 space-y-2">
                 <input formControlName="name" type="text" [placeholder]="'Person ' + (i + 1) + ' name'"
-                  class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 focus:outline-none focus:ring-2 focus:ring-primary/30">
+                  class="w-full border border-border rounded-xl px-3 py-2 text-sm min-h-11 focus:outline-none focus:ring-2 focus:ring-primary/30">
                 <app-field-error [control]="ctrl.get('name')" [messages]="{ required: 'Enter a name.' }" />
                 <select formControlName="serviceId"
-                  class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm min-h-11 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30">
+                  class="w-full border border-border rounded-xl px-3 py-2 text-sm min-h-11 bg-surface-card focus:outline-none focus:ring-2 focus:ring-primary/30">
                   @if (visit.staffForQueue(_queueId()); as staff) {
                     @for (s of visit.staffServices(staff); track s.id) {
                       <option [value]="s.id">{{ s.name }}</option>
@@ -270,7 +292,7 @@
                 </select>
               </div>
               <button (click)="removeMember(i)"
-                class="text-gray-300 hover:text-red-500 min-w-10 min-h-10 flex items-center justify-center"
+                class="text-text-secondary hover:text-red-500 min-w-10 min-h-10 flex items-center justify-center"
                 aria-label="Remove kid">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -281,7 +303,7 @@
         </div>
       </div>
 
-      <div class="shrink-0 flex gap-3 border-t border-gray-100 pt-4">
+      <div class="shrink-0 flex gap-3 border-t border-border-subtle pt-4">
         @if (membersArray.length < visit.maxPartySize() - 1) {
           <button (click)="addMember()"
             class="flex-1 min-h-12 rounded-2xl border-2 border-dashed border-primary/30 text-primary text-sm font-medium hover:bg-secondary-100/30 transition-colors">

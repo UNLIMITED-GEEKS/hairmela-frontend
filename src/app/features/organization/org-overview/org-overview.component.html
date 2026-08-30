@@ -7,7 +7,7 @@
   </div>
 } @else if (error()) {
   <div class="py-16 flex flex-col items-center gap-3">
-    <p class="text-sm text-gray-500">Failed to load organisation.</p>
+    <p class="text-sm text-text-secondary">Failed to load organisation.</p>
     <button type="button" (click)="retry()"
       class="px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors">
       Retry
@@ -20,31 +20,31 @@
 
       <!-- Header -->
       <div>
-        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Organisation</p>
-        <h1 class="text-2xl font-bold text-gray-900">{{ org.name }}</h1>
+        <p class="text-xs text-text-disabled uppercase tracking-wide mb-1">Organisation</p>
+        <h1 class="text-2xl font-bold text-text-primary">{{ org.name }}</h1>
       </div>
 
       <!-- Plan card -->
-      <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-        <h2 class="text-sm font-semibold text-gray-700">Current Plan</h2>
+      <div class="bg-surface-card rounded-xl border border-border p-5 space-y-3">
+        <h2 class="text-sm font-semibold text-text-body">Current Plan</h2>
         <div class="flex items-center justify-between">
-          <span class="text-base font-medium text-gray-900">Free</span>
+          <span class="text-base font-medium text-text-primary">Free</span>
           <a
             [routerLink]="planSegment"
             class="text-sm text-primary font-medium hover:underline">
             View plans
           </a>
         </div>
-        <p class="text-xs text-gray-400">Contact us to upgrade your plan.</p>
+        <p class="text-xs text-text-disabled">Contact us to upgrade your plan.</p>
       </div>
 
       <!-- Actions -->
-      <div class="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+      <div class="bg-surface-card rounded-xl border border-border divide-y divide-gray-100">
         <a
           [routerLink]="settingsSegment"
-          class="flex items-center justify-between px-5 py-4 min-h-14 hover:bg-gray-50 transition-colors">
-          <span class="text-sm font-medium text-gray-900">Organisation settings</span>
-          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          class="flex items-center justify-between px-5 py-4 min-h-14 hover:bg-surface-sunken transition-colors">
+          <span class="text-sm font-medium text-text-primary">Organisation settings</span>
+          <svg class="w-4 h-4 text-text-disabled" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
         </a>

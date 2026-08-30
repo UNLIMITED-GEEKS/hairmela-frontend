@@ -14,23 +14,23 @@
       <!-- Click-catcher so tapping anywhere else closes the menu. -->
       <div class="fixed inset-0 z-10" (click)="open.set(false)" aria-hidden="true"></div>
 
-      <div class="absolute left-0 right-0 z-20 mt-1 rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
+      <div class="absolute left-0 right-0 z-20 mt-1 rounded-xl border border-border bg-surface-card py-1 shadow-lg">
         <a [href]="googleUrl()" target="_blank" rel="noopener noreferrer" (click)="open.set(false)"
-          class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+          class="block px-4 py-2.5 text-sm text-text-body hover:bg-surface-sunken transition-colors">
           Google Calendar
         </a>
         <!-- Apple Calendar, Outlook desktop and anything else standards-based
              all import the same .ics file. -->
         <button type="button" (click)="downloadIcs()"
-          class="block w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+          class="block w-full px-4 py-2.5 text-left text-sm text-text-body hover:bg-surface-sunken transition-colors">
           Apple Calendar
         </button>
         <a [href]="outlookUrl()" target="_blank" rel="noopener noreferrer" (click)="open.set(false)"
-          class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+          class="block px-4 py-2.5 text-sm text-text-body hover:bg-surface-sunken transition-colors">
           Outlook.com
         </a>
         <button type="button" (click)="downloadIcs()"
-          class="block w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+          class="block w-full px-4 py-2.5 text-left text-sm text-text-body hover:bg-surface-sunken transition-colors">
           Other (.ics file)
         </button>
       </div>

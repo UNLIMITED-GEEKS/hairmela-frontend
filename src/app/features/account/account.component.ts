@@ -12,6 +12,7 @@ import { VerifyEmailBannerComponent } from '../../shared/components/verify-email
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { CreateSalonCardComponent } from '../../shared/components/create-salon-card/create-salon-card.component';
 import { RoutePath } from '../../core/routing/route-paths';
+import { ThemeService } from '../../core/theme/theme.service';
 
 @Component({
   selector: 'app-account',
@@ -35,6 +36,7 @@ export class AccountComponent {
 
   protected readonly dashboardLink = RoutePath.dashboard();
   protected readonly contactLink = RoutePath.contact();
+  protected readonly theme = inject(ThemeService);
   protected readonly deleteAccountLink = RoutePath.deleteAccount();
   protected readonly editProfileLink = RoutePath.editProfile();
 

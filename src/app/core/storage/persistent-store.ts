@@ -13,6 +13,7 @@ const PERSISTED_KEYS = [
   'hm_pwa_installed',
   'hm_queue_sound_enabled',
   'hm_sidebar_collapsed',
+  'hm_theme',
   'hairmela_guest',
   'hairmela_active_entries',
 ] as const;

@@ -6,11 +6,11 @@
   <app-page-header title="Locations" backVariant="glass" />
   <div class="pb-6 px-4">
     <div class="py-16 text-center">
-      <svg class="mx-auto w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <svg class="mx-auto w-10 h-10 text-text-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
           d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.71-3.03l-6.93-11a2 2 0 00-3.42 0l-6.93 11A2 2 0 005.07 19z" />
       </svg>
-      <p class="mt-3 text-sm text-gray-400">We couldn't load this salon's locations.</p>
+      <p class="mt-3 text-sm text-text-disabled">We couldn't load this salon's locations.</p>
       <button type="button" (click)="retry()"
         class="mt-4 min-h-11 px-4 bg-primary text-white text-sm font-medium rounded-lg
                hover:bg-primary-dark active:scale-95 transition-all">
@@ -22,18 +22,18 @@
   <app-page-header [title]="p.name" backVariant="glass" />
   <div class="pb-6 px-4">
 
-    <p class="mb-4 text-lg font-medium text-gray-600">
+    <p class="mb-4 text-lg font-medium text-text-muted">
       Welcome to {{ p.name }}! Choose one of our branches to proceed.
     </p>
 
     @if (p.branches.length === 0) {
       <div class="py-16 text-center">
-        <svg class="mx-auto w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <svg class="mx-auto w-10 h-10 text-text-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
             d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
-        <p class="mt-3 text-sm text-gray-400">No locations available right now.</p>
+        <p class="mt-3 text-sm text-text-disabled">No locations available right now.</p>
       </div>
     } @else {
       <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">

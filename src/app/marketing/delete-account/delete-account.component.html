@@ -4,19 +4,19 @@
     <!-- Heading -->
     <div>
       <p class="text-xs font-medium uppercase tracking-wide text-primary">Account</p>
-      <h1 class="mt-1 text-2xl sm:text-4xl font-bold text-gray-900">Delete your account</h1>
-      <p class="mt-3 text-base text-gray-600">
+      <h1 class="mt-1 text-2xl sm:text-4xl font-bold text-text-primary">Delete your account</h1>
+      <p class="mt-3 text-base text-text-muted">
         You can ask us to delete your HairMela account and the data associated with it at any time.
       </p>
     </div>
 
     <!-- How to request -->
     <div class="mt-10">
-      <h2 class="text-lg font-bold text-gray-900">How to request deletion</h2>
+      <h2 class="text-lg font-bold text-text-primary">How to request deletion</h2>
       <ol class="mt-4 space-y-4">
         <li class="flex gap-3">
           <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">1</span>
-          <p class="text-sm text-gray-600 leading-relaxed">
+          <p class="text-sm text-text-muted leading-relaxed">
             Tap the button below, or email us at
             <a [href]="'mailto:' + supportEmail" class="font-medium text-primary hover:underline">{{ supportEmail }}</a>
             from the email address on your account.
@@ -24,13 +24,13 @@
         </li>
         <li class="flex gap-3">
           <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">2</span>
-          <p class="text-sm text-gray-600 leading-relaxed">
+          <p class="text-sm text-text-muted leading-relaxed">
             Include your account email, and your salon name if you own or work at one, so we can find the right account.
           </p>
         </li>
         <li class="flex gap-3">
           <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">3</span>
-          <p class="text-sm text-gray-600 leading-relaxed">
+          <p class="text-sm text-text-muted leading-relaxed">
             We will confirm the request by replying to that address, then delete the account within <strong>30 days</strong>.
           </p>
         </li>
@@ -41,7 +41,7 @@
         Request account deletion
       </a>
 
-      <p class="mt-3 text-sm text-gray-500">
+      <p class="mt-3 text-sm text-text-secondary">
         No email app? Use the <a [routerLink]="contactLink" class="font-medium text-primary hover:underline">contact form</a> instead
         and mention that you want your account deleted.
       </p>
@@ -49,21 +49,21 @@
 
     <!-- What gets deleted -->
     <div class="mt-12">
-      <h2 class="text-lg font-bold text-gray-900">What gets deleted</h2>
+      <h2 class="text-lg font-bold text-text-primary">What gets deleted</h2>
       <ul class="mt-4 space-y-2">
-        <li class="flex gap-2.5 text-sm text-gray-600">
+        <li class="flex gap-2.5 text-sm text-text-muted">
           <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary"></span>
           Your profile, name, email address, and phone number.
         </li>
-        <li class="flex gap-2.5 text-sm text-gray-600">
+        <li class="flex gap-2.5 text-sm text-text-muted">
           <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary"></span>
           Your queue history and any appointments you booked.
         </li>
-        <li class="flex gap-2.5 text-sm text-gray-600">
+        <li class="flex gap-2.5 text-sm text-text-muted">
           <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary"></span>
           Your notification settings and any devices registered for push.
         </li>
-        <li class="flex gap-2.5 text-sm text-gray-600">
+        <li class="flex gap-2.5 text-sm text-text-muted">
           <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary"></span>
           If you own a salon: the salon, its staff, services, and photos.
         </li>
@@ -72,8 +72,8 @@
 
     <!-- What we keep -->
     <div class="mt-12">
-      <h2 class="text-lg font-bold text-gray-900">What we may keep</h2>
-      <p class="mt-3 text-sm text-gray-600 leading-relaxed">
+      <h2 class="text-lg font-bold text-text-primary">What we may keep</h2>
+      <p class="mt-3 text-sm text-text-muted leading-relaxed">
         We keep records we are legally required to retain, such as payment and invoice records for
         completed subscriptions. These are kept only as long as the law requires and are not used to
         contact you.
@@ -90,7 +90,7 @@
       </ul>
     </div>
 
-    <p class="mt-10 text-sm text-gray-500">
+    <p class="mt-10 text-sm text-text-secondary">
       For more on how we handle your information, see our
       <a [routerLink]="privacyLink" class="font-medium text-primary hover:underline">Privacy Policy</a>.
     </p>

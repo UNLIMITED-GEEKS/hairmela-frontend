@@ -1,6 +1,6 @@
 <button type="button" (click)="select.emit()"
   [disabled]="!availability().joinable"
-  class="group relative block h-full w-full text-left rounded-xl overflow-hidden bg-gray-100 hover:shadow-md transition-shadow
+  class="group relative block h-full w-full text-left rounded-xl overflow-hidden bg-surface-overlay hover:shadow-md transition-shadow
          disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:shadow-none">
 
   <!-- Full-bleed photo — the card IS the photo; name/availability are
@@ -13,7 +13,7 @@
        Fixed height so every card's bar matches regardless of whether a
        nickname is present — overflow-hidden clips the nickname line instead
        of letting it grow the bar taller than cards without one. -->
-  <div class="absolute inset-x-0 bottom-0  px-4 py-2 bg-gray-900/40 backdrop-blur-md overflow-hidden">
+  <div class="absolute inset-x-0 bottom-0  px-4 py-2 bg-glass-strong/40 backdrop-blur-md overflow-hidden">
     @if (availability().showBadge) {
       <p class="text-[0.6rem] font-normal" [class]="availability().joinable ? 'text-available' : 'text-white/70'">
         {{ availability().label }}

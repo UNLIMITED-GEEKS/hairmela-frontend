@@ -10,6 +10,8 @@ import { PushPromptComponent } from '../../../shared/components/push-prompt/push
 import { AccordionComponent } from '../../../shared/components/accordion/accordion.component';
 import { CommentsThreadComponent } from '../../comments/comments-thread/comments-thread.component';
 import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
+import { hasChatCounterparty } from '../../../core/appointments/reschedule-policy';
+import { TimelineEntryDto } from '../../../core/socket/socket.types';
 
 @Component({
   selector: 'app-queue-list',
@@ -69,6 +71,11 @@ export class QueueListComponent {
   // each row's accordion [open] is derived from equality against
   // openNotesEntryId, so setting it to a new row implicitly collapses
   // whichever row was previously open.
+  /** Staff-added rows have nobody to chat with — see hasChatCounterparty. */
+  protected showChat(entry: TimelineEntryDto): boolean {
+    return hasChatCounterparty(entry);
+  }
+
   protected onRowNotesOpenChange(entryId: string, open: boolean): void {
     if (!open) {
       if (this.openNotesEntryId() === entryId) this.openNotesEntryId.set(null);

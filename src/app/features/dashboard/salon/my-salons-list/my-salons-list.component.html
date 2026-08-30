@@ -1,7 +1,7 @@
 <div class="space-y-3">
   @for (item of salons(); track item.salon.id) {
     <div
-      class="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4 min-h-18 cursor-pointer active:bg-gray-50 transition-colors"
+      class="bg-surface-card rounded-xl border border-border p-4 flex items-center gap-4 min-h-18 cursor-pointer active:bg-surface-sunken transition-colors"
       role="button"
       [attr.aria-label]="'Open ' + item.salon.name"
       (click)="navigateToSalon(item.salon.id)">
@@ -14,8 +14,8 @@
 
       <!-- Info -->
       <div class="flex-1 min-w-0">
-        <p class="font-medium text-gray-900 truncate">{{ item.salon.name }}</p>
-        <p class="text-xs text-gray-400 truncate">{{ item.salon.address.city }}, {{ item.salon.address.country }}</p>
+        <p class="font-medium text-text-primary truncate">{{ item.salon.name }}</p>
+        <p class="text-xs text-text-disabled truncate">{{ item.salon.address.city }}, {{ item.salon.address.country }}</p>
       </div>
 
       <!-- Role badge -->
@@ -24,7 +24,7 @@
       </span>
 
       <!-- Go arrow -->
-      <div class="min-w-11 min-h-11 flex items-center justify-center text-gray-400">
+      <div class="min-w-11 min-h-11 flex items-center justify-center text-text-disabled">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>

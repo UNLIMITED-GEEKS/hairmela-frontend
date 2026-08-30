@@ -42,7 +42,7 @@ export class CommentsThreadComponent {
   readonly entryId = input.required<string>();
   // My Position vs. queue-list use different empty-state/placeholder copy.
   readonly composerPlaceholder = input('Write a note…');
-  readonly emptyLabel = input('No notes yet.');
+  readonly emptyLabel = input('No chat yet.');
 
   // Phone to call from the composer, supplied by the host because each side
   // reads it from a different place: the customer gets the barber's number
@@ -87,7 +87,10 @@ export class CommentsThreadComponent {
     this.loadError.set(null);
     this._comments
       .list(this.queueId(), this.entryId())
-      .pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this._destroyRef))
+      .pipe(
+        finalize(() => this.loading.set(false)),
+        takeUntilDestroyed(this._destroyRef),
+      )
       .subscribe({
         next: (list) => {
           this.comments.set(list);
@@ -152,7 +155,10 @@ export class CommentsThreadComponent {
 
     this._comments
       .post(this.queueId(), this.entryId(), { body, image })
-      .pipe(finalize(() => this.sending.set(false)), takeUntilDestroyed(this._destroyRef))
+      .pipe(
+        finalize(() => this.sending.set(false)),
+        takeUntilDestroyed(this._destroyRef),
+      )
       .subscribe({
         next: (comment) => {
           this.comments.update((list) => [...(list ?? []), comment]);

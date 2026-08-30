@@ -6,22 +6,22 @@
       @case ('loading') {
         <div class="flex flex-col items-center gap-3 py-10">
           <div class="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
-          <p class="text-sm text-gray-500">Checking your invitation…</p>
+          <p class="text-sm text-text-secondary">Checking your invitation…</p>
         </div>
       }
 
       @case ('invalid') {
         <div class="text-center space-y-4">
-          <h1 class="text-2xl font-bold text-gray-900">Link invalid or expired</h1>
-          <p class="text-sm text-gray-500">This invitation link is invalid or has expired, ask the salon for a new invite.</p>
+          <h1 class="text-2xl font-bold text-text-primary">Link invalid or expired</h1>
+          <p class="text-sm text-text-secondary">This invitation link is invalid or has expired, ask the salon for a new invite.</p>
           <a [routerLink]="loginLink" class="inline-block text-sm font-medium text-primary hover:underline">Go to sign in</a>
         </div>
       }
 
       @case ('notFound') {
         <div class="text-center space-y-4">
-          <h1 class="text-2xl font-bold text-gray-900">Invitation not found</h1>
-          <p class="text-sm text-gray-500">This invitation is no longer valid.</p>
+          <h1 class="text-2xl font-bold text-text-primary">Invitation not found</h1>
+          <p class="text-sm text-text-secondary">This invitation is no longer valid.</p>
           <a [routerLink]="loginLink" class="inline-block text-sm font-medium text-primary hover:underline">Go to sign in</a>
         </div>
       }
@@ -33,7 +33,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
             </svg>
           </div>
-          <h1 class="text-2xl font-bold text-gray-900">You've already joined {{ invite()?.salonName }}</h1>
+          <h1 class="text-2xl font-bold text-text-primary">You've already joined {{ invite()?.salonName }}</h1>
           <button (click)="goToDashboard()" class="inline-block text-sm font-medium text-primary hover:underline">Go to dashboard</button>
         </div>
       }
@@ -41,7 +41,7 @@
       @case ('accepting') {
         <div class="flex flex-col items-center gap-3 py-10">
           <div class="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
-          <p class="text-sm text-gray-500">Adding you to {{ invite()?.salonName }}…</p>
+          <p class="text-sm text-text-secondary">Adding you to {{ invite()?.salonName }}…</p>
         </div>
       }
 
@@ -52,8 +52,8 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
             </svg>
           </div>
-          <h1 class="text-2xl font-bold text-gray-900">You've been added to {{ invite()?.salonName }}</h1>
-          <p class="text-sm text-gray-500">You joined as {{ invite()?.role }}.</p>
+          <h1 class="text-2xl font-bold text-text-primary">You've been added to {{ invite()?.salonName }}</h1>
+          <p class="text-sm text-text-secondary">You joined as {{ invite()?.role }}.</p>
           <button (click)="goToDashboard()"
             class="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover transition-colors">
             Go to dashboard
@@ -63,16 +63,16 @@
 
       @case ('error') {
         <div class="text-center space-y-4">
-          <h1 class="text-2xl font-bold text-gray-900">Couldn't accept invite</h1>
-          <p class="text-sm text-gray-500">{{ errorMessage() }}</p>
+          <h1 class="text-2xl font-bold text-text-primary">Couldn't accept invite</h1>
+          <p class="text-sm text-text-secondary">{{ errorMessage() }}</p>
           <a [routerLink]="loginLink" class="inline-block text-sm font-medium text-primary hover:underline">Back to sign in</a>
         </div>
       }
 
       @case ('login') {
         <div class="mb-8 text-center">
-          <h1 class="text-2xl font-bold text-gray-900">Join {{ invite()?.salonName }}</h1>
-          <p class="mt-1 text-sm text-gray-500">Sign in to accept your invitation as {{ invite()?.role }}.</p>
+          <h1 class="text-2xl font-bold text-text-primary">Join {{ invite()?.salonName }}</h1>
+          <p class="mt-1 text-sm text-text-secondary">Sign in to accept your invitation as {{ invite()?.role }}.</p>
         </div>
 
         <form [formGroup]="loginForm" (ngSubmit)="submitLogin()" novalidate class="space-y-4">
@@ -80,14 +80,14 @@
             <div class="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700" role="alert">{{ errorMessage() }}</div>
           }
           <div>
-            <label for="ai-login-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label for="ai-login-email" class="block text-sm font-medium text-text-body mb-1">Email</label>
             <input id="ai-login-email" type="email" name="email" autocomplete="email" formControlName="email"
-              class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500" />
+              class="w-full rounded-lg border border-border bg-surface-sunken px-3 py-2 text-sm text-text-secondary" />
           </div>
           <div>
-            <label for="ai-login-pw" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label for="ai-login-pw" class="block text-sm font-medium text-text-body mb-1">Password</label>
             <input id="ai-login-pw" type="password" name="password" appPasswordToggle formControlName="password" autocomplete="current-password"
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              class="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               [class.border-red-400]="loginForm.controls.password.invalid && loginForm.controls.password.touched"
               placeholder="••••••••" />
             <app-field-error [control]="loginForm.controls.password" />
@@ -97,7 +97,7 @@
             {{ submitting() ? 'Signing in…' : 'Sign in & join' }}
           </button>
           <button type="button" (click)="decline()" [disabled]="submitting()"
-            class="w-full text-center text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50 transition-colors">
+            class="w-full text-center text-sm text-text-secondary hover:text-text-body disabled:opacity-50 transition-colors">
             Decline invitation
           </button>
         </form>
@@ -105,8 +105,8 @@
 
       @case ('register') {
         <div class="mb-8 text-center">
-          <h1 class="text-2xl font-bold text-gray-900">Join {{ invite()?.salonName }}</h1>
-          <p class="mt-1 text-sm text-gray-500">Create your account to accept your invitation as {{ invite()?.role }}.</p>
+          <h1 class="text-2xl font-bold text-text-primary">Join {{ invite()?.salonName }}</h1>
+          <p class="mt-1 text-sm text-text-secondary">Create your account to accept your invitation as {{ invite()?.role }}.</p>
         </div>
 
         <form [formGroup]="registerForm" (ngSubmit)="submitRegister()" novalidate class="space-y-4">
@@ -114,38 +114,38 @@
             <div class="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700" role="alert">{{ errorMessage() }}</div>
           }
           <div>
-            <label for="ai-reg-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label for="ai-reg-email" class="block text-sm font-medium text-text-body mb-1">Email</label>
             <input id="ai-reg-email" type="email" name="email" autocomplete="email" formControlName="email"
-              class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500" />
+              class="w-full rounded-lg border border-border bg-surface-sunken px-3 py-2 text-sm text-text-secondary" />
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label for="ai-first" class="block text-sm font-medium text-gray-700 mb-1">First name</label>
+              <label for="ai-first" class="block text-sm font-medium text-text-body mb-1">First name</label>
               <input id="ai-first" type="text" name="given-name" autocomplete="given-name" formControlName="firstName"
-                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                class="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 [class.border-red-400]="registerForm.controls.firstName.invalid && registerForm.controls.firstName.touched" />
               <app-field-error [control]="registerForm.controls.firstName" />
             </div>
             <div>
-              <label for="ai-last" class="block text-sm font-medium text-gray-700 mb-1">Last name</label>
+              <label for="ai-last" class="block text-sm font-medium text-text-body mb-1">Last name</label>
               <input id="ai-last" type="text" name="family-name" autocomplete="family-name" formControlName="lastName"
-                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                class="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 [class.border-red-400]="registerForm.controls.lastName.invalid && registerForm.controls.lastName.touched" />
               <app-field-error [control]="registerForm.controls.lastName" />
             </div>
           </div>
           <div>
-            <label for="ai-phone" class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+            <label for="ai-phone" class="block text-sm font-medium text-text-body mb-1">Phone</label>
             <input id="ai-phone" type="tel" name="tel" autocomplete="tel" formControlName="phone"
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              class="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               [class.border-red-400]="registerForm.controls.phone.invalid && registerForm.controls.phone.touched"
               placeholder="e.g. 08012345678" />
             <app-field-error [control]="registerForm.controls.phone" />
           </div>
           <div>
-            <label for="ai-reg-pw" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label for="ai-reg-pw" class="block text-sm font-medium text-text-body mb-1">Password</label>
             <input id="ai-reg-pw" type="password" name="new-password" appPasswordToggle formControlName="password" autocomplete="new-password"
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              class="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               placeholder="Min. 8 characters" />
             <app-field-error [control]="registerForm.controls.password" />
           </div>
@@ -154,7 +154,7 @@
             {{ submitting() ? 'Creating account…' : 'Create account & join' }}
           </button>
           <button type="button" (click)="decline()" [disabled]="submitting()"
-            class="w-full text-center text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50 transition-colors">
+            class="w-full text-center text-sm text-text-secondary hover:text-text-body disabled:opacity-50 transition-colors">
             Decline invitation
           </button>
         </form>
