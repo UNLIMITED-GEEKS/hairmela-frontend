@@ -43,7 +43,7 @@ export class PasswordToggleDirective implements OnInit {
     this._renderer.setProperty(
       button,
       'className',
-      'absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600',
+      'absolute inset-y-0 right-0 flex items-center pr-3 text-text-disabled hover:text-text-muted',
     );
     this._renderer.appendChild(wrapper, button);
     this._renderer.listen(button, 'click', () => this._toggle(input, button));

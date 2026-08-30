@@ -24,7 +24,7 @@ android {
         //
         // versionName: the string users see. Independent of versionCode — it can
         // repeat or move backwards without Play caring.
-        versionCode 19
+        versionCode 20
         versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

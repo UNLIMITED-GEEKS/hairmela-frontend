@@ -59,7 +59,7 @@ export class StaffListComponent implements OnInit {
     const map: Record<SalonStaff['role'], string> = {
       OWNER: 'bg-primary/10 text-primary',
       ADMIN: 'bg-blue-100 text-blue-700',
-      STAFF: 'bg-gray-100 text-gray-600',
+      STAFF: 'bg-surface-overlay text-text-muted',
     };
     return map[role];
   }
@@ -68,7 +68,7 @@ export class StaffListComponent implements OnInit {
     const map: Record<SalonStaff['status'], string> = {
       ACTIVE: 'bg-green-100 text-green-700',
       PENDING: 'bg-amber-100 text-amber-700',
-      INACTIVE: 'bg-gray-100 text-gray-500',
+      INACTIVE: 'bg-surface-overlay text-text-secondary',
     };
     return map[status];
   }

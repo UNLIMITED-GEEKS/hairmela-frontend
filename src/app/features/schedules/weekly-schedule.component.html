@@ -20,7 +20,7 @@
     <div class="space-y-5">
 
 
-      <div class="bg-surface-card rounded-xl border border-border divide-y divide-gray-100">
+      <div class="bg-surface-card rounded-xl border border-border divide-y divide-border-subtle">
         @for (day of days; track $index) {
           @let schedule = scheduleForDay($index);
           @let isEditing = editingId() === schedule?.id;

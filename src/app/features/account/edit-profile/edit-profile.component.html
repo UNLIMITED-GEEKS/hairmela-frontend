@@ -18,7 +18,7 @@
       <div>
         <label for="firstName" class="block text-sm font-medium text-text-body mb-1">First name</label>
         <input id="firstName" formControlName="firstName" type="text" autocomplete="given-name"
-          class="w-full rounded-xl border border-border px-4 py-3 text-sm text-text-primary placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+          class="w-full rounded-xl border border-border px-4 py-3 text-sm text-text-primary placeholder:text-text-secondary focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
           placeholder="First name" />
         <app-field-error
           [control]="form.controls.firstName"
@@ -29,7 +29,7 @@
       <div>
         <label for="lastName" class="block text-sm font-medium text-text-body mb-1">Last name</label>
         <input id="lastName" formControlName="lastName" type="text" autocomplete="family-name"
-          class="w-full rounded-xl border border-border px-4 py-3 text-sm text-text-primary placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+          class="w-full rounded-xl border border-border px-4 py-3 text-sm text-text-primary placeholder:text-text-secondary focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
           placeholder="Last name" />
         <app-field-error
           [control]="form.controls.lastName"
@@ -40,7 +40,7 @@
       <div>
         <label for="nickname" class="block text-sm font-medium text-text-body mb-1">Nickname <span class="text-text-disabled">(optional)</span></label>
         <input id="nickname" formControlName="nickname" type="text" autocomplete="nickname"
-          class="w-full rounded-xl border border-border px-4 py-3 text-sm text-text-primary placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+          class="w-full rounded-xl border border-border px-4 py-3 text-sm text-text-primary placeholder:text-text-secondary focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
           placeholder="e.g. J-Money" />
         <p class="mt-1 text-xs text-text-disabled">Shown in brackets next to your name where applicable</p>
         <app-field-error [control]="form.controls.nickname" />
@@ -50,7 +50,7 @@
       <div>
         <label for="phone" class="block text-sm font-medium text-text-body mb-1">Phone number <span class="text-text-disabled">(optional)</span></label>
         <input id="phone" formControlName="phone" type="tel" autocomplete="tel"
-          class="w-full rounded-xl border border-border px-4 py-3 text-sm text-text-primary placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+          class="w-full rounded-xl border border-border px-4 py-3 text-sm text-text-primary placeholder:text-text-secondary focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
           placeholder="+234 800 000 0000" />
         <app-field-error [control]="form.controls.phone" />
       </div>

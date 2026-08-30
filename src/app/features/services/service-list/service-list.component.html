@@ -41,7 +41,7 @@
           @for (category of serviceCategories(); track category.id) {
             <app-accordion [title]="category.name" [open]="isCategoryOpen(category.id)"
               (openChange)="setCategoryOpen(category.id, $event)">
-              <div class="bg-surface-card rounded-xl border border-border divide-y divide-gray-100">
+              <div class="bg-surface-card rounded-xl border border-border divide-y divide-border-subtle">
                 <app-animated-list [items]="category.services">
                   <ng-template let-service>
                     <div class="flex flex-wrap items-center gap-3 px-4 py-4">

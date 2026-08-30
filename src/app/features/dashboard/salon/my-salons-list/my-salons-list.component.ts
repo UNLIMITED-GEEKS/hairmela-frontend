@@ -33,7 +33,7 @@ export class MySalonsListComponent {
     const classes: Record<MySalonDto['role'], string> = {
       OWNER: 'bg-primary/10 text-primary',
       ADMIN: 'bg-blue-100 text-blue-700',
-      STAFF: 'bg-gray-100 text-gray-600',
+      STAFF: 'bg-surface-overlay text-text-muted',
     };
     return classes[role];
   }

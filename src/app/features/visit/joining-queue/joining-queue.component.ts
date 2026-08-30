@@ -17,7 +17,7 @@ import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
   template: `
     <div class="flex flex-col items-center justify-center h-full min-h-64 gap-4 p-6">
       <div class="w-16 h-16 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
-      <p class="text-sm text-gray-500">Finding your spot…</p>
+      <p class="text-sm text-text-secondary">Finding your spot…</p>
     </div>
   `,
 })

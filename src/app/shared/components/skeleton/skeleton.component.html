@@ -63,7 +63,7 @@
 
 <!-- List-item skeleton — row with label + chevron (menu / settings list) -->
 @if (variant() === 'list-item') {
-  <div class="bg-surface-card border border-border-subtle rounded-xl divide-y divide-gray-50 overflow-hidden">
+  <div class="bg-surface-card border border-border-subtle rounded-xl divide-y divide-border-subtle overflow-hidden">
     @for (item of items(); track $index) {
       <div class="flex items-center justify-between px-5 py-4">
         <div class="skeleton-pulse rounded bg-surface-strong h-4"
