@@ -214,8 +214,12 @@
           </div>
 
           <div>
+            <!-- Labelled by what it DOES, not by the API field name: "slot
+                 duration" reads as how long an appointment lasts, which is the
+                 opposite of what this controls. The payload field is still
+                 defaultSlotDuration. -->
             <label for="s-slot" class="block text-sm font-medium text-text-body mb-1.5"
-              >Default slot duration (mins)</label
+              >Time between bookings (mins)</label
             >
             <input
               id="s-slot"
@@ -225,6 +229,14 @@
               max="240"
               class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
             />
+            <!-- Spacing of the bookable time grid, not a cap on service
+                 length: availability.service.ts steps the day by this value
+                 to produce the times a customer can pick. -->
+            <p class="mt-1.5 text-xs text-text-disabled">
+              How far apart bookable times are. Set 30 and customers pick from 3:00, 3:30, 4:00;
+              set 15 and they get 3:00, 3:15, 3:30. It spaces the choices only. A service that
+              runs longer than this still blocks the time it needs.
+            </p>
             <app-field-error [control]="form.controls.defaultSlotDuration" />
           </div>
         </div>
@@ -399,8 +411,7 @@
               </div>
             </div>
             <p class="text-xs text-text-disabled">
-              The fixed amount is used when every booked service has dynamic pricing, so a
-              percentage can't be worked out.
+               when a percentage can't be calculated (e.g. a service with no price or dynamic pricing). The fixed amount is used.
             </p>
 
             <div>

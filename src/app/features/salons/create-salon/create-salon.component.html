@@ -115,10 +115,13 @@
           <app-field-error [control]="form.get('timezone')" />
         </div>
 
-        <!-- Default slot duration -->
+        <!-- Time between bookings. Labelled by what it DOES, not by the API
+             field name (defaultSlotDuration): "slot duration" reads as how
+             long an appointment lasts, which is the opposite of what it
+             controls. Same wording as Salon Settings. -->
         <div>
           <label for="slot-duration" class="block text-sm font-medium text-text-body mb-1.5">
-            Default slot duration (minutes)
+            Time between bookings (minutes)
           </label>
           <input
             id="slot-duration"
@@ -128,6 +131,10 @@
             max="240"
             class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg
                    focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors" />
+          <p class="mt-1.5 text-xs text-text-disabled">
+            How far apart bookable times are. Set 30 and customers pick from 3:00, 3:30, 4:00.
+            You can change this later.
+          </p>
           <app-field-error
             [control]="form.get('defaultSlotDuration')"
             [messages]="{ min: 'Must be between 5 and 240 minutes.', max: 'Must be between 5 and 240 minutes.' }" />
