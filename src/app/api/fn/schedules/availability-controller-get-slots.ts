@@ -27,7 +27,7 @@ export interface AvailabilityControllerGetSlots$Params {
   date?: string;
 
 /**
- * Inclusive start of a salon-local date range (YYYY-MM-DD). Send with `to` for a month view — every available slot across the range, flat, each stamped with its own `date`. Capped at 31 days.
+ * Inclusive start of a salon-local date range (YYYY-MM-DD). Send with `to` for a month view — every available slot across the range, flat, each stamped with its own `date`. Capped at 60 days, matching how far ahead a customer may book.
  */
   from?: string;
 

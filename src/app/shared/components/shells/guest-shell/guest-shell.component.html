@@ -1,7 +1,7 @@
 <div class="flex h-screen w-full overflow-hidden bg-surface">
 
   <!-- Desktop sidebar -->
-  <app-sidebar [navItems]="navItems" [showLogout]="false" />
+  <app-sidebar [navItems]="navItems" [showLogout]="false" [isGuest]="true" />
 
   <div class="flex flex-col flex-1 min-w-0 overflow-hidden">
 
@@ -11,6 +11,7 @@
     <!-- Mobile top bar + expandable sheet -->
     <app-mobile-top-bar
       [sheetOpen]="sheetOpen()"
+      [isGuest]="true"
       (sheetToggle)="sheetOpen.update(v => !v)">
       <app-mobile-sheet
         [navItems]="navItems"

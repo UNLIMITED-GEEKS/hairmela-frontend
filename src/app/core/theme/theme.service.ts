@@ -99,5 +99,12 @@ export class ThemeService {
     // in the matching scheme — without it a dark page keeps white scrollbars
     // and light-styled date pickers.
     root.style.colorScheme = mode;
+
+    // Browser/OS chrome — Android's status bar, Safari's toolbar. index.html
+    // sets this before boot; this keeps it right when the user toggles at
+    // runtime, which the meta tag's own media query cannot do (it follows the
+    // OS, not the in-app choice). Values mirror --color-surface per theme.
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', mode === 'dark' ? '#261D1D' : '#8B0000');
   }
 }

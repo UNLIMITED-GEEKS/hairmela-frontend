@@ -35,6 +35,8 @@ function entry(over: Partial<TimelineEntryDto> = {}): TimelineEntryDto {
   return {
     entryId: 'e1',
     estimatedWaitMinutes: 0,
+    guestId: null,
+    userId: null,
     isUpcoming: false,
     members: [member()],
     position: 1,

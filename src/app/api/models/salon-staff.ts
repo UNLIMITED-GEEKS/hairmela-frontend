@@ -12,6 +12,7 @@ export interface SalonStaff {
   id: string;
   invitedAt: string;
   isAcceptingClients: boolean;
+  pendingServiceIds: Array<string> | null;
   role: 'OWNER' | 'ADMIN' | 'STAFF';
   salon: Salon;
   salonId: string;

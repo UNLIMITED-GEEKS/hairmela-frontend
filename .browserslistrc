@@ -26,7 +26,27 @@ last 2 versions
 Firefox ESR
 not dead
 
+# Excluded because they have no ES6 module support, which the Angular CLI
+# requires — it was already dropping both from the build target and warning
+# about it on every build and test run. Naming them here changes nothing about
+# the emitted bundle (verified: the resolved list loses these two and nothing
+# else); it just stops the warning. Neither is plausible traffic for us.
+not kaios 2.5
+not op_mini all
+
 # Explicit floors — these are the ones that actually matter here.
+#
+# THESE FLOORS CAUSE A BUILD WARNING, AND THAT IS EXPECTED. Angular warns that
+# "one or more browsers ... fall outside Angular's browser support", listing
+# Safari 15/16, older Chrome, Samsung 29/30 and so on. Angular's own floor is
+# baseline-widely-available (iOS/Safari 16.4, Chrome 111 as of Angular 20) and
+# it advances every release.
+#
+# The warning is advisory only: unlike the ES5 case above, Angular still BUILDS
+# for these targets — it just does not promise to support them. Silencing it
+# would mean raising the floor to iOS 16.4, which drops the iPhone 7 (iOS 15 is
+# its last version) and re-creates the dead-button bug described at the top of
+# this file. Do not "fix" the warning that way.
 iOS >= 15
 Safari >= 15
 Chrome >= 90

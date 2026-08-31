@@ -7,8 +7,11 @@ import { SalonRole } from '../../../core/salon-context/membership.types';
 import { RoutePath } from '../../../core/routing/route-paths';
 
 // "Create a salon" CTA — shows the create-salon link while under the org's
-// salon limit, or an upgrade prompt once it's reached. Shared by Account and
-// Dashboard so both stay in sync with the same tier-limit logic.
+// salon limit, or an upgrade prompt once it's reached. Lives on Account only.
+//
+// Shown to every user, including one whose only salon relationships are
+// STAFF/ADMIN: being staff somewhere does not stop you owning a salon of
+// your own, so there is no role gate here — only the tier limit.
 @Component({
   selector: 'app-create-salon-card',
   templateUrl: './create-salon-card.component.html',
@@ -19,16 +22,6 @@ export class CreateSalonCardComponent {
   private readonly _orgContext = inject(OrgContextService);
 
   protected readonly newSalonLink = RoutePath.newSalon();
-
-  // Hidden entirely for a user whose only salon relationships are non-owner
-  // (ADMIN/STAFF) — creating a salon isn't something a pure staff member
-  // does, only an owner (or a brand-new user with no relationships at all,
-  // who owns nothing yet but is free to become an owner). A user with zero
-  // salons() entries is exactly that new-user case, not staff-only.
-  protected readonly staffOnly = computed(() => {
-    const salons = this._dashboardService.salons();
-    return salons.length > 0 && !salons.some((s) => s.role === SalonRole.OWNER);
-  });
 
   protected readonly canAddSalon = computed(() => {
     const limit = this._orgContext.access()?.salonLimit ?? UNLIMITED_SENTINEL;

@@ -78,10 +78,18 @@ export interface VisibleControl extends ControlItem {
 export class SidebarComponent implements OnInit {
   protected readonly RouteSegment = RouteSegment;
   protected readonly RoutePath = RoutePath;
-  // Always the dashboard, on every platform. This nav only renders in the
-  // auth/guest shells, where the user is already inside the app — sending the
-  // logo to the marketing home there would read as being logged out.
-  protected readonly rootLink = RoutePath.dashboard();
+  /**
+   * Set by the guest shell — a guest has no session, so the dashboard would
+   * only bounce them to login. Defaults false, keeping the auth shell on the
+   * dashboard: there the user is already inside the app, and sending the logo
+   * to the marketing home would read as being logged out.
+   */
+  readonly isGuest = input(false);
+
+  // Home for a guest, dashboard for a signed-in user (see isGuest).
+  protected readonly rootLink = computed(() =>
+    this.isGuest() ? RoutePath.root() : RoutePath.dashboard(),
+  );
 
   readonly navItems = input<NavItem[]>([]);
   readonly activeSalonId = input<string | null>(null);

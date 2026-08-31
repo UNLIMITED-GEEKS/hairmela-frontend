@@ -3,6 +3,7 @@ import { ActivatedRouteSnapshot, CanActivateFn, Router, RouterStateSnapshot } fr
 import { TokenStore } from '../auth/token.store';
 import { GuestStore } from '../guest/guest-store';
 import { RoutePath, RouteQueryParam, RouteSegment } from '../routing/route-paths';
+import { toGuestShellPath } from '../routing/shell-url';
 
 export const authGuard: CanActivateFn = (_route: ActivatedRouteSnapshot, state: RouterStateSnapshot) => {
   const tokenStore = inject(TokenStore);
@@ -22,7 +23,7 @@ export const authGuard: CanActivateFn = (_route: ActivatedRouteSnapshot, state: 
 
   // No account at all — salon visit pages go to guest shell
   if (attempted.startsWith(`/${RouteSegment.S}/`)) {
-    return router.createUrlTree([`/${RouteSegment.G}${attempted}`]);
+    return router.createUrlTree([toGuestShellPath(attempted)]);
   }
 
   // Guest token only — they can browse guest routes

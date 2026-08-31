@@ -12,6 +12,13 @@ import { CreateServiceDto } from '../../../api/models/create-service-dto';
 // send staffIds (backend treats omitted as "leave assignments untouched", so
 // sending [] would wipe them), and (2) a touched checklist must send the full
 // selection. Plus the checkbox toggle round-trip.
+//
+// save() has TWO paths and both are covered below:
+//   - checklist dirty  → submits immediately
+//   - checklist clean  → opens the assign-staff dialog, which IS the submit
+//                        step; the request goes out from onAssignConfirmed().
+// Tests that do not toggleStaff() must therefore drive the dialog, or nothing
+// is ever sent.
 
 class MockServicesService {
   createBody: CreateServiceDto | null = null;
@@ -60,6 +67,10 @@ function configure(params: Record<string, string>) {
     toggleStaff(id: string, checked: boolean): void;
     isStaffChecked(id: string): boolean;
     save(): void;
+    // save() only submits directly when the checklist is dirty; otherwise it
+    // opens the assign-staff dialog, and THIS is where the request goes out.
+    assignOpen: { (): boolean; set(v: boolean): void };
+    onAssignConfirmed(result: { staffIds: string[]; changed: boolean }): void;
   };
   return { cmp, services };
 }
@@ -78,10 +89,21 @@ describe('ServiceFormComponent — staffIds wiring', () => {
     expect(cmp.form.controls.staffIds.value).toEqual(['b']);
   });
 
+  it('create with an untouched checklist opens the assign dialog rather than submitting', () => {
+    const { cmp, services } = configure({ salonId: 's1' });
+    cmp.form.patchValue(validCore);
+    cmp.save();
+    expect(cmp.assignOpen()).toBe(true);
+    expect(services.createBody).toBeNull();
+  });
+
   it('create always sends staffIds (even empty)', () => {
     const { cmp, services } = configure({ salonId: 's1' });
     cmp.form.patchValue(validCore);
     cmp.save();
+    // Dismissed without picking anyone — create must still send [], because
+    // on create there are no existing assignments to preserve.
+    cmp.onAssignConfirmed({ staffIds: [], changed: false });
     expect(services.createBody).not.toBeNull();
     expect(services.createBody!.staffIds).toEqual([]);
   });
@@ -100,8 +122,20 @@ describe('ServiceFormComponent — staffIds wiring', () => {
     // mark the control dirty, mirroring the real edit-mode pre-population.
     cmp.form.patchValue({ ...validCore, staffIds: ['a', 'b'] });
     cmp.save();
+    // Clean checklist → the dialog is the submit step. Confirming it unchanged
+    // must NOT mark the control dirty, so staffIds stays off the payload and
+    // the backend leaves the existing assignments alone.
+    cmp.onAssignConfirmed({ staffIds: ['a', 'b'], changed: false });
     expect(services.updateBody).not.toBeNull();
     expect('staffIds' in services.updateBody!).toBe(false);
+  });
+
+  it('edit sends staffIds when the dialog reports a change', () => {
+    const { cmp, services } = configure({ salonId: 's1', serviceId: 'svc1' });
+    cmp.form.patchValue({ ...validCore, staffIds: ['a', 'b'] });
+    cmp.save();
+    cmp.onAssignConfirmed({ staffIds: ['a', 'c'], changed: true });
+    expect(services.updateBody!.staffIds).toEqual(['a', 'c']);
   });
 
   it('edit WITH a checklist change sends the full current selection', () => {

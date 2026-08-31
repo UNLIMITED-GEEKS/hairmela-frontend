@@ -33,7 +33,14 @@
   <meta name="twitter:image:alt" content="HairMela logo">
 
   <!-- Mobile / PWA -->
-  <meta name="theme-color" content="#8B0000">
+  <!-- Browser/OS chrome: Android's status bar, Safari's toolbar. Two
+       media-scoped tags are the no-JS baseline; the pre-boot script below
+       replaces them once it knows the resolved theme, because an explicit
+       in-app choice has to beat the OS preference and a media query cannot
+       see one. Light keeps the branded crimson; dark uses --color-surface
+       (#261D1D) so the bar continues the page instead of capping it in red. -->
+  <meta name="theme-color" content="#8B0000" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#261D1D" media="(prefers-color-scheme: dark)">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -79,6 +86,15 @@
               : 'light';
         document.documentElement.setAttribute('data-theme', mode);
         document.documentElement.style.colorScheme = mode;
+        // Collapse the two media-scoped tags into one unconditional tag for the
+        // resolved mode. Without this, someone on a light OS who picked dark
+        // in-app keeps the crimson bar over a dark page.
+        var metas = document.querySelectorAll('meta[name="theme-color"]');
+        for (var i = metas.length - 1; i >= 0; i--) metas[i].remove();
+        var m = document.createElement('meta');
+        m.name = 'theme-color';
+        m.content = mode === 'dark' ? '#261D1D' : '#8B0000';
+        document.head.appendChild(m);
       } catch (e) {}
     })();
   </script>

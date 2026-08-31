@@ -4,4 +4,5 @@
 export interface InviteStaffDto {
   email: string;
   role: 'OWNER' | 'ADMIN' | 'STAFF';
+  serviceIds?: Array<string>;
 }
