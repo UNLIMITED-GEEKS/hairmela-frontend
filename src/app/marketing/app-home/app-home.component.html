@@ -1,71 +1,105 @@
-<!-- justify-center centres the card on tall/desktop viewports; on a phone the
-     content is taller than the screen, and flex leaves it top-aligned and
-     scrollable rather than clipping it. -->
-<div class="flex min-h-dvh flex-col justify-center bg-primary/3 px-5 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
-  <div class="mx-auto w-full max-w-md">
+<!-- Full-bleed onboarding. h-dvh (not min-h) with overflow-hidden: this screen
+     never scrolls — the photo fills it and the card sits over the bottom, the
+     way a native onboarding flow behaves. -->
+<div class="relative h-dvh w-full overflow-hidden bg-black select-none">
 
-    <!-- Brand -->
-    <div class="flex items-center gap-2.5">
-      <img src="/icons/icon-192x192.png" alt="" class="w-9 h-9 object-contain shrink-0" />
-      <span class="text-xl font-bold text-primary">HairMela</span>
-    </div>
+  <!-- Slide track. One row of full-width panes translated as a unit, so a drag
+       shows the outgoing and incoming photo side by side rather than
+       cross-fading them. -->
+  <div
+    class="flex h-full w-full touch-pan-y"
+    [style.transform]="trackTransform()"
+    [style.transition]="trackTransition()"
+    (pointerdown)="onPointerDown($event)"
+    (pointermove)="onPointerMove($event)"
+    (pointerup)="onPointerUp($event)"
+    (pointercancel)="onPointerUp($event)">
 
-    <!-- Greeting -->
-    <h1 class="mt-8 text-3xl font-bold leading-tight text-text-primary">
-      Welcome to HairMela
-    </h1>
-    <p class="mt-2 text-base text-text-muted">
-      Your queue, your bookings, in your pocket.
-    </p>
+    @for (slide of slides; track slide.title) {
+      <div class="relative h-full w-full shrink-0">
+        <!-- object-position per slide, not a shared value: these are
+             portrait/square photos in a landscape viewport, so cover keeps
+             only a horizontal band and each subject sits at a different
+             height. See OnboardingSlide.focus.
+             draggable=false: without it the browser's own image-drag hijacks
+             the swipe on desktop and the track stops following the pointer. -->
+        <img [src]="slide.image" alt="" draggable="false"
+          class="absolute inset-0 h-full w-full object-cover"
+          [style.object-position]="slide.focus ?? '50% 50%'"
+          [attr.loading]="$first ? 'eager' : 'lazy'"
+          [attr.fetchpriority]="$first ? 'high' : 'low'" />
+        <!-- Scrim: the photos are bright at the bottom edge, where the card's
+             white text sits. Without this the headline drops onto a near-white
+             wall in slide 1. -->
+        <div class="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+      </div>
+    }
+  </div>
 
-    <!-- Primary actions -->
-    <div class="mt-7 space-y-3">
+  <!-- ── Chrome above the track ──────────────────────────────────────────── -->
+
+  <!-- Brand -->
+  <div class="pointer-events-none absolute left-5 top-[max(1.25rem,env(safe-area-inset-top))] flex items-center gap-2.5">
+    <img src="/icons/icon-192x192.png" alt="" class="h-9 w-9 shrink-0 rounded-xl object-contain" />
+    <span class="text-lg font-bold text-white drop-shadow-md">HairMela</span>
+  </div>
+
+  <!-- Skip — straight to sign-in for anyone who already has an account. -->
+  <a [routerLink]="loginLink"
+    class="absolute right-5 top-[max(1.25rem,env(safe-area-inset-top))] min-h-9 rounded-full bg-black/40 px-4 py-1.5
+           text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/55">
+    Skip
+  </a>
+
+  <!-- Bottom card. The text swaps with the slide while the card itself stays
+       put, so the CTA never moves under a thumb that is reaching for it. -->
+  <div class="absolute inset-x-0 bottom-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-10">
+    <!-- Centred on a phone, where the card is nearly full width anyway; pinned
+         left on desktop, where centring it puts the card over the middle of
+         the photo and leaves dead space on both sides. -->
+    <div class="mx-auto w-full max-w-md rounded-3xl bg-black/45 p-6 backdrop-blur-md md:mx-0">
+
+      <!-- min-h reserves room for the tallest of the three headlines, so the
+           button does not jump as slides change.
+
+           The copy cross-fades rather than cutting: it dips to transparent,
+           swaps at the trough (see the effect in the component), and comes
+           back. Opacity only — the photo behind it carries the movement, and
+           sliding the words too would be two competing motions. -->
+      <div class="min-h-[6.5rem] transition-opacity ease-in"
+        [style.opacity]="textVisible() ? 1 : 0"
+        [style.transition-duration.ms]="textFadeMs">
+        <h1 class="text-2xl font-bold leading-tight text-white text-balance">
+          {{ slides[textIndex()].title }}
+        </h1>
+        <p class="mt-2 text-sm leading-relaxed text-white/85">
+          {{ slides[textIndex()].body }}
+        </p>
+      </div>
+
+      <!-- Dots. Buttons, not decoration — they are a real way to move between
+           slides for anyone not swiping. -->
+      <div class="mt-4 flex items-center gap-1.5">
+        @for (slide of slides; track slide.title; let i = $index) {
+          <button type="button" (click)="goTo(i)"
+            [attr.aria-label]="'Go to slide ' + (i + 1)"
+            [attr.aria-current]="i === index() ? 'true' : null"
+            class="h-1.5 rounded-full transition-all duration-300"
+            [class]="i === index() ? 'w-6 bg-white' : 'w-1.5 bg-white/40'"></button>
+        }
+      </div>
+
       <a [routerLink]="registerLink"
-        class="block w-full rounded-2xl bg-primary px-5 py-4 text-center text-base font-semibold text-white transition-colors hover:bg-primary-hover">
+        class="mt-5 block w-full rounded-2xl bg-primary px-5 py-4 text-center text-base font-semibold
+               text-white transition-colors hover:bg-primary-hover active:scale-[0.98]">
         Create a free account
       </a>
-      <a [routerLink]="loginLink"
-        class="block w-full rounded-2xl border border-primary/25 bg-surface-card px-5 py-4 text-center text-base font-semibold text-primary transition-colors hover:bg-primary/5">
-        Sign in
-      </a>
+
+      <p class="mt-3 text-center text-sm text-white/75">
+        Already have an account?
+        <a [routerLink]="loginLink" class="font-semibold text-white underline underline-offset-2">Log in</a>
+      </p>
+
     </div>
-
-    <!-- Value cards -->
-    <div class="mt-8 space-y-3">
-      <div class="flex items-start gap-3.5 rounded-2xl bg-surface-card p-4">
-        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/8">
-          <app-icon name="queue" class="w-5 h-5 text-primary" />
-        </span>
-        <div>
-          <p class="text-sm font-semibold text-text-primary">Join a queue from your phone</p>
-          <p class="mt-0.5 text-sm text-text-secondary">No more waiting around at the shop.</p>
-        </div>
-      </div>
-
-      <div class="flex items-start gap-3.5 rounded-2xl bg-surface-card p-4">
-        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/8">
-          <app-icon name="clock" class="w-5 h-5 text-primary" />
-        </span>
-        <div>
-          <p class="text-sm font-semibold text-text-primary">See your position live</p>
-          <p class="mt-0.5 text-sm text-text-secondary">Know exactly how long you have to wait.</p>
-        </div>
-      </div>
-
-      <div class="flex items-start gap-3.5 rounded-2xl bg-surface-card p-4">
-        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/8">
-          <app-icon name="bell" class="w-5 h-5 text-primary" />
-        </span>
-        <div>
-          <p class="text-sm font-semibold text-text-primary">Never lose your spot</p>
-          <p class="mt-0.5 text-sm text-text-secondary">Get told the moment it's your turn.</p>
-        </div>
-      </div>
-    </div>
-
-    <p class="mt-8 text-center text-xs text-text-disabled">
-      Free to start. Set up in minutes.
-    </p>
-
   </div>
 </div>
