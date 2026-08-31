@@ -60,6 +60,24 @@ android {
     }
 }
 
+// Refuse to package a release built from the wrong Angular configuration.
+// `--configuration production` yields assets that look fine but ship
+// `native: false`, which turns off the hardware back button, native push,
+// deep links and Preferences storage, and shows the marketing nav inside the
+// app. Build 22 went to Play that way; this makes the mistake loud.
+//
+// RELEASE ONLY: a debug build has no business failing over this while someone
+// is iterating on the web app.
+tasks.register('verifyNativeWebBuild', Exec) {
+    description = 'Fails if android/app/src/main/assets/public was not built with --configuration native.'
+    workingDir = rootProject.projectDir
+    commandLine 'node', 'verify-native-build.js'
+}
+
+tasks.matching { it.name in ['assembleRelease', 'bundleRelease'] }.configureEach {
+    dependsOn 'verifyNativeWebBuild'
+}
+
 repositories {
     flatDir{
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
