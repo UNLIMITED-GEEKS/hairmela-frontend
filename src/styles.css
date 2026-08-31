@@ -294,8 +294,15 @@ body {
   --color-surface-strong:    oklch(45%   0.018 15);
   --color-surface-inverse:   oklch(96.7% 0.003 264.542);
 
+  /* Softer than a naive mirror of the light ramp. Light mode's --color-border
+     sits at just 1.20:1 against its surface — a hairline you barely register.
+     At 42% this token scored 1.94:1 against the dark surface, ~60% more
+     separation than the same class gets in light mode, which is why the
+     desktop sidebar and top-bar rules read as hard lines rather than as
+     structure. 38% brings it to 1.64:1 while keeping card outlines visible
+     (1.27:1 on surface-card, close to light mode's own 1.29). */
   --color-border-subtle:     oklch(36%   0.014 15);
-  --color-border:            oklch(42%   0.015 15);
+  --color-border:            oklch(30.4%   0.015 15);
   --color-border-strong:     oklch(50%   0.016 15);
 
   /* NOT a mirror of the light ramp. In light mode each step goes DARKER and so
@@ -890,6 +897,22 @@ textarea::placeholder {
 .themed-scrollbar::-webkit-scrollbar-thumb {
   background-color: var(--color-primary);
   border-radius: 9999px;
+}
+/* The burgundy thumb is a 12.6:1 mark in light mode and a 1.25:1 one in dark —
+   invisible, the same way every other solid-brand element on a dark ground was.
+   border-strong reads clearly (2.7:1 on the sidebar, 2.1:1 in a dialog) without
+   a scrollbar demanding attention it doesn't deserve. */
+:root[data-theme='dark'] .themed-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--color-border-strong);
+}
+/* Firefox has no ::-webkit pseudo-elements; scrollbar-color is the only hook it
+   honours. Thumb then track, matching the width/colour choices above. */
+.themed-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary) transparent;
+}
+:root[data-theme='dark'] .themed-scrollbar {
+  scrollbar-color: var(--color-border-strong) transparent;
 }
 .themed-scrollbar::-webkit-scrollbar-button {
   display: none;
