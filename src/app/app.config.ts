@@ -11,6 +11,7 @@ import { jwtInterceptor } from './core/interceptors/jwt.interceptor';
 import { refreshInterceptor } from './core/interceptors/refresh.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { sessionInit } from './core/auth/session-init';
+import { SplashService } from './core/splash/splash.service';
 import { UpdateService } from './core/pwa/update.service';
 import { NativeBackButtonService } from './core/native/back-button.service';
 import { DeepLinkService } from './core/native/deep-link.service';
@@ -46,6 +47,14 @@ export const appConfig: ApplicationConfig = {
     // web; on native the stored value simply applies a frame later). Runs
     // before first paint either way, so there is no light-to-dark flash.
     provideAppInitializer(() => inject(ThemeService).init()),
+    // Start the splash's exit clock once Angular is up. In an installed app it
+    // has been on screen since the first frame; on the web this is a no-op
+    // unless SplashService was opted in for the dashboard redirect.
+    //
+    // NOT awaited and returns nothing: an initializer that returned the timer
+    // would hold up bootstrap for a full second, which is the opposite of the
+    // point — the app must load underneath the splash, not behind it.
+    provideAppInitializer(() => { inject(SplashService).dismiss(); }),
     provideCloudinaryLoader(`https://res.cloudinary.com/${environment.cloudinaryCloudName}`),
     provideServiceWorker('ngsw-worker.js', {
       // environment.serviceWorker is false only in the Capacitor native build,

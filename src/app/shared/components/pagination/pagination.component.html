@@ -1,7 +1,9 @@
 @if (visible()) {
-  <nav class="flex items-center justify-center gap-1.5" aria-label="Pagination">
+  <nav class="flex items-center gap-1.5" aria-label="Pagination"
+    [class.justify-center]="align() === 'center'"
+    [class.justify-start]="align() === 'left'">
     <button type="button" (click)="go(meta()!.page - 1)" [disabled]="!canPrev()"
-      class="min-h-10 min-w-10 flex items-center justify-center rounded-lg border border-border text-text-secondary hover:bg-surface-sunken disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      class="min-h-10 min-w-10 flex items-center justify-center rounded-lg border border-border-strong text-text-secondary hover:bg-surface-sunken disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       aria-label="Previous page">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
@@ -20,7 +22,7 @@
     }
 
     <button type="button" (click)="go(meta()!.page + 1)" [disabled]="!canNext()"
-      class="min-h-10 min-w-10 flex items-center justify-center rounded-lg border border-border text-text-secondary hover:bg-surface-sunken disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      class="min-h-10 min-w-10 flex items-center justify-center rounded-lg border border-border-strong text-text-secondary hover:bg-surface-sunken disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       aria-label="Next page">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>

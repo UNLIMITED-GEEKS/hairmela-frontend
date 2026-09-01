@@ -90,6 +90,7 @@ export class DashboardComponent implements OnInit {
     this.listing.setCategory(slug);
   }
 
+
   protected onQrScanned(text: string): void {
     this.showScanner.set(false);
     // Extract /s/:slug from the scanned URL

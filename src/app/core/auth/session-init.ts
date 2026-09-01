@@ -10,6 +10,7 @@ import { authenticatedAuthControllerGetMe } from '../../api/fn/auth/authenticate
 import { PersistentStore } from '../storage/persistent-store';
 import { LAST_SALON_KEY } from '../salon-context/salon-context.service';
 import { RoutePath, RouteQueryParam } from '../routing/route-paths';
+import { SplashService } from '../splash/splash.service';
 
 // True on a genuine fresh navigation to the app (typing the URL, following a
 // link, opening a new tab) — but false on a page RELOAD/refresh. Lets the
@@ -40,6 +41,7 @@ export function sessionInit(): () => Promise<void> {
     const guestStore = inject(GuestStore);
     const router = inject(Router);
     const persistentStore = inject(PersistentStore);
+    const splash = inject(SplashService);
 
     // Native only: load Capacitor Preferences into PersistentStore's
     // synchronous cache before ANY read below. Awaited HERE rather than relying
@@ -94,6 +96,12 @@ export function sessionInit(): () => Promise<void> {
       // one is persisted (no fetch — salonRoleGuard validates it downstream),
       // else the dashboard. NOT on a refresh.
       if (shouldRedirect) {
+        // Cover the redirect on the web: this visitor arrived at "/" signed in
+        // and is being sent straight to their salon or dashboard, so the splash
+        // hides the hop and the initial data load behind it. Purely an overlay
+        // — the navigation and its requests run underneath, uninterrupted.
+        // No-op in an installed app, where the splash is already showing.
+        splash.showForDashboard();
         const lastId = persistentStore.get<string>(LAST_SALON_KEY);
         router.navigate(lastId ? RoutePath.salon(lastId) : RoutePath.dashboard());
       }

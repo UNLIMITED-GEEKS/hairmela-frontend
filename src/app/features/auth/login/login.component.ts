@@ -6,6 +6,7 @@ import { ErrorCodes } from '../../../core/errors/error-codes';
 import { isApiError } from '../../../core/errors/api-error.types';
 import { PasswordToggleDirective } from '../../../shared/directives/password-toggle.directive';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { AuthBrandComponent } from '../../../shared/components/auth-brand/auth-brand.component';
 import { SalonsStore } from '../../../core/salon-context/salons.store';
 import { PersistentStore } from '../../../core/storage/persistent-store';
 import { LAST_SALON_KEY } from '../../../core/salon-context/salon-context.service';
@@ -14,7 +15,13 @@ import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, RouterLink, PasswordToggleDirective, FieldErrorComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    PasswordToggleDirective,
+    FieldErrorComponent,
+    AuthBrandComponent,
+  ],
   templateUrl: './login.component.html',
 })
 export class LoginComponent {

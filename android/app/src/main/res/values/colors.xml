@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Background of the Android 12+ system splash. Must match the web splash
+         in index.html, which uses this same value in BOTH themes: the logo is
+         a fixed dark tile with no light variant, so a white ground would frame
+         it in a visible black square. Because it is theme-independent there is
+         no values-night override. -->
+    <color name="splashBackground">#1C1C1C</color>
+</resources>

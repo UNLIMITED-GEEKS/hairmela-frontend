@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ system splash icon — a VECTOR, traced from
+  public/icons/logo-mark.svg, so it renders as crisply as the web splash's
+  inline SVG at any density. It replaced a five-density PNG set that looked
+  visibly soft next to it.
+
+  MARK ONLY, no wordmark: Android vector drawables have no <text> element, and
+  the splash clips to a circle that the taller lockup would not fit anyway.
+
+  VIEWPORT IS 1800, THE ARTWORK IS 1200. The extra 600 units are deliberate
+  padding. Android scales this drawable to fill its icon slot, so the only way
+  to make the mark appear SMALLER on screen is to give it more empty room
+  around itself. At 1800 the mark occupies ~40% of the canvas rather than 59%,
+  which both matches the scale it appears at in the web splash and leaves
+  Android's circular mask plenty of clearance. The paths keep their original
+  1200-space coordinates; the wrapper group offsets them into the centre.
+
+  GEOMETRY, derived from the source rather than eyeballed:
+    circle    cx600 cy570 r310, stroke 92, round caps
+    dasharray 1696 on a circumference of 1947.8 -> trimPathEnd 0.8707
+    rotate(78 600 570) -> the ringGroup wrapper
+    dot       cx762 cy801 r62, #660029
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="1800"
+    android:viewportHeight="1800">
+
+    <!-- Centres the 1200-unit artwork inside the 1800-unit viewport. -->
+    <group android:name="pad" android:translateX="300" android:translateY="300">
+
+        <group
+            android:name="ringGroup"
+            android:pivotX="600"
+            android:pivotY="570"
+            android:rotation="78">
+            <path
+                android:name="ring"
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="92"
+                android:strokeLineCap="round"
+                android:trimPathStart="0"
+                android:trimPathEnd="0.8707"
+                android:pathData="M 910,570 A 310,310 0 1,1 909.99,569.9" />
+        </group>
+
+        <path
+            android:name="dot"
+            android:fillColor="#660029"
+            android:pathData="M 762,801 m -62,0 a 62,62 0 1,0 124,0 a 62,62 0 1,0 -124,0" />
+
+    </group>
+</vector>

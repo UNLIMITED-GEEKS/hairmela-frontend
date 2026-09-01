@@ -269,55 +269,68 @@ body {
 }
 
 :root[data-theme='dark'] {
-  /* Lifted off near-black. The first pass had surface at 20% and sunken at
-     17%, so a page, a card and a recessed tile were within three points of
-     each other and the whole UI read as one flat black sheet. These steps are
-     further apart and start higher, which is also easier on the eyes than a
-     true black for long sessions. */
-  /* Warm charcoal, not neutral black. Hue 15 sits just off the brand burgundy
-     (hue ~5), so the greys share the brand's family and the app reads as a
-     considered dark theme rather than a default one.
+  /* Neutral greys, chroma 0. An earlier pass ran warm (hue 15, chroma
+     0.014-0.018) to echo the brand burgundy, but at that chroma the tint is
+     not read as warmth — it reads as "almost grey", which is duller than
+     either committing to a colour or committing to none. Going fully neutral
+     is the deliberate-looking choice. Cool slate and deep plum were tried too
+     and rejected: both tinted salon photography.
 
-     Chroma stays low (0.014-0.018) deliberately: enough to feel warm at a
-     glance, not enough to tint salon photos or push white text toward pink.
-     Chosen over a cool slate (hue 265) and a deep plum (hue 5 at ~0.042) —
-     the plum tinted content too strongly, and the slate fought the warm
-     brand rather than sitting with it.
+     surface is #1C1C1C, the same value the boot splash paints (index.html and
+     the Android launch theme), so the splash and the app it fades into are
+     literally the same ground and the handoff is invisible.
 
-     The borders and text ramp below share this hue for the same reason: cool
-     text on warm surfaces reads as a mistake rather than a choice. */
-  --color-surface:           oklch(24%   0.014 15);
-  --color-surface-card:      oklch(32%   0.016 15);
-  --color-surface-sunken:    oklch(28%   0.014 15);
-  --color-surface-raised:    oklch(36%   0.017 15);
-  --color-surface-overlay:   oklch(40%   0.018 15);
-  --color-surface-strong:    oklch(45%   0.018 15);
+     LIFTED OFF NEAR-BLACK, and the spacing matters. An early version had
+     surface at 20% and sunken at 17% — a page, a card and a recessed tile
+     within three points of each other, and the whole UI read as one flat
+     black sheet. These steps sit 4 points apart so the layers separate, and
+     start high enough to be easy on the eyes over a long shift.
+
+     The borders and text ramp below are neutral for the same reason: a warm
+     text ramp on neutral surfaces reads as a mistake rather than a choice. */
+  --color-surface:           oklch(22.6% 0     0);
+  --color-surface-sunken:    oklch(26.6% 0     0);
+  --color-surface-card:      oklch(30.6% 0     0);
+  --color-surface-raised:    oklch(34.6% 0     0);
+  --color-surface-overlay:   oklch(38.6% 0     0);
+  --color-surface-strong:    oklch(43.6% 0     0);
   --color-surface-inverse:   oklch(96.7% 0.003 264.542);
 
   /* Softer than a naive mirror of the light ramp. Light mode's --color-border
-     sits at just 1.20:1 against its surface — a hairline you barely register.
-     At 42% this token scored 1.94:1 against the dark surface, ~60% more
-     separation than the same class gets in light mode, which is why the
-     desktop sidebar and top-bar rules read as hard lines rather than as
-     structure. 38% brings it to 1.64:1 while keeping card outlines visible
-     (1.27:1 on surface-card, close to light mode's own 1.29). */
-  --color-border-subtle:     oklch(36%   0.014 15);
-  --color-border:            oklch(30.4%   0.015 15);
-  --color-border-strong:     oklch(50%   0.016 15);
+     sits at just 1.20:1 against its surface — a hairline you barely register —
+     while an early dark value of 42% scored 1.94:1, roughly 60% more
+     separation from the same class, which is why the desktop sidebar and
+     top-bar rules read as hard lines rather than as structure.
+
+     29% now matches light mode almost exactly on the page: 1.21:1 against
+     surface, against light's 1.20:1.
+
+     TRADE-OFF WORTH KNOWING: at 29% this token is BELOW --color-border-subtle
+     (34.6%), inverting what the two names imply, and it is effectively
+     invisible on a card (1.06:1) where subtle manages 1.16:1. That is
+     deliberate — the chrome rules were the complaint, and cards mostly read by
+     their fill rather than their outline — but if card outlines ever need to
+     come back, raise this rather than adding a new token. */
+  --color-border-subtle:     oklch(34.6% 0     0);
+  --color-border:            oklch(29%   0     0);
+  --color-border-strong:     oklch(46.6% 0     0);
 
   /* NOT a mirror of the light ramp. In light mode each step goes DARKER and so
      gains contrast against white; copying that shape here made the bottom of
      the scale vanish — text-disabled alone is used 146 times, mostly for the
      helper line under a form field, which has to be readable.
      So the dark ramp compresses: the steps still descend in emphasis, but the
-     floor sits high enough that the dimmest text is still legible. */
-  --color-text-primary:      oklch(97%   0.004 15);
-  --color-text-strong:       oklch(94%   0.005 15);
-  --color-text-body:         oklch(90%   0.006 15);
-  --color-text-muted:        oklch(85%   0.008 15);
-  --color-text-secondary:    oklch(80%   0.010 15);
-  --color-text-disabled:     oklch(74%   0.012 15);
-  --color-text-faint:        oklch(72%   0.014 15);
+     floor sits high enough that the dimmest text is still legible. The
+     tightest pairing, text-faint on surface-raised, sits at 4.62:1 — above
+     WCAG AA with little to spare, so do not lift the raised surface or lower
+     this floor without re-checking. */
+  --color-text-primary:      oklch(97%   0     0);
+  --color-text-strong:       oklch(94%   0     0);
+  --color-text-body:         oklch(90%   0     0);
+  --color-text-muted:        oklch(85%   0     0);
+  --color-text-secondary:    oklch(80%   0     0);
+  --color-text-disabled:     oklch(74%   0     0);
+  --color-text-faint:        oklch(72%   0     0);
   --color-text-inverse:      oklch(21%   0.034 264.665);
 
   /* Tinted surfaces go dark-and-desaturated; the text goes light enough to
@@ -412,6 +425,20 @@ body {
   color: var(--color-text-primary);
 }
 
+/* Brand accent for a word inside a heading — the hero's highlighted word.
+   .text-primary cannot do this: it is remapped to neutral ink in dark mode
+   (immediately above) because #660029 scores 1.30:1 there and vanishes. But an
+   accent that turns the same colour as the text around it stops being an
+   accent, so this keeps the brand on BOTH grounds by changing shade instead of
+   abandoning it: the real burgundy on light (12.65:1), primary-200 on dark
+   (4.01:1). Same family, still unmistakably the brand. */
+.text-brand-accent {
+  color: var(--color-primary);
+}
+:root[data-theme='dark'] .text-brand-accent {
+  color: var(--color-primary-400);
+}
+
 :root[data-theme='dark'] .hover\:text-primary:hover {
   color: var(--color-text-primary);
 }
@@ -449,7 +476,7 @@ body {
   --ink-red:     oklch(78% 0.130 20);
   --ink-green:   oklch(80% 0.130 155);
   --ink-amber:   oklch(85% 0.120 80);
-  --ink-blue:    oklch(80% 0.120 255);
+  --ink-blue:    oklch(72% 0.120 255);
 }
 
 /* Backgrounds: pale tints -> dark tints of the same hue.
@@ -458,18 +485,18 @@ body {
    buttons with white text, which read correctly on either ground. */
 :root[data-theme='dark'] .bg-amber-50,
 :root[data-theme='dark'] .bg-amber-100,
-:root[data-theme='dark'] .hover\\:bg-amber-50:hover { background-color: var(--tint-amber); }
+:root[data-theme='dark'] .hover\:bg-amber-50:hover { background-color: var(--tint-amber); }
 :root[data-theme='dark'] .bg-blue-50,
 :root[data-theme='dark'] .bg-blue-100,
-:root[data-theme='dark'] .hover\\:bg-blue-50:hover { background-color: var(--tint-blue); }
+:root[data-theme='dark'] .hover\:bg-blue-50:hover { background-color: var(--tint-blue); }
 :root[data-theme='dark'] .bg-green-50,
 :root[data-theme='dark'] .bg-green-100,
-:root[data-theme='dark'] .hover\\:bg-green-50:hover { background-color: var(--tint-green); }
+:root[data-theme='dark'] .hover\:bg-green-50:hover { background-color: var(--tint-green); }
 :root[data-theme='dark'] .bg-red-50,
 :root[data-theme='dark'] .bg-red-100,
-:root[data-theme='dark'] .hover\\:bg-red-50:hover { background-color: var(--tint-red); }
+:root[data-theme='dark'] .hover\:bg-red-50:hover { background-color: var(--tint-red); }
 :root[data-theme='dark'] .bg-yellow-50,
-:root[data-theme='dark'] .hover\\:bg-yellow-50:hover { background-color: var(--tint-amber); }
+:root[data-theme='dark'] .hover\:bg-yellow-50:hover { background-color: var(--tint-amber); }
 
 /* Text: dark status colours -> light ones of the same hue. */
 :root[data-theme='dark'] .text-amber-400,
@@ -478,40 +505,40 @@ body {
 :root[data-theme='dark'] .text-amber-700,
 :root[data-theme='dark'] .text-amber-800,
 :root[data-theme='dark'] .text-amber-900,
-:root[data-theme='dark'] .hover\\:text-amber-400:hover,
-:root[data-theme='dark'] .hover\\:text-amber-500:hover,
-:root[data-theme='dark'] .hover\\:text-amber-600:hover,
-:root[data-theme='dark'] .hover\\:text-amber-700:hover,
-:root[data-theme='dark'] .hover\\:text-amber-800:hover,
-:root[data-theme='dark'] .hover\\:text-amber-900:hover { color: var(--ink-amber); }
+:root[data-theme='dark'] .hover\:text-amber-400:hover,
+:root[data-theme='dark'] .hover\:text-amber-500:hover,
+:root[data-theme='dark'] .hover\:text-amber-600:hover,
+:root[data-theme='dark'] .hover\:text-amber-700:hover,
+:root[data-theme='dark'] .hover\:text-amber-800:hover,
+:root[data-theme='dark'] .hover\:text-amber-900:hover { color: var(--ink-amber); }
 :root[data-theme='dark'] .text-blue-500,
 :root[data-theme='dark'] .text-blue-600,
 :root[data-theme='dark'] .text-blue-700,
 :root[data-theme='dark'] .text-blue-800,
 :root[data-theme='dark'] .text-blue-900,
-:root[data-theme='dark'] .hover\\:text-blue-500:hover,
-:root[data-theme='dark'] .hover\\:text-blue-600:hover,
-:root[data-theme='dark'] .hover\\:text-blue-700:hover,
-:root[data-theme='dark'] .hover\\:text-blue-800:hover,
-:root[data-theme='dark'] .hover\\:text-blue-900:hover { color: var(--ink-blue); }
+:root[data-theme='dark'] .hover\:text-blue-500:hover,
+:root[data-theme='dark'] .hover\:text-blue-600:hover,
+:root[data-theme='dark'] .hover\:text-blue-700:hover,
+:root[data-theme='dark'] .hover\:text-blue-800:hover,
+:root[data-theme='dark'] .hover\:text-blue-900:hover { color: var(--ink-blue); }
 :root[data-theme='dark'] .text-green-500,
 :root[data-theme='dark'] .text-green-600,
 :root[data-theme='dark'] .text-green-700,
-:root[data-theme='dark'] .hover\\:text-green-500:hover,
-:root[data-theme='dark'] .hover\\:text-green-600:hover,
-:root[data-theme='dark'] .hover\\:text-green-700:hover { color: var(--ink-green); }
+:root[data-theme='dark'] .hover\:text-green-500:hover,
+:root[data-theme='dark'] .hover\:text-green-600:hover,
+:root[data-theme='dark'] .hover\:text-green-700:hover { color: var(--ink-green); }
 :root[data-theme='dark'] .text-red-400,
 :root[data-theme='dark'] .text-red-500,
 :root[data-theme='dark'] .text-red-600,
 :root[data-theme='dark'] .text-red-700,
 :root[data-theme='dark'] .text-red-800,
 :root[data-theme='dark'] .text-red-900,
-:root[data-theme='dark'] .hover\\:text-red-400:hover,
-:root[data-theme='dark'] .hover\\:text-red-500:hover,
-:root[data-theme='dark'] .hover\\:text-red-600:hover,
-:root[data-theme='dark'] .hover\\:text-red-700:hover,
-:root[data-theme='dark'] .hover\\:text-red-800:hover,
-:root[data-theme='dark'] .hover\\:text-red-900:hover { color: var(--ink-red); }
+:root[data-theme='dark'] .hover\:text-red-400:hover,
+:root[data-theme='dark'] .hover\:text-red-500:hover,
+:root[data-theme='dark'] .hover\:text-red-600:hover,
+:root[data-theme='dark'] .hover\:text-red-700:hover,
+:root[data-theme='dark'] .hover\:text-red-800:hover,
+:root[data-theme='dark'] .hover\:text-red-900:hover { color: var(--ink-red); }
 
 /* Borders track their text colour at lower opacity, so an outlined danger
    button still reads as danger without shouting. */

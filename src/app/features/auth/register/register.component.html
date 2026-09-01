@@ -1,11 +1,23 @@
-<div class="flex items-center justify-center min-h-screen px-6">
+<!-- py-24 on web clears the public shell's nav, which is `fixed top-0` and
+     so takes no layout space: without it this box centres against the full
+     viewport and the heading slides underneath the bar. The installed app
+     has no nav, and AuthBrandComponent supplies its own spacing there. -->
+<div class="flex items-center justify-center min-h-screen px-6 py-24">
   <div class="w-full max-w-sm">
+    <!-- Installed app only: on the web the public shell's nav already
+         carries the brand directly above this. -->
+    <app-auth-brand />
+
     <div class="mb-8 text-center">
       <h1 class="text-2xl font-bold text-text-primary">Create an account</h1>
       <p class="mt-1 text-sm text-text-secondary">Join HairMela and manage your salon</p>
     </div>
 
-    <form #formEl [formGroup]="form" (ngSubmit)="submit()" novalidate class="space-y-4">
+    <!-- border-border-subtle, not border-border: in dark mode the latter sits
+         at 1.06:1 against a card and is effectively invisible there, so the
+         form would have looked borderless in exactly one theme. -->
+    <form #formEl [formGroup]="form" (ngSubmit)="submit()" novalidate
+      class="space-y-4 bg-surface-card rounded-2xl border border-border-subtle p-6">
 
       @if (errorMessage()) {
         <div class="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700" role="alert">

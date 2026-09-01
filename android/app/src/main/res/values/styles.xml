@@ -16,7 +16,33 @@
     </style>
 
 
+    <!-- Android 12+ system splash. Mandatory at targetSdk 31+ — the OS draws
+         this itself and there is no opting out.
+
+         ON ANDROID THIS IS THE ONLY SPLASH. index.html deliberately skips the
+         web splash when window.Capacitor is present, because drawing ours after
+         this one made every launch show two. So this screen has to carry the
+         whole brand moment, which is why the icon is the full lockup (mark plus
+         wordmark) rather than the bare mark.
+
+         Was @drawable/splash, a stock image left over from Capacitor's
+         scaffolding that nobody chose.
+
+         The icon is a RASTER, not a vector: Android vector drawables have no
+         text element, so the wordmark cannot be expressed as one without
+         converting the type to paths. splash_icon.png is generated at five
+         densities from public/icons/logo-with-text.svg, sized to Android's
+         160dp safe circle so the circular mask does not clip it.
+
+         windowSplashScreenAnimatedIcon is the correct slot even for a static
+         image — it is simply the icon slot, and a non-animated drawable in it
+         just does not animate. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
+        <item name="windowSplashScreenBackground">@color/splashBackground</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <!-- The theme the activity switches to once the splash is done.
+             MainActivity holds the splash until the WebView's first paint (see
+             setKeepOnScreenCondition), so no duration is set here. -->
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
     </style>
 </resources>

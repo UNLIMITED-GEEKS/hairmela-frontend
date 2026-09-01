@@ -9,11 +9,18 @@ import { isApiError } from '../../../core/errors/api-error.types';
 import { RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 import { PasswordToggleDirective } from '../../../shared/directives/password-toggle.directive';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
+import { AuthBrandComponent } from '../../../shared/components/auth-brand/auth-brand.component';
 import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
 
 @Component({
   selector: 'app-register',
-  imports: [ReactiveFormsModule, RouterLink, PasswordToggleDirective, FieldErrorComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    PasswordToggleDirective,
+    FieldErrorComponent,
+    AuthBrandComponent,
+  ],
   templateUrl: './register.component.html',
 })
 export class RegisterComponent {

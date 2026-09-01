@@ -105,6 +105,6 @@ export class ThemeService {
     // runtime, which the meta tag's own media query cannot do (it follows the
     // OS, not the in-app choice). Values mirror --color-surface per theme.
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', mode === 'dark' ? '#261D1D' : '#8B0000');
+    if (meta) meta.setAttribute('content', mode === 'dark' ? '#1C1C1C' : '#8B0000');
   }
 }
