@@ -16,9 +16,11 @@
 // is not defined". Hardcoding here is the correct trade — these are public,
 // non-secret URLs, and the app must be self-contained inside the APK.
 //
-// TARGETS THE DEVELOPMENT BACKEND while the native app is unreleased, so test
-// devices and a half-built client cannot touch production data. Step 10 of
-// capacitor-android-migration-plan.md switches these to production.
+// TARGETS PRODUCTION. This was the development backend while the native app
+// was unreleased; step 10 of capacitor-android-migration-plan.md switched it,
+// and the Railway host below is the same one the website uses. The note is
+// kept because the hostname alone does not prove which environment it is —
+// "production" there is the Railway service name, not evidence.
 export const environment = {
   production: true,
 
