@@ -463,11 +463,24 @@
       var el = document.getElementById('hm-probe');
       if (el) el.textContent =
         'hm-installed: ' + r.classList.contains('hm-installed') +
-        '\nnavigator.standalone: ' + navigator.standalone +
-        '\ndisplay-mode standalone: ' + matchMedia('(display-mode: standalone)').matches +
         '\nreduced-motion: ' + matchMedia('(prefers-reduced-motion: reduce)').matches +
+        '\nactivate fired: ' + (window.__hmActivates || 0) + 'x' +
+        '\nwrapper found: ' + window.__hmWrapper +
+        '\nanim computed: ' + window.__hmAnim +
         '\n(tap to dismiss)';
     }, 1500);
+    // Refresh the readout on every navigation so it reflects the latest one.
+    setInterval(function () {
+      var el = document.getElementById('hm-probe');
+      var r = document.documentElement;
+      if (el) el.textContent =
+        'hm-installed: ' + r.classList.contains('hm-installed') +
+        '\nreduced-motion: ' + matchMedia('(prefers-reduced-motion: reduce)').matches +
+        '\nactivate fired: ' + (window.__hmActivates || 0) + 'x' +
+        '\nwrapper found: ' + window.__hmWrapper +
+        '\nanim computed: ' + window.__hmAnim +
+        '\n(tap to dismiss)';
+    }, 1000);
   </script>
 
   <app-root></app-root>

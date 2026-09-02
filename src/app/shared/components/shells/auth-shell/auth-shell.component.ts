@@ -44,13 +44,17 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
    * the same tick means the browser never paints the intermediate state.
    */
   protected onRouteActivate(): void {
+    const w = window as unknown as Record<string, unknown>;
+    w['__hmActivates'] = ((w['__hmActivates'] as number) ?? 0) + 1;
     const el = this._routeWrapper()?.nativeElement;
+    w['__hmWrapper'] = !!el;
     if (!el) return;
     el.classList.remove('route-enter');
     // Reading offsetWidth flushes the pending style change, so re-adding the
     // class below counts as a fresh application and the animation replays.
     void el.offsetWidth;
     el.classList.add('route-enter');
+    w['__hmAnim'] = getComputedStyle(el).animationName + ' ' + getComputedStyle(el).animationDuration;
   }
   private readonly _auth = inject(AuthService);
   private readonly _dashboardService = inject(SalonsStore);
