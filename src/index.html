@@ -451,38 +451,6 @@
     </div>
   </div>
 
-  <!-- TEMPORARY iOS DIAGNOSTIC — remove before shipping. Prints the three
-       values that decide whether the route fade runs, so they can be read on a
-       device with no desktop devtools available. -->
-  <div id="hm-probe" style="position:fixed;bottom:0;left:0;right:0;z-index:2147483646;
-       background:#000;color:#0f0;font:11px monospace;padding:6px;white-space:pre-wrap"
-       onclick="this.remove()"></div>
-  <script>
-    setTimeout(function () {
-      var r = document.documentElement;
-      var el = document.getElementById('hm-probe');
-      if (el) el.textContent =
-        'hm-installed: ' + r.classList.contains('hm-installed') +
-        '\nreduced-motion: ' + matchMedia('(prefers-reduced-motion: reduce)').matches +
-        '\nactivate fired: ' + (window.__hmActivates || 0) + 'x' +
-        '\nwrapper found: ' + window.__hmWrapper +
-        '\nanim computed: ' + window.__hmAnim +
-        '\n(tap to dismiss)';
-    }, 1500);
-    // Refresh the readout on every navigation so it reflects the latest one.
-    setInterval(function () {
-      var el = document.getElementById('hm-probe');
-      var r = document.documentElement;
-      if (el) el.textContent =
-        'hm-installed: ' + r.classList.contains('hm-installed') +
-        '\nreduced-motion: ' + matchMedia('(prefers-reduced-motion: reduce)').matches +
-        '\nactivate fired: ' + (window.__hmActivates || 0) + 'x' +
-        '\nwrapper found: ' + window.__hmWrapper +
-        '\nanim computed: ' + window.__hmAnim +
-        '\n(tap to dismiss)';
-    }, 1000);
-  </script>
-
   <app-root></app-root>
 </body>
 </html>
