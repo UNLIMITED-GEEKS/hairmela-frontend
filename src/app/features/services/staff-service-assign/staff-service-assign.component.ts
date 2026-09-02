@@ -3,17 +3,18 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Service } from '../../../api/models/service';
 import { ServicesService } from '../services.service';
 import { StaffServiceAssignService } from './staff-service-assign.service';
-import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { RouteParam } from '../../../core/routing/route-paths';
 import { CurrencyNgnPipe } from '../../../shared/pipes/currency-ngn.pipe';
 import { groupByServiceCategory } from '../../../core/utils/group-by-category';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-staff-service-assign',
   templateUrl: './staff-service-assign.component.html',
-  imports: [RouterLink, SkeletonComponent, PageHeaderComponent, CurrencyNgnPipe],
+  imports: [
+    SkeletonComponent, RouterLink, PageHeaderComponent, CurrencyNgnPipe],
 })
 export class StaffServiceAssignComponent implements OnInit {
   // Salon's currency, for price formatting.

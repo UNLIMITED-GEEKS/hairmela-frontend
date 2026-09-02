@@ -41,6 +41,7 @@ public class MainActivity extends BridgeActivity {
 
         super.onCreate(savedInstanceState);
 
+
         // First paint of the WebView's content. postVisualStateCallback fires
         // once the given state has been rendered to the screen — not merely
         // laid out — which is the signal we want. The request id is arbitrary.

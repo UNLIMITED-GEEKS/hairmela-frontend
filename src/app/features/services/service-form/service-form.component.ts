@@ -1,7 +1,6 @@
 import { Component, effect, inject, OnInit, computed, signal, viewChild, ElementRef, Injector, afterNextRender } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
-import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ServicesService } from '../services.service';
 import { StaffService } from '../../staff/staff.service';
@@ -16,13 +15,14 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
 import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
 import { AssignStaffDialogComponent } from '../assign-staff-dialog/assign-staff-dialog.component';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-service-form',
   templateUrl: './service-form.component.html',
   imports: [
-    ReactiveFormsModule,
     SkeletonComponent,
+    ReactiveFormsModule,
     FrozenBannerComponent,
     TierFreezeDirective,
     FieldErrorComponent,

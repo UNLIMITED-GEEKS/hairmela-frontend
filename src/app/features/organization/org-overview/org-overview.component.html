@@ -1,8 +1,27 @@
 @if (loading()) {
- <div class="py-6 px-4">
+  <!-- Mirrors the loaded page: org title, the Current Plan card, then the
+       divided list of salons. -->
+  <div class="py-6 px-4">
+    <div class="max-w-lg mx-auto space-y-4">
+      <app-skeleton variant="block" height="1.75rem" width="12rem" rounded="rounded" />
 
-    <div class="max-w-lg mx-auto">
-      <app-skeleton variant="line" [count]="4" />
+      <div class="bg-surface-card rounded-xl border border-border p-5 space-y-3">
+        <app-skeleton variant="block" height="1rem" width="7rem" rounded="rounded" />
+        <app-skeleton variant="block" height="0.875rem" width="10rem" rounded="rounded" />
+        <app-skeleton variant="block" height="2.5rem" width="8rem" />
+      </div>
+
+      <div class="divide-y divide-border-subtle rounded-xl border border-border bg-surface-card">
+        @for (row of [1, 2, 3]; track row) {
+          <div class="flex items-center gap-3 px-4 py-4">
+            <div class="shrink-0"><app-skeleton variant="block" height="2.5rem" width="2.5rem" rounded="rounded-xl" /></div>
+            <div class="min-w-0 flex-1 space-y-1.5">
+              <app-skeleton variant="block" height="1rem" width="8rem" rounded="rounded" />
+              <app-skeleton variant="block" height="0.75rem" width="6rem" rounded="rounded" />
+            </div>
+          </div>
+        }
+      </div>
     </div>
   </div>
 } @else if (error()) {

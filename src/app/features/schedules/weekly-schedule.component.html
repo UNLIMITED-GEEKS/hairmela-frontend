@@ -1,8 +1,17 @@
 @if (loading()) {
+  <!-- Mirrors the loaded page: one outlined card of seven day rows, each with
+       a day name, its hours, and an on/off toggle. -->
   <div class="py-6 px-4">
-
-    <div class="">
-      <app-skeleton variant="list-item" [count]="7" />
+    <div class="divide-y divide-border-subtle rounded-xl border border-border bg-surface-card">
+      @for (day of [1, 2, 3, 4, 5, 6, 7]; track day) {
+        <div class="flex items-center justify-between gap-4 px-4 py-4">
+          <div class="min-w-0 flex-1 space-y-1.5">
+            <app-skeleton variant="block" height="1rem" width="6rem" rounded="rounded" />
+            <app-skeleton variant="block" height="0.75rem" width="8rem" rounded="rounded" />
+          </div>
+          <div class="shrink-0"><app-skeleton variant="block" height="1.5rem" width="2.75rem" rounded="rounded-full" /></div>
+        </div>
+      }
     </div>
   </div>
 } @else if (error()) {

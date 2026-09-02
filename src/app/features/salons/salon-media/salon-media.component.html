@@ -1,8 +1,28 @@
 @if (loading()) {
-  <div class="py-6 px-4">
+  <!-- Mirrors the two cards this page renders — the profile photo card and
+       the gallery grid — rather than avatar rows, which it never shows. -->
+  <div class="py-6 px-4 space-y-4">
 
-    <div class="">
-      <app-skeleton variant="avatar-row" [count]="2" />
+    <!-- Profile photo card: heading, round photo, action -->
+    <div class="bg-surface-card rounded-xl border border-border p-5 space-y-4">
+      <app-skeleton variant="block" height="1rem" width="8rem" rounded="rounded" />
+      <div class="flex items-center gap-4">
+        <div class="shrink-0"><app-skeleton variant="block" height="5rem" width="5rem" rounded="rounded-full" /></div>
+        <app-skeleton variant="block" height="2.25rem" width="7rem" />
+      </div>
+    </div>
+
+    <!-- Gallery card: heading, count, then the preview grid -->
+    <div class="bg-surface-card rounded-xl border border-border p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <app-skeleton variant="block" height="1rem" width="5rem" rounded="rounded" />
+        <app-skeleton variant="block" height="0.875rem" width="6rem" rounded="rounded" />
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        @for (tile of [1, 2, 3, 4, 5, 6]; track tile) {
+          <div class="aspect-square"><app-skeleton variant="block" height="100%" /></div>
+        }
+      </div>
     </div>
   </div>
 } @else if (error()) {

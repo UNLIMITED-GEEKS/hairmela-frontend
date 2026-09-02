@@ -1,9 +1,26 @@
 @if (loading()) {
-  <div class="py-6 px-4">
-
-    <div class="">
-      <app-skeleton variant="list-item" [count]="6" />
-    </div>
+  <!-- Mirrors the loaded page: category accordions of toggleable service rows,
+       then the default-service card at the bottom. -->
+  <div class="py-6 px-4 space-y-3">
+    @for (group of [1, 2]; track group) {
+      <div>
+        <div class="mb-2 flex items-center justify-between rounded-2xl border border-border px-4 py-3.5">
+          <app-skeleton variant="block" height="1rem" width="7rem" rounded="rounded" />
+          <app-skeleton variant="block" height="0.875rem" width="0.875rem" rounded="rounded" />
+        </div>
+        <div class="divide-y divide-border-subtle rounded-xl border border-border bg-surface-card">
+          @for (row of [1, 2, 3]; track row) {
+            <div class="flex items-center gap-3 px-4 py-3.5">
+              <div class="shrink-0"><app-skeleton variant="block" height="1.25rem" width="1.25rem" rounded="rounded" /></div>
+              <div class="min-w-0 flex-1 space-y-1.5">
+                <app-skeleton variant="block" height="1rem" width="9rem" rounded="rounded" />
+                <app-skeleton variant="block" height="0.75rem" width="6rem" rounded="rounded" />
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
   </div>
 } @else {
   <app-page-header title="Services offered" backVariant="glass" />

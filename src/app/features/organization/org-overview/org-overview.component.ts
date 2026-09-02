@@ -1,13 +1,14 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { OrgService } from '../org.service';
-import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { RouteParam, RoutePath, RouteSegment } from '../../../core/routing/route-paths';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-org-overview',
   templateUrl: './org-overview.component.html',
-  imports: [RouterLink, SkeletonComponent],
+  imports: [
+    SkeletonComponent, RouterLink],
 })
 export class OrgOverviewComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);

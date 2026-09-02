@@ -1,9 +1,38 @@
 <app-connection-banner />
 
 @if (console.loading()) {
+  <!-- Mirrors the queue console: the current-client card, the action row, then
+       the waiting list. -->
   <div class="h-screen-minus-topbar bg-surface px-4 py-8">
-    <div class="max-w-lg mx-auto">
-      <app-skeleton variant="card" [count]="2" />
+    <div class="max-w-lg mx-auto space-y-4">
+
+      <div class="rounded-2xl border border-border bg-surface-card p-5 space-y-3">
+        <app-skeleton variant="block" height="0.875rem" width="6rem" rounded="rounded" />
+        <div class="flex items-center gap-3">
+          <div class="shrink-0"><app-skeleton variant="block" height="3rem" width="3rem" rounded="rounded-full" /></div>
+          <div class="min-w-0 flex-1 space-y-1.5">
+            <app-skeleton variant="block" height="1rem" width="8rem" rounded="rounded" />
+            <app-skeleton variant="block" height="0.75rem" width="6rem" rounded="rounded" />
+          </div>
+        </div>
+        <div class="flex gap-2 pt-1">
+          <div class="flex-1"><app-skeleton variant="block" height="2.5rem" rounded="rounded-xl" /></div>
+          <div class="flex-1"><app-skeleton variant="block" height="2.5rem" rounded="rounded-xl" /></div>
+        </div>
+      </div>
+
+      <div class="divide-y divide-border-subtle rounded-xl border border-border bg-surface-card">
+        @for (row of [1, 2, 3, 4]; track row) {
+          <div class="flex items-center gap-3 px-4 py-3.5">
+            <div class="shrink-0"><app-skeleton variant="block" height="2rem" width="2rem" rounded="rounded-full" /></div>
+            <div class="min-w-0 flex-1 space-y-1.5">
+              <app-skeleton variant="block" height="1rem" width="7rem" rounded="rounded" />
+              <app-skeleton variant="block" height="0.75rem" width="5rem" rounded="rounded" />
+            </div>
+            <div class="shrink-0"><app-skeleton variant="block" height="1rem" width="3rem" rounded="rounded-full" /></div>
+          </div>
+        }
+      </div>
     </div>
   </div>
 } @else if (staffFrozen()) {

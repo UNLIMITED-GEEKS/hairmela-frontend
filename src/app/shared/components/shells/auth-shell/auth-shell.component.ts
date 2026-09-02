@@ -31,6 +31,27 @@ import { RoutePath } from '../../../../core/routing/route-paths';
 })
 export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly _invites = inject(InvitesService);
+  private readonly _routeWrapper = viewChild<ElementRef<HTMLElement>>('routeWrapper');
+
+  /**
+   * Restarts the route-entry fade, driven by RouterOutlet's (activate).
+   *
+   * SYNCHRONOUS on purpose. The class cannot simply be left on — a CSS
+   * animation replays only when the element re-enters the animating state — but
+   * toggling a signal off and back on across a frame was visibly wrong: the new
+   * page painted at full opacity first, then snapped to 0 when the class
+   * arrived, which read as a flash. Removing the class and forcing a reflow in
+   * the same tick means the browser never paints the intermediate state.
+   */
+  protected onRouteActivate(): void {
+    const el = this._routeWrapper()?.nativeElement;
+    if (!el) return;
+    el.classList.remove('route-enter');
+    // Reading offsetWidth flushes the pending style change, so re-adding the
+    // class below counts as a fresh application and the animation replays.
+    void el.offsetWidth;
+    el.classList.add('route-enter');
+  }
   private readonly _auth = inject(AuthService);
   private readonly _dashboardService = inject(SalonsStore);
   private readonly _salonContext = inject(SalonContextService);

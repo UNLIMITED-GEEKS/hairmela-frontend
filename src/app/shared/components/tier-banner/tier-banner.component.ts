@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { SalonRole } from '../../../core/salon-context/membership.types';
 import { RoutePath } from '../../../core/routing/route-paths';
+import { AppPlatformService } from '../../../core/native/app-platform.service';
 
 type BannerKind = 'trial' | 'expired' | 'free';
 
@@ -86,7 +87,11 @@ export class TierBannerComponent {
     return null;
   });
 
-  protected readonly visible = computed(() => !this._dismissed() && this.banner() !== null);
+  private readonly _platform = inject(AppPlatformService);
+
+  protected readonly visible = computed(
+    () => !this._platform.isNative && !this._dismissed() && this.banner() !== null,
+  );
 
   // The free-plan nudge is soft and dismissible; trial/expired are not — they
   // carry an action the user needs and shouldn't be able to hide away.

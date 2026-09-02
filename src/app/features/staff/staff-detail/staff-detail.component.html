@@ -1,14 +1,24 @@
 @if (loading()) {
   <app-page-header title="Staff" backVariant="glass" />
-  <div class=" px-4">
+  <!-- Mirrors the loaded page: the profile card with its avatar, name and role
+       badges, then the stack of navigation rows below it. -->
+  <div class="px-4 space-y-4">
 
-
-    <div class="">
-      <app-skeleton variant="card" [count]="1" />
-      <div class="mt-4">
-        <app-skeleton variant="list-item" [count]="3" />
+    <div class="bg-surface-card rounded-xl border border-border p-5 flex items-center gap-4">
+      <div class="shrink-0"><app-skeleton variant="block" height="3.5rem" width="3.5rem" rounded="rounded-full" /></div>
+      <div class="min-w-0 flex-1 space-y-2">
+        <app-skeleton variant="block" height="1rem" width="8rem" rounded="rounded" />
+        <app-skeleton variant="block" height="0.75rem" width="11rem" rounded="rounded" />
+        <div class="flex gap-2">
+          <app-skeleton variant="block" height="1rem" width="3.5rem" rounded="rounded-full" />
+          <app-skeleton variant="block" height="1rem" width="4rem" rounded="rounded-full" />
+        </div>
       </div>
     </div>
+
+    @for (row of [1, 2, 3, 4]; track row) {
+      <app-skeleton variant="block" height="3.5rem" rounded="rounded-xl" />
+    }
   </div>
 } @else if (staff(); as s) {
   <app-page-header title="Staff" backVariant="glass" />

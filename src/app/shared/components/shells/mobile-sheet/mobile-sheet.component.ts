@@ -6,6 +6,7 @@ import { Membership, SalonRole } from '../../../../core/salon-context/membership
 import { CONTROL_ITEMS, VisibleControl } from '../sidebar/sidebar.component';
 import { RouteSegment, RoutePath } from '../../../../core/routing/route-paths';
 import { OrgContextService } from '../../../../core/salon-context/org-context.service';
+import { AppPlatformService } from '../../../../core/native/app-platform.service';
 
 @Component({
   selector: 'app-mobile-sheet',
@@ -39,8 +40,9 @@ export class MobileSheetComponent {
   // Org-scoped and owner-gated — see the matching comment in SidebarComponent
   // for both why this sits outside "Salon Controls" and why the org id alone
   // is not proof of ownership.
+  private readonly _platform = inject(AppPlatformService);
   readonly billingOrgId = computed(() =>
-    this.isOwner() ? (this._orgContext.ownedOrg()?.id ?? null) : null,
+    !this._platform.isNative && this.isOwner() ? (this._orgContext.ownedOrg()?.id ?? null) : null,
   );
 
   protected sheetItems(): NavItem[] {

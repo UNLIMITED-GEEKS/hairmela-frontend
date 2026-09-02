@@ -2,15 +2,16 @@ import { Component, inject, OnInit, effect, viewChild, ElementRef, Injector, aft
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SalonSettingsService } from '../salon-settings/salon-settings.service';
-import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-salon-slug',
   templateUrl: './salon-slug.component.html',
-  imports: [ReactiveFormsModule, SkeletonComponent, FieldErrorComponent],
+  imports: [
+    SkeletonComponent, ReactiveFormsModule, FieldErrorComponent],
 })
 export class SalonSlugComponent implements OnInit {
   // The <form> element, so a blocked submit can scroll to the first

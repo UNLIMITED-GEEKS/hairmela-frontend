@@ -1,9 +1,33 @@
 @if (loading()) {
-  <div class="py-6 px-4">
-
-    <div class="">
-      <app-skeleton variant="list-item" [count]="5" />
-    </div>
+  <!-- Mirrors the loaded shape: services are grouped into category accordions,
+       each an outlined card of divided rows carrying a name, a meta line and
+       the Edit/Delete buttons. A flat list of five rows looked nothing like
+       what arrives. -->
+  <div class="py-6 px-4 space-y-3">
+    @for (group of [1, 2]; track group) {
+      <div>
+        <!-- Accordion header -->
+        <div class="mb-2 flex items-center justify-between rounded-2xl border border-border px-4 py-3.5">
+          <app-skeleton variant="block" height="1rem" width="7rem" rounded="rounded" />
+          <app-skeleton variant="block" height="0.875rem" width="0.875rem" rounded="rounded" />
+        </div>
+        <!-- Rows inside it -->
+        <div class="divide-y divide-border-subtle rounded-xl border border-border bg-surface-card">
+          @for (row of [1, 2, 3]; track row) {
+            <div class="flex flex-wrap items-center gap-3 px-4 py-4">
+              <div class="min-w-0 flex-1 space-y-1.5">
+                <app-skeleton variant="block" height="1rem" width="9rem" rounded="rounded" />
+                <app-skeleton variant="block" height="0.75rem" width="12rem" rounded="rounded" />
+              </div>
+              <div class="flex shrink-0 items-center gap-2">
+                <app-skeleton variant="block" height="2.25rem" width="3.5rem" />
+                <app-skeleton variant="block" height="2.25rem" width="4rem" />
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
   </div>
 } @else if (error()) {
   <div class="py-16 flex flex-col items-center gap-3">

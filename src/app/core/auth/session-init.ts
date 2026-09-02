@@ -69,8 +69,35 @@ export function sessionInit(): () => Promise<void> {
       return;
     }
 
+    // Storage is hydrated by now (awaited above), so a previously-issued access
+    // token can be restored without touching the network. This is the whole
+    // point of persisting it: before, every cold start had to await
+    // POST /auth/refresh — ~1.2s on a real connection — before a single route
+    // could activate, because the access token lived only in memory.
+    tokenStore.restoreFromStorage();
+
     const refreshToken = tokenStore.getRefreshToken();
     if (!refreshToken) return;
+
+    // Already signed in from storage: skip the refresh round-trip entirely and
+    // let the app boot. The token is only trusted if it still has real life
+    // left (see TokenStore.hasUsableTtl), and if the server rejects it anyway
+    // the 401 path in refresh.interceptor refreshes and retries transparently.
+    // getMe still runs, but in the BACKGROUND — nothing here awaits it, so the
+    // router is not held up by a profile fetch no guard reads.
+    if (tokenStore.isAuthenticated()) {
+      firstValueFrom(authenticatedAuthControllerGetMe(http, apiConfig.rootUrl, {}))
+        .then((res) => currentUserStore.set(res.body))
+        .catch(() => {
+          /* interceptor handles auth failures; a profile miss is not fatal */
+        });
+      if (shouldRedirect) {
+        splash.showForDashboard();
+        const lastId = persistentStore.get<string>(LAST_SALON_KEY);
+        router.navigate(lastId ? RoutePath.salon(lastId) : RoutePath.dashboard());
+      }
+      return;
+    }
 
     try {
       const tokens = await firstValueFrom(

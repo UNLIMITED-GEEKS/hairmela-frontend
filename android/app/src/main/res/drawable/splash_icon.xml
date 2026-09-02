@@ -16,6 +16,19 @@
   Android's circular mask plenty of clearance. The paths keep their original
   1200-space coordinates; the wrapper group offsets them into the centre.
 
+  SIZED AT 480dp — DOUBLE the 240dp slot Android 12+ draws the splash icon
+  into, and deliberately so. Android rasterises a vector drawable ONCE at its
+  intrinsic size and then composites that bitmap; it does not re-render per
+  frame the way a browser does with live SVG. At the original 108dp that meant
+  a 2.2x UPscale of the cached bitmap, which is why a vector still looked soft.
+  240dp fixed most of it; 480dp goes further by making the cache larger than
+  the slot, so the scale is a DOWNsample, which stays sharp where an upsample
+  cannot.
+
+  Do not expect it to match the web splash exactly: that one is live SVG in the
+  DOM, re-rasterised by the browser at true device density. This pipeline bakes
+  once. 480dp is about as close as the platform allows.
+
   GEOMETRY, derived from the source rather than eyeballed:
     circle    cx600 cy570 r310, stroke 92, round caps
     dasharray 1696 on a circumference of 1947.8 -> trimPathEnd 0.8707
@@ -23,8 +36,8 @@
     dot       cx762 cy801 r62, #660029
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
+    android:width="960dp"
+    android:height="960dp"
     android:viewportWidth="1800"
     android:viewportHeight="1800">
 

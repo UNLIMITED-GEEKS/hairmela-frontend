@@ -21,7 +21,6 @@ import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { ToastService } from '../../../core/toast/toast.service';
 import { RenameDialogService } from '../../../shared/components/rename-dialog/rename-dialog.service';
 import { BranchPickerService } from '../../visit/branch-picker/branch-picker.service';
-import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/frozen-banner.component';
 import { TierFreezeDirective } from '../../../shared/directives/tier-freeze.directive';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
@@ -35,6 +34,7 @@ import { COUNTRIES } from '../../../core/geo/countries-states.data';
 import { CURRENCIES } from '../../../core/geo/currencies.data';
 import { UpdateSalonDto } from '../../../api/models/update-salon-dto';
 import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const TIMEZONES = [
@@ -90,8 +90,8 @@ function paymentDetailsRequiredWhenFeeEnforced(group: AbstractControl): Validati
   selector: 'app-salon-settings',
   templateUrl: './salon-settings.component.html',
   imports: [
-    ReactiveFormsModule,
     SkeletonComponent,
+    ReactiveFormsModule,
     FrozenBannerComponent,
     TierFreezeDirective,
     FieldErrorComponent,

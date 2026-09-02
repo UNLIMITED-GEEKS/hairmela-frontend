@@ -4,7 +4,30 @@
   </ng-container>
 
   @if (loading()) {
-    <app-skeleton variant="list-item" [count]="5" />
+    <!-- Mirrors a real staff row: card, avatar, name + email, the two stacked
+         badges, and the action bar under its divider. Sized from the loaded
+         markup below so nothing reflows when the list lands. -->
+    <div class="space-y-2">
+      @for (row of [1, 2, 3, 4, 5]; track row) {
+        <div class="bg-surface-card rounded-xl border border-border px-4 py-3">
+          <div class="flex items-center gap-3">
+            <div class="shrink-0"><app-skeleton variant="block" height="2.5rem" width="2.5rem" rounded="rounded-full" /></div>
+            <div class="min-w-0 flex-1 space-y-1.5">
+              <app-skeleton variant="block" height="1rem" width="8rem" rounded="rounded" />
+              <app-skeleton variant="block" height="0.75rem" width="11rem" rounded="rounded" />
+            </div>
+            <div class="flex shrink-0 flex-col items-end gap-1.5">
+              <app-skeleton variant="block" height="1rem" width="3.5rem" rounded="rounded-full" />
+              <app-skeleton variant="block" height="1rem" width="4rem" rounded="rounded-full" />
+            </div>
+          </div>
+          <div class="mt-3 flex gap-2 border-t border-border-subtle pt-3">
+            <div class="flex-1 md:max-w-28"><app-skeleton variant="block" height="2.25rem" /></div>
+            <div class="flex-1 md:max-w-28"><app-skeleton variant="block" height="2.25rem" /></div>
+          </div>
+        </div>
+      }
+    </div>
   } @else if (error()) {
     <div class="flex flex-col items-center py-16 gap-3">
       <p class="text-sm text-text-secondary">Failed to load staff.</p>

@@ -42,8 +42,12 @@
     <!-- Content -->
     <main #mainScroll class="flex-1 overflow-y-auto pt-8 md:pt-0 pb-bottom-nav print:overflow-visible print:pt-0 print:pb-0">
       <app-pull-to-refresh-indicator />
-      <div class="w-[95%] mx-auto py-6 md:py-2 print:w-full print:p-0 print:m-0">
-        <router-outlet />
+      <!-- RouterOutlet's own (activate) fires when a route component is
+           created, which is exactly when the page should fade. Replacing
+           the class on that event restarts the CSS animation without
+           tearing the wrapper down. -->
+      <div #routeWrapper class="w-[95%] mx-auto py-6 md:py-2 print:w-full print:p-0 print:m-0 route-enter">
+        <router-outlet (activate)="onRouteActivate()" />
       </div>
     </main>
 

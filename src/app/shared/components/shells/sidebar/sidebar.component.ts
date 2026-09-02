@@ -6,6 +6,7 @@ import { NavIconComponent } from '../nav-icon/nav-icon.component';
 import { Membership, SalonRole } from '../../../../core/salon-context/membership.types';
 import { RouteSegment, RoutePath } from '../../../../core/routing/route-paths';
 import { OrgContextService } from '../../../../core/salon-context/org-context.service';
+import { AppPlatformService } from '../../../../core/native/app-platform.service';
 
 export interface ControlItem {
   readonly label: string;
@@ -156,8 +157,9 @@ export class SidebarComponent implements OnInit {
   // back, so the org id alone is not proof of ownership and was showing this
   // link to staff. Returns the id (not a boolean) so the template can bind it
   // with @if (...; as orgId).
+  private readonly _platform = inject(AppPlatformService);
   readonly billingOrgId = computed(() =>
-    this.isOwner() ? (this._orgContext.ownedOrg()?.id ?? null) : null,
+    !this._platform.isNative && this.isOwner() ? (this._orgContext.ownedOrg()?.id ?? null) : null,
   );
 
   readonly sidebarItems = computed(() => this.navItems().filter((i) => i.sidebar && !i.action));
@@ -165,14 +167,18 @@ export class SidebarComponent implements OnInit {
   ngOnInit(): void {
     try {
       this.collapsed.set(localStorage.getItem(COLLAPSED_KEY) === '1');
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   toggle(): void {
     this.collapsed.update((v) => !v);
     try {
       localStorage.setItem(COLLAPSED_KEY, this.collapsed() ? '1' : '0');
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   onLogout(): void {

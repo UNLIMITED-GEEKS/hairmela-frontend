@@ -1,8 +1,25 @@
 @if (loading()) {
-  <div class="py-6 px-4">
-    <div class="">
-      <app-skeleton variant="list-item" [count]="8" />
+  <!-- Mirrors the form below: a sticky action bar, then titled section cards
+       (General, Pricing, Queue, Part payment) each holding labelled fields. -->
+  <div class="py-6 px-4 space-y-6">
+
+    <!-- Sticky Cancel / Save bar -->
+    <div class="flex gap-3">
+      <div class="flex-1"><app-skeleton variant="block" height="2.75rem" /></div>
+      <div class="flex-1"><app-skeleton variant="block" height="2.75rem" /></div>
     </div>
+
+    @for (section of [1, 2, 3]; track section) {
+      <div class="bg-surface-card rounded-xl border border-border p-5 space-y-4">
+        <app-skeleton variant="block" height="1rem" width="6rem" rounded="rounded" />
+        @for (field of [1, 2, 3]; track field) {
+          <div class="space-y-1.5">
+            <app-skeleton variant="block" height="0.875rem" width="7rem" rounded="rounded" />
+            <app-skeleton variant="block" height="2.75rem" />
+          </div>
+        }
+      </div>
+    }
   </div>
 } @else {
   <app-page-header title="Salon Settings" backVariant="glass" />

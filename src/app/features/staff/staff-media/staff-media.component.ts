@@ -8,23 +8,23 @@ import { ImageUploaderComponent } from '../../../shared/components/image-uploade
 import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
 import { GalleryModalComponent } from '../../../shared/components/gallery-modal/gallery-modal.component';
 import { GalleryEditModalComponent } from '../../../shared/components/gallery-edit-modal/gallery-edit-modal.component';
-import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { PageDescriptionComponent } from '../../../shared/components/page-description/page-description.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
 import { RouteParam } from '../../../core/routing/route-paths';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-staff-media',
   templateUrl: './staff-media.component.html',
   imports: [
+    SkeletonComponent,
     ImageUploaderComponent,
     AvatarComponent,
     GalleryModalComponent,
     GalleryEditModalComponent,
-    SkeletonComponent,
     PageHeaderComponent,
     PageDescriptionComponent,
     IconComponent,

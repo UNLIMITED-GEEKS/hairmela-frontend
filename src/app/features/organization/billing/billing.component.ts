@@ -5,14 +5,15 @@ import { BillingService } from './billing.service';
 import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/confirm-dialog.service';
 import { Tier, TIER_NAMES, displayLimit } from '../../../core/tier/tier-limits';
 import { PLAN_CARDS, formatPlanPrice } from '../../../core/tier/tier-plans';
-import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { RouteParam } from '../../../core/routing/route-paths';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-billing',
   templateUrl: './billing.component.html',
-  imports: [DatePipe, SkeletonComponent, PageHeaderComponent],
+  imports: [
+    SkeletonComponent, DatePipe, PageHeaderComponent],
 })
 export class BillingComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);

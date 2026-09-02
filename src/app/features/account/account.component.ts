@@ -4,7 +4,6 @@ import { DatePipe } from '@angular/common';
 import { CurrentUserStore } from '../../core/auth/current-user.store';
 import { AuthService } from '../../core/auth/auth.service';
 import { SalonContextService } from '../../core/salon-context/salon-context.service';
-import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 import { ResetPasswordComponent } from './reset-password/reset-password.component';
 import { NotificationsToggleComponent } from './notifications-toggle/notifications-toggle.component';
 import { QueueSoundToggleComponent } from './queue-sound-toggle/queue-sound-toggle.component';
@@ -13,14 +12,15 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
 import { CreateSalonCardComponent } from '../../shared/components/create-salon-card/create-salon-card.component';
 import { RoutePath } from '../../core/routing/route-paths';
 import { ThemeService } from '../../core/theme/theme.service';
+import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-account',
   templateUrl: './account.component.html',
   imports: [
+    SkeletonComponent,
     RouterLink,
     DatePipe,
-    SkeletonComponent,
     ResetPasswordComponent,
     NotificationsToggleComponent,
     QueueSoundToggleComponent,

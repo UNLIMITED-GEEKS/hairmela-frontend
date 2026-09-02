@@ -312,11 +312,18 @@
          animation settled. view-box resolves against the SVG's own coordinate
          system, which both the ring and the dot actually occupy. */
       transform-box: view-box;
-      transform-origin: 600px 570px;
     }
-    /* The dot lands last, once the ring has almost arrived — it sits in the
-       ring's gap, so appearing first would read as a stray mark. */
-    #hm-splash-dot { animation-delay: 140ms; }
+    /* EACH ELEMENT SCALES ABOUT ITSELF. Both shared 600 570 (the ring's centre)
+       before, but the dot sits at 762 801 — scaling it about a point ~200 units
+       up and to the left dragged it sideways on the way in, which read as the
+       mark arriving from the right rather than straight down. */
+    #hm-splash-ring { transform-origin: 600px 570px; }
+    #hm-splash-dot {
+      transform-origin: 762px 801px;
+      /* Lands last, once the ring has almost arrived — it sits in the ring's
+         gap, so appearing first would read as a stray mark. */
+      animation-delay: 140ms;
+    }
     /* -700 is in VIEWBOX units, not screen pixels: a CSS transform on an SVG
        child is resolved in the element's own coordinate system, and this
        viewBox is 1200x1500 rendered at ~200x250 — a factor of 6. The earlier

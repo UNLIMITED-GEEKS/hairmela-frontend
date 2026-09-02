@@ -1,6 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import {
   AbstractControlOptions,
@@ -16,6 +15,7 @@ import { FieldErrorComponent } from '../../shared/components/field-error/field-e
 import { TimePickerComponent } from '../../shared/components/time-picker/time-picker.component';
 import { RouteParam } from '../../core/routing/route-paths';
 import { endAfterStart } from '../../core/utils/time-range.validator';
+import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -23,8 +23,8 @@ const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 
   selector: 'app-weekly-schedule',
   templateUrl: './weekly-schedule.component.html',
   imports: [
-    ReactiveFormsModule,
     SkeletonComponent,
+    ReactiveFormsModule,
     FieldErrorComponent,
     PageHeaderComponent,
     TimePickerComponent,

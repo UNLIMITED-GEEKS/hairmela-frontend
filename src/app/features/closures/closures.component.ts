@@ -1,6 +1,5 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { PageDescriptionComponent } from '../../shared/components/page-description/page-description.component';
 import { ScreenLayoutComponent } from '../../shared/components/screen-layout/screen-layout.component';
@@ -16,13 +15,14 @@ import { FieldErrorComponent } from '../../shared/components/field-error/field-e
 import { AnimatedListComponent } from '../../shared/components/animated-list/animated-list.component';
 import { filter } from 'rxjs';
 import { RouteParam } from '../../core/routing/route-paths';
+import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-closures',
   templateUrl: './closures.component.html',
   imports: [
-    ReactiveFormsModule,
     SkeletonComponent,
+    ReactiveFormsModule,
     FrozenBannerComponent,
     TierFreezeDirective,
     FieldErrorComponent,

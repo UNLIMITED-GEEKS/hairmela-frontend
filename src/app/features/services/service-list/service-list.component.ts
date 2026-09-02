@@ -6,7 +6,6 @@ import { CategoriesService } from '../../../core/categories/categories.service';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { SalonRole } from '../../../core/salon-context/membership.types';
 import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/confirm-dialog.service';
-import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/frozen-banner.component';
 import { AnimatedListComponent } from '../../../shared/components/animated-list/animated-list.component';
 import { AccordionComponent } from '../../../shared/components/accordion/accordion.component';
@@ -15,13 +14,14 @@ import { ScreenLayoutComponent } from '../../../shared/components/screen-layout/
 import { RouteParam, RouteSegment } from '../../../core/routing/route-paths';
 import { CurrencyNgnPipe } from '../../../shared/pipes/currency-ngn.pipe';
 import { filter } from 'rxjs';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-service-list',
   templateUrl: './service-list.component.html',
   imports: [
-    RouterLink,
     SkeletonComponent,
+    RouterLink,
     FrozenBannerComponent,
     AnimatedListComponent,
     AccordionComponent,

@@ -108,5 +108,18 @@ export class AppPlatformService {
     if (this.isNative) {
       document.documentElement.classList.add('capacitor-native');
     }
+
+    // Broader than capacitor-native: covers the Capacitor APK, an installed
+    // PWA and an iOS home-screen app — every shell where the app has no
+    // browser chrome around it. Route transitions key off this, since a page
+    // fade is app-like polish inside an installed app but unexpected on a
+    // website, where the browser owns navigation feel.
+    //
+    // Set here rather than in index.html's boot script because isAppContext
+    // already answers this question in one place; the boot script's own class
+    // means something narrower (see index.html).
+    if (this.isAppContext) {
+      document.documentElement.classList.add('hm-installed');
+    }
   }
 }

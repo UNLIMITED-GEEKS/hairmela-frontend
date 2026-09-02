@@ -9,15 +9,16 @@ import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/
 import { ToastService } from '../../../core/toast/toast.service';
 import { ErrorCodes } from '../../../core/errors/error-codes';
 import { isApiError } from '../../../core/errors/api-error.types';
-import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { filter, switchMap } from 'rxjs';
 import { RouteParam, RoutePath, RouteSegment } from '../../../core/routing/route-paths';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-staff-detail',
   templateUrl: './staff-detail.component.html',
-  imports: [RouterLink, SkeletonComponent, PageHeaderComponent],
+  imports: [
+    SkeletonComponent, RouterLink, PageHeaderComponent],
 })
 export class StaffDetailComponent implements OnInit {
   protected readonly _location = inject(Location);

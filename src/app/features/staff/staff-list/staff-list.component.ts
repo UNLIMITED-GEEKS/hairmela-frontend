@@ -5,18 +5,18 @@ import { SalonStaff } from '../../../api/models/salon-staff';
 import { PendingInviteDto } from '../../../api/models/pending-invite-dto';
 import { StaffService } from '../staff.service';
 import { HasRoleDirective } from '../../../shared/directives/has-role.directive';
-import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { ScreenLayoutComponent } from '../../../shared/components/screen-layout/screen-layout.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { RouteParam, RoutePath, RouteSegment } from '../../../core/routing/route-paths';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-staff-list',
   templateUrl: './staff-list.component.html',
   imports: [
+    SkeletonComponent,
     RouterLink,
     HasRoleDirective,
-    SkeletonComponent,
     DatePipe,
     LowerCasePipe,
     ScreenLayoutComponent,

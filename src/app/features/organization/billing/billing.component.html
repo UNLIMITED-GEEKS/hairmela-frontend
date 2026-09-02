@@ -17,8 +17,24 @@
   </p>
 
   @if (loading() && !access()) {
-    <div class="mt-6">
-      <app-skeleton variant="card" [count]="1" />
+    <!-- Mirrors the loaded page: the current-plan summary card, then the plan
+         option cards below it. -->
+    <div class="mt-6 space-y-4">
+      <div class="rounded-xl border border-border bg-surface-card p-5 space-y-3">
+        <app-skeleton variant="block" height="1rem" width="7rem" rounded="rounded" />
+        <app-skeleton variant="block" height="1.75rem" width="10rem" rounded="rounded" />
+        <app-skeleton variant="block" height="0.875rem" width="13rem" rounded="rounded" />
+        <app-skeleton variant="block" height="2.75rem" width="9rem" />
+      </div>
+      @for (plan of [1, 2]; track plan) {
+        <div class="rounded-xl border border-border bg-surface-card p-5 space-y-3">
+          <app-skeleton variant="block" height="1rem" width="6rem" rounded="rounded" />
+          <app-skeleton variant="block" height="1.5rem" width="8rem" rounded="rounded" />
+          @for (line of [1, 2, 3]; track line) {
+            <app-skeleton variant="block" height="0.75rem" rounded="rounded" />
+          }
+        </div>
+      }
     </div>
   } @else if (access(); as a) {
 

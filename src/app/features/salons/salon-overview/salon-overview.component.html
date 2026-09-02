@@ -1,6 +1,38 @@
 @if (loading()) {
-  <div class="p-6">
-    <app-skeleton variant="list-item" [count]="3" />
+  <!-- Mirrors the loaded layout below — banner, header with its avatar tile,
+       the two-column shortcuts grid, then the list rows — rather than three
+       generic list items. A skeleton shaped like what replaces it reads as the
+       page arriving; a mismatched one reads as a different screen flashing
+       past. Same approach as the dashboard. -->
+  <div class="p-6 space-y-4">
+
+    <!-- Trial / status banner -->
+    <app-skeleton variant="block" height="3.5rem" rounded="rounded-xl" />
+
+    <!-- Header: avatar tile, name, location -->
+    <div class="flex items-start gap-4 pt-2">
+      <div class="shrink-0"><app-skeleton variant="block" height="3.5rem" width="3.5rem" rounded="rounded-2xl" /></div>
+      <div class="min-w-0 flex-1 space-y-2">
+        <app-skeleton variant="block" height="1.25rem" width="10rem" rounded="rounded" />
+        <app-skeleton variant="block" height="0.875rem" width="7rem" rounded="rounded" />
+        <app-skeleton variant="block" height="1.25rem" width="4rem" rounded="rounded-full" />
+      </div>
+    </div>
+
+    <!-- Shortcuts grid. The first tile spans both columns in the real layout
+         (the primary "My Queue" bar), so the skeleton does too rather than
+         showing four equal squares the page never has. -->
+    <div class="grid grid-cols-2 gap-3 pt-2">
+      <div class="col-span-2"><app-skeleton variant="block" height="4rem" rounded="rounded-2xl" /></div>
+      @for (tile of [1, 2, 3, 4]; track tile) {
+        <app-skeleton variant="block" height="5rem" rounded="rounded-2xl" />
+      }
+    </div>
+
+    <!-- Toggle row and pending invites -->
+    <div class="pt-2">
+      <app-skeleton variant="list-item" [count]="3" />
+    </div>
   </div>
 } @else if (error()) {
   <div class="p-6 flex flex-col items-center gap-3 py-16">

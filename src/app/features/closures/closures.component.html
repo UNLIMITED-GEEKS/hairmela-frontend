@@ -1,8 +1,25 @@
 @if (loading()) {
- <div class="py-6 px-4">
+  <!-- Mirrors the loaded page: the explanatory line, the "New closure" form
+       card, then the list of existing dated closures. -->
+  <div class="py-6 px-4 space-y-4">
+    <app-skeleton variant="block" height="2rem" rounded="rounded" />
 
-    <div class="">
-      <app-skeleton variant="list-item" [count]="5" />
+    <div class="bg-surface-card rounded-xl border border-border p-5 space-y-4">
+      <app-skeleton variant="block" height="1rem" width="7rem" rounded="rounded" />
+      <app-skeleton variant="block" height="2.75rem" />
+      <app-skeleton variant="block" height="2.75rem" />
+    </div>
+
+    <div class="divide-y divide-border-subtle rounded-xl border border-border bg-surface-card">
+      @for (row of [1, 2, 3]; track row) {
+        <div class="flex items-center justify-between gap-4 px-4 py-4">
+          <div class="space-y-1.5">
+            <app-skeleton variant="block" height="1rem" width="8rem" rounded="rounded" />
+            <app-skeleton variant="block" height="0.75rem" width="5rem" rounded="rounded" />
+          </div>
+          <div class="shrink-0"><app-skeleton variant="block" height="2rem" width="2rem" /></div>
+        </div>
+      }
     </div>
   </div>
 } @else if (error()) {

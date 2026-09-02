@@ -1,6 +1,50 @@
 @if (loading()) {
+  <!-- Mirrors the real layout below rather than showing three generic cards:
+       greeting, search bar, category chips, the salon row, then the action
+       tiles. A skeleton whose shape matches what replaces it reads as the page
+       arriving; one that does not reads as a different screen flashing past.
+       Same approach as the salon shell's full-page skeleton. -->
   <div class="py-6 px-4">
-    <app-skeleton variant="card" [count]="3" />
+    <!-- Greeting. Built inline rather than with the avatar-row variant: that
+         one wraps itself in a bg-yellow-50 panel, which the dark theme remaps
+         to a brown tint — a coloured box among otherwise neutral placeholders.
+         The real greeting here is not a panel either, so plain shapes match
+         both the theme and the layout. -->
+    <div class="flex items-center gap-3">
+      <div class="shrink-0"><app-skeleton variant="block" height="3rem" width="3rem" rounded="rounded-full" /></div>
+      <div class="flex-1 space-y-2">
+        <app-skeleton variant="block" height="1rem" width="8rem" rounded="rounded" />
+        <div class="mb-2"></div>
+        <app-skeleton variant="block" height="0.75rem" width="6rem" rounded="rounded" />
+      </div>
+    </div>
+
+    <!-- Search bar -->
+    <div class="mt-6">
+      <app-skeleton variant="line" [count]="1" />
+    </div>
+
+    <!-- Top Categories heading + chips -->
+    <div class="mt-8">
+      <app-skeleton variant="line" [count]="1" />
+      <div class="mt-3 flex gap-2 overflow-hidden">
+        @for (chip of [1, 2, 3, 4]; track chip) {
+          <div class="shrink-0"><app-skeleton variant="block" height="2.25rem" width="6rem" rounded="rounded-full" /></div>
+        }
+      </div>
+    </div>
+
+    <!-- Salon cards — one horizontally-scrolled row, as below -->
+    <div class="mt-5 flex gap-3 overflow-hidden">
+      @for (card of [1, 2, 3, 4]; track card) {
+        <div class="w-[65%] xs:w-[55%] sm:w-[38%] md:w-[22%] shrink-0"><app-skeleton variant="block" height="16rem" rounded="rounded-2xl" /></div>
+      }
+    </div>
+
+    <!-- How it works / Scan QR / Get the app -->
+    <div class="mt-8">
+      <app-skeleton variant="list-item" [count]="3" />
+    </div>
   </div>
 } @else if (error()) {
   <div class="py-16 flex flex-col items-center gap-3">

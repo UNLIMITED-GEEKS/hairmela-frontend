@@ -123,8 +123,35 @@
         Delete my account
       </a>
     } @else {
-      <div class="py-16">
-        <app-skeleton variant="avatar-row" [count]="1" />
+      <!-- Mirrors the signed-in block above: the profile header, the toggle
+           cards, and the stack of full-width action buttons. -->
+      <div class="space-y-4">
+        <!-- Profile header -->
+        <div class="flex items-center gap-4">
+          <div class="shrink-0"><app-skeleton variant="block" height="4rem" width="4rem" rounded="rounded-full" /></div>
+          <div class="min-w-0 flex-1 space-y-2">
+            <app-skeleton variant="block" height="1.25rem" width="9rem" rounded="rounded" />
+            <app-skeleton variant="block" height="0.875rem" width="12rem" rounded="rounded" />
+          </div>
+        </div>
+
+        <!-- Setting cards (dark mode, sound) -->
+        @for (card of [1, 2]; track card) {
+          <div class="bg-surface-card rounded-xl border border-border p-5">
+            <div class="flex items-center justify-between gap-4">
+              <div class="min-w-0 flex-1 space-y-2">
+                <app-skeleton variant="block" height="1rem" width="6rem" rounded="rounded" />
+                <app-skeleton variant="block" height="0.75rem" width="10rem" rounded="rounded" />
+              </div>
+              <div class="shrink-0"><app-skeleton variant="block" height="1.5rem" width="2.75rem" rounded="rounded-full" /></div>
+            </div>
+          </div>
+        }
+
+        <!-- Action buttons -->
+        @for (btn of [1, 2, 3]; track btn) {
+          <app-skeleton variant="block" height="2.75rem" rounded="rounded-xl" />
+        }
       </div>
     }
   </div>

@@ -6,11 +6,11 @@ import { QueueEntry } from '../../../api/models/queue-entry';
 import { RescheduleDialogComponent } from '../../visit/reschedule-dialog/reschedule-dialog.component';
 import { canReschedule, hasChatCounterparty } from '../../../core/appointments/reschedule-policy';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
-import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { MiniMonthCalendarComponent } from '../../../shared/components/mini-month-calendar/mini-month-calendar.component';
 import { AccordionComponent } from '../../../shared/components/accordion/accordion.component';
 import { CommentsThreadComponent } from '../../comments/comments-thread/comments-thread.component';
 import { RouteParam } from '../../../core/routing/route-paths';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 function toIsoDate(d: Date): string {
   const yyyy = d.getFullYear();
@@ -31,8 +31,8 @@ function toIsoDate(d: Date): string {
   selector: 'app-appointments-list',
   templateUrl: './appointments-list.component.html',
   imports: [
-    PageHeaderComponent,
     SkeletonComponent,
+    PageHeaderComponent,
     DatePipe,
     MiniMonthCalendarComponent,
     AccordionComponent,

@@ -5,20 +5,20 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
 import { QueueConsoleService } from '../queue-console/queue-console.service';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
-import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { ConnectionBannerComponent } from '../../../shared/components/connection-banner/connection-banner.component';
 import { BackButtonComponent } from '../../../shared/components/back-button/back-button.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { RouteParam, RouteSegment, RoutePath } from '../../../core/routing/route-paths';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-queue-shell',
   templateUrl: './queue-shell.component.html',
   providers: [QueueConsoleService],
   imports: [
+    SkeletonComponent,
     RouterOutlet,
     RouterLink,
-    SkeletonComponent,
     ConnectionBannerComponent,
     BackButtonComponent,
     IconComponent,

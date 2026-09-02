@@ -218,6 +218,8 @@ body {
   --color-surface-raised:    oklch(98.5% 0.002 247.839);   /* gray-50  */
   --color-surface-overlay:   oklch(96.7% 0.003 264.542);   /* gray-100 */
   --color-surface-strong:    oklch(92.8% 0.006 264.531);   /* gray-200 */
+  --color-skeleton-base:     oklch(88%   0.006 264.531);
+  --color-skeleton-sheen:    oklch(94%   0.004 264.531);
   --color-surface-inverse:   oklch(21%   0.034 264.665);   /* gray-900 */
 
   /* Borders */
@@ -294,6 +296,8 @@ body {
   --color-surface-raised:    oklch(34.6% 0     0);
   --color-surface-overlay:   oklch(38.6% 0     0);
   --color-surface-strong:    oklch(43.6% 0     0);
+  --color-skeleton-base:     oklch(43.6% 0     0);
+  --color-skeleton-sheen:    oklch(52%   0     0);
   --color-surface-inverse:   oklch(96.7% 0.003 264.542);
 
   /* Softer than a naive mirror of the light ramp. Light mode's --color-border
@@ -647,12 +651,17 @@ textarea::placeholder {
   opacity: 1; /* Firefox dims placeholders by default on top of the colour. */
 }
 
+/* Skeleton shimmer runs on its OWN tokens, not the surface scale. The surface
+   ramp is tuned for panels and is not symmetric between themes: on dark,
+   surface-strong sits 2.15:1 from the page, but on light only 1.19:1 — so the
+   same placeholder that reads clearly in dark mode was nearly invisible in
+   light. These two give both themes comparable separation. */
 .skeleton-pulse {
   background: linear-gradient(
     90deg,
-    var(--color-surface-strong) 25%,
-    var(--color-surface-overlay) 50%,
-    var(--color-surface-strong) 75%
+    var(--color-skeleton-base) 25%,
+    var(--color-skeleton-sheen) 50%,
+    var(--color-skeleton-base) 75%
   );
   background-size: 800px 100%;
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
@@ -674,6 +683,34 @@ textarea::placeholder {
 }
 .row-leave {
   animation: row-leave 0.2s ease-in forwards;
+}
+
+/* Route entry fade, INSTALLED SHELLS ONLY.
+   Driven by a class the shell toggles from RouterOutlet's (activate) — not
+   animate.enter, which fires only on insert and so would play once, on first
+   load, unless the wrapper were destroyed per route.
+   Scoped to .hm-installed — the Capacitor APK, an installed PWA and an iOS
+   home-screen app. On the web the browser owns how navigation feels and a page
+   fade there reads as lag rather than polish.
+
+   Opacity only, no slide: a slide implies direction, and this app has plenty of
+   lateral moves (tab switches, salon switching) where "forward" is meaningless
+   — motion that contradicts the navigation feels broken. It also fights
+   Android's own back-gesture animation.
+
+   Short on purpose. The fade fires when the component MOUNTS, which on a slow
+   route is before its data lands, so a long fade would draw attention to a
+   skeleton. 160ms reads as the page settling rather than as a transition to sit
+   through. */
+@keyframes route-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+:root.hm-installed .route-enter {
+  animation: route-enter 160ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root.hm-installed .route-enter { animation-duration: 1ms; }
 }
 
 /* Tab-content fade on switch (Angular animate.enter) — no leave animation
