@@ -36,8 +36,8 @@
     dot       cx762 cy801 r62, #660029
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="960dp"
-    android:height="960dp"
+    android:width="480dp"
+    android:height="480dp"
     android:viewportWidth="1800"
     android:viewportHeight="1800">
 
