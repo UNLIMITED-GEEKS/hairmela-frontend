@@ -121,5 +121,14 @@ export class AppPlatformService {
     if (this.isAppContext) {
       document.documentElement.classList.add('hm-installed');
     }
+
+    // iOS home-screen apps only. navigator.standalone is Safari-proprietary —
+    // Chrome never sets it and neither does the Capacitor WebView — so it is a
+    // reliable "this is iOS standalone" marker where display-mode is not.
+    // Used to give iOS a slightly longer route transition: the same duration
+    // reads as faster there than on Android or an installed PWA.
+    if ((navigator as { standalone?: boolean }).standalone === true) {
+      document.documentElement.classList.add('hm-ios-standalone');
+    }
   }
 }
