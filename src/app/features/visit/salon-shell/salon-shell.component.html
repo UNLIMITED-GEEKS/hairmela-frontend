@@ -33,7 +33,12 @@
 
     <!-- Hero photo. Same heights as the real header, so the sheet below starts
          at the same offset and nothing jumps on load. -->
-    <div class="h-56 md:h-100 w-full"><app-skeleton variant="block" height="100%" /></div>
+    <!-- Two skeletons rather than one with a % height: a percentage needs a
+         parent with a resolved height, which this flex column does not give,
+         so height="100%" collapsed the hero to nothing. Explicit rem values
+         per breakpoint keep the same 14rem / 25rem the real header uses. -->
+    <app-skeleton variant="block" height="14rem" class="md:hidden" />
+    <app-skeleton variant="block" height="25rem" class="hidden md:block" />
 
     <!-- Content sheet — the -mt-6 overlap and rounded top are the real ones. -->
     <div class="relative -mt-6 rounded-t-3xl bg-surface px-4 pt-5 pb-6">
