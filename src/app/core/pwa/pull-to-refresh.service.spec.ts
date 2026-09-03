@@ -49,7 +49,7 @@ describe('PullToRefreshService', () => {
   // once) does not silently invalidate every distance below — only these two
   // lines need to follow it.
   const RESISTANCE_FACTOR = 0.35;
-  const REVEAL_PX = 100;
+  const REVEAL_PX = 140;
   /** Finger travel that lands just past the reveal point. */
   const PAST_REVEAL = Math.ceil(REVEAL_PX / RESISTANCE_FACTOR) + 20;
   /** Finger travel that stays well short of it. */
