@@ -688,6 +688,49 @@ textarea::placeholder {
   animation: row-leave 0.2s ease-in forwards;
 }
 
+/* ── Brand-mark loader ("Finding your spot…", option 2) ──────────────────────
+   The HairMela mark breathing, with a halo ring pulsing outward from behind
+   it. Brand-forward rather than a generic busy indicator.
+
+   The mark is INLINE SVG in the component, not the logo-mark.svg file: that
+   file's ring is #ffffff (drawn to sit on a coloured background) and would be
+   invisible on the page. The inline copy strokes with currentColor, so
+   .text-brand-loader below sets it per theme. */
+/* primary-400 in BOTH modes, by explicit choice — no dark-mode shade swap
+   here, unlike .text-brand-accent and the other brand-on-dark rules in this
+   file.
+   KNOWN TRADE-OFF: #851D46 measures 1.84:1 against the dark page, below the
+   3:1 a non-text graphic normally wants. That is deliberate; do not "fix" it
+   by remapping to a lighter shade without asking. */
+.text-brand-loader {
+  color: var(--color-primary-300);
+}
+
+@keyframes brand-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.06); }
+}
+@keyframes brand-halo {
+  0%   { transform: scale(0.85); opacity: 0.45; }
+  70%  { opacity: 0; }
+  100% { transform: scale(1.8);  opacity: 0; }
+}
+.brand-breathe {
+  animation: brand-breathe 1.8s ease-in-out infinite;
+}
+/* Same shade as the mark in both modes — a halo lighter than the thing it is
+   radiating from reads as a separate object rather than a glow. */
+.brand-halo {
+  background-color: var(--color-primary-400);
+  animation: brand-halo 1.8s ease-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Mark stays, motion goes — the halo is decorative so it is dropped
+     entirely rather than left as a static disc behind the logo. */
+  .brand-breathe { animation: none; }
+  .brand-halo { display: none; }
+}
+
 /* Route entry fade, INSTALLED SHELLS ONLY.
    Driven by a class the shell toggles from RouterOutlet's (activate) — not
    animate.enter, which fires only on insert and so would play once, on first
@@ -725,7 +768,7 @@ textarea::placeholder {
    MORE specificity rather than relying on source order to win. */
 :root.hm-installed.hm-ios-standalone .route-enter {
   animation-name: route-enter-ios;
-  animation-duration: 320ms;
+  animation-duration: 360ms;
   /* Restated rather than inherited from the base rule above: the shorthand
      there sets it, and relying on that leaves this rule silently coupled to a
      value it does not name. */

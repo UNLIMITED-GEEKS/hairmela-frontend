@@ -49,13 +49,36 @@ const FADE_MS = 200;
          already spends height on a top bar and bottom nav. Matches the
          in-shell centred-state pattern used by payment-callback. -->
     <div class="flex flex-col items-center justify-center min-h-[70vh] gap-4 p-6">
-      <div class="w-16 h-16 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+      <!-- Brand mark, breathing, with a halo pulsing outward from behind it.
+           INLINED rather than <img src="logo-mark.svg">: that file's ring is
+           #ffffff (it is drawn to sit on a coloured background) and would be
+           invisible on the page, and inlining is also what lets the mark and
+           the halo animate independently. Geometry copied from logo-mark.svg —
+           same cx/cy/r, dasharray and rotation. -->
+      <div class="relative flex items-center justify-center w-24 h-24" aria-hidden="true">
+        <span class="brand-halo absolute inset-0 rounded-full"></span>
+        <svg viewBox="0 0 1200 1200" class="brand-breathe relative w-20 h-20">
+          <circle
+            cx="600"
+            cy="570"
+            r="310"
+            fill="none"
+            stroke="currentColor"
+            class="text-brand-loader"
+            stroke-width="92"
+            stroke-linecap="round"
+            stroke-dasharray="1696 252"
+            transform="rotate(78 600 570)"
+          />
+          <circle cx="762" cy="801" r="62" fill="currentColor" class="text-brand-loader" />
+        </svg>
+      </div>
       <!-- aria-live so the rotating copy is announced; the fade is opacity-only
            so the text never shifts position between messages. -->
       <p
         role="status"
         aria-live="polite"
-        class="text-sm text-text-secondary text-center transition-opacity duration-200"
+        class="text-sm mt-4 text-text-secondary text-center transition-opacity duration-200"
         [class.opacity-0]="!messageVisible()"
       >
         {{ message() }}
