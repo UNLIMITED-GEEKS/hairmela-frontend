@@ -130,5 +130,21 @@ export class AppPlatformService {
     if ((navigator as { standalone?: boolean }).standalone === true) {
       document.documentElement.classList.add('hm-ios-standalone');
     }
+
+    // iOS in ANY context — Safari, Chrome/Firefox (all WebKit in a different
+    // shell), a home-screen app, or the Capacitor WebView. Unlike the
+    // standalone check above, this is about the ENGINE, not the shell: only
+    // WebKit rubber-bands the whole document when the body has nothing to
+    // scroll, which is what let the page be dragged to expose blank space
+    // below the bottom nav. See the overscroll rules in styles.css.
+    //
+    // Same sniff InstallPromptService._detectPlatform uses, including the
+    // iPadOS-13+-reports-as-Macintosh case.
+    const ua = navigator.userAgent;
+    const isIos =
+      /iphone|ipad|ipod/i.test(ua) || (ua.includes('Macintosh') && navigator.maxTouchPoints > 1);
+    if (isIos) {
+      document.documentElement.classList.add('hm-ios');
+    }
   }
 }

@@ -1121,15 +1121,49 @@ body.barcode-scanner-active {
   background: transparent !important;
 }
 
-/* Capacitor native only. The Android WebView's own overscroll stretch/glow
-   fights the custom pull-to-refresh drag (PullToRefreshService), which the
-   bare WebView otherwise has no replacement for — there is no browser chrome
-   and no built-in refresh gesture. preventDefault() on touchmove handles most
-   of it; this suppresses the residual stretch animation.
+/* INSTALLED APP CONTEXTS. The platform's own overscroll fights the custom
+   pull-to-refresh drag (PullToRefreshService), which these contexts otherwise
+   have no replacement for — no browser chrome, no built-in refresh gesture.
+   preventDefault() on touchmove handles most of it; this suppresses the
+   residual bounce.
 
-   Scoped to .capacitor-native (set on <html> by AppPlatformService's build) so
-   web keeps its normal browser overscroll behaviour untouched. */
-html.capacitor-native,
-html.capacitor-native body {
+   WAS .capacitor-native (Android APK) ONLY, which left iOS standalone able to
+   rubber-band the whole DOCUMENT and drag blank space in below the bottom nav
+   — the shells trap scrolling in an inner <main class="overflow-y-auto">, so
+   the body has nothing to scroll and iOS bounced it anyway. .hm-installed is
+   the broader marker (APK + iOS standalone + installed PWA); plain web
+   browsing still keeps the browser's own overscroll, which is the original
+   intent. */
+html.hm-installed,
+html.hm-installed body {
   overscroll-behavior-y: none;
+}
+
+/* iOS, EVERY context — Safari and Chrome tabs included, not just the
+   home-screen app.
+   overscroll-behavior alone is NOT enough on WebKit: it stops scroll
+   CHAINING, but the document still rubber-bands when the body has nothing to
+   scroll, which is exactly this app's shape (the shells trap scrolling inside
+   <main class="overflow-y-auto"> and the body never scrolls). That bounce is
+   what let the whole page be dragged up to expose blank space under the
+   bottom nav.
+   Pinning html/body to the viewport with overflow hidden removes the thing
+   there is to bounce. The inner <main> keeps its own scrolling untouched.
+   KNOWN TRADE-OFF: in a Safari/Chrome TAB this also stops the URL bar from
+   collapsing on scroll, since the document itself no longer scrolls. That is
+   the cost of killing the drag there — it was an explicit request. */
+html.hm-ios,
+html.hm-ios body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior-y: none;
+}
+/* position:fixed is what actually defeats the bounce on older iOS, where
+   overflow:hidden on the body alone is still bounced. Kept on body only, so
+   the fixed bottom nav and any fixed overlays position against the viewport
+   exactly as before. */
+html.hm-ios body {
+  position: fixed;
+  inset: 0;
+  width: 100%;
 }
