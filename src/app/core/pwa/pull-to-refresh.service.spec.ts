@@ -44,6 +44,17 @@ describe('PullToRefreshService', () => {
     return e;
   }
 
+  // Mirrors the service's own constants. Kept here rather than as bare numbers
+  // in each test so that retuning PULL_REVEAL_PX (which has already happened
+  // once) does not silently invalidate every distance below — only these two
+  // lines need to follow it.
+  const RESISTANCE_FACTOR = 0.35;
+  const REVEAL_PX = 100;
+  /** Finger travel that lands just past the reveal point. */
+  const PAST_REVEAL = Math.ceil(REVEAL_PX / RESISTANCE_FACTOR) + 20;
+  /** Finger travel that stays well short of it. */
+  const BELOW_REVEAL = Math.floor(REVEAL_PX / RESISTANCE_FACTOR) - 40;
+
   /** Drive a full downward drag and report whether the pull engaged. */
   function drag(from: EventTarget, distancePx: number): boolean {
     main.dispatchEvent(touch('touchstart', from, 0));
@@ -82,8 +93,35 @@ describe('PullToRefreshService', () => {
     main.appendChild(content);
     service.init({ scrollEl: main });
 
-    expect(drag(content, 40)).toBe(true);
+    expect(drag(content, PAST_REVEAL)).toBe(true);
     expect(service.pullState()).toBe('pulling');
+  });
+
+  // The indicator used to appear after ~8px (the axis-lock slop), so it
+  // flashed up during ordinary scrolling. PULL_REVEAL_PX holds it back until
+  // the drag is deliberate. Distances here are FINGER travel; the service
+  // multiplies by RESISTANCE_FACTOR before comparing.
+  it('shows nothing for a short drag below the reveal threshold', () => {
+    const content = document.createElement('div');
+    main.appendChild(content);
+    service.init({ scrollEl: main });
+
+    expect(drag(content, BELOW_REVEAL)).toBe(false);
+    expect(service.pullState()).toBe('idle');
+  });
+
+  it('reveals the indicator growing from zero, not popping in part-way', () => {
+    const content = document.createElement('div');
+    main.appendChild(content);
+    service.init({ scrollEl: main });
+
+    // Just past the reveal point: the reported distance must be a small
+    // positive number, NOT a jump straight to REVEAL_PX — the service reports
+    // `resisted - PULL_REVEAL_PX` so the indicator grows from nothing.
+    main.dispatchEvent(touch('touchstart', content, 0));
+    main.dispatchEvent(touch('touchmove', content, PAST_REVEAL));
+    expect(service.pullDistance()).toBeGreaterThan(0);
+    expect(service.pullDistance()).toBeLessThan(REVEAL_PX / 2);
   });
 
   it('does NOT pull when the touch starts in a nested list that is scrolled', () => {
@@ -95,7 +133,7 @@ describe('PullToRefreshService', () => {
     main.appendChild(list);
     service.init({ scrollEl: main });
 
-    expect(drag(row, 40)).toBe(false);
+    expect(drag(row, PAST_REVEAL)).toBe(false);
     expect(service.pullState()).toBe('idle');
   });
 
@@ -109,7 +147,7 @@ describe('PullToRefreshService', () => {
     main.appendChild(list);
     service.init({ scrollEl: main });
 
-    expect(drag(row, 40)).toBe(true);
+    expect(drag(row, PAST_REVEAL)).toBe(true);
   });
 
   it('ignores a non-scrollable ancestor and keeps walking up', () => {
@@ -122,7 +160,7 @@ describe('PullToRefreshService', () => {
     main.appendChild(wrapper);
     service.init({ scrollEl: main });
 
-    expect(drag(row, 40)).toBe(true);
+    expect(drag(row, PAST_REVEAL)).toBe(true);
   });
 
   it('does not arm when the shell itself is scrolled', () => {
@@ -131,7 +169,7 @@ describe('PullToRefreshService', () => {
     Object.defineProperty(main, 'scrollTop', { value: 120, writable: true, configurable: true });
     service.init({ scrollEl: main });
 
-    expect(drag(content, 40)).toBe(false);
+    expect(drag(content, PAST_REVEAL)).toBe(false);
   });
 
   it('does not arm while an overlay is open', () => {
@@ -140,7 +178,7 @@ describe('PullToRefreshService', () => {
     main.appendChild(content);
     service.init({ scrollEl: main });
 
-    expect(drag(content, 40)).toBe(false);
+    expect(drag(content, PAST_REVEAL)).toBe(false);
   });
 
   it('does not pull on a horizontal swipe', () => {

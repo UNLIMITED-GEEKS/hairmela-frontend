@@ -40,6 +40,19 @@ export interface PullToRefreshConfig {
 }
 
 const PULL_THRESHOLD_PX = 180;
+// How far the RESISTED drag must get before the indicator is revealed at all.
+// Separate from PULL_THRESHOLD_PX, which is when the pull would actually fire.
+//
+// WHY IT EXISTS: 'pulling' used to be set the moment the axis lock resolved to
+// vertical — 8px of finger travel — so the arrow flashed up during ordinary
+// scrolling and short flicks. Holding it back until the drag is deliberate
+// keeps the gesture available without the indicator appearing on every touch.
+//
+// In resisted pixels like the threshold above, so at RESISTANCE_FACTOR 0.35
+// this is ~286px of actual finger travel before anything is shown, with
+// another ~229px of visible drag before it reaches PULL_THRESHOLD_PX and
+// would fire.
+const PULL_REVEAL_PX = 100;
 // Resistance so the drag feels progressively "heavier" past the threshold,
 // the standard native-feeling pull-to-refresh behavior — a raw 1:1 drag
 // feels wrong once you're well past what's needed to trigger a refresh.
@@ -240,9 +253,30 @@ export class PullToRefreshService {
     }
     // Confirmed downward drag from the top — this is the point we take over
     // from the browser's own overscroll/rubber-band handling.
+    //
+    // preventDefault() happens BEFORE the reveal check below on purpose: the
+    // gesture is owned from here regardless of whether anything is drawn yet.
+    // Letting the page scroll during the pre-reveal part and only taking over
+    // at the reveal point would make the content jump the moment the arrow
+    // appeared.
     e.preventDefault();
     const resisted = delta * RESISTANCE_FACTOR;
-    this._pullDistance.set(resisted);
+
+    // Below the reveal point the drag is tracked but nothing is shown — see
+    // PULL_REVEAL_PX. Distance is held at 0 so the indicator does not animate
+    // in from a partial offset the instant it crosses.
+    if (resisted < PULL_REVEAL_PX) {
+      this._pullState.set('idle');
+      this._pullDistance.set(0);
+      return;
+    }
+
+    // Reported MINUS the reveal offset, so the indicator grows from zero at
+    // the moment it appears rather than popping in already 40px down. The
+    // fire threshold below still compares the RAW resisted distance, so
+    // PULL_REVEAL_PX changes when the arrow shows up without also changing
+    // how far the pull has to go to actually refresh.
+    this._pullDistance.set(resisted - PULL_REVEAL_PX);
     this._pullState.set(resisted >= PULL_THRESHOLD_PX ? 'ready' : 'pulling');
   }
 
