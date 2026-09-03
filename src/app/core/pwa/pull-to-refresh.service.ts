@@ -52,7 +52,7 @@ const PULL_THRESHOLD_PX = 180;
 // this is ~286px of actual finger travel before anything is shown, with
 // another ~229px of visible drag before it reaches PULL_THRESHOLD_PX and
 // would fire.
-const PULL_REVEAL_PX = 80;
+const PULL_REVEAL_PX = 130;
 // Resistance so the drag feels progressively "heavier" past the threshold,
 // the standard native-feeling pull-to-refresh behavior — a raw 1:1 drag
 // feels wrong once you're well past what's needed to trigger a refresh.
