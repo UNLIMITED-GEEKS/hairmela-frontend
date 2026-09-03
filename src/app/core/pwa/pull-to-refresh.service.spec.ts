@@ -49,7 +49,7 @@ describe('PullToRefreshService', () => {
   // once) does not silently invalidate every distance below — only these two
   // lines need to follow it.
   const RESISTANCE_FACTOR = 0.35;
-  const REVEAL_PX = 140;
+  const REVEAL_PX = 130;
   /** Finger travel that lands just past the reveal point. */
   const PAST_REVEAL = Math.ceil(REVEAL_PX / RESISTANCE_FACTOR) + 20;
   /** Finger travel that stays well short of it. */
@@ -191,5 +191,61 @@ describe('PullToRefreshService', () => {
 
     expect(service.pullDistance()).toBe(0);
     expect(service.pullState()).toBe('idle');
+  });
+
+  // WHICH CONTEXTS GET THE CUSTOM GESTURE.
+  //
+  // The rule is not "which platform" but "does this shell, here, still have a
+  // refresh of its own". On iOS the element-scrolled shells have their
+  // document pinned (styles.css) to stop the rubber-band drag, and on iOS the
+  // bounce IS the browser's pull-to-refresh — so those lose it and need ours.
+  // The public shell scrolls the document, is never pinned, and keeps the
+  // browser's, so it must NOT get a second gesture.
+  describe('platform gating', () => {
+    function build(platform: string, installed: boolean, isNative = false) {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          PullToRefreshService,
+          { provide: InstallPromptService, useValue: { platform, installed: () => installed } },
+          { provide: AppPlatformService, useValue: { isNative } },
+          { provide: OverlayRegistry, useValue: { hasOpen: () => false } },
+        ],
+      });
+      return TestBed.inject(PullToRefreshService);
+    }
+
+    /** init() only wires listeners when the gesture is wanted, so a pull that
+     *  moves the distance signal proves it engaged. */
+    function engages(svc: PullToRefreshService, config: { scrollEl?: HTMLElement; window?: boolean }) {
+      svc.init(config);
+      const content = document.createElement('div');
+      main.appendChild(content);
+      main.dispatchEvent(touch('touchstart', content, 0));
+      main.dispatchEvent(touch('touchmove', content, PAST_REVEAL));
+      const engaged = svc.pullDistance() > 0;
+      svc.teardown();
+      return engaged;
+    }
+
+    it('runs in an iOS browser tab on an element-scrolled shell', () => {
+      const svc = build('ios', false);
+      expect(engages(svc, { scrollEl: main })).toBe(true);
+    });
+
+    it('does NOT run on the public shell in an iOS tab — browser refresh is intact there', () => {
+      const svc = build('ios', false);
+      expect(engages(svc, { window: true })).toBe(false);
+    });
+
+    it('does NOT run in an Android installed PWA — Chrome keeps its own gesture', () => {
+      const svc = build('android', true);
+      expect(engages(svc, { scrollEl: main })).toBe(false);
+    });
+
+    it('runs in the Capacitor app', () => {
+      const svc = build('android', false, true);
+      expect(engages(svc, { scrollEl: main })).toBe(true);
+    });
   });
 });

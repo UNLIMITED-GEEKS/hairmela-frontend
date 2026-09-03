@@ -132,18 +132,20 @@ export class AppPlatformService {
     }
 
     // iOS in ANY context — Safari, Chrome/Firefox (all WebKit in a different
-    // shell), a home-screen app, or the Capacitor WebView. Unlike the
-    // standalone check above, this is about the ENGINE, not the shell: only
-    // WebKit rubber-bands the whole document when the body has nothing to
-    // scroll, which is what let the page be dragged to expose blank space
-    // below the bottom nav. See the overscroll rules in styles.css.
+    // shell), a home-screen app, or the Capacitor WebView. This is about the
+    // ENGINE, not the shell: only WebKit rubber-bands the whole document when
+    // the body has nothing to scroll.
+    //
+    // On its own this class does NOTHING. The document lock in styles.css
+    // requires it AND .hm-inner-scroll (set per-shell by
+    // PullToRefreshService.init), so the lock never reaches the public shell,
+    // which scrolls the document itself and was frozen outright when an
+    // earlier version keyed the lock off iOS alone.
     //
     // Same sniff InstallPromptService._detectPlatform uses, including the
     // iPadOS-13+-reports-as-Macintosh case.
     const ua = navigator.userAgent;
-    const isIos =
-      /iphone|ipad|ipod/i.test(ua) || (ua.includes('Macintosh') && navigator.maxTouchPoints > 1);
-    if (isIos) {
+    if (/iphone|ipad|ipod/i.test(ua) || (ua.includes('Macintosh') && navigator.maxTouchPoints > 1)) {
       document.documentElement.classList.add('hm-ios');
     }
   }

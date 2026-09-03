@@ -3,7 +3,7 @@ import { InstallPromptService } from './install-prompt.service';
 import { AppPlatformService } from '../native/app-platform.service';
 import { OverlayRegistry } from '../overlay/overlay-registry';
 
-// Supplies pull-to-refresh wherever the platform does not. Two such places:
+// Supplies pull-to-refresh wherever the platform does not. Three such places:
 //
 //   1. iOS home-screen standalone PWA — the gesture lives in Safari's browser
 //      chrome, which standalone mode removes entirely.
@@ -11,6 +11,12 @@ import { OverlayRegistry } from '../overlay/overlay-registry';
 //      no built-in overscroll refresh, so without this there is NO way to
 //      refresh at all (there is also no service worker in the native build to
 //      pick up new content).
+//   3. iOS Safari/Chrome TABS, on the auth and guest shells only — those trap
+//      scrolling in an inner <main>, so styles.css pins the document to stop
+//      it rubber-banding. On iOS the bounce and the browser's pull-to-refresh
+//      are the same gesture, so pinning removes the refresh too; this puts one
+//      back. The public shell on iOS is excluded — it scrolls the document,
+//      is never pinned, and keeps the browser's own gesture.
 //
 // Android's *installed PWA* keeps its own native gesture and is deliberately
 // still excluded — adding ours there would double up on the browser's.
@@ -49,8 +55,8 @@ const PULL_THRESHOLD_PX = 190;
 // keeps the gesture available without the indicator appearing on every touch.
 //
 // In resisted pixels like the threshold above, so at RESISTANCE_FACTOR 0.35
-// this is ~400px of actual finger travel before anything is shown, with
-// another ~114px of visible drag before it reaches PULL_THRESHOLD_PX and
+// this is ~371px of actual finger travel before anything is shown, with
+// another ~171px of visible drag before it reaches PULL_THRESHOLD_PX and
 // would fire.
 const PULL_REVEAL_PX = 130;
 // Resistance so the drag feels progressively "heavier" past the threshold,
@@ -88,13 +94,35 @@ export class PullToRefreshService {
   private readonly _onTouchMove = (e: TouchEvent) => this._handleTouchMove(e);
   private readonly _onTouchEnd = () => this._handleTouchEnd();
 
-  private get _isIosStandalone(): boolean {
-    return this._install.platform === 'ios' && this._install.installed();
+  /** True on iOS in ANY context — home-screen app, Safari or Chrome tab. */
+  private get _isIos(): boolean {
+    return this._install.platform === 'ios';
   }
 
-  /** Platforms with no pull-to-refresh of their own — see the class doc. */
-  private get _needsCustomPull(): boolean {
-    return this._platform.isNative || this._isIosStandalone;
+  /**
+   * Whether THIS shell, on THIS platform, has no pull-to-refresh of its own.
+   *
+   *   Capacitor APK  — a bare WebView: no browser chrome, no native gesture.
+   *   iOS standalone — the gesture lives in Safari's chrome, which standalone
+   *                    mode removes.
+   *   iOS browser tab, ELEMENT-SCROLLED SHELLS ONLY — the auth and guest
+   *                    shells trap scrolling in an inner <main>, so the
+   *                    document is pinned to stop it rubber-banding (see
+   *                    styles.css). On iOS the bounce and the browser's
+   *                    pull-to-refresh are the same gesture, so pinning takes
+   *                    the refresh with it — this puts one back.
+   *
+   * Deliberately NOT the public shell on iOS: it scrolls the document itself,
+   * is never pinned, and keeps the browser's own gesture. Adding ours there
+   * would double up.
+   *
+   * Android's installed PWA is excluded everywhere for that same reason —
+   * Chrome's own gesture is intact.
+   */
+  private _needsCustomPull(config: PullToRefreshConfig): boolean {
+    if (this._platform.isNative) return true;
+    if (!this._isIos) return false;
+    return this._install.installed() || !config.window;
   }
 
   // Called by each shell (auth-shell, guest-shell, public-shell) once its
@@ -104,7 +132,23 @@ export class PullToRefreshService {
   // element, and a stale listener on the old target must not linger.
   init(config: PullToRefreshConfig): void {
     this.teardown();
-    if (!this._needsCustomPull) return;
+
+    // Tell CSS which scroll model the mounted shell uses. Set BEFORE the
+    // _needsCustomPull bail-out below, because it is needed even where the
+    // custom gesture never runs (an iOS browser tab).
+    //
+    // WHY IT EXISTS: iOS rubber-bands the document when the body has nothing
+    // to scroll, which is the auth/guest shells' shape (scrolling is trapped
+    // in an inner <main class="overflow-y-auto">). Pinning the body stops
+    // that — but the public shell scrolls the DOCUMENT itself
+    // (<main class="min-h-screen">), so the same rule froze those pages
+    // outright. The lock is therefore keyed off the shell, not the platform.
+    document.documentElement.classList.toggle('hm-inner-scroll', !config.window);
+
+    // Takes the incoming config rather than reading this._config, which is not
+    // assigned until below — the decision now depends on the shell's scroll
+    // model, not just the platform.
+    if (!this._needsCustomPull(config)) return;
 
     this._config = config;
     this._target = config.window ? window : (config.scrollEl ?? null);
@@ -139,6 +183,10 @@ export class PullToRefreshService {
     this._axis = 'undecided';
     this._pullState.set('idle');
     this._pullDistance.set(0);
+    // Dropped here rather than left for the next init() to overwrite: a shell
+    // can unmount without another mounting straight away, and a stale
+    // inner-scroll flag would pin the body on a page that scrolls itself.
+    document.documentElement.classList.remove('hm-inner-scroll');
   }
 
   private _currentScrollTop(): number {

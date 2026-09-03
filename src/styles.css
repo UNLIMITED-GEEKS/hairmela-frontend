@@ -1121,49 +1121,93 @@ body.barcode-scanner-active {
   background: transparent !important;
 }
 
-/* INSTALLED APP CONTEXTS. The platform's own overscroll fights the custom
-   pull-to-refresh drag (PullToRefreshService), which these contexts otherwise
-   have no replacement for — no browser chrome, no built-in refresh gesture.
-   preventDefault() on touchmove handles most of it; this suppresses the
-   residual bounce.
+/* CONTEXTS THAT RUN THE CUSTOM PULL GESTURE. The platform's own overscroll
+   fights PullToRefreshService's drag; preventDefault() on touchmove handles
+   most of it and this suppresses the residual bounce.
 
-   WAS .capacitor-native (Android APK) ONLY, which left iOS standalone able to
-   rubber-band the whole DOCUMENT and drag blank space in below the bottom nav
-   — the shells trap scrolling in an inner <main class="overflow-y-auto">, so
-   the body has nothing to scroll and iOS bounced it anyway. .hm-installed is
-   the broader marker (APK + iOS standalone + installed PWA); plain web
-   browsing still keeps the browser's own overscroll, which is the original
-   intent. */
-html.hm-installed,
-html.hm-installed body {
+   MUST MATCH PullToRefreshService._needsCustomPull EXACTLY — Capacitor APK or
+   iOS standalone. Suppressing overscroll anywhere that does NOT run the custom
+   gesture leaves that context with no refresh at all.
+
+   NOT .hm-installed, which was tried and broke the Android installed PWA:
+   that class covers every chromeless context INCLUDING the installed PWA,
+   which deliberately keeps Chrome's own native pull-to-refresh (see the
+   service's class doc) and so has no replacement to fall back on.
+   It was widened from .capacitor-native in the first place because iOS
+   standalone could rubber-band the whole document; that part is right and is
+   kept via .hm-ios-standalone below. */
+html.capacitor-native,
+html.capacitor-native body,
+html.hm-ios-standalone,
+html.hm-ios-standalone body {
   overscroll-behavior-y: none;
 }
 
-/* iOS, EVERY context — Safari and Chrome tabs included, not just the
-   home-screen app.
-   overscroll-behavior alone is NOT enough on WebKit: it stops scroll
-   CHAINING, but the document still rubber-bands when the body has nothing to
-   scroll, which is exactly this app's shape (the shells trap scrolling inside
-   <main class="overflow-y-auto"> and the body never scrolls). That bounce is
-   what let the whole page be dragged up to expose blank space under the
-   bottom nav.
-   Pinning html/body to the viewport with overflow hidden removes the thing
-   there is to bounce. The inner <main> keeps its own scrolling untouched.
-   KNOWN TRADE-OFF: in a Safari/Chrome TAB this also stops the URL bar from
-   collapsing on scroll, since the document itself no longer scrolls. That is
-   the cost of killing the drag there — it was an explicit request. */
-html.hm-ios,
-html.hm-ios body {
+/* iOS document lock — kills the rubber-band drag that let the whole page be
+   pulled up to expose blank space under the bottom nav.
+   overscroll-behavior alone is NOT enough on WebKit: it stops scroll CHAINING,
+   but the document still bounces when the body has nothing to scroll. Pinning
+   html/body to the viewport removes the thing there is to bounce.
+
+   SCOPED BY SCROLL MODEL, NOT BY PLATFORM — .hm-inner-scroll is set by
+   PullToRefreshService.init() for the auth and guest shells, whose scrolling
+   is trapped in an inner <main class="overflow-y-auto">. It is NOT set for the
+   public shell (marketing/login/register), which scrolls the DOCUMENT itself
+   via <main class="min-h-screen">.
+   That distinction is load-bearing: an earlier version keyed this off iOS
+   alone and froze every public-shell page outright in Safari and Chrome —
+   nothing scrolled at all, because the lock removed the only scroller those
+   pages had. The auth shell was unaffected precisely because its <main> keeps
+   its own scroll, which is why the dashboard still worked.
+
+   COST, ACCEPTED: in an iOS browser TAB this also removes the browser's own
+   pull-to-refresh on auth/guest-shell pages, since on iOS the bounce and the
+   refresh gesture are the same thing. Public-shell pages keep both. */
+html.hm-ios.hm-inner-scroll,
+html.hm-ios.hm-inner-scroll body {
   height: 100%;
   overflow: hidden;
-  overscroll-behavior-y: none;
 }
 /* position:fixed is what actually defeats the bounce on older iOS, where
    overflow:hidden on the body alone is still bounced. Kept on body only, so
    the fixed bottom nav and any fixed overlays position against the viewport
-   exactly as before. */
-html.hm-ios body {
+   exactly as before.
+
+   HEIGHT IS 100dvh, NOT inset:0 / 100%. In a browser TAB the shells are
+   h-screen (100vh), which on iOS means the LARGE viewport — the height the
+   page would have if the URL bar were hidden. Normally the document scroll
+   absorbs that overflow; pinning the body removes that scroll, so the bottom
+   of the shell ended up behind the browser chrome and the last rows of a list
+   could not be reached (reported in Safari and Chrome, fine in standalone
+   where there is no chrome to hide behind).
+   100dvh is the CURRENTLY visible height, so the pinned box matches what the
+   user can actually see. Falls back to 100% where dvh is unsupported. */
+html.hm-ios.hm-inner-scroll body {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
   width: 100%;
+  height: 100%;
+}
+@supports (height: 100dvh) {
+  html.hm-ios.hm-inner-scroll body {
+    height: 100dvh;
+  }
+}
+/* The shells' own root is h-screen (100vh = iOS's LARGE viewport), which is
+   taller than the pinned body above. With the document scroll gone, that extra
+   height is simply clipped and its content unreachable — the missing last rows.
+   Constraining the shell to the same dynamic height puts the bottom edge back
+   inside the visible area, so <main>'s own scroll can reach everything.
+   A descendant selector, not a child one: the real chain is
+   body > app-root > app-auth-shell > div.h-screen, so `body > div.h-screen`
+   matches nothing. Targeted by utility class rather than a new marker, since
+   both shells share exactly this signature. */
+html.hm-ios.hm-inner-scroll body div.h-screen {
+  height: 100%;
+}
+@supports (height: 100dvh) {
+  html.hm-ios.hm-inner-scroll body div.h-screen {
+    height: 100dvh;
+  }
 }
