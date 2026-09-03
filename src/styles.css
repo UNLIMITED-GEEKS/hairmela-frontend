@@ -1122,24 +1122,25 @@ body.barcode-scanner-active {
 }
 
 /* CONTEXTS THAT RUN THE CUSTOM PULL GESTURE. The platform's own overscroll
-   fights PullToRefreshService's drag; preventDefault() on touchmove handles
-   most of it and this suppresses the residual bounce.
+   fights PullToRefreshService's drag, and where the platform HAS a refresh of
+   its own this is also what stops both firing at once.
 
-   MUST MATCH PullToRefreshService._needsCustomPull EXACTLY — Capacitor APK or
-   iOS standalone. Suppressing overscroll anywhere that does NOT run the custom
-   gesture leaves that context with no refresh at all.
+   MUST STAY IN STEP WITH PullToRefreshService._needsCustomPull, which is:
+   every installed/native context (.hm-installed), plus any element-scrolled
+   shell anywhere (.hm-inner-scroll, set per-shell by that service's init).
+   Between them those two classes cover exactly the contexts running the
+   custom gesture. The only thing left out is the public shell in a browser
+   tab — it scrolls the document and keeps the browser's own gesture.
 
-   NOT .hm-installed, which was tried and broke the Android installed PWA:
-   that class covers every chromeless context INCLUDING the installed PWA,
-   which deliberately keeps Chrome's own native pull-to-refresh (see the
-   service's class doc) and so has no replacement to fall back on.
-   It was widened from .capacitor-native in the first place because iOS
-   standalone could rubber-band the whole document; that part is right and is
-   kept via .hm-ios-standalone below. */
-html.capacitor-native,
-html.capacitor-native body,
-html.hm-ios-standalone,
-html.hm-ios-standalone body {
+   THE FAILURE MODE TO WATCH FOR: suppressing overscroll anywhere that does
+   NOT run the custom gesture leaves that context with no refresh at all. That
+   happened once already, when .hm-installed was used here while the Android
+   PWA was still deliberately on Chrome's native gesture. If any context is
+   ever moved back to its browser's refresh, it must be removed here too. */
+html.hm-installed,
+html.hm-installed body,
+html.hm-inner-scroll,
+html.hm-inner-scroll body {
   overscroll-behavior-y: none;
 }
 

@@ -37,25 +37,34 @@
           <h1 class="text-xl font-bold text-text-primary">Verification failed</h1>
           <p class="text-sm text-text-secondary">This verification link is invalid or has expired.</p>
 
-          @if (resent()) {
-            <p class="text-sm text-green-600">A new verification email is on its way, check your inbox.</p>
-          } @else if (isLoggedIn()) {
-            <button
-              type="button"
-              (click)="resend()"
-              [disabled]="resending()"
-              class="inline-block rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-colors"
+          <!-- NO RESEND HERE, deliberately. The backend answers a bad token with
+               one error for every cause (auth.service.ts verifyEmail — "Invalid
+               or expired verification token"), so this state cannot tell a link
+               that merely expired from one that was never valid, and offering to
+               resend against an invalid link was misleading.
+               Signed-in users can still request one from their account; signed
+               out, the route through sign-in below is the way back. -->
+          @if (isLoggedIn()) {
+            <a
+              [routerLink]="dashboardLink"
+              class="inline-block rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover transition-colors"
             >
-              {{ resending() ? 'Sending…' : 'Resend verification email' }}
-            </button>
+              Back home
+            </a>
           } @else {
-            <p class="text-sm text-text-secondary">Sign in to request a new verification link.</p>
+            <!-- Signed out: signing in is the useful action, so it keeps the
+                 primary button and home is the quieter way out. -->
             <a
               [routerLink]="loginLink"
               class="inline-block rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover transition-colors"
             >
               Sign in
             </a>
+            <p>
+              <a [routerLink]="homeLink" class="text-sm text-text-secondary hover:text-text-primary transition-colors">
+                Back home
+              </a>
+            </p>
           }
         </div>
       }

@@ -3,28 +3,35 @@ import { InstallPromptService } from './install-prompt.service';
 import { AppPlatformService } from '../native/app-platform.service';
 import { OverlayRegistry } from '../overlay/overlay-registry';
 
-// Supplies pull-to-refresh wherever the platform does not. Three such places:
+// Supplies pull-to-refresh for every context EXCEPT the public shell in a
+// browser tab.
 //
-//   1. iOS home-screen standalone PWA — the gesture lives in Safari's browser
-//      chrome, which standalone mode removes entirely.
-//   2. The Capacitor Android app — a bare WebView with no browser chrome and
-//      no built-in overscroll refresh, so without this there is NO way to
-//      refresh at all (there is also no service worker in the native build to
-//      pick up new content).
-//   3. iOS Safari/Chrome TABS, on the auth and guest shells only — those trap
-//      scrolling in an inner <main>, so styles.css pins the document to stop
-//      it rubber-banding. On iOS the bounce and the browser's pull-to-refresh
-//      are the same gesture, so pinning removes the refresh too; this puts one
-//      back. The public shell on iOS is excluded — it scrolls the document,
-//      is never pinned, and keeps the browser's own gesture.
+// THE RULE: any shell whose scrolling is trapped in an inner <main> gets the
+// custom gesture, on every platform, plus every installed/native context.
+// Only the public shell in an ordinary browser tab is left to the browser —
+// it scrolls the DOCUMENT, so the native gesture works there and ours would
+// double up.
 //
-// Android's *installed PWA* keeps its own native gesture and is deliberately
-// still excluded — adding ours there would double up on the browser's.
+// Why each context needs it:
+//   - Capacitor APK — a bare WebView: no browser chrome, no native gesture at
+//     all, and no service worker in the native build to pick up new content.
+//   - iOS standalone — the gesture lives in Safari's chrome, which standalone
+//     mode removes entirely.
+//   - Android PWA — Chrome's gesture exists but fires on a very short pull;
+//     ours is preferred for its longer tuned drag.
+//   - Browser tabs, element-scrolled shells — the document never scrolls, so
+//     the browser's gesture is either absent (Android) or removed by the
+//     document pin that stops iOS rubber-banding (styles.css). Either way
+//     there is nothing to double up with.
+//
+// Wherever the custom gesture runs, the platform's own overscroll is
+// suppressed in styles.css so the two can never both fire. Those selectors
+// and _needsCustomPull below must stay in step.
 //
 // We evaluated the cheap fix (display: "minimal-ui" in the manifest, which
 // restores the native gesture) and rejected it — it shows a slim browser
 // chrome/title bar, and keeping the fully chromeless "native app" look was
-// the priority. Hence: a custom touch gesture, iOS-standalone-only.
+// the priority.
 //
 // THE key structural fact this service is built around: the app's three
 // shells do NOT scroll the same way.
@@ -94,35 +101,35 @@ export class PullToRefreshService {
   private readonly _onTouchMove = (e: TouchEvent) => this._handleTouchMove(e);
   private readonly _onTouchEnd = () => this._handleTouchEnd();
 
-  /** True on iOS in ANY context — home-screen app, Safari or Chrome tab. */
-  private get _isIos(): boolean {
-    return this._install.platform === 'ios';
-  }
-
   /**
-   * Whether THIS shell, on THIS platform, has no pull-to-refresh of its own.
+   * Whether THIS shell, on THIS platform, should run the custom gesture.
    *
-   *   Capacitor APK  — a bare WebView: no browser chrome, no native gesture.
-   *   iOS standalone — the gesture lives in Safari's chrome, which standalone
-   *                    mode removes.
-   *   iOS browser tab, ELEMENT-SCROLLED SHELLS ONLY — the auth and guest
-   *                    shells trap scrolling in an inner <main>, so the
-   *                    document is pinned to stop it rubber-banding (see
-   *                    styles.css). On iOS the bounce and the browser's
-   *                    pull-to-refresh are the same gesture, so pinning takes
-   *                    the refresh with it — this puts one back.
+   *   Capacitor APK  — a bare WebView: no browser chrome, no native gesture,
+   *                    so it needs one everywhere.
+   *   Installed app (iOS standalone OR Android PWA) — every shell. iOS
+   *                    standalone has no gesture at all (it lives in Safari's
+   *                    chrome). The Android PWA does have Chrome's, but it
+   *                    fires on a very short pull; ours is used instead for a
+   *                    deliberately longer, tuned drag (PULL_REVEAL_PX /
+   *                    PULL_THRESHOLD_PX). Chrome's is suppressed in
+   *                    styles.css so the two cannot both fire.
+   *   iOS browser TAB, element-scrolled shells only — those shells trap
+   *                    scrolling in an inner <main>, so the document is pinned
+   *                    to stop it rubber-banding (styles.css). On iOS the
+   *                    bounce and the browser's pull-to-refresh are the same
+   *                    gesture, so pinning takes the refresh with it — this
+   *                    puts one back.
    *
-   * Deliberately NOT the public shell on iOS: it scrolls the document itself,
-   * is never pinned, and keeps the browser's own gesture. Adding ours there
-   * would double up.
-   *
-   * Android's installed PWA is excluded everywhere for that same reason —
-   * Chrome's own gesture is intact.
+   * Deliberately NOT the PUBLIC SHELL in a browser tab: it scrolls the document
+   * itself, so the browser's own gesture works there and is left alone. Adding
+   * ours on top would double up.
    */
   private _needsCustomPull(config: PullToRefreshConfig): boolean {
     if (this._platform.isNative) return true;
-    if (!this._isIos) return false;
-    return this._install.installed() || !config.window;
+    if (this._install.installed()) return true;
+    // Browser tab, either platform: only the element-scrolled shells, where the
+    // document does not scroll and the browser's gesture is unhelpful anyway.
+    return !config.window;
   }
 
   // Called by each shell (auth-shell, guest-shell, public-shell) once its

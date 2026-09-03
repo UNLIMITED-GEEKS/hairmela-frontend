@@ -238,9 +238,24 @@ describe('PullToRefreshService', () => {
       expect(engages(svc, { window: true })).toBe(false);
     });
 
-    it('does NOT run in an Android installed PWA — Chrome keeps its own gesture', () => {
+    // Chrome's own gesture fires on a very short pull; ours is preferred for
+    // its longer tuned drag, and Chrome's is suppressed in styles.css
+    // (html.hm-installed) so the two cannot both fire.
+    it('runs in an Android installed PWA', () => {
       const svc = build('android', true);
-      expect(engages(svc, { scrollEl: main })).toBe(false);
+      expect(engages(svc, { scrollEl: main })).toBe(true);
+    });
+
+    it('runs in an Android browser tab on an element-scrolled shell', () => {
+      const svc = build('android', false);
+      expect(engages(svc, { scrollEl: main })).toBe(true);
+    });
+
+    // The one context left to the browser: the public shell scrolls the
+    // DOCUMENT, so the native gesture works there and ours would double up.
+    it('does NOT run on the public shell in an Android tab', () => {
+      const svc = build('android', false);
+      expect(engages(svc, { window: true })).toBe(false);
     });
 
     it('runs in the Capacitor app', () => {
