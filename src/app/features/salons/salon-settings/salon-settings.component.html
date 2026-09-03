@@ -111,22 +111,6 @@
             />
           </div>
 
-          <div>
-            <label for="s-tz" class="block text-sm font-medium text-text-body mb-1.5"
-              >Timezone</label
-            >
-            <select
-              id="s-tz"
-              formControlName="timezone"
-              class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg bg-surface-card focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
-            >
-              @for (tz of timezones; track tz) {
-                <option [value]="tz">{{ tz }}</option>
-              }
-            </select>
-            <app-field-error [control]="form.controls.timezone" />
-          </div>
-
           <!-- Pre-filled from the country above, but editable: a salon can
                legitimately price in a currency other than its country's. -->
           <div>
@@ -169,6 +153,26 @@
                 }
               </select>
               <app-field-error [control]="form.get('address.country')" />
+            </div>
+
+            <!-- Auto-selected from the country above. Disabled when the
+                 country has only one zone — nothing left to choose — and left
+                 enabled, scoped to that country's own zones, when it has more
+                 than one (US, Canada, Russia...). -->
+            <div>
+              <label for="s-tz" class="block text-sm font-medium text-text-body mb-1.5"
+                >Timezone</label
+              >
+              <select
+                id="s-tz"
+                [formControl]="form.controls.timezone"
+                class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg bg-surface-card focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                @for (tz of timezonesForCountry(); track tz) {
+                  <option [value]="tz">{{ tz }}</option>
+                }
+              </select>
+              <app-field-error [control]="form.controls.timezone" />
             </div>
 
             <div class="grid grid-cols-2 gap-3">

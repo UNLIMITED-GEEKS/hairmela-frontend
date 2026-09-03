@@ -31,26 +31,13 @@ import { RouteParam } from '../../../core/routing/route-paths';
 import { endAfterStart } from '../../../core/utils/time-range.validator';
 import { ErrorCodes } from '../../../core/errors/error-codes';
 import { COUNTRIES } from '../../../core/geo/countries-states.data';
+import { COUNTRY_TIMEZONES } from '../../../core/geo/country-timezones.data';
 import { CURRENCIES } from '../../../core/geo/currencies.data';
 import { UpdateSalonDto } from '../../../api/models/update-salon-dto';
 import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const TIMEZONES = [
-  'Africa/Lagos',
-  'Africa/Nairobi',
-  'Africa/Accra',
-  'Africa/Johannesburg',
-  'Africa/Cairo',
-  'Europe/London',
-  'Europe/Paris',
-  'America/New_York',
-  'America/Chicago',
-  'America/Los_Angeles',
-  'Asia/Dubai',
-  'Asia/Kolkata',
-];
 
 /**
  * A salon charging a booking fee must say where the money goes.
@@ -122,7 +109,11 @@ export class SalonSettingsComponent implements OnInit {
 
   protected readonly loading = signal(true);
   protected readonly days = DAYS;
-  protected readonly timezones = TIMEZONES;
+
+  // Zones for the selected country, driven by _syncStates. Auto-selected
+  // there whenever it changes; the template disables the <select> when there
+  // is only one option, since there is nothing left for the owner to choose.
+  protected readonly timezonesForCountry = signal<readonly string[]>([]);
 
   // Other salons this user owns/admins that this one could become a branch
   // of — excludes itself and anything that's already a branch (a branch
@@ -336,12 +327,24 @@ export class SalonSettingsComponent implements OnInit {
 
   // prefillCurrency=false when priming from SAVED data: the owner may have
   // deliberately chosen a currency other than their country's default, and
-  // overwriting it on load would silently discard that choice.
+  // overwriting it on load would silently discard that choice. Timezone
+  // reuses the same flag — a saved multi-zone salon's chosen zone must
+  // survive a reload the same way.
   private _syncStates(countryName: string, prefillCurrency = true): void {
     const match = COUNTRIES.find((c) => c.name === countryName);
     this.statesForCountry.set(match?.states ?? []);
     if (prefillCurrency && match?.currency) {
       this.form.get('currency')?.setValue(match.currency);
+    }
+
+    const zones = COUNTRY_TIMEZONES.find((c) => c.name === countryName)?.zones ?? [];
+    this.timezonesForCountry.set(zones);
+    const timezoneControl = this.form.get('timezone');
+    if (prefillCurrency && zones.length) timezoneControl?.setValue(zones[0]);
+    if (zones.length <= 1) {
+      timezoneControl?.disable();
+    } else {
+      timezoneControl?.enable();
     }
   }
 

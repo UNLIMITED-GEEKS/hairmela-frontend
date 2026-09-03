@@ -20,26 +20,12 @@ import { CategoriesService } from '../../../core/categories/categories.service';
 import { RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 import { endAfterStart } from '../../../core/utils/time-range.validator';
 import { COUNTRIES } from '../../../core/geo/countries-states.data';
+import { COUNTRY_TIMEZONES } from '../../../core/geo/country-timezones.data';
 import { CURRENCIES } from '../../../core/geo/currencies.data';
 import { CreateSalonDto } from '../../../api/models/create-salon-dto';
 import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-const TIMEZONES = [
-  'Africa/Lagos',
-  'Africa/Nairobi',
-  'Africa/Accra',
-  'Africa/Johannesburg',
-  'Africa/Cairo',
-  'Europe/London',
-  'Europe/Paris',
-  'America/New_York',
-  'America/Chicago',
-  'America/Los_Angeles',
-  'Asia/Dubai',
-  'Asia/Kolkata',
-];
 
 @Component({
   selector: 'app-create-salon',
@@ -65,7 +51,11 @@ export class CreateSalonComponent implements OnInit {
 
   protected readonly saving = signal(false);
   protected readonly days = DAYS;
-  protected readonly timezones = TIMEZONES;
+
+  // Zones for the selected country, driven by _syncStates. Auto-selected
+  // there whenever it changes; the template disables the <select> when there
+  // is only one option, since there is nothing left for the owner to choose.
+  protected readonly timezonesForCountry = signal<readonly string[]>([]);
 
   // Set when this form was opened via Salon Overview's "Create a new branch"
   // (?parentSalonId=...&parentSalonName=...) — read once in ngOnInit via
@@ -288,6 +278,22 @@ export class CreateSalonComponent implements OnInit {
     // Pre-fill only — the user can still override afterwards. Left untouched
     // when the country has no code the backend accepts.
     if (match?.currency) this.form.get('currency')?.setValue(match.currency);
+
+    // Timezone: auto-select the country's zone. Unlike currency, this is not
+    // left editable when there's only one option — a single-zone country has
+    // nothing for the owner to choose, so the control is disabled (still
+    // submitted via getRawValue() in save()). Multi-zone countries (US,
+    // Canada, Russia...) keep it enabled, scoped to just that country's own
+    // zones.
+    const zones = COUNTRY_TIMEZONES.find((c) => c.name === countryName)?.zones ?? [];
+    this.timezonesForCountry.set(zones);
+    const timezoneControl = this.form.get('timezone');
+    if (zones.length) timezoneControl?.setValue(zones[0]);
+    if (zones.length <= 1) {
+      timezoneControl?.disable();
+    } else {
+      timezoneControl?.enable();
+    }
   }
 
 }

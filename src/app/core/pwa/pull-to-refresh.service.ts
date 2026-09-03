@@ -133,6 +133,42 @@ export class PullToRefreshService {
     return this._config?.scrollEl?.scrollTop ?? 0;
   }
 
+  /**
+   * True when the touch began inside a NESTED scroll container that is not at
+   * its own top.
+   *
+   * WHY: _currentScrollTop() only sees the shell's own scroll source. Pages
+   * that scroll a list inside `flex-1 overflow-y-auto` (my-position,
+   * live-queue, queue-list, current-client) leave the shell's <main> pinned at
+   * scrollTop 0 forever, so the arm check passed on every touch and dragging
+   * the inner list downward pulled the refresh indicator instead of scrolling
+   * the list.
+   *
+   * Walks from the touch target up to the shell's scroll element (or <body>
+   * for the window-scrolled shell), stopping at the first vertically
+   * scrollable ancestor. Only that innermost one matters — it is what the
+   * browser will actually scroll with this gesture.
+   *
+   * Returns false when such a container IS at its own top: pulling down from
+   * the top of an inner list is genuinely an overscroll, and letting it refresh
+   * matches what the native gesture does.
+   */
+  private _startedInScrolledNestedContainer(target: EventTarget | null): boolean {
+    const boundary = this._config?.window ? document.body : this._config?.scrollEl;
+    let el = target instanceof Element ? target : null;
+
+    while (el && el !== boundary) {
+      const style = getComputedStyle(el);
+      const overflowY = style.overflowY;
+      const scrollable =
+        (overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight;
+      // First scrollable ancestor wins — anything above it will not move.
+      if (scrollable) return el.scrollTop > 0;
+      el = el.parentElement;
+    }
+    return false;
+  }
+
   private _handleTouchStart(e: TouchEvent): void {
     if (this._pullState() === 'refreshing') return;
     // A modal/dialog is open — never arm underneath it. Swiping down to
@@ -146,10 +182,16 @@ export class PullToRefreshService {
       return;
     }
     // Only arm if we're already at the very top of THIS shell's scroll
-    // source — a touch starting mid-scroll (or mid-scroll of a nested
-    // overflow-y-auto list, which has its own independent scrollTop this
-    // check never looks at) must never arm the page-level pull.
+    // source — a touch starting mid-scroll must never arm the page-level pull.
     if (this._currentScrollTop() > 0) {
+      this._armed = false;
+      return;
+    }
+    // ...and not if the touch began inside a nested scroll container that has
+    // been scrolled. The shell's own scrollTop stays 0 on those pages, so
+    // without this the check above always passed and scrolling an inner list
+    // dragged the refresh indicator.
+    if (this._startedInScrolledNestedContainer(e.target)) {
       this._armed = false;
       return;
     }
