@@ -15,6 +15,7 @@ import { SplashService } from './core/splash/splash.service';
 import { UpdateService } from './core/pwa/update.service';
 import { NativeBackButtonService } from './core/native/back-button.service';
 import { DeepLinkService } from './core/native/deep-link.service';
+import { AppResumeService } from './core/native/app-resume.service';
 import { PersistentStore } from './core/storage/persistent-store';
 import { OnScreenErrorHandler } from './core/debug/on-screen-error-handler';
 import { ThemeService } from './core/theme/theme.service';
@@ -72,5 +73,8 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(() => inject(NativeBackButtonService).init()),
     // Android App Links → route the tapped URL to its in-app page. No-op on web.
     provideAppInitializer(() => inject(DeepLinkService).init()),
+    // "App came back to the foreground" signal, for state left in flight by
+    // work that happened outside the app. No-op on web.
+    provideAppInitializer(() => inject(AppResumeService).init()),
   ],
 };

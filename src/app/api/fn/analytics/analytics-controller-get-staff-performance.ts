@@ -15,6 +15,7 @@ export interface AnalyticsControllerGetStaffPerformance$Params {
  * Salon UUID
  */
   salonId: string;
+  date?: string;
 
 /**
  * YYYY-MM-DD (defaults to 7 days ago)
@@ -46,6 +47,7 @@ export function analyticsControllerGetStaffPerformance(http: HttpClient, rootUrl
   const rb = new RequestBuilder(rootUrl, analyticsControllerGetStaffPerformance.PATH, 'get');
   if (params) {
     rb.path('salonId', params.salonId, {});
+    rb.query('date', params.date, {});
     rb.query('from', params.from, {});
     rb.query('to', params.to, {});
     rb.query('timezone', params.timezone, {});

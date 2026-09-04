@@ -3,7 +3,16 @@ import { NavigationEnd, Router } from '@angular/router';
 import { filter, take } from 'rxjs/operators';
 import { AppPlatformService } from './app-platform.service';
 
-// Android App Links: routes an incoming https link to the matching in-app page.
+// Deep links: routes an incoming link to the matching in-app page. Two kinds
+// arrive here, and both end up as an in-app path.
+//
+//   1. Android App Links (https) — a shared link to a claimed host.
+//   2. The app's own scheme (hairmela://) — what the payment provider is given
+//      as redirect_url for a NATIVE checkout. An https callback there is not
+//      reliable: it either renders as an ordinary web page in whatever browser
+//      the checkout opened, or depends on App Link verification holding. A
+//      scheme only this app claims always comes back to the app, which is what
+//      a payment return has to do.
 //
 // The manifest's intent filter is only half the job — it makes Android OPEN the
 // app for a claimed URL, but Capacitor does not navigate anywhere on its own.
@@ -84,7 +93,22 @@ export class DeepLinkService {
     let path: string;
     try {
       const parsed = new URL(url);
-      path = parsed.pathname + parsed.search + parsed.hash;
+
+      // CUSTOM SCHEMES NEED THE HOST BACK. For https the first path segment is
+      // just the path, but `new URL('hairmela://org/x/billing')` parses `org`
+      // as the HOST and leaves pathname as `/x/billing` — silently dropping a
+      // segment and producing a route that does not exist. Custom-scheme URLs
+      // are what the payment provider redirects to on native (the backend
+      // sends an app-scheme redirect_url there, since an https callback either
+      // renders as a web page or depends on App Link verification), so this
+      // path is load-bearing for checkout returning to the app.
+      //
+      // Collapsing repeated slashes also accepts the `hairmela:///org/...`
+      // spelling, where the authority is empty and the whole thing is already
+      // in pathname.
+      const isHttp = parsed.protocol === 'http:' || parsed.protocol === 'https:';
+      const base = isHttp ? parsed.pathname : `/${parsed.host}${parsed.pathname}`;
+      path = base.replace(/\/{2,}/g, '/') + parsed.search + parsed.hash;
     } catch {
       return null;
     }

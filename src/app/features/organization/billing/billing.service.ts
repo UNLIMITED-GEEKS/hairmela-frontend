@@ -1,5 +1,5 @@
 import { CacheRegistry } from '../../../core/caching/cache-registry/cache-registry.service';
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject, signal, effect, untracked } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap, map } from 'rxjs';
@@ -19,6 +19,8 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { OptimisticService } from '../../../core/caching/optimistic/optimistic.service';
 import { CachedLoader } from '../../../core/caching/optimistic/cached-loader';
 import { RoutePath } from '../../../core/routing/route-paths';
+import { AppPlatformService } from '../../../core/native/app-platform.service';
+import { AppResumeService } from '../../../core/native/app-resume.service';
 
 @Injectable({ providedIn: 'root' })
 export class BillingService {
@@ -30,12 +32,34 @@ export class BillingService {
   private readonly _toast = inject(ToastService);
   private readonly _optimistic = inject(OptimisticService);
   private readonly _router = inject(Router);
+  private readonly _platform = inject(AppPlatformService);
+  private readonly _appResume = inject(AppResumeService);
 
   constructor() {
     this._cacheRegistry.register(this);
   }
 
   private readonly _acting = signal(false);
+
+  // Releases the acting lock whenever the app returns to the foreground.
+  //
+  // handlePaymentReturn covers every path where the provider actually
+  // redirects back, but not the user simply backing out of the browser — that
+  // sends no callback at all, so nothing ran to clear the flag and Upgrade
+  // stayed on "Working…" until the page was reloaded.
+  //
+  // Blunt on purpose: it does not ask WHY the app resumed. Clearing when
+  // nothing was pending is a no-op, and a resume that IS a completed payment
+  // re-sets the flag a moment later via verify(). No-op on web, where
+  // AppResumeService never fires.
+  //
+  // A field initializer rather than the constructor above: this reads
+  // _acting, which is declared on the line above and would still be
+  // undefined at constructor time.
+  private readonly _releaseOnResume = effect(() => {
+    this._appResume.resumed();
+    untracked(() => this._acting.set(false));
+  });
 
   private readonly _cache = new Map<string, EffectiveAccessDto | null>();
   private readonly _access = signal<EffectiveAccessDto | null>(null);
@@ -86,13 +110,21 @@ export class BillingService {
   }
 
   // Start a checkout session. The backend creates it against the payment
-  // provider (Flutterwave) with redirect_url already set to this org's
-  // payment callback page (PaymentCallbackComponent) — the caller redirects
-  // the browser to session.checkoutUrl to complete payment there.
+  // provider (Flutterwave) and owns which redirect_url it sets — the caller
+  // sends the browser to session.checkoutUrl to complete payment there.
+  //
+  // `native` tells the backend WHICH redirect_url to use. On the web an https
+  // callback is right, but in the app it is not: the checkout page opens
+  // outside the WebView, and an https return either renders as an ordinary web
+  // page or depends on Android App Link verification holding — so the user can
+  // pay and never get back to the app. For a native checkout the backend sends
+  // an app-scheme redirect_url instead, which only this app can handle and so
+  // always returns to it (see DeepLinkService and the hairmela:// intent
+  // filter in AndroidManifest.xml).
   checkout(orgId: string, tier: Tier): Observable<CheckoutSessionDto> {
     return subscriptionsControllerCheckout(this._http, this._apiConfig.rootUrl, {
       orgId,
-      body: { tier },
+      body: { tier, native: this._platform.isNative },
     }).pipe(map((res) => res.body));
   }
 
@@ -119,6 +151,15 @@ export class BillingService {
   // `successful` is worth verifying — `cancelled`/`failed` have nothing to
   // confirm server-side, so we just toast and redirect back to billing.
   handlePaymentReturn(orgId: string, status: string | null, txRef: string | null): void {
+    // Release the lock upgrade() took before sending the user to the provider.
+    // On the web it never needed releasing — assigning location.href tore the
+    // app down, so the flag died with it. In the app the process stays alive
+    // across checkout and comes back with the flag still set, leaving Upgrade
+    // stuck on "Working…" after a cancelled or failed payment. Cleared here
+    // rather than in each branch below because this method is the one funnel
+    // every return passes through, whatever the outcome.
+    this._acting.set(false);
+
     if (!orgId || !txRef || status !== 'successful') {
       if (status === 'cancelled') this._toast.error('Payment cancelled.');
       else if (status === 'failed') this._toast.error('Payment failed. Please try again.');
@@ -136,6 +177,13 @@ export class BillingService {
         // isn't necessarily a real failure from the user's POV. No error
         // toast; the delayed refresh below picks up the real state once the
         // webhook lands.
+        //
+        // The lock DOES have to be released though: verify() set it, and only
+        // its success path (_onSubscriptionChanged) clears it. Without this a
+        // failed verify leaves Upgrade stuck on "Working…" in the app, where
+        // the process survives checkout — the same reason the flag is cleared
+        // at the top of this method.
+        this._acting.set(false);
       },
     });
     // Scheduled unconditionally (success or failure above) — the webhook can
