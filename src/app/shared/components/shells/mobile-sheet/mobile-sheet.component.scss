@@ -30,8 +30,8 @@
 
   // Inset from the screen edges so it reads as a panel rather than a full
   // bleed, with the sheet's rounding on the top corners only.
-  left: 0.5rem;
-  right: 0.5rem;
+  left: 0rem;
+  right: 0rem;
   border-top-left-radius: 1rem;
   border-top-right-radius: 1rem;
   border: 1px solid var(--color-border);
@@ -60,9 +60,7 @@
   //
   // Token, not #fff: this is a component stylesheet, so it was missed by the
   // template-level dark-mode migration and stayed a white panel on a dark page.
-  background-color: var(--color-surface-card);
-  // All-round shadow, not the top-only one a docked panel had — it floats now.
-  box-shadow: 0 4px 24px rgb(0 0 0 / 0.18);
+  background-color: var(--color-surface);
 
   &.open {
     transform: translateX(0);

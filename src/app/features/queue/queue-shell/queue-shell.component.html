@@ -59,9 +59,9 @@
   <div class="h-screen-minus-topbar bg-surface flex flex-col">
 
     <!-- Top bar: back + status pills + call next -->
-    <div class="shrink-0 bg-surface border-b border-border-subtle px-4 pt-4 md:pt-2  space-y-2">
+    <div class="shrink-0 bg-surface  px-4 pt-4 md:pt-2  space-y-2">
 
-      <p class="text-xs text-text-disabled mb-1 ml-11">Tap to open, pause, or close your queue</p>
+      <p class="text-xs text-text-disabled mb-1 mt-2 ml-11">Tap to open, pause, or close your queue</p>
       <div class="flex items-center gap-2">
         @if (onQueueListRoute()) {
           <a [routerLink]="currentClientLink" aria-label="Back to current client"

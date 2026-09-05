@@ -30,6 +30,12 @@ export interface Membership {
   // (e.g. the queue-sound socket subscription) resolve "my queue" off
   // Membership instead of needing a page that already loaded queue data.
   readonly queueId: string | null;
+  // Whether this staff member is currently taking clients — the flag they
+  // toggle from Salon Overview, NOT the queue's OPEN/PAUSED/CLOSED status,
+  // which is separate and set inside the console. Pausing a queue leaves this
+  // true. null when the user has no staff row, same convention as staffId and
+  // queueId above.
+  readonly isAcceptingClients: boolean | null;
   readonly canManageSalon: boolean;
   readonly canManageStaff: boolean;
   readonly tier: number;

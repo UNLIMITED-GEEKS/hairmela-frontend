@@ -71,6 +71,23 @@
           <span class="text-sm font-medium whitespace-nowrap">Salon Profile</span>
         </a>
 
+        <!-- The user's OWN queue console. Not part of CONTROL_ITEMS because
+             those are all salon-scoped, while this needs the queue id off
+             Membership — see myQueueConsoleLink. Absent for anyone without a
+             queue of their own. -->
+        @if (myQueueConsoleLink(); as consoleLink) {
+          <a
+            [routerLink]="consoleLink"
+            routerLinkActive="bg-primary text-white"
+            (click)="closed.emit()"
+            class="flex items-center gap-2 px-2.5 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors">
+            <span class="w-5 h-5 flex items-center justify-center shrink-0">
+              <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
+            </span>
+            <span class="text-sm font-medium whitespace-nowrap">My Queue Console</span>
+          </a>
+        }
+
         @for (item of visibleControls(); track item.label) {
           <a
             [routerLink]="controlLink(item)"

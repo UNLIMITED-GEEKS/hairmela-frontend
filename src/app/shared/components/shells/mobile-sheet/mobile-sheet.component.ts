@@ -37,6 +37,31 @@ export class MobileSheetComponent {
 
   readonly isOwner = computed(() => this.membership()?.role === SalonRole.OWNER);
 
+  /**
+   * This user's OWN queue console in the active salon, or null when they have
+   * none to open.
+   *
+   * A salon has one queue per staff member, so "my console" cannot be derived
+   * from the salon alone — every other control here is salon-scoped and needs
+   * no such lookup. Membership.queueId exists for exactly this (see its own
+   * comment), so the link resolves synchronously with no extra fetch.
+   *
+   * Null for anyone without a staff row, and for a staff member whose queue
+   * has not been provisioned yet — an owner who does not serve clients simply
+   * does not see the item.
+   *
+   * Also gated on isAcceptingClients: someone who has switched themselves off
+   * as a staff member is not taking clients at all, so a console is of no use
+   * to them. That flag is NOT the queue's OPEN/PAUSED/CLOSED status — pausing
+   * a queue leaves it true, so a paused staff member still gets the link,
+   * which matters because the console is where they go to unpause.
+   */
+  readonly myQueueConsoleLink = computed(() => {
+    const m = this.membership();
+    if (!m?.queueId || !m.isAcceptingClients) return null;
+    return RoutePath.salonQueueConsole(m.salonId, m.queueId);
+  });
+
   // Org-scoped and owner-gated — see the matching comment in SidebarComponent
   // for both why this sits outside "Salon Controls" and why the org id alone
   // is not proof of ownership.

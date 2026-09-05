@@ -57,6 +57,7 @@ export class MembershipStore {
       staffId: dto.staffId,
       currency: dto.currency,
       queueId: dto.queueId,
+      isAcceptingClients: dto.isAcceptingClients,
       canManageSalon: dto.canManageSalon,
       canManageStaff: dto.canManageStaff,
       tier: dto.tier,
