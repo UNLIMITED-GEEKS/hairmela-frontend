@@ -31,7 +31,7 @@ import { AppPlatformService } from '../../../core/native/app-platform.service';
 const LANDING_TABS: TabItem[] = [
   { id: 'about', label: 'About' },
   { id: 'services', label: 'Services' },
-  { id: 'staffs', label: 'Staffs' },
+  { id: 'staffs', label: 'Staff' },
 ];
 
 // dayOfWeek 0 = Sunday — same convention as backend/src/salons/salon.types.ts
