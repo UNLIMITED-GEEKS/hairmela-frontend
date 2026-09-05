@@ -1,29 +1,33 @@
-import { Component, input, output, computed, signal, inject } from '@angular/core';
+import { Component, input, computed, signal, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MembershipStore } from '../../../../core/salon-context/membership.store';
 import { MySalonDto } from '../../../../api/models/my-salon-dto';
 import { RoutePath, RouteQueryParam, RouteSegment } from '../../../../core/routing/route-paths';
+import { AvatarComponent } from '../../avatar/avatar.component';
 
 @Component({
   selector: 'app-mobile-top-bar',
   templateUrl: './mobile-top-bar.component.html',
-  imports: [RouterLink],
+  imports: [RouterLink, AvatarComponent],
 })
 export class MobileTopBarComponent {
   private readonly _router = inject(Router);
   private readonly _membershipStore = inject(MembershipStore);
 
-  readonly sheetOpen = input(false);
   /**
-   * Hides the hamburger entirely — set when the projected sheet has nothing to
-   * show, so the button can't open an empty panel. The sheet computes its own
-   * emptiness (MobileSheetComponent.isEmpty) and the shell wires it here,
-   * rather than this component re-deriving the same gating.
+   * Full name of the signed-in user, or empty for a guest. Drives the initials
+   * avatar that links to the account page.
+   *
+   * An INPUT rather than injecting CurrentUserStore, because the guest shell
+   * renders this same bar and has no user — keeping it passed in leaves this
+   * component agnostic about which shell it is in, as salons/activeSalonId
+   * already are.
    */
-  readonly hideSheetToggle = input(false);
-  readonly sheetToggle = output<void>();
+  readonly userName = input('');
   readonly salons = input<MySalonDto[]>([]);
   readonly activeSalonId = input<string | null>(null);
+
+  protected readonly accountLink = RoutePath.account();
 
   protected readonly dropdownOpen = signal(false);
   /**

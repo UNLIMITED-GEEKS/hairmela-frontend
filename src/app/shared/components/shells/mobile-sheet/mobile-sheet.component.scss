@@ -1,40 +1,129 @@
+// BOTTOM SHEET. Anchored above the bottom nav, because that is where its
+// trigger lives — the My Salon / Menu tab. It used to be a max-height
+// accordion projected into the top bar and expanded downward, which read as
+// disorienting once the hamburger that opened it was gone.
+//
+// Fixed rather than in flow: it must overlay the page, not push it.
 .sheet-links {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  position: fixed;
+  // ABOVE the nav, with a gap. An earlier version ended flush at
+  // var(--bottom-nav-height) with no separation, and since the sheet and the
+  // nav share a surface colour the two merged into one slab — the last row of
+  // the list sat directly against the nav and read as covering it.
+  bottom: calc(var(--bottom-nav-height) + 1.3rem);
+  z-index: 45; // above the bottom nav (40), below the top bar (50)
+
+  // Slid out of view rather than collapsed to zero height. transform animates
+  // on the compositor, where max-height forces layout on every frame — and
+  // max-height also had to guess a large enough value to fit any content.
+  //
+  // Enters from the RIGHT. The offset clears the panel's own right inset too,
+  // so it starts fully off-screen rather than peeking at the edge.
+  transform: translateX(calc(100% + 0.5rem));
+  transition:
+    transform 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 300ms;
+  // Not just transform: an off-screen panel is still focusable and still
+  // hit-tested, so links inside it stayed reachable by keyboard and by stray
+  // taps at the edge it is parked behind.
+  visibility: hidden;
+
+  // Inset from the screen edges so it reads as a panel rather than a full
+  // bleed, with the sheet's rounding on the top corners only.
+  left: 0.5rem;
+  right: 0.5rem;
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 1rem;
+  border: 1px solid var(--color-border);
+
+  // THE SPACE BETWEEN THE TOP BAR AND THE NAV, less the gap above and a
+  // matching one below the top bar, so every item is visible without
+  // scrolling — which is how it behaved when it dropped from the top at
+  // max-height:100dvh. An earlier 70vh here clipped the list and pushed the
+  // tail of it over the bottom nav.
+  // 4.125rem is the top bar: pt-3 (0.75) + h-12 (3) + pb-1.5 (0.375).
+  // 1.75rem is the 1.25rem gap above the nav plus 0.5rem of top breathing room.
+  max-height: calc(100vh - 4.125rem - var(--bottom-nav-height) - 1.75rem);
+  overflow-y: auto;
 
   // THIS PANEL MUST PAINT ITS OWN BACKGROUND.
   //
-  // It is projected into <app-mobile-top-bar>, whose root is bg-white/90 +
-  // backdrop-blur-md. backdrop-filter blurs what is behind the element that
-  // DECLARES it — a child cannot inherit its parent's blur, and this panel
-  // declared no background at all. It was always transparent; on newer iOS the
-  // parent's translucent white made it read as solid enough to go unnoticed.
+  // Kept from the previous top-bar version, where the panel declared no
+  // background and inherited none — backdrop-filter blurs what is behind the
+  // element that DECLARES it, so a child cannot inherit its parent's blur.
   //
   // On iPhone 6s/7 (iOS 15) it rendered visibly see-through, and because the
   // open panel still covers the screen, taps landed on it rather than the
   // links underneath — reported as "nothing happens" when navigating to salon
   // pages, while iPhone 11/13 worked. This sheet is the auth/guest shells'
-  // nav, so it is the one on the path to every salon-context page.
+  // nav, so it is on the path to every salon-context page.
   //
-  // NOTE: the template also carries a `mobile-sheet-nav` class that is defined
-  // NOWHERE in the codebase — presumably where this background was meant to
-  // live. Same omission as public-nav's `public-mobile-nav`.
   // Token, not #fff: this is a component stylesheet, so it was missed by the
   // template-level dark-mode migration and stayed a white panel on a dark page.
   background-color: var(--color-surface-card);
+  // All-round shadow, not the top-only one a docked panel had — it floats now.
+  box-shadow: 0 4px 24px rgb(0 0 0 / 0.18);
 
-  // 100vh fallback + @supports override for dvh — NOT two declarations of the
-  // same property in one rule. Angular's production CSS optimizer (Lightning
-  // CSS) collapses same-property duplicates during minification and drops
-  // the fallback; @supports is a separate rule block so it survives.
   &.open {
-    max-height: 100vh;
+    transform: translateX(0);
+    visibility: visible;
   }
 
+  // dvh in its own @supports block, NOT a second max-height in the rule
+  // above: Angular's production CSS optimizer (Lightning CSS) collapses
+  // same-property duplicates during minification and would drop the vh
+  // fallback. Carried over from the previous version of this file, which
+  // documented the same trap.
   @supports (max-height: 100dvh) {
-    &.open {
-      max-height: 100dvh;
-    }
+    max-height: calc(100dvh - 4.125rem - var(--bottom-nav-height) - 1.75rem);
+  }
+}
+
+// Dimmed backdrop. Tapping it closes the sheet — the affordance people expect
+// from a bottom sheet, and the only close path other than the tab itself.
+.sheet-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  // STOPS AT THE NAV, rather than inset:0 covering it. The nav holds the tab
+  // that opened the sheet and is how it is closed again — dimming it made the
+  // sheet look like it was sitting on top of the nav, and put a click-to-close
+  // backdrop over the control the user reaches for.
+  bottom: var(--bottom-nav-height);
+  // BELOW THE NAV (z-40), not just short of it. Bounding the box was not
+  // enough on its own: at z-44 the backdrop still painted over the nav
+  // wherever the two met, because --bottom-nav-height includes
+  // env(safe-area-inset-bottom) while the nav's visible bar does not fill all
+  // of it. Ordering it under the nav means the nav is never dimmed whatever
+  // the safe-area inset turns out to be on a given device.
+  z-index: 39;
+  background-color: rgb(0 0 0 / 0.4);
+
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 300ms;
+
+  &.open {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-links,
+  .sheet-backdrop {
+    transition-duration: 1ms;
+  }
+}
+
+// Desktop has the sidebar; this is a mobile-only surface, matching the
+// bottom nav and mobile top bar that bracket it.
+@media (min-width: 768px) {
+  .sheet-links,
+  .sheet-backdrop {
+    display: none;
   }
 }

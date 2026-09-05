@@ -19,24 +19,28 @@
         [activeSalonId]="displaySalonId()" />
     </div>
 
-    <!-- Mobile top bar + expandable sheet -->
+    <!-- Mobile top bar -->
     <div class="print:hidden">
       <app-mobile-top-bar
-        [sheetOpen]="sheetOpen()"
         [salons]="salons()"
         [activeSalonId]="displaySalonId()"
-        [hideSheetToggle]="sheet.isEmpty()"
-        (sheetToggle)="sheetOpen.update(v => !v)">
-        <!-- #sheet: the top bar hides its hamburger when this sheet reports it
-             has nothing to render (no salon membership, no owned org). -->
-        <app-mobile-sheet
-          #sheet
-          [navItems]="navItems"
-          [open]="sheetOpen()"
-          [activeSalonId]="displaySalonId()"
-          [membership]="displayMembership()"
-          (closed)="sheetOpen.set(false)" />
-      </app-mobile-top-bar>
+        [userName]="userFullName()" />
+    </div>
+
+    <!-- Bottom sheet. A SIBLING of the top bar, not projected into it: that
+         bar declares backdrop-blur, which creates a stacking context a
+         position:fixed child cannot escape — the sheet would be trapped
+         inside a 3rem-tall bar.
+         #sheet: the bottom nav hides its My Salon tab when this sheet reports
+         it has nothing to render (no salon membership, no owned org). -->
+    <div class="print:hidden">
+      <app-mobile-sheet
+        #sheet
+        [navItems]="navItems"
+        [open]="sheetOpen()"
+        [activeSalonId]="displaySalonId()"
+        [membership]="displayMembership()"
+        (closed)="sheetOpen.set(false)" />
     </div>
 
     <!-- Content -->
@@ -51,9 +55,19 @@
       </div>
     </main>
 
-    <!-- Mobile bottom nav -->
+    <!-- Mobile bottom nav. The My Salon tab opens the sheet the top bar's
+         hamburger used to, and is gated on the same emptiness check — #sheet
+         is declared on the sheet above, and template refs are visible across
+         the whole template. -->
     <div class="print:hidden">
-      <app-bottom-nav [navItems]="navItems" />
+      <app-bottom-nav
+        [navItems]="navItems"
+        [showSheetTab]="!sheet.isEmpty()"
+        [sheetOpen]="sheetOpen()"
+        sheetTabLabel="My Salon"
+        sheetTabIcon="scissors"
+        (sheetToggle)="sheetOpen.update(v => !v)"
+        (navigate)="sheetOpen.set(false)" />
     </div>
   </div>
 

@@ -55,7 +55,12 @@ export const CONTROL_ITEMS: ControlItem[] = [
     // OWNER/ADMIN only; a staff member's OWN appointments are on Salon
     // Overview's "My Appointments" card instead (staff/:staffId/appointments,
     // not linked from here).
-    label: 'Salon appointments',
+    //
+    // Labelled just "Appointments" despite being the salon-wide view: this
+    // item is OWNER/ADMIN-only, so nobody who sees it also sees a personal
+    // appointments entry to confuse it with. The longer "Salon appointments"
+    // overflowed the mobile sheet's two-column grid.
+    label: 'Appointments',
     url: RouteSegment.APPOINTMENTS,
     roles: [SalonRole.OWNER, SalonRole.ADMIN],
   },

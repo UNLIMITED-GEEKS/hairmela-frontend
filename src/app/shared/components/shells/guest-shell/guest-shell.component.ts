@@ -42,6 +42,10 @@ export class GuestShellComponent implements OnInit, AfterViewInit, OnDestroy {
    * the same tick means the browser never paints the intermediate state.
    */
   protected onRouteActivate(): void {
+    // Any navigation closes the sheet — see AuthShellComponent for the full
+    // reasoning; both shells share the bottom nav that opens it.
+    this.sheetOpen.set(false);
+
     const el = this._routeWrapper()?.nativeElement;
     if (!el) return;
     el.classList.remove('route-enter');

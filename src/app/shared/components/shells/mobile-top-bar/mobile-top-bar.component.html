@@ -18,7 +18,7 @@
             [attr.aria-expanded]="dropdownOpen()"
             class="flex items-center gap-1.5 min-h-10 rounded-xl px-2 hover:bg-surface-overlay transition-colors text-left overflow-hidden max-w-40">
             <div class="flex flex-col min-w-0">
-              <span class="text-[10px] text-text-secondary leading-none">Salon</span>
+              <span class="text-[10px] text-text-secondary leading-none">Switch Salon</span>
               <span class="text-sm font-bold text-text-primary truncate leading-tight">{{ salon.salon.name }}</span>
             </div>
             <svg class="w-4 h-4 text-text-secondary shrink-0 transition-transform duration-200"
@@ -62,31 +62,21 @@
         </div>
       }
 
-      <!-- Hamburger. Absent when the sheet has nothing in it — a customer with
-           no salon and no owned org gates off every section, so the button
-           would open an empty panel. -->
-      @if (!hideSheetToggle()) {
-      <button
-        (click)="sheetToggle.emit()"
-        [attr.aria-expanded]="sheetOpen()"
-        aria-label="Open navigation menu"
-        class="min-w-10 min-h-10 flex items-center justify-center text-text-secondary hover:text-primary transition-colors shrink-0">
-        @if (sheetOpen()) {
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        } @else {
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-          </svg>
-        }
-      </button>
+      <!-- Account. Replaces the hamburger, whose sheet now opens from the My
+           Salon tab in the bottom nav instead — within thumb reach, where a
+           top-right target on a phone is not.
+           Only for a signed-in user: the guest shell renders this same bar and
+           has no account to link to. -->
+      @if (userName(); as name) {
+        <a
+          [routerLink]="accountLink"
+          aria-label="Your account"
+          class="min-w-10 min-h-10 flex items-center justify-center shrink-0 rounded-full hover:opacity-80 transition-opacity">
+          <app-avatar [name]="name" size="sm" />
+        </a>
       }
 
     </div>
-
-    <!-- Sheet content injected via ng-content -->
-    <ng-content />
 
   </div>
 </div>

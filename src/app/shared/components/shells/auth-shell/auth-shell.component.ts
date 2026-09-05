@@ -1,4 +1,4 @@
-import { Component, inject, signal, viewChild, ElementRef, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, computed, viewChild, ElementRef, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { CurrentUserStore } from '../../../../core/auth/current-user.store';
 import { SalonContextService } from '../../../../core/salon-context/salon-context.service';
@@ -44,6 +44,15 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
    * the same tick means the browser never paints the intermediate state.
    */
   protected onRouteActivate(): void {
+    // Any navigation closes the sheet — tapping another bottom-nav tab while
+    // it is open would otherwise leave it covering the page that just loaded.
+    // Done here rather than on the tabs themselves so every route change is
+    // covered, not just those four; the sheet's own links already close it as
+    // they navigate.
+    // Before the early return below: the sheet must close whether or not the
+    // fade wrapper happens to be present.
+    this.sheetOpen.set(false);
+
     const el = this._routeWrapper()?.nativeElement;
     if (!el) return;
     el.classList.remove('route-enter');
@@ -81,6 +90,13 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   // `membership` above, untouched.
   protected readonly displayMembership = this._salonContext.displayMembership;
 
+  // Drives the initials avatar in the mobile top bar. Same composition the
+  // desktop top bar already uses for its own avatar.
+  protected readonly userFullName = computed(() => {
+    const user = this._currentUser.user();
+    return user ? `${user.firstName} ${user.lastName}` : '';
+  });
+
   protected readonly navItems: NavItem[] = [
     { label: 'Home', icon: 'home', url: RoutePath.dashboard()[0], bottomNav: true, sidebar: true },
     { label: 'Search', icon: 'search', url: RoutePath.search()[0], bottomNav: true, sidebar: true },
@@ -99,10 +115,13 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
       sidebar: true,
     },
     {
+      // Bottom nav dropped this in favour of the My Salon tab; on mobile the
+      // account page is reached from the initials avatar in the top bar
+      // instead. Still in the sidebar, which has the room.
       label: 'My Profile',
       icon: 'profile',
       url: RoutePath.account()[0],
-      bottomNav: true,
+      bottomNav: false,
       sidebar: true,
     },
     { label: 'Logout', icon: 'login', action: () => this._auth.logout(), sidebar: true },

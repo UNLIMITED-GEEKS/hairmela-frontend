@@ -2,44 +2,81 @@
   class="flex md:hidden fixed pt-2 bottom-0 inset-x-0 z-40 bg-surface border-t border-border safe-area-bottom pb-0"
   aria-label="Bottom navigation">
   <div class="flex w-full">
-    @for (item of bottomItems(); track item.label) {
-      @if (item.url) {
-        <a
-          #rla="routerLinkActive"
-          [routerLink]="item.url"
-          routerLinkActive
-          [routerLinkActiveOptions]="{ exact: item.url === RoutePath.dashboard()[0] || item.url === RoutePath.guestQueues()[0], queryParams: 'ignored' }"
-          class="flex-1 flex flex-col items-center justify-center gap-0.5 pt-2 min-h-14 transition-colors relative"
-          [class]="rla.isActive ? 'text-primary' : 'text-text-secondary'"
-          [class.cta-tab]="item.cta">
-          @if (item.cta) {
-            <span class="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white mb-0.5">
-              <app-nav-icon [icon]="item.icon" size="w-5 h-5" />
-            </span>
-          } @else {
-            <span class="relative flex items-center justify-center w-14 h-8">
-              @if (rla.isActive) {
-                <span
-                  animate.enter="nav-glow-enter"
-                  animate.leave="nav-glow-leave"
-                  class="absolute inset-0 -top-1 bottom-0.5 rounded-full bg-primary/4 -z-10"
-                  aria-hidden="true"></span>
-              }
-              <app-nav-icon [icon]="item.icon" size="w-6 h-6" />
-              @if (item.badge && item.badge() > 0) {
-                <span class="absolute -top-1 -right-1 min-w-4 h-4 flex items-center justify-center rounded-full bg-primary text-white text-[10px] font-bold px-0.5"
-                  [attr.aria-label]="item.badge() + ' notifications'">
-                  {{ item.badge() > 99 ? '99+' : item.badge() }}
-                </span>
-              }
-            </span>
-            <span class="text-[10px] font-normal leading-none mt-1">{{ item.label }}</span>
-            <!-- @if (rla.isActive) {
-              <span class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary"></span>
-            } -->
+    <!-- Ordinary tabs, then the sheet tab, then any CTA. The CTA (the guest
+         shell's Sign Up) is a filled button that reads as the end of the bar,
+         so it stays last — see plainItems/ctaItems. -->
+    <ng-container [ngTemplateOutlet]="tabs" [ngTemplateOutletContext]="{ $implicit: plainItems() }" />
+
+    <!-- Sheet tab: opens the mobile sheet rather than navigating, so it is a
+         button, not a routerLink — there is no URL to be active on, and its
+         active state is the sheet being open. Mirrors the non-CTA branch below
+         so it sits flush with the real tabs.
+         Hidden when the sheet is empty (see showSheetTab), which is the same
+         condition that used to hide the top bar's hamburger. -->
+    @if (showSheetTab()) {
+      <button
+        type="button"
+        (click)="sheetToggle.emit()"
+        [attr.aria-expanded]="sheetOpen()"
+        class="flex-1 flex flex-col items-center justify-center gap-0.5 pt-2 min-h-14 transition-colors relative"
+        [class]="sheetOpen() ? 'text-primary' : 'text-text-secondary'">
+        <span class="relative flex items-center justify-center w-14 h-8">
+          @if (sheetOpen()) {
+            <span
+              animate.enter="nav-glow-enter"
+              animate.leave="nav-glow-leave"
+              class="absolute inset-0 -top-1 bottom-0.5 rounded-full bg-primary/4 -z-10"
+              aria-hidden="true"></span>
           }
-        </a>
-      }
+          <app-nav-icon [icon]="sheetTabIcon()" size="w-6 h-6" />
+        </span>
+        <span class="text-[10px] font-normal leading-none mt-1">{{ sheetTabLabel() }}</span>
+      </button>
     }
+
+    <ng-container [ngTemplateOutlet]="tabs" [ngTemplateOutletContext]="{ $implicit: ctaItems() }" />
   </div>
 </nav>
+
+<ng-template #tabs let-items>
+  @for (item of items; track item.label) {
+    @if (item.url) {
+      <a
+        #rla="routerLinkActive"
+        [routerLink]="item.url"
+        routerLinkActive
+        [routerLinkActiveOptions]="{ exact: item.url === RoutePath.dashboard()[0] || item.url === RoutePath.guestQueues()[0], queryParams: 'ignored' }"
+        (click)="navigate.emit()"
+        class="flex-1 flex flex-col items-center justify-center gap-0.5 pt-2 min-h-14 transition-colors relative"
+        [class]="rla.isActive ? 'text-primary' : 'text-text-secondary'"
+        [class.cta-tab]="item.cta">
+        @if (item.cta) {
+          <span class="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white mb-0.5">
+            <app-nav-icon [icon]="item.icon" size="w-5 h-5" />
+          </span>
+        } @else {
+          <span class="relative flex items-center justify-center w-14 h-8">
+            @if (rla.isActive) {
+              <span
+                animate.enter="nav-glow-enter"
+                animate.leave="nav-glow-leave"
+                class="absolute inset-0 -top-1 bottom-0.5 rounded-full bg-primary/4 -z-10"
+                aria-hidden="true"></span>
+            }
+            <app-nav-icon [icon]="item.icon" size="w-6 h-6" />
+            @if (item.badge && item.badge() > 0) {
+              <span class="absolute -top-1 -right-1 min-w-4 h-4 flex items-center justify-center rounded-full bg-primary text-white text-[10px] font-bold px-0.5"
+                [attr.aria-label]="item.badge() + ' notifications'">
+                {{ item.badge() > 99 ? '99+' : item.badge() }}
+              </span>
+            }
+          </span>
+          <span class="text-[10px] font-normal leading-none mt-1">{{ item.label }}</span>
+          <!-- @if (rla.isActive) {
+            <span class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary"></span>
+          } -->
+        }
+      </a>
+    }
+  }
+</ng-template>
