@@ -144,79 +144,82 @@ export class SalonSettingsComponent implements OnInit {
   // deriving it silently was wrong.
   protected readonly currencies = CURRENCIES;
 
-  protected readonly form = this._fb.group({
-    name: ['', [Validators.required, Validators.minLength(2)]],
-    phone: ['', Validators.required],
-    about: ['', Validators.maxLength(1000)],
-    timezone: ['Africa/Lagos', Validators.required],
-    currency: ['NGN', Validators.required],
-    // Address is editable here because it was previously fixed at creation —
-    // a salon that moved, or was created with a typo, had no way to correct it.
-    address: this._fb.group({
-      country: ['', Validators.required],
-      state: ['', Validators.required],
-      city: ['', Validators.required],
-      street: ['', Validators.required],
-    }),
-    defaultSlotDuration: [30, [Validators.required, Validators.min(5), Validators.max(240)]],
-    allowWalkIns: [true],
-    showPrice: [false],
-    maxPartySize: [5, [Validators.required, Validators.min(1), Validators.max(20)]],
-    noShowWindow: [10, [Validators.required, Validators.min(1)]],
-    // How close to an appointment a customer may still cancel or reschedule.
-    // Read by reschedule-policy.ts to decide whether those buttons appear at
-    // all; the backend enforces it too (CANCELLATION_WINDOW_PASSED). Was
-    // previously stuck at the 60-minute fallback because nothing here could
-    // set it.
-    cancellationWindow: [60, [Validators.required, Validators.min(0)]],
-    // ── Booking fee ────────────────────────────────────────────────────────
-    // Off by default. When on, customers are quoted a fee and must upload a
-    // payment receipt before joining or booking. HairMela never handles the
-    // money — it goes straight to the salon, which is why paymentDetails
-    // below is required before this can be switched on.
-    enforceBookingFee: [false],
-    bookingFeePercent: [0, [Validators.min(0), Validators.max(100)]],
-    bookingFeeFixed: [0, [Validators.min(0)]],
-    // Service-total threshold above which the fee stops being a percentage and
-    // becomes a flat amount equal to this number.
-    //
-    //   total <= threshold  -> pay bookingFeePercent% of the total
-    //   total >  threshold  -> pay exactly bookingFeeThreshold
-    //
-    // A percentage of an expensive booking becomes an unreasonable deposit
-    // (10% of N200,000 is N20,000), so the salon caps what it asks for.
-    //
-    // This is DISCONTINUOUS at the threshold by design: with 10% and a
-    // N10,000 threshold, N9,999 of service pays N1,000 while N10,001 pays
-    // N10,000 — a 10x jump for N2 more, and very nearly the whole job. The
-    // hint in the template says so, because a salon picking this number
-    // casually will surprise its own customers.
-    //
-    // 0 disables it; the percentage then applies at every total. Not part of
-    // the required-fields validator for that reason.
-    bookingFeeThreshold: [0, [Validators.min(0)]],
-    // type drives which of the two groups below is required; both are kept in
-    // the form so switching back and forth doesn't lose what was typed.
-    paymentType: ['bank' as 'bank' | 'link'],
-    bankName: [''],
-    accountName: [''],
-    accountNumber: [''],
-    paymentLink: [''],
-    paymentDescription: ['', Validators.maxLength(200)],
-    operatingHours: this._fb.array(
-      DAYS.map((_, i) =>
-        this._fb.group(
-          {
-            enabled: [false],
-            dayOfWeek: [i],
-            startTime: ['09:00'],
-            endTime: ['18:00'],
-          },
-          { validators: endAfterStart } as AbstractControlOptions,
+  protected readonly form = this._fb.group(
+    {
+      name: ['', [Validators.required, Validators.minLength(2)]],
+      phone: ['', Validators.required],
+      about: ['', Validators.maxLength(1000)],
+      timezone: ['Africa/Lagos', Validators.required],
+      currency: ['NGN', Validators.required],
+      // Address is editable here because it was previously fixed at creation —
+      // a salon that moved, or was created with a typo, had no way to correct it.
+      address: this._fb.group({
+        country: ['', Validators.required],
+        state: ['', Validators.required],
+        city: ['', Validators.required],
+        street: ['', Validators.required],
+      }),
+      defaultSlotDuration: [30, [Validators.required, Validators.min(5), Validators.max(340)]],
+      allowWalkIns: [true],
+      showPrice: [true],
+      maxPartySize: [5, [Validators.required, Validators.min(1), Validators.max(20)]],
+      noShowWindow: [10, [Validators.required, Validators.min(1)]],
+      // How close to an appointment a customer may still cancel or reschedule.
+      // Read by reschedule-policy.ts to decide whether those buttons appear at
+      // all; the backend enforces it too (CANCELLATION_WINDOW_PASSED). Was
+      // previously stuck at the 60-minute fallback because nothing here could
+      // set it.
+      cancellationWindow: [60, [Validators.required, Validators.min(0)]],
+      // ── Booking fee ────────────────────────────────────────────────────────
+      // Off by default. When on, customers are quoted a fee and must upload a
+      // payment receipt before joining or booking. HairMela never handles the
+      // money — it goes straight to the salon, which is why paymentDetails
+      // below is required before this can be switched on.
+      enforceBookingFee: [false],
+      bookingFeePercent: [0, [Validators.min(0), Validators.max(100)]],
+      bookingFeeFixed: [0, [Validators.min(0)]],
+      // Service-total threshold above which the fee stops being a percentage and
+      // becomes a flat amount equal to this number.
+      //
+      //   total <= threshold  -> pay bookingFeePercent% of the total
+      //   total >  threshold  -> pay exactly bookingFeeThreshold
+      //
+      // A percentage of an expensive booking becomes an unreasonable deposit
+      // (10% of N200,000 is N20,000), so the salon caps what it asks for.
+      //
+      // This is DISCONTINUOUS at the threshold by design: with 10% and a
+      // N10,000 threshold, N9,999 of service pays N1,000 while N10,001 pays
+      // N10,000 — a 10x jump for N2 more, and very nearly the whole job. The
+      // hint in the template says so, because a salon picking this number
+      // casually will surprise its own customers.
+      //
+      // 0 disables it; the percentage then applies at every total. Not part of
+      // the required-fields validator for that reason.
+      bookingFeeThreshold: [0, [Validators.min(0)]],
+      // type drives which of the two groups below is required; both are kept in
+      // the form so switching back and forth doesn't lose what was typed.
+      paymentType: ['bank' as 'bank' | 'link'],
+      bankName: [''],
+      accountName: [''],
+      accountNumber: [''],
+      paymentLink: [''],
+      paymentDescription: ['', Validators.maxLength(200)],
+      operatingHours: this._fb.array(
+        DAYS.map((_, i) =>
+          this._fb.group(
+            {
+              enabled: [false],
+              dayOfWeek: [i],
+              startTime: ['09:00'],
+              endTime: ['18:00'],
+            },
+            { validators: endAfterStart } as AbstractControlOptions,
+          ),
         ),
       ),
-    ),
-  }, { validators: paymentDetailsRequiredWhenFeeEnforced } as AbstractControlOptions);
+    },
+    { validators: paymentDetailsRequiredWhenFeeEnforced } as AbstractControlOptions,
+  );
 
   /**
    * A worked example of the threshold's step, shown to the OWNER while they
@@ -267,41 +270,44 @@ export class SalonSettingsComponent implements OnInit {
       const s = this._overview.salon() ?? this._settings.salon();
       if (!s) return;
       const settings = s.settings as Record<string, unknown>;
-      this.form.patchValue({
-        name: s.name,
-        phone: s.phone ?? '',
-        about: s.about ?? '',
-        timezone: s.timezone,
-        defaultSlotDuration: s.defaultSlotDuration,
-        allowWalkIns: (settings['allowWalkIns'] as boolean) ?? true,
-        showPrice: (settings['showPrice'] as boolean) ?? false,
-        maxPartySize: (settings['maxPartySize'] as number) ?? 5,
-        noShowWindow: (settings['noShowWindow'] as number) ?? 10,
-        cancellationWindow: (settings['cancellationWindow'] as number) ?? 60,
-        enforceBookingFee: (settings['enforceBookingFee'] as boolean) ?? false,
-        bookingFeePercent: (settings['bookingFeePercent'] as number) ?? 0,
-        bookingFeeFixed: (settings['bookingFeeFixed'] as number) ?? 0,
-        bookingFeeThreshold: (settings['bookingFeeThreshold'] as number) ?? 0,
-        // null when the salon has never configured where to be paid.
-        paymentType: s.paymentDetails?.type ?? 'bank',
-        bankName: s.paymentDetails?.bankName ?? '',
-        accountName: s.paymentDetails?.accountName ?? '',
-        accountNumber: s.paymentDetails?.accountNumber ?? '',
-        paymentLink: s.paymentDetails?.paymentLink ?? '',
-        paymentDescription: s.paymentDetails?.description ?? '',
-        currency: s.currency ?? 'NGN',
-        address: {
-          country: s.address?.country ?? '',
-          state: s.address?.state ?? '',
-          city: s.address?.city ?? '',
-          street: s.address?.street ?? '',
+      this.form.patchValue(
+        {
+          name: s.name,
+          phone: s.phone ?? '',
+          about: s.about ?? '',
+          timezone: s.timezone,
+          defaultSlotDuration: s.defaultSlotDuration,
+          allowWalkIns: (settings['allowWalkIns'] as boolean) ?? true,
+          showPrice: (settings['showPrice'] as boolean) ?? true,
+          maxPartySize: (settings['maxPartySize'] as number) ?? 5,
+          noShowWindow: (settings['noShowWindow'] as number) ?? 10,
+          cancellationWindow: (settings['cancellationWindow'] as number) ?? 60,
+          enforceBookingFee: (settings['enforceBookingFee'] as boolean) ?? false,
+          bookingFeePercent: (settings['bookingFeePercent'] as number) ?? 0,
+          bookingFeeFixed: (settings['bookingFeeFixed'] as number) ?? 0,
+          bookingFeeThreshold: (settings['bookingFeeThreshold'] as number) ?? 0,
+          // null when the salon has never configured where to be paid.
+          paymentType: s.paymentDetails?.type ?? 'bank',
+          bankName: s.paymentDetails?.bankName ?? '',
+          accountName: s.paymentDetails?.accountName ?? '',
+          accountNumber: s.paymentDetails?.accountNumber ?? '',
+          paymentLink: s.paymentDetails?.paymentLink ?? '',
+          paymentDescription: s.paymentDetails?.description ?? '',
+          currency: s.currency ?? 'NGN',
+          address: {
+            country: s.address?.country ?? '',
+            state: s.address?.state ?? '',
+            city: s.address?.city ?? '',
+            street: s.address?.street ?? '',
+          },
+          // emitEvent: false is LOAD-BEARING. Without it, patching address.country
+          // fires the valueChanges listener below, which treats a programmatic
+          // patch as a user edit — overwriting the saved currency with the
+          // country's default (a salon saved as UGX reloaded as NGN) and clearing
+          // the saved state. Only a real user change should reset those.
         },
-      // emitEvent: false is LOAD-BEARING. Without it, patching address.country
-      // fires the valueChanges listener below, which treats a programmatic
-      // patch as a user edit — overwriting the saved currency with the
-      // country's default (a salon saved as UGX reloaded as NGN) and clearing
-      // the saved state. Only a real user change should reset those.
-      }, { emitEvent: false });
+        { emitEvent: false },
+      );
       // Prime the state dropdown from the saved country, otherwise the stored
       // state has no matching <option> and the select renders blank. Does NOT
       // touch currency — patchValue above already set the saved one.
@@ -376,10 +382,9 @@ export class SalonSettingsComponent implements OnInit {
       // Deferred: markAllAsTouched only renders the error messages on the next
       // change detection pass, and those messages shift layout — scrolling
       // before they exist lands at the wrong offset.
-      afterNextRender(
-        () => scrollToFirstInvalidControl(this._formEl()?.nativeElement),
-        { injector: this._scrollInjector },
-      );
+      afterNextRender(() => scrollToFirstInvalidControl(this._formEl()?.nativeElement), {
+        injector: this._scrollInjector,
+      });
       return;
     }
 

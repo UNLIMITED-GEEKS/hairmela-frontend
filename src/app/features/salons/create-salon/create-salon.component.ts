@@ -98,7 +98,7 @@ export class CreateSalonComponent implements OnInit {
     // Pre-filled from country on change; see _syncStates.
     currency: ['NGN', Validators.required],
     defaultSlotDuration: [30, [Validators.required, Validators.min(5), Validators.max(240)]],
-    showPrice: [false],
+    showPrice: [true],
     // Branch-creation only — ignored (and its toggle hidden) when
     // creating a standalone salon, which has no parent to copy from.
     copyServices: [true],
@@ -136,12 +136,10 @@ export class CreateSalonComponent implements OnInit {
     // "Lagos" selected and submits an address that cannot exist.
     const countryControl = this.form.get('address.country');
     this._syncStates(countryControl?.value ?? '');
-    countryControl?.valueChanges
-      .pipe(takeUntilDestroyed(this._destroyRef))
-      .subscribe((name) => {
-        this._syncStates(String(name ?? ''));
-        this.form.get('address.state')?.setValue('');
-      });
+    countryControl?.valueChanges.pipe(takeUntilDestroyed(this._destroyRef)).subscribe((name) => {
+      this._syncStates(String(name ?? ''));
+      this.form.get('address.state')?.setValue('');
+    });
     const parentId = this._route.snapshot.queryParamMap.get(RouteQueryParam.PARENT_SALON_ID);
     const parentName = this._route.snapshot.queryParamMap.get(RouteQueryParam.PARENT_SALON_NAME);
     if (parentId) {
@@ -169,10 +167,9 @@ export class CreateSalonComponent implements OnInit {
       // Deferred: markAllAsTouched only renders the error messages on the next
       // change detection pass, and those messages shift layout — scrolling
       // before they exist lands at the wrong offset.
-      afterNextRender(
-        () => scrollToFirstInvalidControl(this._formEl()?.nativeElement),
-        { injector: this._scrollInjector },
-      );
+      afterNextRender(() => scrollToFirstInvalidControl(this._formEl()?.nativeElement), {
+        injector: this._scrollInjector,
+      });
       return;
     }
     this.saving.set(true);
@@ -295,5 +292,4 @@ export class CreateSalonComponent implements OnInit {
       timezoneControl?.enable();
     }
   }
-
 }

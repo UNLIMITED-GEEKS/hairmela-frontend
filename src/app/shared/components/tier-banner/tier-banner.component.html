@@ -20,16 +20,24 @@
       </p>
 
       @if (canUpgrade()) {
+        <!-- A filled button, not bare text: this is the banner's whole point,
+             and as plain coloured words it read as part of the sentence rather
+             than as the thing to tap. Kept per-kind so it stays tonally with
+             the banner it sits in, rather than a brand-pink button dropped on
+             a red or amber panel.
+             Amber is -700 where the others are -600: white on amber-600 is
+             only 3.19:1, under AA for text this size, while amber-700 gives
+             5.02:1. -->
         <button
           type="button"
           (click)="upgrade()"
-          class="shrink-0 text-sm font-semibold transition-colors"
-          [class.text-blue-700]="b.kind === 'trial'"
-          [class.hover:text-blue-900]="b.kind === 'trial'"
-          [class.text-red-700]="b.kind === 'expired'"
-          [class.hover:text-red-900]="b.kind === 'expired'"
-          [class.text-amber-700]="b.kind === 'free'"
-          [class.hover:text-amber-900]="b.kind === 'free'">
+          class="shrink-0 rounded-lg px-3 py-1.5 text-sm font-semibold text-white transition-colors"
+          [class.bg-blue-600]="b.kind === 'trial'"
+          [class.hover:bg-blue-700]="b.kind === 'trial'"
+          [class.bg-red-600]="b.kind === 'expired'"
+          [class.hover:bg-red-700]="b.kind === 'expired'"
+          [class.bg-amber-700]="b.kind === 'free'"
+          [class.hover:bg-amber-800]="b.kind === 'free'">
           {{ b.cta }}
         </button>
       }

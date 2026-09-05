@@ -237,7 +237,7 @@ export class SalonVisitService implements Clearable {
   // Swagger) — same bracket-index-and-cast pattern as salon-settings.component.ts.
   readonly showPrice = computed(() => {
     const settings = this.salon()?.settings as Record<string, unknown> | undefined;
-    return (settings?.['showPrice'] as boolean) ?? false;
+    return (settings?.['showPrice'] as boolean) ?? true;
   });
 
   /**
