@@ -434,6 +434,15 @@
             <p class="text-xs text-text-disabled">
                when a percentage can't be calculated (e.g. a service with no price or dynamic pricing). The fixed amount is used.
             </p>
+            <!-- The showPrice case is separate from the one above and worth
+                 stating plainly: the backend short-circuits on it before it
+                 even looks at the services (booking-fee.util.ts
+                 calculateBookingFee), so it is "always", not a fallback. -->
+            <p class="text-xs text-text-disabled">
+              When
+              <span class="font-medium text-text-secondary">Show prices to customers</span>
+              is turned off, customers always pay this fixed amount — no percentage is applied.
+            </p>
 
             <div>
               <label for="s-fee-threshold" class="block text-sm font-medium text-text-body mb-1.5">

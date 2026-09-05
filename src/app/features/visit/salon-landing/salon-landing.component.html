@@ -64,10 +64,16 @@
       }
 
       <h1 class="mt-2 text-xl font-semibold text-text-primary">{{ s.name }}</h1>
-      <p class="mt-1 flex items-start gap-1 text-sm text-text-muted">
-        <app-icon name="location-pin" class="h-4 w-4 shrink-0 mt-0.5" />
-      {{s.address.street}} {{ s.address?.city }}{{ s.address?.state ? ', ' + s.address.state : '' }}
-      </p>
+
+      <!-- Hidden when frozen, same reasoning as the phone number below:
+           the salon is suspended, so sending customers to its door is as
+           unhelpful as sending them to its phone. -->
+      @if (!frozen()) {
+        <p class="mt-1 flex items-start gap-1 text-sm text-text-muted">
+          <app-icon name="location-pin" class="h-4 w-4 shrink-0 mt-0.5" />
+        {{s.address.street}} {{ s.address?.city }}{{ s.address?.state ? ', ' + s.address.state : '' }}
+        </p>
+      }
 
       <!-- Hidden when frozen: the salon is suspended, so pointing customers at
            its phone number invites calls it isn't taking business through. -->
