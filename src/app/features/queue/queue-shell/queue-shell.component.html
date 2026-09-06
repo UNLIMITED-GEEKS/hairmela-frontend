@@ -61,7 +61,23 @@
     <!-- Top bar: back + status pills + call next -->
     <div class="shrink-0 bg-surface  px-4 pt-4 md:pt-2  space-y-2">
 
-      <p class="text-xs text-text-disabled mb-1 mt-2 ml-11">Tap to open, pause, or close your queue</p>
+      <!-- Help sits on the existing hint line rather than as its own row: this
+           header is already dense (back, three status pills, call-next), and a
+           staff member who needs the guide needs it once, not prominently. -->
+      <!-- Help sits on the existing hint line rather than as its own row: this
+           header is already dense (back, three status pills, call-next), and a
+           staff member who needs the guide needs it once, not prominently.
+           text-brand-accent, NOT text-primary: the latter is remapped to plain
+           ink in dark mode (styles.css) because the burgundy scores 1.30:1
+           there — the link rendered the same grey as the sentence around it
+           and read as more hint text. -->
+      <p class="text-xs text-text-disabled mb-1 mt-2 ml-11">
+        Tap to open, pause, or close your queue ·
+        <a [routerLink]="howItWorksLink" [queryParams]="howItWorksStaffParams"
+          class="font-semibold text-brand-accent underline underline-offset-2">
+          Click here to learn how this works
+        </a>
+      </p>
       <div class="flex items-center gap-2">
         @if (onQueueListRoute()) {
           <a [routerLink]="currentClientLink" aria-label="Back to current client"

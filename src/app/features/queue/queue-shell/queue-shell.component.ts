@@ -8,7 +8,13 @@ import { SalonContextService } from '../../../core/salon-context/salon-context.s
 import { ConnectionBannerComponent } from '../../../shared/components/connection-banner/connection-banner.component';
 import { BackButtonComponent } from '../../../shared/components/back-button/back-button.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
-import { RouteParam, RouteSegment, RoutePath } from '../../../core/routing/route-paths';
+import {
+  RouteParam,
+  RouteSegment,
+  RoutePath,
+  RouteQueryParam,
+  HowItWorksTab,
+} from '../../../core/routing/route-paths';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 @Component({
@@ -49,6 +55,11 @@ export class QueueShellComponent implements OnInit, OnDestroy {
   protected get currentClientLink(): string[] {
     return RoutePath.salonQueueConsole(this.salonId, this.queueId);
   }
+
+  // Straight to the STAFF tab: this console is a staff surface, and the
+  // customer/owner tabs answer questions nobody here is asking.
+  protected readonly howItWorksLink = RoutePath.howItWorks();
+  protected readonly howItWorksStaffParams = { [RouteQueryParam.TAB]: HowItWorksTab.STAFF };
 
   // staffFrozen (handoff §5): this non-owner staff member is over the plan's
   // staff limit and locked out of queue ops. Backend rejects their writes with

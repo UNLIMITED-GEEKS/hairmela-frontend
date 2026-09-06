@@ -6,6 +6,7 @@ import { YoutubeEmbedComponent } from '../../shared/components/youtube-embed/you
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { ToastService } from '../../core/toast/toast.service';
 import { HowItWorksTab, RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
+import { environment } from '../../../environments/environment';
 
 // shortLabel keeps all three pills on one line on a phone — the full labels
 // together are wider than a mobile viewport, and TabsComponent's sliding
@@ -64,7 +65,12 @@ export class HowItWorksComponent {
   // Copies the URL of the CURRENT tab — landing on it shows that tab's video,
   // which is what the "copy link to this video" button promises.
   protected copyLink(): void {
-    const url = `${window.location.origin}${RoutePath.howItWorks().join('/')}?${RouteQueryParam.TAB}=${this.activeTab()}`;
+    // environment.appBaseUrl, NOT window.location.origin: in the Capacitor
+    // WebView the page is served from https://localhost, so origin produced a
+    // link that only works on the device that copied it. Same reason every
+    // other copy-link in the app (salon share, live queue, salon overview)
+    // builds from appBaseUrl.
+    const url = `${environment.appBaseUrl}${RoutePath.howItWorks().join('/')}?${RouteQueryParam.TAB}=${this.activeTab()}`;
     navigator.clipboard.writeText(url).then(
       () => this._toast.success('Link to this video copied.'),
       () => this._toast.error('Could not copy link.'),
