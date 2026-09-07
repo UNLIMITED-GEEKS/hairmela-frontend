@@ -12,6 +12,7 @@ import { PersistentStore } from '../../../core/storage/persistent-store';
 import { LAST_SALON_KEY } from '../../../core/salon-context/salon-context.service';
 import { RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
+import { AppPlatformService } from '../../../core/native/app-platform.service';
 
 @Component({
   selector: 'app-login',
@@ -25,6 +26,8 @@ import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first
   templateUrl: './login.component.html',
 })
 export class LoginComponent {
+  protected readonly platform = inject(AppPlatformService);
+
   // The <form> element, so a blocked submit can scroll to the first
   // invalid field — see scrollToFirstInvalidControl.
   private readonly _formEl = viewChild<ElementRef<HTMLElement>>('formEl');

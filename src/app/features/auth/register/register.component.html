@@ -1,8 +1,11 @@
 <!-- py-24 on web clears the public shell's nav, which is `fixed top-0` and
      so takes no layout space: without it this box centres against the full
      viewport and the heading slides underneath the bar. The installed app
-     has no nav, and AuthBrandComponent supplies its own spacing there. -->
-<div class="flex items-center justify-center min-h-screen px-6 py-24">
+     has no nav, and AuthBrandComponent supplies its own spacing there —
+     so the app gets py-8 instead, which on a shorter phone is the
+     difference between this form fitting and having to be scrolled. -->
+<div [class]="platform.isAppContext ? 'py-6' : 'py-24'"
+  class="flex items-center justify-center min-h-screen px-6">
   <div class="w-full max-w-sm">
     <!-- Installed app only: on the web the public shell's nav already
          carries the brand directly above this. -->
