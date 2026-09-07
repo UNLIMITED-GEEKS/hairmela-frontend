@@ -16,7 +16,7 @@ import { appConfigControllerGetConfig } from '../../api/fn/app-config/app-config
 //
 // PRIORITY DECIDES WHETHER IT BLOCKS. updatePriority is set per-release in the
 // Play Developer API (0-5, default 0). Only a release published at
-// FORCE_UPDATE_MIN_PRIORITY or above blocks; everything below is left alone, so
+// FORCE_UPDATE_MIN_PRIORITY or above blocks;
 // an ordinary release does not interrupt anyone. Set the priority when you
 // publish the release that actually needs it.
 //
