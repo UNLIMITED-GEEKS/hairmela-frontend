@@ -3,6 +3,8 @@ import { RouterLink } from '@angular/router';
 import { CurrentUserStore } from '../../core/auth/current-user.store';
 import { PLAN_CARDS, formatPlanPrice } from '../../core/tier/tier-plans';
 import { RoutePath } from '../../core/routing/route-paths';
+import { AppPlatformService } from '../../core/native/app-platform.service';
+import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 
 // Public marketing pricing page. Read-only — no live subscription calls; the
 // transactional flow lives on the owner-only billing page. Signed-in users get
@@ -10,9 +12,12 @@ import { RoutePath } from '../../core/routing/route-paths';
 @Component({
   selector: 'app-pricing',
   templateUrl: './pricing.component.html',
-  imports: [RouterLink],
+  imports: [RouterLink, PageHeaderComponent],
 })
 export class PricingComponent {
+  protected readonly platform = inject(AppPlatformService);
+  protected readonly homeLink = RoutePath.root();
+
   protected readonly RoutePath = RoutePath;
 
   private readonly _currentUser = inject(CurrentUserStore);

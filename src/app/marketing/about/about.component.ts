@@ -1,6 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { RoutePath } from '../../core/routing/route-paths';
+import { AppPlatformService } from '../../core/native/app-platform.service';
+import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 
 interface CoreValue {
   readonly number: string;
@@ -13,9 +15,12 @@ interface CoreValue {
 @Component({
   selector: 'app-about',
   templateUrl: './about.component.html',
-  imports: [RouterLink],
+  imports: [RouterLink, PageHeaderComponent],
 })
 export class AboutComponent {
+  protected readonly platform = inject(AppPlatformService);
+  protected readonly homeLink = RoutePath.root();
+
   protected readonly registerLink = RoutePath.register();
   protected readonly contactLink = RoutePath.contact();
 

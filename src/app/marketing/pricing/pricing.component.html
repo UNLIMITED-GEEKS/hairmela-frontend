@@ -1,4 +1,14 @@
-<div class="min-h-screen px-5 pt-28 pb-16">
+<!-- App contexts render no marketing nav (see public-shell), which left
+     this page opening on a blank gap with nothing to go back to. The
+     same page-header how-it-works already uses fills that role, and the
+     nav's pt-28 below is dropped with it. -->
+@if (platform.isAppContext) {
+  <div class="md:max-w-3xl md:mx-auto">
+    <app-page-header title="Pricing" backVariant="glass" [fallbackRoute]="homeLink" />
+  </div>
+}
+
+<div [class.pt-28]="!platform.isAppContext" class="min-h-screen px-5 pb-16">
   <div class="max-w-4xl mx-auto">
 
     <!-- Heading -->

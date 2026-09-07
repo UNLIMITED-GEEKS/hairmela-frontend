@@ -1,6 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { RoutePath } from '../../core/routing/route-paths';
+import { AppPlatformService } from '../../core/native/app-platform.service';
+import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 
 interface LegalSection {
   readonly id: string;
@@ -13,9 +15,12 @@ interface LegalSection {
 @Component({
   selector: 'app-privacy',
   templateUrl: './privacy.component.html',
-  imports: [RouterLink],
+  imports: [RouterLink, PageHeaderComponent],
 })
 export class PrivacyComponent {
+  protected readonly platform = inject(AppPlatformService);
+  protected readonly homeLink = RoutePath.root();
+
   protected readonly lastUpdated = '30 June 2026';
   protected readonly privacyLink = RoutePath.privacy();
 

@@ -1,4 +1,4 @@
-<div class="md:max-w-3xl md:mx-auto pt-14 md:pt-16 ">
+<div [class]="platform.isAppContext ? '' : 'pt-14 md:pt-16'" class="md:max-w-3xl md:mx-auto">
   <app-page-header title="How it works" backVariant="glass" [fallbackRoute]="dashboardLink" />
 </div>
 

@@ -6,14 +6,20 @@ import { FieldErrorComponent } from '../../shared/components/field-error/field-e
 import { ApiConfiguration } from '../../api/api-configuration';
 import { contactControllerSubmit } from '../../api/fn/contact/contact-controller-submit';
 import { scrollToFirstInvalidControl } from '../../core/utils/scroll-to-first-invalid';
+import { AppPlatformService } from '../../core/native/app-platform.service';
+import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { RoutePath } from '../../core/routing/route-paths';
 
 // Public contact form — submits to POST /v1/contact.
 @Component({
   selector: 'app-contact',
   templateUrl: './contact.component.html',
-  imports: [ReactiveFormsModule, FieldErrorComponent],
+  imports: [ReactiveFormsModule, FieldErrorComponent, PageHeaderComponent],
 })
 export class ContactComponent {
+  protected readonly platform = inject(AppPlatformService);
+  protected readonly homeLink = RoutePath.root();
+
   // The <form> element, so a blocked submit can scroll to the first
   // invalid field — see scrollToFirstInvalidControl.
   private readonly _formEl = viewChild<ElementRef<HTMLElement>>('formEl');

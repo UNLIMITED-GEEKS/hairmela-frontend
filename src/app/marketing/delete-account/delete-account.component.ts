@@ -1,6 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { RoutePath } from '../../core/routing/route-paths';
+import { AppPlatformService } from '../../core/native/app-platform.service';
+import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 
 // Account-deletion instructions. Publicly reachable WITHOUT signing in,
 // deliberately: Google Play requires a deletion URL that a reviewer (and a
@@ -14,9 +16,12 @@ import { RoutePath } from '../../core/routing/route-paths';
 @Component({
   selector: 'app-delete-account',
   templateUrl: './delete-account.component.html',
-  imports: [RouterLink],
+  imports: [RouterLink, PageHeaderComponent],
 })
 export class DeleteAccountComponent {
+  protected readonly platform = inject(AppPlatformService);
+  protected readonly homeLink = RoutePath.root();
+
   protected readonly privacyLink = RoutePath.privacy();
   protected readonly contactLink = RoutePath.contact();
 

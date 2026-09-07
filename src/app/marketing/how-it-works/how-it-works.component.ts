@@ -7,6 +7,7 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
 import { ToastService } from '../../core/toast/toast.service';
 import { HowItWorksTab, RoutePath, RouteQueryParam } from '../../core/routing/route-paths';
 import { environment } from '../../../environments/environment';
+import { AppPlatformService } from '../../core/native/app-platform.service';
 
 // shortLabel keeps all three pills on one line on a phone — the full labels
 // together are wider than a mobile viewport, and TabsComponent's sliding
@@ -29,6 +30,7 @@ const TAB_IDS: readonly string[] = TABS.map((t) => t.id);
   imports: [RouterLink, TabsComponent, YoutubeEmbedComponent, PageHeaderComponent],
 })
 export class HowItWorksComponent {
+  protected readonly platform = inject(AppPlatformService);
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
   private readonly _toast = inject(ToastService);
