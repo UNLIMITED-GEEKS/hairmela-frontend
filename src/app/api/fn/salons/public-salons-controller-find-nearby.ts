@@ -13,6 +13,8 @@ import { PaginatedMetaDto } from '../../models/paginated-meta-dto';
 export interface PublicSalonsControllerFindNearby$Params {
   lat: number;
   lng: number;
+  category?: string;
+  search?: string;
   page?: number;
   limit?: number;
 }
@@ -25,6 +27,8 @@ export function publicSalonsControllerFindNearby(http: HttpClient, rootUrl: stri
   if (params) {
     rb.query('lat', params.lat, {});
     rb.query('lng', params.lng, {});
+    rb.query('category', params.category, {});
+    rb.query('search', params.search, {});
     rb.query('page', params.page, {});
     rb.query('limit', params.limit, {});
   }

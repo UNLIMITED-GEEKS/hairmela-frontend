@@ -259,3 +259,5 @@ export type { AnalyticsControllerGetTrends$Params as AnalyticsControllerGetTrend
 export { analyticsControllerGetTrends as analyticsControllerGetTrends } from './fn/analytics/analytics-controller-get-trends';
 export type { ContactControllerSubmit$Params as ContactControllerSubmit$Params } from './fn/contact/contact-controller-submit';
 export { contactControllerSubmit as contactControllerSubmit } from './fn/contact/contact-controller-submit';
+export type { AppConfigControllerGetConfig$Params as AppConfigControllerGetConfig$Params } from './fn/app-config/app-config-controller-get-config';
+export { appConfigControllerGetConfig as appConfigControllerGetConfig } from './fn/app-config/app-config-controller-get-config';

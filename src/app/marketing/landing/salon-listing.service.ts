@@ -71,8 +71,10 @@ export class SalonListingService implements Clearable {
   readonly loading = this._loading.asReadonly();
   readonly filters = this._filters.asReadonly();
   readonly page = this._page.asReadonly();
-  // True while showing nearby results — the other filters do not apply, and
-  // the UI reflects that by showing an active "Near me" state.
+  // True while showing nearby results. Category and search both apply here and
+  // narrow within the radius; only location does not, since a typed place
+  // competes with the radius rather than refining it. The UI reflects the mode
+  // by showing an active "Near me" state.
   readonly nearbyActive = computed(() => this._nearby() !== null);
   // True only while waiting on the browser's permission prompt / fix.
   readonly nearbyLocating = this._nearbyLocating.asReadonly();
@@ -107,16 +109,29 @@ export class SalonListingService implements Clearable {
     this._searchInput$
       .pipe(debounceTime(500), distinctUntilChanged(), takeUntilDestroyed())
       .subscribe((search) => {
-        // Search always wins over an active category — the two filters don't combine.
-        this._filters.update((f) => ({ ...f, search, category: '' }));
-        this._exitNearby();
+        // Clears nothing. Search, location and category all AND together on
+        // both endpoints — the backend applies each as its own andWhere — so
+        // "Jeff", "Jos" and "nails" is a valid, answerable search.
+        //
+        // This used to wipe category on the grounds that the two "don't
+        // combine", which was never true of the API; it just made the
+        // combination unreachable from the UI.
+        //
+        // NEARBY IS THE ANCHOR: typing while it is active narrows within the
+        // radius rather than leaving it, since the nearby endpoint takes the
+        // term itself.
+        this._filters.update((f) => ({ ...f, search }));
+        // Not _exitNearby(): staying is the point. Only a stale error is
+        // dropped, for the case where "Near me" was denied (so _nearby is
+        // null but the banner is up) and the user typed instead.
+        if (this._nearby() === null) this._nearbyError.set(null);
         this._page.set(1);
         this._refetch$.next();
       });
 
-    // Location deliberately does NOT clear search or category, unlike the
-    // search pipeline above — "barbers in Jos" is the combination this filter
-    // exists to express.
+    // Location clears nothing either — see the search pipeline above. All
+    // three text/chip filters AND together; "barbers in Jos" is one of the
+    // combinations this makes reachable.
     this._locationInput$
       .pipe(debounceTime(500), distinctUntilChanged(), takeUntilDestroyed())
       .subscribe((location) => {
@@ -131,11 +146,13 @@ export class SalonListingService implements Clearable {
         switchMap(() => {
           const { location, search, category } = this._filters();
           const nearby = this._nearby();
-          // Nearby is its own mode, not another filter: the endpoint takes
-          // only lat/lng/page, so the key ignores the text filters (which are
-          // cleared on entry anyway) and keys on the coordinates instead.
+          // Nearby keys on the coordinates AND category AND search, since the
+          // endpoint filters by all three. Location is the only one excluded:
+          // it is cleared on entry and the endpoint has no param for it.
+          // Leaving category or search out of the key would serve the previous
+          // value's results straight back out of the cache on a change.
           const key = nearby
-            ? JSON.stringify({ nearby, page: this._page() })
+            ? JSON.stringify({ nearby, category, search, page: this._page() })
             : JSON.stringify({ location, search, category, page: this._page() });
 
           // Cache hit — render immediately, no request. This is the whole
@@ -155,6 +172,12 @@ export class SalonListingService implements Clearable {
             return publicSalonsControllerFindNearby(this._http, this._apiConfig.rootUrl, {
               lat: nearby.lat,
               lng: nearby.lng,
+              // Both AND with the radius server-side: salons that are near AND
+              // offer this category AND match the term. An unknown slug or an
+              // unmatched term is an empty result, not an error — the mode
+              // never silently widens back out to a nationwide search.
+              category: category || undefined,
+              search: search || undefined,
               page: this._page(),
               limit: PAGE_SIZE,
             });
@@ -196,18 +219,31 @@ export class SalonListingService implements Clearable {
   }
 
   // Not debounced — selecting a category chip is a deliberate, infrequent action.
+  //
+  // Clears nothing and does NOT leave nearby mode: the nearby endpoint takes a
+  // category of its own and ANDs it with the radius, and the normal listing
+  // ANDs it with search/location. The pills are visible in nearby mode, so
+  // tapping one dropping the user back to a nationwide listing was the
+  // surprising behaviour.
   setCategory(category: string): void {
     this._filters.update((f) => ({ ...f, category }));
-    this._exitNearby();
     this._page.set(1);
     this._refetch$.next();
   }
 
   /**
    * Switches to nearby results, asking the browser for the visitor's
-   * coordinates. Nearby is a distinct MODE, not another filter: the endpoint
-   * accepts only lat/lng/page, so the text filters and category are cleared
-   * on entry, and setting any of them again drops back to the normal listing.
+   * coordinates. Nearby is the ANCHOR mode: the endpoint takes
+   * lat/lng/category/search/page and ANDs category and search with the radius,
+   * so both can be set and changed WITHOUT leaving.
+   *
+   * Carry-over on entry is narrower than that, deliberately. Category comes in
+   * with the user; search does not, because typing a name means they knew
+   * which salon they wanted and tapping Near me is the opposite intent.
+   * Typing again once inside works normally.
+   *
+   * Location is cleared on entry and setting it drops back to the normal
+   * listing — a typed place and a radius are two answers to one question.
    *
    * Resolves quietly on refusal — nearbyError() carries why, and the listing
    * stays exactly as it was.
@@ -255,7 +291,20 @@ export class SalonListingService implements Clearable {
       return;
     }
 
-    this._filters.set({ location: '', search: '', category: '' });
+    // CATEGORY survives entry; LOCATION and SEARCH do not.
+    //
+    // Category is a browse filter — "Nails" then Near me is one continuous
+    // thought, and the endpoint takes it.
+    //
+    // Search is cleared even though the endpoint accepts it: typing a name
+    // means the user already knows which salon they want, and tapping Near me
+    // is the opposite intent. Carrying the term in would answer a question
+    // they just stopped asking. It stays usable INSIDE nearby (see the search
+    // pipeline) — it is only the carry-over on entry that is dropped.
+    //
+    // Location is cleared because a typed place and a radius are two competing
+    // answers to the same question, and the endpoint has no param for it.
+    this._filters.update((f) => ({ location: '', search: '', category: f.category }));
     this._nearby.set(coords);
     this._page.set(1);
     this._refetch$.next();

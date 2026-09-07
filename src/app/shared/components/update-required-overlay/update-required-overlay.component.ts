@@ -1,12 +1,16 @@
 import { Component, inject } from '@angular/core';
 import { AppUpdateService } from '../../../core/native/app-update.service';
 
-// Blocking "you must update" screen for the Play build.
+// "Please update" screen for the Play build.
 //
-// DELIBERATELY NOT DISMISSABLE: no close button, no backdrop click, no escape
-// handler. It only appears for a release published at a high in-app update
-// priority (see AppUpdateService), which is reserved for versions people
-// cannot stay behind — so an escape hatch would defeat the point.
+// DISMISSABLE, BUT IT COMES BACK. The close button hides it for this run only
+// — AppUpdateService.dismiss() keeps nothing, so the next launch re-runs the
+// check and shows it again. That way it never traps someone mid-task (a
+// barber part-way through serving a client can close it and finish) while
+// still asking every time they reopen the app.
+//
+// Only the close button dismisses it: no backdrop click and no escape
+// handler, so it cannot be waved away by accident.
 //
 // Google's own update sheet is launched immediately and covers this; the
 // overlay is what remains if the user dismisses that sheet, and its button
@@ -19,12 +23,29 @@ import { AppUpdateService } from '../../../core/native/app-update.service';
            45, so an overlay that must not be worked around goes higher than
            both. -->
       <div
-        class="fixed inset-0 z-[100] flex items-center justify-center bg-surface px-6"
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-6"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="update-required-title"
       >
-        <div class="w-full max-w-sm text-center">
+        <!-- A CARD ON A SCRIM, not a full-screen panel: the overlay above is
+             a dim backdrop so the app stays visible behind it, and this is the
+             surface that sits on top. relative anchors the close button to the
+             card rather than to the whole screen. -->
+        <div class="relative w-full max-w-sm rounded-2xl bg-surface-card p-6 pt-8 text-center shadow-2xl">
+          <!-- Top-right OF THE CARD, and well clear of "Update now" below, so
+               closing is never a mis-tap on the primary action. -->
+          <button
+            type="button"
+            (click)="updates.dismiss()"
+            aria-label="Close"
+            class="absolute top-2 right-2 min-w-11 min-h-11 flex items-center justify-center rounded-full text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
           <img
             src="/icons/icon-192x192.png"
             alt=""

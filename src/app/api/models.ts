@@ -3,6 +3,7 @@
 
 export type { Address } from './models/address';
 export type { AddressDto } from './models/address-dto';
+export type { AppConfigResponseDto } from './models/app-config-response-dto';
 export type { AttachMediaDto } from './models/attach-media-dto';
 export type { AuthTokensDto } from './models/auth-tokens-dto';
 export type { AvailableSlotDto } from './models/available-slot-dto';
