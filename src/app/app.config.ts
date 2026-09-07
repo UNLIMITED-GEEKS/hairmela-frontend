@@ -16,6 +16,7 @@ import { UpdateService } from './core/pwa/update.service';
 import { NativeBackButtonService } from './core/native/back-button.service';
 import { DeepLinkService } from './core/native/deep-link.service';
 import { AppResumeService } from './core/native/app-resume.service';
+import { AppUpdateService } from './core/native/app-update.service';
 import { PersistentStore } from './core/storage/persistent-store';
 import { OnScreenErrorHandler } from './core/debug/on-screen-error-handler';
 import { ThemeService } from './core/theme/theme.service';
@@ -76,5 +77,7 @@ export const appConfig: ApplicationConfig = {
     // "App came back to the foreground" signal, for state left in flight by
     // work that happened outside the app. No-op on web.
     provideAppInitializer(() => inject(AppResumeService).init()),
+    // Play in-app updates: blocks on a high-priority release. No-op on web.
+    provideAppInitializer(() => inject(AppUpdateService).init()),
   ],
 };
