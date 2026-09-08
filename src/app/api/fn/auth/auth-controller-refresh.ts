@@ -8,13 +8,16 @@ import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
 import { AuthTokensDto } from '../../models/auth-tokens-dto';
+import { RefreshTokenDto } from '../../models/refresh-token-dto';
 
 export interface AuthControllerRefresh$Params {
+      body: RefreshTokenDto
 }
 
-export function authControllerRefresh(http: HttpClient, rootUrl: string, params?: AuthControllerRefresh$Params, context?: HttpContext): Observable<StrictHttpResponse<AuthTokensDto>> {
+export function authControllerRefresh(http: HttpClient, rootUrl: string, params: AuthControllerRefresh$Params, context?: HttpContext): Observable<StrictHttpResponse<AuthTokensDto>> {
   const rb = new RequestBuilder(rootUrl, authControllerRefresh.PATH, 'post');
   if (params) {
+    rb.body(params.body, 'application/json');
   }
 
   return http.request(

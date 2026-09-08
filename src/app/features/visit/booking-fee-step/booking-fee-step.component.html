@@ -165,7 +165,7 @@
         </div>
       } @else {
         <label class="flex items-center justify-center gap-2 min-h-12 rounded-xl border-2 border-dashed border-primary/30 text-primary text-sm font-semibold cursor-pointer hover:bg-secondary-light transition-colors">
-          <input type="file" accept="image/jpeg,image/png,image/webp" class="sr-only"
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif" class="sr-only"
             (change)="onReceiptPicked($event)" />
           + Add receipt photo
         </label>
@@ -178,7 +178,7 @@
            point at the only thing that helps: a different image. -->
       @if (receiptRejected()) {
         <label class="inline-flex items-center justify-center gap-1 min-h-11 px-4 rounded-xl border border-primary/30 text-primary text-xs font-semibold cursor-pointer hover:bg-secondary-light transition-colors">
-          <input type="file" accept="image/jpeg,image/png,image/webp" class="sr-only"
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif" class="sr-only"
             (change)="onReceiptPicked($event)" />
           Choose a different photo
         </label>

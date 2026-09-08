@@ -3,7 +3,7 @@
 
 export interface AttachMediaDto {
   entityId: string;
-  entityType: 'USER' | 'SALON' | 'STAFF';
+  entityType: 'USER' | 'SALON' | 'STAFF' | 'COMMENT' | 'RECEIPT';
   publicId: string;
   type: 'PROFILE' | 'GALLERY';
   url: string;

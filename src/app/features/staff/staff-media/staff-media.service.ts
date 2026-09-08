@@ -1,13 +1,12 @@
 import { CacheRegistry } from '../../../core/caching/cache-registry/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
-import { map, of, switchMap } from 'rxjs';
+import { map, of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { Media } from '../../../api/models/media';
 import { publicMediaControllerGetStaffMedia } from '../../../api/fn/media/public-media-controller-get-staff-media';
-import { mediaControllerAttach } from '../../../api/fn/media/media-controller-attach';
 import { mediaControllerDelete } from '../../../api/fn/media/media-controller-delete';
-import { uploadToCloudinary } from '../../../core/media/cloudinary-upload';
+import { uploadMedia } from '../../../core/media/media-upload';
 import { ToastService } from '../../../core/toast/toast.service';
 import { OptimisticService } from '../../../core/caching/optimistic/optimistic.service';
 import { CachedLoader } from '../../../core/caching/optimistic/cached-loader';
@@ -73,29 +72,18 @@ export class StaffMediaService {
           ? [optimisticTile, ...list.filter((m) => m.type !== 'PROFILE')]
           : [...list, optimisticTile];
       },
-      reconcile: (list, res) => list.map((m) => (m.id === tempId ? res.body : m)),
+      reconcile: (list, res) => list.map((m) => (m.id === tempId ? res : m)),
       tempId,
       dedupeKey: `StaffMediaService.upload:${staffId}:${file.name}:${file.size}:${file.lastModified}`,
       mirror: this._loader.mirrorFn(staffId),
       contextKey: staffId,
-      // Two steps: the browser uploads straight to Cloudinary, then the
-      // backend persists the resulting asset. Uploading through our own API
-      // as multipart produced an empty body (contentLength=0) whenever a
-      // service worker was registered; this path sends JSON instead.
       request: () =>
-        uploadToCloudinary(this._http, file).pipe(
-          switchMap((res) =>
-            mediaControllerAttach(this._http, this._apiConfig.rootUrl, {
-              body: {
-                publicId: res.public_id,
-                url: res.secure_url,
-                entityType: 'STAFF',
-                entityId: staffId,
-                type: mediaType,
-              },
-            }),
-          ),
-        ),
+        uploadMedia(this._http, this._apiConfig, {
+          file,
+          entityType: 'STAFF',
+          entityId: staffId,
+          type: mediaType,
+        }),
       errorMessage: 'Upload failed. Removed.',
       onSuccess: () => onSuccess?.(),
       onSettled: () => URL.revokeObjectURL(blobUrl),

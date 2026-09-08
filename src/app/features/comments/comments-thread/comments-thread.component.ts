@@ -10,7 +10,17 @@ import { InlineSpinnerComponent } from '../../../shared/components/inline-spinne
 import { GalleryModalComponent } from '../../../shared/components/gallery-modal/gallery-modal.component';
 
 const MAX_BODY_LENGTH = 5000;
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+// Matches core/media/media-upload.ts's uploadAdHocImage(): JPEG/PNG/WebP/AVIF
+// upload straight to R2, HEIC/HEIF go through the backend's conversion
+// endpoint. Anything else is rejected here before it ever reaches that call.
+const ALLOWED_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/avif',
+  'image/heic',
+  'image/heif',
+];
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 /**
@@ -114,7 +124,7 @@ export class CommentsThreadComponent {
     if (!file) return;
 
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      this.sendError.set('Only JPEG, PNG, or WebP images are allowed.');
+      this.sendError.set('Unsupported image format.');
       return;
     }
     if (file.size > MAX_IMAGE_BYTES) {

@@ -7,7 +7,7 @@ import { publicSalonsControllerGetBookingFee } from '../../api/fn/salons/public-
 import { receiptVerificationControllerVerify } from '../../api/fn/queues/receipt-verification-controller-verify';
 import { BookingFeeQuoteResponseDto } from '../../api/models/booking-fee-quote-response-dto';
 import { VerifyReceiptResponseDto } from '../../api/models/verify-receipt-response-dto';
-import { uploadToCloudinary } from '../media/cloudinary-upload';
+import { uploadAdHocImage } from '../media/media-upload';
 import { ErrorCodes } from '../errors/error-codes';
 import { isApiError } from '../errors/api-error.types';
 import { GuestStore } from '../guest/guest-store';
@@ -78,8 +78,10 @@ export class BookingFeeService {
   /**
    * Uploads the receipt image and asks the backend to verify it.
    *
-   * Images only — no PDF. Cloudinary first (same direct-to-CDN upload the
-   * comment threads use), then the returned url + public id go to our API.
+   * Images only — no PDF. No owning entity (a receipt isn't a salon's,
+   * staff's, or user's profile/gallery photo), so this goes through
+   * uploadAdHocImage() rather than uploadMedia() — see that function's doc.
+   * The returned url + public id go to our API.
    *
    * On success the caller must send receiptVerificationId with the join/book
    * call. Receipts are single-use
@@ -104,15 +106,15 @@ export class BookingFeeService {
     if (this._verifying()) return;
     this._verifying.set(true);
 
-    uploadToCloudinary(this._http, image)
+    uploadAdHocImage(this._http, this._apiConfig, image, 'RECEIPT')
       .pipe(
         switchMap((upload) =>
           receiptVerificationControllerVerify(this._http, this._apiConfig.rootUrl, {
             salonId,
             queueId,
             body: {
-              imageUrl: upload.secure_url,
-              imagePublicId: upload.public_id,
+              imageUrl: upload.url,
+              imagePublicId: upload.publicId,
               serviceIds,
             },
           }),

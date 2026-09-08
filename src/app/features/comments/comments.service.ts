@@ -5,7 +5,7 @@ import { ApiConfiguration } from '../../api/api-configuration';
 import { CommentResponseDto } from '../../api/models/comment-response-dto';
 import { commentsControllerList } from '../../api/fn/queues/comments-controller-list';
 import { commentsControllerCreate } from '../../api/fn/queues/comments-controller-create';
-import { uploadToCloudinary } from '../../core/media/cloudinary-upload';
+import { uploadAdHocImage } from '../../core/media/media-upload';
 
 export interface PostCommentInput {
   body: string;
@@ -31,21 +31,20 @@ export class CommentsService {
     }).pipe(map((res) => res.body));
   }
 
-  // Uploads the image (if any) straight to Cloudinary first, then posts the
-  // comment with the resulting URL/publicId — same two-step pattern as media
-  // uploads, and for the same reason: a multipart POST to our own API emptied
-  // its body whenever a service worker was registered, so nothing in this
-  // feature sends a file to our backend directly.
+  // Uploads the image (if any) first, then posts the comment with the
+  // resulting URL/publicId. No owning entity (a comment isn't a salon's,
+  // staff's, or user's profile/gallery photo), so this goes through
+  // uploadAdHocImage() rather than uploadMedia() — see that function's doc.
   post(queueId: string, entryId: string, input: PostCommentInput): Observable<CommentResponseDto> {
     if (!input.image) {
       return this._create(queueId, entryId, { body: input.body || undefined });
     }
-    return uploadToCloudinary(this._http, input.image).pipe(
+    return uploadAdHocImage(this._http, this._apiConfig, input.image, 'COMMENT').pipe(
       switchMap((uploaded) =>
         this._create(queueId, entryId, {
           body: input.body || undefined,
-          imageUrl: uploaded.secure_url,
-          imagePublicId: uploaded.public_id,
+          imageUrl: uploaded.url,
+          imagePublicId: uploaded.publicId,
         }),
       ),
     );

@@ -5,7 +5,17 @@ import { BookingFeeQuoteResponseDto } from '../../../api/models/booking-fee-quot
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
-const ALLOWED_RECEIPT_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+// Matches core/media/media-upload.ts's uploadAdHocImage(): JPEG/PNG/WebP/AVIF
+// upload straight to R2, HEIC/HEIF go through the backend's conversion
+// endpoint. Anything else is rejected here before it ever reaches that call.
+const ALLOWED_RECEIPT_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/avif',
+  'image/heic',
+  'image/heif',
+];
 const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
 
 /**
@@ -160,7 +170,7 @@ export class BookingFeeStepComponent {
       this.receiptError.set(
         file.type === 'application/pdf'
           ? "PDFs can't be checked — please take a screenshot of it and upload that instead."
-          : 'Please upload an image (JPEG, PNG, or WebP).',
+          : 'Please upload a photo of the receipt.',
       );
       return;
     }

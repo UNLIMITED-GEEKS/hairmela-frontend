@@ -8,6 +8,8 @@ const SKIP_AUTH_PATHS = [
   '/v1/auth/login',
   '/v1/auth/register',
   '/v1/auth/refresh',
+  '/v1/media/presign-upload',
+  '/v1/media/ad-hoc-upload',
 ];
 
 // Routes where an anonymous caller is identified by a stored guest token (the

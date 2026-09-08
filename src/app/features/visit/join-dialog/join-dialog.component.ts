@@ -27,7 +27,17 @@ import { Service } from '../../../api/models/service';
 import { BookingFeeStepComponent } from '../booking-fee-step/booking-fee-step.component';
 import { scrollToNewRow } from '../../../core/utils/scroll-to-new-row';
 
-const ALLOWED_NOTE_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+// Matches core/media/media-upload.ts's uploadAdHocImage(): JPEG/PNG/WebP/AVIF
+// upload straight to R2, HEIC/HEIF go through the backend's conversion
+// endpoint. Anything else is rejected here before it ever reaches that call.
+const ALLOWED_NOTE_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/avif',
+  'image/heic',
+  'image/heif',
+];
 const MAX_NOTE_IMAGE_BYTES = 5 * 1024 * 1024;
 
 // Shared join dialog: guest name/phone (guests only), a required service for
@@ -294,7 +304,7 @@ export class JoinDialogComponent {
     if (!file) return;
 
     if (!ALLOWED_NOTE_IMAGE_TYPES.includes(file.type)) {
-      this.noteImageError.set('Only JPEG, PNG, or WebP images are allowed.');
+      this.noteImageError.set('Unsupported image format.');
       return;
     }
     if (file.size > MAX_NOTE_IMAGE_BYTES) {

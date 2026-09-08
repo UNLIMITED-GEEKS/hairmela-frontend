@@ -1,8 +1,20 @@
 import { Component, inject, input, output } from '@angular/core';
 import { ToastService } from '../../../core/toast/toast.service';
+import { MAX_MEDIA_UPLOAD_BYTES } from '../../../core/media/media-upload';
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_BYTES = 5 * 1024 * 1024;
+// Matches core/media/media-upload.ts's DIRECT_UPLOAD_TYPES + CONVERTED_UPLOAD_TYPES:
+// JPEG/PNG/WebP/AVIF upload straight to R2, HEIC/HEIF go through the backend's
+// conversion endpoint. Anything else is rejected here before it ever reaches
+// that service.
+const ALLOWED_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/avif',
+  'image/heic',
+  'image/heif',
+];
+const MAX_BYTES = MAX_MEDIA_UPLOAD_BYTES;
 
 @Component({
   selector: 'app-image-uploader',
@@ -54,7 +66,7 @@ export class ImageUploaderComponent {
     }
 
     const skippedReasons: string[] = [];
-    if (wrongType > 0) skippedReasons.push(`${wrongType} not JPEG/PNG/WebP`);
+    if (wrongType > 0) skippedReasons.push(`${wrongType} unsupported format`);
     if (tooLarge > 0) skippedReasons.push(`${tooLarge} over 5 MB`);
     if (overLimit > 0) skippedReasons.push(`${overLimit} over the photo limit`);
     if (skippedReasons.length > 0) {
