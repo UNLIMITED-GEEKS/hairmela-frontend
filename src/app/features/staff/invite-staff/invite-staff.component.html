@@ -6,12 +6,11 @@
 
     @if (blocked()) {
       <div class="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <!-- Frozen is now the ONLY reason this block shows — see `blocked` in
+             the component. The former tier-1 branch here ("your plan includes
+             the owner only") described a staff limit no tier has any more. -->
         <p class="text-sm text-amber-800">
-          @if (frozen()) {
-            This salon is frozen because it's over your plan's limit. Upgrade to reactivate it and add staff.
-          } @else {
-            Your current plan includes the owner only. Upgrade to Pro to invite staff.
-          }
+          This salon is frozen because it's over your plan's limit. Upgrade to reactivate it and add staff.
         </p>
         @if (isOwner()) {
           <button type="button" (click)="viewPlans()"

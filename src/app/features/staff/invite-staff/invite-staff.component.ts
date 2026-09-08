@@ -41,13 +41,20 @@ export class InviteStaffComponent implements OnInit {
   // Protected (not private): the template reads currency() for service prices.
   protected readonly salonContext = inject(SalonContextService);
 
-  // Pre-block (handoff §3): Tier 1 allows only the owner (staff limit = 1), so
-  // any invite exceeds it — block on tier === 1. Tier 2/3 are unlimited.
-  // A frozen salon rejects all writes. The backend still enforces both; this is
-  // honest UI so the user sees the nudge instead of a 403.
-  protected readonly tierBlocked = computed(() => this.salonContext.tier() === 1);
+  // A frozen salon rejects all writes, so the form is pre-blocked with a
+  // nudge rather than letting the user fill it in and collect a 403.
+  //
+  // NO TIER BLOCK. This used to also block tier 1 ("Standard allows only the
+  // owner"), which was true when that tier had a staff limit of 1. Every paid
+  // tier is UNLIMITED now — backend STAFF_LIMITS has STANDARD/PRO/SCALE all
+  // UNLIMITED, and this app's own STAFF_LIMIT agrees — so the check was
+  // refusing invites the backend would have accepted, and its "Upgrade to Pro"
+  // advice pointed at a tier with the identical limit.
+  //
+  // If a staff limit ever returns, the backend still enforces it and answers
+  // STAFF_LIMIT_REACHED, which error.interceptor.ts already surfaces.
   protected readonly frozen = computed(() => this.salonContext.isFrozen());
-  protected readonly blocked = computed(() => this.tierBlocked() || this.frozen());
+  protected readonly blocked = this.frozen;
 
   // Billing is ORG-OWNER-only server-side (every subscription route is
   // class-level @OrgOwner(); OrgOwnerGuard 403s when org.ownerId !== user.id),
