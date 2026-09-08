@@ -139,15 +139,26 @@ export class BookAppointmentDialogComponent {
     if (!this.open()) return;
     const initial = this.initialServiceId();
     if (!initial) return;
-    // Reading services() here is deliberate — the effect must re-run when they
-    // arrive, not just when the dialog opens.
-    const services = this.visit.services();
-    if (services.length === 0) return;
+    // TWO DIFFERENT LISTS, and using the wrong one was the original bug.
+    //
+    // The staff-picker path offers every service the SALON has, since no
+    // barber is chosen yet. The leader <select> offers only what the CHOSEN
+    // BARBER does — and a <select> cannot hold a value with no matching
+    // <option>, so validating against the salon list let a service the barber
+    // does not offer be written and silently dropped.
+    //
+    // Both are read reactively so the effect re-runs when they load, rather
+    // than only when the dialog opens.
+    const pickerServices = this.visit.services();
+    const barberServices = this.staffServices();
+    const needsPicker = this.needsStaffPicker();
+    const available = needsPicker ? pickerServices : barberServices;
+    if (available.length === 0) return;
 
     untracked(() => {
-      if (!services.some((svc) => svc.id === initial)) return;
+      if (!available.some((svc) => svc.id === initial)) return;
 
-      if (this.needsStaffPicker()) {
+      if (needsPicker) {
         // Service-first flow: this drives which barbers are offered next.
         if (this.pickerServiceId() === null) this.pickerServiceId.set(initial);
         return;
@@ -182,10 +193,10 @@ export class BookAppointmentDialogComponent {
     });
   }
 
-  protected readonly staffServices = () => {
+  protected readonly staffServices = computed(() => {
     const staff = this.selectedStaff();
     return staff ? this.visit.staffServices(staff) : [];
-  };
+  });
 
   // One-shot note at intake — same write-only pattern as join-dialog's; sent
   // as the first comment once the entry exists, not rendered in this dialog.
@@ -235,7 +246,9 @@ export class BookAppointmentDialogComponent {
   // quote -> pay -> receipt step between this form and the actual booking.
   protected readonly step = signal<'form' | 'fee'>('form');
   private readonly _pendingMembers = signal<{ name: string; serviceId: string }[] | null>(null);
-  private readonly _pendingNote = signal<{ body: string; image: File | null } | undefined>(undefined);
+  private readonly _pendingNote = signal<{ body: string; image: File | null } | undefined>(
+    undefined,
+  );
 
   /** One id per member — the same list the quote and receipt check both use. */
   protected readonly pendingServiceIds = computed(() =>
@@ -283,7 +296,21 @@ export class BookAppointmentDialogComponent {
         this.step.set('form');
         this._pendingMembers.set(null);
         this._pendingNote.set(undefined);
-        this.leaderServiceIds.set(['']);
+        // Seeded here (not left as ['']) — this runs AFTER
+        // _applyInitialServiceOnOpen's field initializer on the same open()
+        // flush (constructor effects run after field-initializer effects),
+        // so leaving a blind set(['']) here clobbered whatever that effect
+        // had just seeded. Only seeds when staff is already known AND the
+        // services list is already loaded (validated against staffServices()
+        // the same way _applyInitialServiceOnOpen does); otherwise left blank
+        // for that effect's own load-order catch-up to fill in once services
+        // arrive.
+        const initial = this.initialServiceId();
+        const seedNow =
+          !this.needsStaffPicker() &&
+          initial &&
+          this.staffServices().some((svc) => svc.id === initial);
+        this.leaderServiceIds.set(seedNow ? [initial!] : ['']);
         this.leaderServiceTouched.set(false);
         this.pickedStaff.set(null);
         this.pickerServiceId.set(null);
@@ -320,10 +347,9 @@ export class BookAppointmentDialogComponent {
     this.membersArray.push(this._buildMemberGroup(this.leaderServiceIds()[0] ?? ''));
     // Deferred: the row does not exist in the DOM until Angular has rendered
     // the FormArray change.
-    afterNextRender(
-      () => scrollToNewRow(this._memberRows()?.nativeElement),
-      { injector: this._scrollInjector },
-    );
+    afterNextRender(() => scrollToNewRow(this._memberRows()?.nativeElement), {
+      injector: this._scrollInjector,
+    });
   }
 
   protected removeMember(i: number): void {
@@ -343,7 +369,9 @@ export class BookAppointmentDialogComponent {
 
   protected removeLeaderService(index: number): void {
     // Never leave the leader with no service row — the first one stays.
-    this.leaderServiceIds.update((ids) => (ids.length <= 1 ? ids : ids.filter((_, i) => i !== index)));
+    this.leaderServiceIds.update((ids) =>
+      ids.length <= 1 ? ids : ids.filter((_, i) => i !== index),
+    );
   }
 
   protected memberServiceIds(i: number): FormArray {
@@ -519,5 +547,4 @@ export class BookAppointmentDialogComponent {
       injector: this._scrollInjector,
     });
   }
-
 }
