@@ -209,11 +209,16 @@
 
   @if (bookDialogOpen()) {
     @if (_currentStaff(); as staff) {
+      <!-- initialServiceId from ?serviceId=, exactly as app-join-dialog above
+           receives it: someone who drilled into a service on the Services tab
+           should not be asked to pick it again just because they chose to book
+           rather than join. -->
       <app-book-appointment-dialog
         [open]="bookDialogOpen()"
         [salonId]="visit.salon()?.id ?? ''"
         [slug]="_slug()"
         [staff]="staff"
+        [initialServiceId]="_serviceId()"
         (closed)="closeBookDialog()" />
     }
   }

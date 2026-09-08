@@ -236,11 +236,15 @@
     }
 
     @if (bookDialogOpen()) {
+      <!-- initialServiceId: carries the Services-tab choice through, the same
+           way the join flow passes ?serviceId= to app-join-dialog. Without it
+           the customer picks a service, taps Book ahead, and is asked again. -->
       <app-book-appointment-dialog
         [open]="bookDialogOpen()"
         [salonId]="s.id"
         [slug]="_slug"
         [staffList]="visit.staffList()"
+        [initialServiceId]="selectedServiceId()"
         (closed)="closeBookDialog()" />
     }
   }

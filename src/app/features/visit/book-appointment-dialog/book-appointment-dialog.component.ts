@@ -69,6 +69,16 @@ export class BookAppointmentDialogComponent {
   // when opened from the salon-landing page's "Book ahead" button — the
   // staff-picker step below resolves one from staffList() instead.
   readonly staff = input<SalonPublicStaffDto | null>(null);
+  /**
+   * Service the customer already chose on the Services tab, carried through so
+   * they are not asked to pick it a second time.
+   *
+   * Mirrors join-dialog's input of the same name. Without it, drilling into a
+   * service, then tapping "Book ahead", dropped the choice and reopened the
+   * picker on an empty selection — the same bug that was fixed for the join
+   * flow, still live in this one.
+   */
+  readonly initialServiceId = input<string | null>(null);
   // Needed only for the staff-picker path (staff() is empty) — the landing
   // page already has the full list loaded via visit.staffList(), so no
   // extra fetch, just passed straight through.
@@ -111,6 +121,42 @@ export class BookAppointmentDialogComponent {
     const serviceId = this.pickerServiceId();
     if (!serviceId) return [];
     return this.staffList().filter((s) => s.serviceIds.includes(serviceId));
+  });
+
+  /**
+   * Seeds the picker from initialServiceId when the dialog opens.
+   *
+   * Waits for the services to load: seeding before they arrive would set an id
+   * with nothing to match it against, and the picker would render as though
+   * nothing were chosen — the same load-order trap join-dialog documents for
+   * its own pre-filled service.
+   *
+   * NEVER OVERWRITES A REAL CHOICE. It only fires while the picker is still
+   * empty, so reopening the dialog after the user picked something different
+   * leaves their pick alone.
+   */
+  private readonly _applyInitialServiceOnOpen = effect(() => {
+    if (!this.open()) return;
+    const initial = this.initialServiceId();
+    if (!initial) return;
+    // Reading services() here is deliberate — the effect must re-run when they
+    // arrive, not just when the dialog opens.
+    const services = this.visit.services();
+    if (services.length === 0) return;
+
+    untracked(() => {
+      if (!services.some((svc) => svc.id === initial)) return;
+
+      if (this.needsStaffPicker()) {
+        // Service-first flow: this drives which barbers are offered next.
+        if (this.pickerServiceId() === null) this.pickerServiceId.set(initial);
+        return;
+      }
+      // Staff already known (opened from a barber's page): the service goes
+      // straight into the leader's first slot instead.
+      const ids = this.leaderServiceIds();
+      if (ids.length === 1 && !ids[0]) this.leaderServiceIds.set([initial]);
+    });
   });
 
   // Service picker grouped by category — same grouping (extracted to
