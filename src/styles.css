@@ -366,6 +366,113 @@ body {
   --color-glass-strong:      oklch(14% 0.006 265);
 }
 
+/* ── oklch() fallback for pre-15.4 iOS Safari ────────────────────────────────
+   oklch() only shipped in Safari 15.4 (March 2022). .browserslistrc commits to
+   an iOS 15 floor specifically to keep the iPhone 7 working, but iOS 15.0–15.3
+   (Sept–Dec 2021) predates that release — on those point versions EVERY
+   oklch() declaration above is invalid and dropped, leaving surfaces, borders,
+   text and status colours with no colour at all wherever oklch() was the only
+   value given for a property.
+
+   This block re-declares every such variable as its exact resolved sRGB hex,
+   scoped to browsers with zero oklch() support (`@supports not`, not a version
+   sniff — anything that can't parse the feature query at all is excluded from
+   applying it by the query itself failing safe). Values were generated with
+   the standard OKLab reference matrices, not eyeballed — see the conversion
+   script referenced in the commit that added this block. Never hand-edit a
+   value here without regenerating from the oklch() source above it; the two
+   must stay numerically identical or a browser that gains oklch() support
+   mid-way through a device's life would visibly shift colour. */
+@supports not (color: oklch(0% 0 0)) {
+  :root, :root[data-theme='light'] {
+    --color-surface-sunken:    #F9FAFB;
+    --color-surface-raised:    #F9FAFB;
+    --color-surface-overlay:   #F3F4F6;
+    --color-surface-strong:    #E5E7EB;
+    --color-skeleton-base:     #D5D7DB;
+    --color-skeleton-sheen:    #EAEBEE;
+    --color-surface-inverse:   #101828;
+
+    --color-border-subtle:     #F3F4F6;
+    --color-border:            #E5E7EB;
+    --color-border-strong:     #D1D5DC;
+
+    --color-text-primary:      #101828;
+    --color-text-strong:       #1E2939;
+    --color-text-body:         #364153;
+    --color-text-muted:        #4A5565;
+    --color-text-secondary:    #6A7282;
+    --color-text-disabled:     #99A1AF;
+    --color-text-faint:        #D1D5DC;
+
+    --color-danger-surface:    #FEF2F2;
+    --color-danger-border:     #FFC9C9;
+    --color-danger-text:       #E7000B;
+    --color-success-surface:   #F0FDF4;
+    --color-success-text:      #008236;
+    --color-warning-surface:   #FFFBEB;
+    --color-warning-text:      #973C00;
+
+    --color-glass-strong:      #101828;
+  }
+
+  :root[data-theme='dark'] {
+    --color-surface:           #1C1C1C;
+    --color-surface-sunken:    #252525;
+    --color-surface-card:      #2F2F2F;
+    --color-surface-raised:    #393939;
+    --color-surface-overlay:   #444444;
+    --color-surface-strong:    #515151;
+    --color-skeleton-base:     #515151;
+    --color-skeleton-sheen:    #696969;
+    --color-surface-inverse:   #F3F4F6;
+
+    --color-border-subtle:     #393939;
+    --color-border:            #2B2B2B;
+    --color-border-strong:     #5A5A5A;
+
+    --color-text-primary:      #F5F5F5;
+    --color-text-strong:       #EBEBEB;
+    --color-text-body:         #DEDEDE;
+    --color-text-muted:        #CECECE;
+    --color-text-secondary:    #BEBEBE;
+    --color-text-disabled:     #ABABAB;
+    --color-text-faint:        #A4A4A4;
+    --color-text-inverse:      #101828;
+
+    --color-danger-surface:    #3D1B18;
+    --color-danger-border:     #6A2C29;
+    --color-danger-text:       #FF9495;
+    --color-success-surface:   #102A1A;
+    --color-success-text:      #72D699;
+    --color-warning-surface:   #372508;
+    --color-warning-text:      #F7C56D;
+
+    --color-secondary-light:   #342D23;
+    --color-success-light:     #122D1D;
+    --color-error-light:       #401D1B;
+    --color-warning-light:     #3A270B;
+    --color-info-light:        #172A41;
+
+    --color-open-badge:        #225A31;
+    --color-open-badge-text:   #7FE998;
+
+    /* Base colour only — the source alpha (/0.72) is unaffected by this block
+       and keeps applying on top. */
+    --color-glass:             rgba(44, 46, 49, 0.72);
+    --color-glass-strong:      #08090C;
+
+    --tint-red:    #401D1B;
+    --tint-green:  #122D1D;
+    --tint-amber:  #372508;
+    --tint-blue:   #172A41;
+    --ink-red:     #FF9495;
+    --ink-green:   #72D699;
+    --ink-amber:   #F7C56D;
+    --ink-blue:    #6FA7EE;
+  }
+}
+
 @theme inline {
   --color-surface:          var(--color-surface);
   --color-surface-card:     var(--color-surface-card);
@@ -642,6 +749,98 @@ body {
 :root[data-theme='dark'] .hover\:bg-primary\/5:hover  { background-color: color-mix(in oklab, var(--color-text-primary) 9%,  transparent); }
 :root[data-theme='dark'] .hover\:bg-primary\/10:hover { background-color: color-mix(in oklab, var(--color-text-primary) 14%, transparent); }
 :root[data-theme='dark'] .hover\:bg-primary\/20:hover { background-color: color-mix(in oklab, var(--color-text-primary) 22%, transparent); }
+
+/* ── color-mix fallback for pre-15.4 iOS Safari ──────────────────────────────
+   Every slash-opacity utility — Tailwind's own light-mode output for bg, border,
+   text and ring colours with an alpha suffix, AND the hand-written dark-mode
+   overrides just above — compiles its alpha into a color-mix call, in either
+   the oklab or srgb colour space depending on support. Tailwind already
+   branches on oklab support in its own compiled output, but its non-oklab
+   branch still calls color-mix, just in srgb — so a browser with NO color-mix
+   support at all, such as iOS Safari below 16.2, which is inside the iOS 15
+   floor this project's browserslist file commits to, gets neither branch and
+   the property is left unset entirely. That is the avatar bug: the ten
+   percent primary background never resolved, so the circle fell through to
+   the browser's own default background, a plain white disc, independent of
+   and in addition to the app's dark theme.
+
+   Same rule as the oklch fallback above: every value here is the exact
+   resolved rgba equivalent of the color-mix call it replaces, not an
+   approximation, and scoped so it only ever applies where color-mix itself is
+   entirely unsupported. */
+@supports not (color: color-mix(in srgb, red, red)) {
+  .border-error\/20 { border-color: rgba(220, 38, 38, 0.2); }
+  .border-primary\/5 { border-color: rgba(102, 0, 41, 0.05); }
+  .border-primary\/10 { border-color: rgba(102, 0, 41, 0.1); }
+  .border-primary\/20 { border-color: rgba(102, 0, 41, 0.2); }
+  .border-primary\/30 { border-color: rgba(102, 0, 41, 0.3); }
+  .border-primary\/40 { border-color: rgba(102, 0, 41, 0.4); }
+  .border-success\/20 { border-color: rgba(22, 163, 74, 0.2); }
+  .border-warning\/30 { border-color: rgba(217, 119, 6, 0.3); }
+  .bg-primary\/2 { background-color: rgba(102, 0, 41, 0.02); }
+  .bg-primary\/4 { background-color: rgba(102, 0, 41, 0.04); }
+  .bg-primary\/5 { background-color: rgba(102, 0, 41, 0.05); }
+  .bg-primary\/10 { background-color: rgba(102, 0, 41, 0.1); }
+  .bg-primary\/20 { background-color: rgba(102, 0, 41, 0.2); }
+  .bg-primary\/30 { background-color: rgba(102, 0, 41, 0.3); }
+  .bg-primary\/60 { background-color: rgba(102, 0, 41, 0.6); }
+  .bg-primary\/80 { background-color: rgba(102, 0, 41, 0.8); }
+  .bg-primary\/90 { background-color: rgba(102, 0, 41, 0.9); }
+  .bg-success\/10 { background-color: rgba(22, 163, 74, 0.1); }
+  .bg-warning\/10 { background-color: rgba(217, 119, 6, 0.1); }
+  .text-primary\/10 { color: rgba(102, 0, 41, 0.1); }
+  .text-primary\/70 { color: rgba(102, 0, 41, 0.7); }
+  .text-primary\/80 { color: rgba(102, 0, 41, 0.8); }
+  .peer-checked\:bg-primary\/5:is(:where(.peer):checked ~ *) { background-color: rgba(102, 0, 41, 0.05); }
+  .peer-focus-visible\:ring-primary\/30:is(:where(.peer):focus-visible ~ *) { --tw-ring-color: rgba(102, 0, 41, 0.3); }
+  .focus-within\:ring-primary\/40:focus-within { --tw-ring-color: rgba(102, 0, 41, 0.4); }
+  .hover\:border-primary\/30:hover { border-color: rgba(102, 0, 41, 0.3); }
+  .hover\:bg-primary-light\/30:hover { background-color: rgba(255, 143, 188, 0.3); }
+  .hover\:bg-primary\/5:hover { background-color: rgba(102, 0, 41, 0.05); }
+  .hover\:bg-primary\/10:hover { background-color: rgba(102, 0, 41, 0.1); }
+  .hover\:bg-primary\/15:hover { background-color: rgba(102, 0, 41, 0.15); }
+  .hover\:bg-primary\/20:hover { background-color: rgba(102, 0, 41, 0.2); }
+  .hover\:bg-primary\/90:hover { background-color: rgba(102, 0, 41, 0.9); }
+  .hover\:bg-warning\/20:hover { background-color: rgba(217, 119, 6, 0.2); }
+  .hover\:text-primary\/80:hover { color: rgba(102, 0, 41, 0.8); }
+  .focus\:ring-primary\/20:focus { --tw-ring-color: rgba(102, 0, 41, 0.2); }
+  .focus\:ring-primary\/30:focus { --tw-ring-color: rgba(102, 0, 41, 0.3); }
+  .focus\:ring-primary\/40:focus { --tw-ring-color: rgba(102, 0, 41, 0.4); }
+  .focus\:ring-primary\/50:focus { --tw-ring-color: rgba(102, 0, 41, 0.5); }
+
+  :root[data-theme='dark'] .border-primary\/5   { border-color: rgba(90, 90, 90, 0.3); }
+  :root[data-theme='dark'] .border-primary\/10  { border-color: rgba(90, 90, 90, 0.4); }
+  :root[data-theme='dark'] .border-primary\/20  { border-color: rgba(90, 90, 90, 0.55); }
+  :root[data-theme='dark'] .border-primary\/25  { border-color: rgba(90, 90, 90, 0.6); }
+  :root[data-theme='dark'] .border-primary\/30  { border-color: rgba(90, 90, 90, 0.7); }
+  :root[data-theme='dark'] .border-primary\/40  { border-color: rgba(90, 90, 90, 0.85); }
+  :root[data-theme='dark'] .border-amber-200,
+  :root[data-theme='dark'] .border-amber-300 { border-color: rgba(247, 197, 109, 0.45); }
+  :root[data-theme='dark'] .border-blue-200 { border-color: rgba(111, 167, 238, 0.45); }
+  :root[data-theme='dark'] .border-green-200 { border-color: rgba(114, 214, 153, 0.45); }
+  :root[data-theme='dark'] .border-red-100,
+  :root[data-theme='dark'] .border-red-200,
+  :root[data-theme='dark'] .border-red-300,
+  :root[data-theme='dark'] .border-red-400 { border-color: rgba(255, 148, 149, 0.45); }
+  :root[data-theme='dark'] .border-yellow-100 { border-color: rgba(247, 197, 109, 0.45); }
+  :root[data-theme='dark'] app-mini-month-calendar button.ring-primary:not(.bg-primary) {
+    background-color: rgba(102, 0, 41, 0.55);
+  }
+  :root[data-theme='dark'] .text-primary\/10 { color: rgba(245, 245, 245, 0.1); }
+  :root[data-theme='dark'] .text-primary\/70 { color: rgba(245, 245, 245, 0.7); }
+  :root[data-theme='dark'] .text-primary\/80 { color: rgba(245, 245, 245, 0.8); }
+  :root[data-theme='dark'] .bg-primary\/2  { background-color: rgba(245, 245, 245, 0.04); }
+  :root[data-theme='dark'] .bg-primary\/3  { background-color: rgba(245, 245, 245, 0.05); }
+  :root[data-theme='dark'] .bg-primary\/4  { background-color: rgba(245, 245, 245, 0.06); }
+  :root[data-theme='dark'] .bg-primary\/5  { background-color: rgba(245, 245, 245, 0.07); }
+  :root[data-theme='dark'] .bg-primary\/8  { background-color: rgba(245, 245, 245, 0.09); }
+  :root[data-theme='dark'] .bg-primary\/10 { background-color: rgba(245, 245, 245, 0.11); }
+  :root[data-theme='dark'] .bg-primary\/15 { background-color: rgba(245, 245, 245, 0.15); }
+  :root[data-theme='dark'] .bg-primary\/20 { background-color: rgba(245, 245, 245, 0.18); }
+  :root[data-theme='dark'] .hover\:bg-primary\/5:hover  { background-color: rgba(245, 245, 245, 0.09); }
+  :root[data-theme='dark'] .hover\:bg-primary\/10:hover { background-color: rgba(245, 245, 245, 0.14); }
+  :root[data-theme='dark'] .hover\:bg-primary\/20:hover { background-color: rgba(245, 245, 245, 0.22); }
+}
 
 /* Placeholders. Only two inputs in the app style theirs explicitly, so the
    rest fall back to the browser default — a dark grey that is invisible on a
