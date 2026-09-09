@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 import { Service } from '../../../api/models/service';
 import { IconComponent } from '../icon/icon.component';
 import { CurrencyNgnPipe } from '../../pipes/currency-ngn.pipe';
@@ -19,4 +19,20 @@ export class ServiceListItemComponent {
   // salon context. The parent has the salon's currency from the public DTO.
   readonly currency = input<string>('NGN');
   readonly select = output<void>();
+
+  protected readonly categoryIcon = computed(() => {
+    const icons: Record<string, string> = {
+      'beard-cut': 'beard',
+      haircut: 'scissors',
+      'braids-locs': 'braids',
+      'hair-styling': 'sparkles',
+      nails: 'nail-polish',
+      'spa-massage': 'spa',
+      makeup: 'makeup-brush',
+      skincare: 'droplet',
+      'tattoos-piercings': 'diamond',
+      other: 'category-other',
+    };
+    return icons[this.service().category.slug] ?? 'scissors';
+  });
 }

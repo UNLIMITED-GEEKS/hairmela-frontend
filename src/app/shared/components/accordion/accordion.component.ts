@@ -15,6 +15,7 @@ import { IconComponent } from '../icon/icon.component';
 export class AccordionComponent {
   readonly title = input.required<string>();
   readonly open = model(false);
+  readonly compact = input(false);
 
   protected toggle(): void {
     this.open.update((v) => !v);

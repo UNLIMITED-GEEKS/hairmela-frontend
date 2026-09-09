@@ -1,33 +1,41 @@
 <button type="button" (click)="select.emit()"
-  class="w-full rounded-xl border border-border bg-surface-card px-4 py-3.5
-         flex items-start gap-3 text-left
-         hover:bg-surface-sunken transition-colors">
+  class="group flex w-full items-center gap-3 rounded-xl border border-border bg-surface-card p-3 text-left transition-[border-color,background-color] hover:border-primary/40 hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:p-4">
 
-  <div class="w-10 h-10 shrink-0 rounded-xl bg-secondary-light flex items-center justify-center">
-    <app-icon name="scissors" class="w-3.5 h-4 text-primary" />
+  <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary-light sm:h-11 sm:w-11 sm:rounded-2xl">
+    <app-icon [name]="categoryIcon()" class="h-4.5 w-4.5 text-primary" />
   </div>
 
   <!-- Wraps rather than truncating: a service name is the whole point of the
        row, and salons write long ones. wrap-break-word so an unbroken string
        (no spaces) still wraps instead of overflowing the container. -->
-  <div class="flex-1 min-w-0 pt-1">
-    <h3 class="text-sm font-semibold text-text-primary wrap-break-word">{{ service().name }}</h3>
+  <div class="min-w-0 flex-1">
+    <h3 class="text-sm font-semibold leading-5 text-text-primary wrap-break-word sm:text-[15px]">{{ service().name }}</h3>
     @if (service().description) {
-      <p class="text-xs text-text-secondary wrap-break-word">{{ service().description }}</p>
+      <p class="mt-1 text-xs leading-4 text-text-secondary wrap-break-word">{{ service().description }}</p>
     }
-  </div>
 
-  <div class="shrink-0 max-w-28 text-right pt-1">
+    <div class="mt-1.5 flex items-center gap-2 text-xs text-text-secondary">
+      <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
+        <app-icon name="clock" class="h-3.5 w-3.5 text-primary" />
+        {{ service().duration }} min
+      </span>
 
-    @if (showPrice()) {
-      @if (service().isDynamicPricing) {
-        <p class="text-xs font-medium text-text-muted wrap-break-word">Price is based on your choosen style</p>
-      } @else {
-        <span class="text-xs text-text-muted">From</span>
-        <p class="text-sm font-bold text-text-primary">  {{ service().price | currencyNgn: currency() }}</p>
+      @if (showPrice()) {
+        @if (service().isDynamicPricing) {
+          <span class="truncate font-semibold text-primary">
+            Price varies
+          </span>
+        } @else {
+          <span class="inline-flex items-center gap-1 whitespace-nowrap">
+            From
+            <strong class="font-bold text-primary">{{ service().price | currencyNgn: currency() }}</strong>
+          </span>
+        }
       }
-    }
-    <p class="text-xs text-text-secondary">{{ service().duration }}mins</p>
+    </div>
   </div>
 
+  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-sunken transition-colors group-hover:bg-secondary-light">
+    <app-icon name="chevron-left" class="h-3 w-3 rotate-180 text-text-muted transition-colors group-hover:text-primary" />
+  </span>
 </button>

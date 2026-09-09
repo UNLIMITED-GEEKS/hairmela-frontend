@@ -10,7 +10,8 @@
   <div class="grid transition-[grid-template-rows] duration-200 ease-out"
     [style.grid-template-rows]="open() ? '1fr' : '0fr'">
     <div class="overflow-hidden">
-      <div class="px-4 pb-4">
+      <div [class.px-3]="compact()" [class.pb-3]="compact()"
+        [class.px-4]="!compact()" [class.pb-4]="!compact()">
         <ng-content />
       </div>
     </div>

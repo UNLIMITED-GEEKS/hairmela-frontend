@@ -155,9 +155,30 @@
         @if (!selectedServiceId()) {
           <!-- Screen: services list -->
           <div animate.enter="tab-content-enter">
-            <h2 class="text-base font-semibold text-text-primary mb-1">Choose a service</h2>
+            <div class="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <p class="hidden text-xs font-semibold uppercase tracking-[0.16em] text-primary sm:block">Our services</p>
+                <h2 class="text-lg font-medium text-text-primary sm:mt-1 sm:text-xl">What can we do for you?</h2>
+                <p class="mt-1 text-sm leading-5 text-text-secondary">
+                  Select a service to see the staff available for it.
+                </p>
+              </div>
+              @if (!visit.servicesLoading() && visit.services().length > 0) {
+                <span class="mt-1 hidden shrink-0 rounded-full bg-secondary-light px-3 py-1 text-xs font-semibold text-primary sm:inline-flex">
+                  {{ visit.services().length }} {{ visit.services().length === 1 ? 'service' : 'services' }}
+                </span>
+              }
+            </div>
             @if (visit.servicesLoading()) {
               <app-skeleton variant="list-item" [count]="4" />
+            } @else if (serviceCategories().length === 0) {
+              <div class="rounded-2xl border border-border bg-surface-card px-5 py-10 text-center">
+                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary-light">
+                  <app-icon name="scissors" class="h-5 w-5 text-primary" />
+                </div>
+                <p class="mt-4 text-sm font-semibold text-text-primary">No services listed yet</p>
+                <p class="mt-1 text-sm text-text-secondary">Please check back later or call the salon.</p>
+              </div>
             } @else {
               <div class="space-y-3">
                 @for (category of serviceCategories(); track category.id) {
@@ -166,7 +187,7 @@
                        element's native id, which silently breaks the day someone adds an
                        `id` input to AccordionComponent. -->
                   <div [id]="'service-category-' + category.id">
-                  <app-accordion [title]="category.name" [open]="isCategoryOpen(category.id)"
+                  <app-accordion [title]="category.name" [open]="isCategoryOpen(category.id)" [compact]="true"
                     (openChange)="setCategoryOpen(category.id, $event)">
                     <div class="space-y-2">
                       @for (service of category.services; track service.id) {
@@ -182,31 +203,67 @@
         } @else {
           <!-- Screen: barbers offering the selected service -->
           <div animate.enter="tab-content-enter">
-            <div class="flex items-center justify-between">
-              <button type="button" (click)="backToServices()"
-                class="min-h-11 px-2 -ml-2 flex items-center gap-1 text-sm font-semibold text-primary">
-                <app-icon name="chevron-left" class="w-2 h-3.5" />
-                Services
-              </button>
-            </div>
+            <button type="button" (click)="backToServices()"
+              class="mb-3 inline-flex min-h-10 items-center gap-2 rounded-full border border-border bg-surface-card px-3.5 text-sm font-semibold text-text-primary transition-colors hover:border-primary/30 hover:bg-surface-sunken">
+              <app-icon name="chevron-left" class="h-3.5 w-2.5 text-primary" />
+              Back to services
+            </button>
+
             @if (selectedService(); as service) {
-              <p class="text-sm font-semibold text-text-primary mb-4">Here's a list of our staff that offer {{ service.name }}</p>
+              <div class="rounded-2xl border border-primary/15 bg-secondary-light/50 p-4">
+                <div class="flex items-start gap-3">
+                  <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-card text-primary shadow-sm">
+                    <app-icon name="scissors" class="h-4.5 w-4.5" />
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-primary">Selected service</p>
+                    <h2 class="mt-0.5 text-base font-bold text-text-primary wrap-break-word">{{ service.name }}</h2>
+                    <p class="mt-1 inline-flex items-center gap-1.5 text-xs text-text-secondary">
+                      <app-icon name="clock" class="h-3.5 w-3.5 text-primary" />
+                      {{ service.duration }} min
+                    </p>
+                  </div>
+                </div>
+              </div>
             }
-           <div animate.enter="tab-content-enter" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+
+            @if (staffForSelectedService().length > 0) {
+              <div class="mb-3 mt-6">
+                <h2 class="text-base font-bold text-text-primary">Choose your professional</h2>
+                <p class="mt-1 text-sm text-text-secondary">
+                  {{ staffForSelectedService().length }}
+                  {{ staffForSelectedService().length === 1 ? 'staff member offers' : 'staff members offer' }} this service.
+                </p>
+              </div>
+            }
+
+            <div animate.enter="tab-content-enter" class="grid grid-cols-2 gap-3 md:grid-cols-4">
               @for (staff of staffForSelectedService(); track staff.staffId) {
-                <div class="h-50">
+                <div class="h-52 md:h-60">
+                  <div class="h-full w-full">
                   <app-staff-card [staff]="staff" [availability]="availability(staff)"
                     (select)="openStaffQueue(staff, selectedServiceId() ?? undefined)" />
+                  </div>
                 </div>
               }
               @if (staffForSelectedService().length === 0) {
-                <p class="col-span-2 text-sm text-text-disabled text-center py-8">No staff currently offer this service.</p>
+                <div class="col-span-2 mt-5 rounded-2xl border border-border bg-surface-card px-5 py-9 text-center md:col-span-4">
+                  <div class="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-secondary-light">
+                    <app-icon name="person" class="h-5 w-5 text-primary" />
+                  </div>
+                  <p class="mt-3 text-sm font-semibold text-text-primary">No staff available</p>
+                  <p class="mt-1 text-sm text-text-secondary">No one currently offers this service.</p>
+                </div>
               }
             </div>
           </div>
         }
       } @else if (activeTab() === 'staffs') {
         <!-- Tab: Staffs — flat list, tap opens that staff's live queue page (join happens there) -->
+        <div class="mb-4">
+          <h2 class="text-lg font-medium text-text-primary">Who would you like to attend to you?</h2>
+          <p class="mt-1 text-sm text-text-secondary">Choose one of our professionals.</p>
+        </div>
         <div animate.enter="tab-content-enter" class="grid grid-cols-2 md:grid-cols-3 gap-3">
           @for (staff of visit.staffList(); track staff.staffId) {
              <div class="h-50 md:h-60">
