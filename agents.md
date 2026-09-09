@@ -78,3 +78,15 @@ architecture, folder structure, routing map, guards/directives, and build status
 read it before working on anything beyond a trivial change. It is updated as features
 ship; do not maintain a second copy of it here or elsewhere. If you learn something
 about the codebase that isn't reflected there, update that file, not this one.
+
+## Android release build
+
+Use this sequence to build both the release APK and Android App Bundle (AAB):
+
+```bash
+cd /home/ikwuh-jeffery/UG/HairMela/frontend
+npx ng build --configuration native && \
+npx cap sync android && \
+cd android && \
+./gradlew assembleRelease bundleRelease
+```
