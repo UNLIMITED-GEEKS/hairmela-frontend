@@ -11,7 +11,7 @@ import { uploadToCloudinary } from './cloudinary-upload';
 
 export const MAX_MEDIA_UPLOAD_BYTES = 5 * 1024 * 1024;
 
-// FIXME: uploads from an iPhone fail against every path added in this file —
+// FIXME: uploads from an iPhone fail against every R2 path in this file —
 // both the direct-to-R2 raw PUT and the backend multipart endpoints — with
 // "the image uploaded is invalid or too large" (the exact text of /media/
 // attach's own 400). Root cause not yet found: it reproduces even for the
@@ -20,13 +20,16 @@ export const MAX_MEDIA_UPLOAD_BYTES = 5 * 1024 * 1024;
 // body bug that justified the old Cloudinary code (that bug is scoped to
 // multipart requests to OUR OWN origin, and doesn't obviously reach a PUT to
 // a different origin with no boundary at all). Needs a real device/Safari
-// Web Inspector session to find the actual cause — until then, iOS is routed
-// around this file entirely and back onto the known-working Cloudinary path.
-// Web and Android are unaffected and use the new R2 flow as normal.
-function _isIos(): boolean {
-  const ua = navigator.userAgent;
-  return /iphone|ipad|ipod/i.test(ua) || (ua.includes('Macintosh') && navigator.maxTouchPoints > 1);
-}
+// Web Inspector session to find the actual cause.
+//
+// UNTIL THAT'S FOUND: every platform (not just iOS) is routed to Cloudinary,
+// not only the affected one — a deliberate, temporary, blanket rollback
+// rather than a per-platform branch, so there is exactly one upload path to
+// reason about while this is unresolved. The R2/presign code below is NOT
+// deleted — _uploadDirect/_uploadForConversion and their ad-hoc-upload
+// equivalent stay intact and unreachable, ready to come back once iOS is
+// fixed, rather than being rewritten twice.
+const FORCE_CLOUDINARY_ALL_PLATFORMS = true;
 
 // Direct-to-R2: presign -> PUT -> attach. Anything not in this set (HEIC/HEIF)
 // goes through a backend endpoint instead, which converts to JPEG server-side
@@ -160,9 +163,9 @@ export function uploadMedia(
     return throwError(() => new Error('Unsupported file type.'));
   }
 
-  // FIXME: see the module-level FIXME above — iOS bypasses R2 entirely and
-  // goes through the old Cloudinary path until the real cause is found.
-  if (_isIos()) {
+  // FIXME: see the module-level FIXME above — every platform goes through
+  // Cloudinary until the iOS/R2 failure is root-caused.
+  if (FORCE_CLOUDINARY_ALL_PLATFORMS) {
     if (file.size > MAX_MEDIA_UPLOAD_BYTES) {
       return throwError(() => new Error('File is larger than 5 MB.'));
     }
@@ -283,9 +286,9 @@ export function uploadAdHocImage(
     return throwError(() => new Error('Unsupported file type.'));
   }
 
-  // FIXME: see the module-level FIXME above — iOS bypasses R2 entirely and
-  // goes through the old Cloudinary path until the real cause is found.
-  if (_isIos()) {
+  // FIXME: see the module-level FIXME above — every platform goes through
+  // Cloudinary until the iOS/R2 failure is root-caused.
+  if (FORCE_CLOUDINARY_ALL_PLATFORMS) {
     if (file.size > MAX_MEDIA_UPLOAD_BYTES) {
       return throwError(() => new Error('File is larger than 5 MB.'));
     }
