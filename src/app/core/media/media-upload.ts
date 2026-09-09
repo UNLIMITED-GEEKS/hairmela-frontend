@@ -17,6 +17,15 @@ export const MAX_MEDIA_UPLOAD_BYTES = 5 * 1024 * 1024;
 const DIRECT_UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
 const CONVERTED_UPLOAD_TYPES = ['image/heic', 'image/heif'];
 
+// FIXME(WebKit #319985): remove this copy once Safari fixes picker-backed Files
+// serializing as zero-byte request bodies on service-worker-controlled pages.
+// https://bugs.webkit.org/show_bug.cgi?id=319985
+// Reading the bytes in page and wrapping them in a new Blob avoids the broken
+// disk-backed serialization.
+async function _toInMemoryBlob(file: File): Promise<Blob> {
+  return new Blob([await file.arrayBuffer()], { type: file.type });
+}
+
 // R2 has no Cloudinary-style on-the-fly transform: whatever is uploaded is
 // exactly what MediaUrlPipe serves at every size (avatar thumb through the
 // gallery lightbox), since there is no per-request resize at read time for
@@ -179,24 +188,25 @@ function _uploadDirect(
       // Raw file, exactly the returned headers, no auth — this goes straight
       // to R2, not our own API, and the interceptor must never attach a JWT
       // or guest token to a request signed for anonymous upload.
-      http
-        .put(presign.uploadUrl, file, {
-          headers: presign.headers as Record<string, string>,
-          responseType: 'text',
-        })
-        .pipe(
-          switchMap(() =>
-            mediaControllerAttach(http, apiConfig.rootUrl, {
-              body: {
-                publicId: presign.publicId,
-                url: presign.url,
-                entityType,
-                entityId,
-                type,
-              },
-            }),
-          ),
+      from(_toInMemoryBlob(file)).pipe(
+        switchMap((body) =>
+          http.put(presign.uploadUrl, body, {
+            headers: presign.headers as Record<string, string>,
+            responseType: 'text',
+          }),
         ),
+        switchMap(() =>
+          mediaControllerAttach(http, apiConfig.rootUrl, {
+            body: {
+              publicId: presign.publicId,
+              url: presign.url,
+              entityType,
+              entityId,
+              type,
+            },
+          }),
+        ),
+      ),
     ),
     map((r) => r.body),
   );
@@ -277,12 +287,15 @@ export function uploadAdHocImage(
         }).pipe(
           map((r) => r.body),
           switchMap((presign) =>
-            http
-              .put(presign.uploadUrl, resized, {
-                headers: presign.headers as Record<string, string>,
-                responseType: 'text',
-              })
-              .pipe(map(() => ({ url: presign.url, publicId: presign.publicId }))),
+            from(_toInMemoryBlob(resized)).pipe(
+              switchMap((body) =>
+                http.put(presign.uploadUrl, body, {
+                  headers: presign.headers as Record<string, string>,
+                  responseType: 'text',
+                }),
+              ),
+              map(() => ({ url: presign.url, publicId: presign.publicId })),
+            ),
           ),
         );
       }
