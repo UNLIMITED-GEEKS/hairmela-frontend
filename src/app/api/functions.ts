@@ -127,10 +127,14 @@ export type { PublicMediaControllerGetStaffMedia$Params as PublicMediaController
 export { publicMediaControllerGetStaffMedia as publicMediaControllerGetStaffMedia } from './fn/media/public-media-controller-get-staff-media';
 export type { PublicMediaControllerGetEntityMedia$Params as PublicMediaControllerGetEntityMedia$Params } from './fn/media/public-media-controller-get-entity-media';
 export { publicMediaControllerGetEntityMedia as publicMediaControllerGetEntityMedia } from './fn/media/public-media-controller-get-entity-media';
-export type { PublicMediaControllerAdHocUpload$Params as PublicMediaControllerAdHocUpload$Params } from './fn/media/public-media-controller-ad-hoc-upload';
-export { publicMediaControllerAdHocUpload as publicMediaControllerAdHocUpload } from './fn/media/public-media-controller-ad-hoc-upload';
-export type { MediaControllerUpload$Params as MediaControllerUpload$Params } from './fn/media/media-controller-upload';
-export { mediaControllerUpload as mediaControllerUpload } from './fn/media/media-controller-upload';
+export type { PublicMediaControllerAdHocUpload$FormData$Params as PublicMediaControllerAdHocUpload$FormData$Params } from './fn/media/public-media-controller-ad-hoc-upload-form-data';
+export { publicMediaControllerAdHocUpload$FormData as publicMediaControllerAdHocUpload$FormData } from './fn/media/public-media-controller-ad-hoc-upload-form-data';
+export type { PublicMediaControllerAdHocUpload$Json$Params as PublicMediaControllerAdHocUpload$Json$Params } from './fn/media/public-media-controller-ad-hoc-upload-json';
+export { publicMediaControllerAdHocUpload$Json as publicMediaControllerAdHocUpload$Json } from './fn/media/public-media-controller-ad-hoc-upload-json';
+export type { MediaControllerUpload$FormData$Params as MediaControllerUpload$FormData$Params } from './fn/media/media-controller-upload-form-data';
+export { mediaControllerUpload$FormData as mediaControllerUpload$FormData } from './fn/media/media-controller-upload-form-data';
+export type { MediaControllerUpload$Json$Params as MediaControllerUpload$Json$Params } from './fn/media/media-controller-upload-json';
+export { mediaControllerUpload$Json as mediaControllerUpload$Json } from './fn/media/media-controller-upload-json';
 export type { MediaControllerAttach$Params as MediaControllerAttach$Params } from './fn/media/media-controller-attach';
 export { mediaControllerAttach as mediaControllerAttach } from './fn/media/media-controller-attach';
 export type { MediaControllerDelete$Params as MediaControllerDelete$Params } from './fn/media/media-controller-delete';

@@ -39,7 +39,8 @@ export function uploadToCloudinary(
   );
 }
 
-function toDataUri(file: File): Promise<string> {
+/** Shared with media-upload.ts's JSON HEIC/HEIF conversion path. */
+export function toDataUri(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);

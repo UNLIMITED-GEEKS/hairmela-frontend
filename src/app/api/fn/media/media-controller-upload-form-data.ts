@@ -9,12 +9,12 @@ import { RequestBuilder } from '../../request-builder';
 
 import { Media } from '../../models/media';
 
-export interface MediaControllerUpload$Params {
+export interface MediaControllerUpload$FormData$Params {
   
     /**
-     * Multipart form: file (binary) + entityType + entityId + type
+     * Either multipart file + entity metadata, or JSON data URI + filename + entity metadata.
      */
-    body: {
+    body: ({
 
 /**
  * Image file (JPEG, PNG, WebP, HEIC, or AVIF, max 5 MB)
@@ -23,11 +23,21 @@ export interface MediaControllerUpload$Params {
 'entityType': 'USER' | 'SALON' | 'STAFF';
 'entityId': string;
 'type': 'PROFILE' | 'GALLERY';
-}
+} | {
+
+/**
+ * Full data URI: data:<mime>;base64,<encoded bytes>
+ */
+'file': string;
+'filename': string;
+'entityType': 'USER' | 'SALON' | 'STAFF';
+'entityId': string;
+'type': 'PROFILE' | 'GALLERY';
+})
 }
 
-export function mediaControllerUpload(http: HttpClient, rootUrl: string, params: MediaControllerUpload$Params, context?: HttpContext): Observable<StrictHttpResponse<Media>> {
-  const rb = new RequestBuilder(rootUrl, mediaControllerUpload.PATH, 'post');
+export function mediaControllerUpload$FormData(http: HttpClient, rootUrl: string, params: MediaControllerUpload$FormData$Params, context?: HttpContext): Observable<StrictHttpResponse<Media>> {
+  const rb = new RequestBuilder(rootUrl, mediaControllerUpload$FormData.PATH, 'post');
   if (params) {
     rb.body(params.body, 'multipart/form-data');
   }
@@ -42,4 +52,4 @@ export function mediaControllerUpload(http: HttpClient, rootUrl: string, params:
   );
 }
 
-mediaControllerUpload.PATH = '/v1/media/upload';
+mediaControllerUpload$FormData.PATH = '/v1/media/upload';

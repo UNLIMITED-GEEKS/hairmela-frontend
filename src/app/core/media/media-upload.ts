@@ -5,31 +5,11 @@ import { ApiConfiguration } from '../../api/api-configuration';
 import { Media } from '../../api/models/media';
 import { publicMediaControllerPresignUpload } from '../../api/fn/media/public-media-controller-presign-upload';
 import { mediaControllerAttach } from '../../api/fn/media/media-controller-attach';
-import { mediaControllerUpload } from '../../api/fn/media/media-controller-upload';
-import { publicMediaControllerAdHocUpload } from '../../api/fn/media/public-media-controller-ad-hoc-upload';
-import { uploadToCloudinary } from './cloudinary-upload';
+import { mediaControllerUpload$Json } from '../../api/fn/media/media-controller-upload-json';
+import { publicMediaControllerAdHocUpload$Json } from '../../api/fn/media/public-media-controller-ad-hoc-upload-json';
+import { toDataUri } from './cloudinary-upload';
 
 export const MAX_MEDIA_UPLOAD_BYTES = 5 * 1024 * 1024;
-
-// FIXME: uploads from an iPhone fail against every R2 path in this file —
-// both the direct-to-R2 raw PUT and the backend multipart endpoints — with
-// "the image uploaded is invalid or too large" (the exact text of /media/
-// attach's own 400). Root cause not yet found: it reproduces even for the
-// raw-file PUT, which has no multipart body and hits R2's origin, not ours —
-// so this is NOT fully explained by the known service-worker-eats-multipart-
-// body bug that justified the old Cloudinary code (that bug is scoped to
-// multipart requests to OUR OWN origin, and doesn't obviously reach a PUT to
-// a different origin with no boundary at all). Needs a real device/Safari
-// Web Inspector session to find the actual cause.
-//
-// UNTIL THAT'S FOUND: every platform (not just iOS) is routed to Cloudinary,
-// not only the affected one — a deliberate, temporary, blanket rollback
-// rather than a per-platform branch, so there is exactly one upload path to
-// reason about while this is unresolved. The R2/presign code below is NOT
-// deleted — _uploadDirect/_uploadForConversion and their ad-hoc-upload
-// equivalent stay intact and unreachable, ready to come back once iOS is
-// fixed, rather than being rewritten twice.
-const FORCE_CLOUDINARY_ALL_PLATFORMS = true;
 
 // Direct-to-R2: presign -> PUT -> attach. Anything not in this set (HEIC/HEIF)
 // goes through a backend endpoint instead, which converts to JPEG server-side
@@ -56,9 +36,9 @@ const RESIZE_JPEG_QUALITY = 0.82;
  *    nothing or upscale, and upscaling only adds bytes for no visible gain.
  *  - HEIC/HEIF — most browsers cannot decode these into an <img>/canvas at
  *    all (the same reason the backend converts them server-side instead),
- *    so there is no client-side path here; the file goes to
- *    ad-hoc-upload/mediaControllerUpload exactly as picked, at whatever
- *    size the backend's own conversion step produces.
+ *    so there is no client-side path here; the file goes to the backend's
+ *    JSON conversion endpoint exactly as picked, at whatever size the
+ *    backend's own conversion step produces.
  *  - decoding fails for any other reason (corrupt file, an exotic ICC
  *    profile some engines choke on) — better to upload the original than to
  *    block the whole upload on a resize step that was only ever a size
@@ -163,28 +143,6 @@ export function uploadMedia(
     return throwError(() => new Error('Unsupported file type.'));
   }
 
-  // FIXME: see the module-level FIXME above — every platform goes through
-  // Cloudinary until the iOS/R2 failure is root-caused.
-  if (FORCE_CLOUDINARY_ALL_PLATFORMS) {
-    if (file.size > MAX_MEDIA_UPLOAD_BYTES) {
-      return throwError(() => new Error('File is larger than 5 MB.'));
-    }
-    return uploadToCloudinary(http, file).pipe(
-      switchMap((uploaded) =>
-        mediaControllerAttach(http, apiConfig.rootUrl, {
-          body: {
-            publicId: uploaded.public_id,
-            url: uploaded.secure_url,
-            entityType,
-            entityId,
-            type,
-          },
-        }),
-      ),
-      map((r) => r.body),
-    );
-  }
-
   return from(_resizeIfNeeded(file)).pipe(
     switchMap((resized) => {
       if (resized.size > MAX_MEDIA_UPLOAD_BYTES) {
@@ -244,15 +202,27 @@ function _uploadDirect(
   );
 }
 
-/** HEIC/HEIF: backend multipart endpoint, which converts to JPEG before storing. */
+/**
+ * HEIC/HEIF: JSON data URI to the backend, which decodes and converts to
+ * JPEG before storing. NOT multipart/FormData — a real, confirmed iOS bug
+ * (predating this file, the original reason uploadToCloudinary() existed)
+ * silently drops multipart bodies posted to our own origin on iOS. JSON with
+ * a base64 data URI is the same trick Cloudinary's own upload already relied
+ * on, now available on our own endpoint instead of only Cloudinary's.
+ */
 function _uploadForConversion(
   http: HttpClient,
   apiConfig: ApiConfiguration,
   { file, entityType, entityId, type }: MediaUploadTarget,
 ): Observable<Media> {
-  return mediaControllerUpload(http, apiConfig.rootUrl, {
-    body: { file, entityType, entityId, type },
-  }).pipe(map((r) => r.body));
+  return from(toDataUri(file)).pipe(
+    switchMap((dataUri) =>
+      mediaControllerUpload$Json(http, apiConfig.rootUrl, {
+        body: { file: dataUri, filename: file.name, entityType, entityId, type },
+      }),
+    ),
+    map((r) => r.body),
+  );
 }
 
 export interface AdHocImageUpload {
@@ -286,17 +256,6 @@ export function uploadAdHocImage(
     return throwError(() => new Error('Unsupported file type.'));
   }
 
-  // FIXME: see the module-level FIXME above — every platform goes through
-  // Cloudinary until the iOS/R2 failure is root-caused.
-  if (FORCE_CLOUDINARY_ALL_PLATFORMS) {
-    if (file.size > MAX_MEDIA_UPLOAD_BYTES) {
-      return throwError(() => new Error('File is larger than 5 MB.'));
-    }
-    return uploadToCloudinary(http, file).pipe(
-      map((uploaded) => ({ url: uploaded.secure_url, publicId: uploaded.public_id })),
-    );
-  }
-
   return from(_resizeIfNeeded(file)).pipe(
     switchMap((resized) => {
       if (resized.size > MAX_MEDIA_UPLOAD_BYTES) {
@@ -328,9 +287,16 @@ export function uploadAdHocImage(
         );
       }
 
-      return publicMediaControllerAdHocUpload(http, apiConfig.rootUrl, {
-        body: { file: resized, kind },
-      }).pipe(map((r) => ({ url: r.body.url, publicId: r.body.providerId })));
+      // HEIC/HEIF: JSON data URI, same reasoning as _uploadForConversion above —
+      // never multipart/FormData to our own origin.
+      return from(toDataUri(resized)).pipe(
+        switchMap((dataUri) =>
+          publicMediaControllerAdHocUpload$Json(http, apiConfig.rootUrl, {
+            body: { file: dataUri, filename: resized.name, kind },
+          }),
+        ),
+        map((r) => ({ url: r.body.url, publicId: r.body.providerId })),
+      );
     }),
   );
 }

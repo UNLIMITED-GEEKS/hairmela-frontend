@@ -9,19 +9,27 @@ import { RequestBuilder } from '../../request-builder';
 
 import { AdHocUploadResponseDto } from '../../models/ad-hoc-upload-response-dto';
 
-export interface PublicMediaControllerAdHocUpload$Params {
+export interface PublicMediaControllerAdHocUpload$FormData$Params {
   
     /**
-     * Multipart form: file (binary) + kind (COMMENT or RECEIPT)
+     * Either multipart file + kind, or JSON data URI + filename + kind.
      */
-    body: {
+    body: ({
 'file': Blob;
 'kind': 'COMMENT' | 'RECEIPT';
-}
+} | {
+
+/**
+ * Full data URI: data:<mime>;base64,<encoded bytes>
+ */
+'file': string;
+'filename': string;
+'kind': 'COMMENT' | 'RECEIPT';
+})
 }
 
-export function publicMediaControllerAdHocUpload(http: HttpClient, rootUrl: string, params: PublicMediaControllerAdHocUpload$Params, context?: HttpContext): Observable<StrictHttpResponse<AdHocUploadResponseDto>> {
-  const rb = new RequestBuilder(rootUrl, publicMediaControllerAdHocUpload.PATH, 'post');
+export function publicMediaControllerAdHocUpload$FormData(http: HttpClient, rootUrl: string, params: PublicMediaControllerAdHocUpload$FormData$Params, context?: HttpContext): Observable<StrictHttpResponse<AdHocUploadResponseDto>> {
+  const rb = new RequestBuilder(rootUrl, publicMediaControllerAdHocUpload$FormData.PATH, 'post');
   if (params) {
     rb.body(params.body, 'multipart/form-data');
   }
@@ -36,4 +44,4 @@ export function publicMediaControllerAdHocUpload(http: HttpClient, rootUrl: stri
   );
 }
 
-publicMediaControllerAdHocUpload.PATH = '/v1/media/ad-hoc-upload';
+publicMediaControllerAdHocUpload$FormData.PATH = '/v1/media/ad-hoc-upload';
