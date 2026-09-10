@@ -20,6 +20,7 @@ import { AppUpdateService } from './core/native/app-update.service';
 import { PersistentStore } from './core/storage/persistent-store';
 import { OnScreenErrorHandler } from './core/debug/on-screen-error-handler';
 import { ThemeService } from './core/theme/theme.service';
+import { MetaPixelService } from './core/analytics/meta-pixel.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -49,6 +50,9 @@ export const appConfig: ApplicationConfig = {
     // web; on native the stored value simply applies a frame later). Runs
     // before first paint either way, so there is no light-to-dark flash.
     provideAppInitializer(() => inject(ThemeService).init()),
+    // Meta Pixel is web-only and remains completely unloaded until the visitor
+    // has accepted optional cookies. The service also tracks SPA navigations.
+    provideAppInitializer(() => inject(MetaPixelService).initIfConsented()),
     // Start the splash's exit clock once Angular is up. In an installed app it
     // has been on screen since the first frame; on the web this is a no-op
     // unless SplashService was opted in for the dashboard redirect.

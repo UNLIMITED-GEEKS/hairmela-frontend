@@ -21,7 +21,7 @@ export class PrivacyComponent {
   protected readonly platform = inject(AppPlatformService);
   protected readonly homeLink = RoutePath.root();
 
-  protected readonly lastUpdated = '30 June 2026';
+  protected readonly lastUpdated = '10 September 2026';
   protected readonly privacyLink = RoutePath.privacy();
 
   protected readonly sections: readonly LegalSection[] = [
@@ -62,6 +62,14 @@ export class PrivacyComponent {
       title: 'Non-personal information',
       body: [
         'We automatically receive technical information such as your device type and basic usage data to keep the service reliable and improve it. This information is not linked to your identity.',
+      ],
+    },
+    {
+      id: 'cookies-and-advertising',
+      title: 'Cookies and advertising',
+      body: [
+        'If you accept optional cookies on our website, we use Meta Pixel to measure visits and understand the effectiveness of our advertising. Meta may receive information about the pages you visit, your browser or device, and related identifiers under its own privacy terms.',
+        'Meta Pixel does not load if you reject optional cookies. It is not used in the installed Android app. You can change your choice by clearing HairMela site data in your browser and choosing again when the cookie banner appears.',
       ],
     },
     {

@@ -2,8 +2,11 @@ import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { PersistentStore } from '../../../core/storage/persistent-store';
 import { RoutePath } from '../../../core/routing/route-paths';
-
-export type CookieChoice = 'accepted' | 'rejected';
+import {
+  COOKIE_CONSENT_KEY,
+  CookieChoice,
+  MetaPixelService,
+} from '../../../core/analytics/meta-pixel.service';
 
 interface CookieCategory {
   readonly title: string;
@@ -11,8 +14,6 @@ interface CookieCategory {
   readonly examples: string;
   readonly locked: boolean;
 }
-
-const CONSENT_KEY = 'hm_cookie_consent';
 
 // Cookie-consent banner. HairMela stores a guest token + active-queue entries in
 // localStorage so a signed-out visitor can join a queue and keep their position
@@ -26,9 +27,10 @@ const CONSENT_KEY = 'hm_cookie_consent';
 })
 export class CookieConsentComponent {
   private readonly _store = inject(PersistentStore);
+  private readonly _metaPixel = inject(MetaPixelService);
 
   // Visible only when no prior choice is stored.
-  protected readonly visible = signal(this._store.get<CookieChoice>(CONSENT_KEY) === null);
+  protected readonly visible = signal(this._store.get<CookieChoice>(COOKIE_CONSENT_KEY) === null);
 
   protected readonly privacyLink = RoutePath.privacy();
 
@@ -43,13 +45,13 @@ export class CookieConsentComponent {
       title: 'Analytics cookies',
       description: 'Help us understand how visitors use HairMela so we can improve it.',
       examples: 'Usage statistics, performance monitoring.',
-      locked: true,
+      locked: false,
     },
     {
       title: 'Marketing cookies',
       description: 'Used to measure campaigns and show relevant content.',
-      examples: 'Ad measurement, retargeting.',
-      locked: true,
+      examples: 'Meta Pixel, ad measurement, retargeting.',
+      locked: false,
     },
   ];
 
@@ -62,7 +64,8 @@ export class CookieConsentComponent {
   }
 
   private _choose(choice: CookieChoice): void {
-    this._store.set<CookieChoice>(CONSENT_KEY, choice);
+    this._store.set<CookieChoice>(COOKIE_CONSENT_KEY, choice);
+    if (choice === 'accepted') this._metaPixel.init();
     this.visible.set(false);
   }
 }
