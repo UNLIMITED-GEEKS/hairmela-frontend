@@ -165,7 +165,7 @@ export class AppointmentsListComponent implements OnInit {
       case 'SERVING':
         return 'bg-success-light text-success border-success/20';
       case 'SERVED':
-        return 'bg-primary-light text-primary border-primary/20';
+        return 'bg-primary/5 text-text-primary  border-primary/20';
       case 'WAITING':
         return 'bg-secondary-light text-primary border-primary/20';
       case 'NO_SHOW':
