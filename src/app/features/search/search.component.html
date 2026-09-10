@@ -32,11 +32,24 @@
 
   <!-- Categories -->
   <div>
+    
     <h2 class="text-base font-bold text-text-primary mb-3">Categories</h2>
-    <app-category-pills
+    
+
+@if(categoriesService.loading()){
+       <div class="mt-2">
+      <div class="mt-3 flex gap-2 overflow-hidden">
+        @for (chip of [1, 2, 3, 4]; track chip) {
+          <div class="shrink-0"><app-skeleton variant="block" height="2.25rem" width="6rem" rounded="rounded-full" /></div>
+        }
+      </div>
+    </div>
+  } @else {
+<app-category-pills
       [categories]="categoriesService.categories()"
       [selected]="listing.filters().category"
       (select)="onCategorySelect($event)" />
+  }
   </div>
 
   <!-- Results -->
@@ -44,9 +57,15 @@
     <h2 class="text-base font-bold text-text-primary mb-3">Results</h2>
 
     @if (listing.loading()) {
-      <div class="pb-2">
-        <app-skeleton variant="card" [count]="6" />
-      </div>
+      
+    <!-- Salon cards — one horizontally-scrolled row, as below -->
+    <div class="mt-5 flex gap-3 overflow-hidden">
+      @for (card of [1, 2, 3, 4]; track card) {
+        <div class="w-[65%] xs:w-[55%] sm:w-[38%] md:w-[22%] shrink-0"><app-skeleton variant="block" height="16rem" rounded="rounded-2xl" /></div>
+        
+      }
+    </div>
+    
     } @else if (listing.items().length === 0) {
       <div class="py-16 text-center h-64 flex justify-around items-center">
         @if (listing.nearbyActive()) {

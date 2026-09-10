@@ -4,9 +4,15 @@
 
   @if (loading()) {
     <div class="space-y-3">
-      @for (_ of [1,2,3]; track $index) {
-        <div class="h-20 rounded-2xl skeleton-pulse"></div>
-      }
+     <div class="mt-8">
+      <app-skeleton variant="list-item" [count]="3" />
+    </div>
+     <div class="mt-8">
+      <app-skeleton variant="list-item" [count]="2" />
+    </div>
+     <div class="mt-8">
+      <app-skeleton variant="list-item" [count]="1" />
+    </div>
     </div>
   } @else if (entries().length === 0) {
     <div class="flex flex-col items-center justify-center py-20 text-center">

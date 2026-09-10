@@ -47,17 +47,13 @@
          Salon Controls
         </p>
 
-        <!-- TWO COLUMNS. This list runs to eleven rows for an owner, which
-             overflowed the sheet on a shorter phone (iPhone SE) and forced it
-             to scroll. Paired up it is six rows, so the whole sheet fits
-             without scrolling on every size we support.
+        <!-- TWO COLUMNS. This list overflowed the sheet on a shorter phone
+             (iPhone SE) and forced it to scroll. Paired up, the whole sheet
+             fits without scrolling on every size we support.
              Every label fits the halved column (the longest, "Salon
              appointments", needs ~112px of ~136px available), so they are set
              whitespace-nowrap rather than truncated — nowrap keeps each row
-             one line tall without hiding any text.
-             Leave/Delete carry col-start-1 so they always begin a fresh row
-             and sit together on the last one, whatever number of controls the
-             user's role and tier produce above them. -->
+             one line tall without hiding any text. -->
         <div class="grid grid-cols-2 gap-2 pr-1">
 
         <!-- Salon Profiles -->
@@ -136,38 +132,6 @@
           </span>
           <span class="text-sm font-medium">Plan &amp; billing</span>
         </a>
-      </div>
-    }
-
-    <!-- Destructive actions LAST, after Account. They are the least-used and
-         most dangerous items here, so they sit below everything else rather
-         than in the middle of the controls grid where a mis-tap is likelier.
-         Their own grid: the controls grid above closes before Account. -->
-    @if (activeSalonId()) {
-      <div class="grid grid-cols-2 gap-2 pr-1 pt-1">
-        <a
-          [routerLink]="['/' + RouteSegment.SALONS, activeSalonId(), RouteSegment.LEAVE]"
-          routerLinkActive="bg-red-50 text-red-600"
-          (click)="closed.emit()"
-          class="flex items-center gap-2 px-2.5 min-h-11 rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors">
-          <span class="w-5 h-5 flex items-center justify-center shrink-0">
-            <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
-          </span>
-          <span class="text-sm font-medium whitespace-nowrap">Leave salon</span>
-        </a>
-
-        @if (isOwner()) {
-          <a
-            [routerLink]="['/' + RouteSegment.SALONS, activeSalonId(), RouteSegment.DELETE]"
-            routerLinkActive="bg-red-50 text-red-600"
-            (click)="closed.emit()"
-            class="flex items-center gap-2 px-2.5 min-h-11 rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors">
-            <span class="w-5 h-5 flex items-center justify-center shrink-0">
-              <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
-            </span>
-            <span class="text-sm font-medium whitespace-nowrap">Delete salon</span>
-          </a>
-        }
       </div>
     }
 

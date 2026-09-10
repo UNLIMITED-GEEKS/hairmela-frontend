@@ -4,13 +4,14 @@ import { DatePipe } from '@angular/common';
 import { AppointmentsCalendarService } from './appointments-calendar.service';
 import { QueueEntry } from '../../../api/models/queue-entry';
 import { RescheduleDialogComponent } from '../../visit/reschedule-dialog/reschedule-dialog.component';
-import { canReschedule, hasChatCounterparty } from '../../../core/appointments/reschedule-policy';
+import { canReschedule } from '../../../core/appointments/reschedule-policy';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { MiniMonthCalendarComponent } from '../../../shared/components/mini-month-calendar/mini-month-calendar.component';
 import { AccordionComponent } from '../../../shared/components/accordion/accordion.component';
 import { CommentsThreadComponent } from '../../comments/comments-thread/comments-thread.component';
 import { RouteParam } from '../../../core/routing/route-paths';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { canChatFromHistory, queueEntryHistoryDate } from './queue-entry-history.util';
 
 function toIsoDate(d: Date): string {
   const yyyy = d.getFullYear();
@@ -19,14 +20,12 @@ function toIsoDate(d: Date): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-// Month-grid calendar — one component, two modes: staffId present in the
-// route -> one staff's appointments; absent -> whole-salon. Both hit the
-// same date-ranged { data: QueueEntry[] } shape from
-// AppointmentsCalendarService, which prefetches + caches by month so
-// re-visiting a month already viewed this session is instant. Month-grid
-// rendering itself is MiniMonthCalendarComponent (shared with the booking
-// modals' date picker) — this component only owns the per-day appointment
-// count (as the grid's badge) and the fetch-by-month logic.
+type EntryFilter = 'ALL' | 'APPOINTMENTS' | 'WALK_INS';
+
+// Month-grid calendar — staffId present means one staff member's history;
+// absent means the whole salon. AppointmentsCalendarService prefetches and
+// caches each month; this component owns the appointment/walk-in visibility,
+// per-day badges and selection.
 @Component({
   selector: 'app-appointments-list',
   templateUrl: './appointments-list.component.html',
@@ -54,15 +53,13 @@ export class AppointmentsListComponent implements OnInit {
   // The visible month, first-of-month at local midnight.
   protected readonly viewedMonth = signal(this._startOfMonth(new Date()));
   protected readonly selectedDate = signal<string | null>(null);
+  protected readonly entryFilter = signal<EntryFilter>('ALL');
 
   /** The appointment being rescheduled, or null when the dialog is closed. */
   protected readonly rescheduleEntry = signal<QueueEntry | null>(null);
 
-  // Staff and admins reach this same list from two routes; both act with staff
-  // authority, so both use the staff endpoint (any appointment in the salon).
-  /** Staff-added entries have nobody to chat with — see hasChatCounterparty. */
   protected showChat(entry: QueueEntry): boolean {
-    return hasChatCounterparty(entry);
+    return canChatFromHistory(entry, toIsoDate(new Date()));
   }
 
   protected canReschedule(entry: QueueEntry): boolean {
@@ -102,13 +99,23 @@ export class AppointmentsListComponent implements OnInit {
   protected readonly selectedDayEntries = computed<QueueEntry[]>(() => {
     const day = this.selectedDate();
     if (!day) return [];
-    return this.calendar.entries().filter((e) => this._localIso(e) === day);
+    return this.visibleEntries().filter((entry) => queueEntryHistoryDate(entry) === day);
   });
+
+  protected readonly visibleEntries = computed(() =>
+    this.calendar.entries().filter((entry) => {
+      if (this.entryFilter() === 'APPOINTMENTS') return entry.type === 'APPOINTMENT';
+      if (this.entryFilter() === 'WALK_INS') return entry.type === 'WALK_IN';
+      return true;
+    }),
+  );
 
   private readonly _countByDay = computed(() => {
     const map = new Map<string, number>();
+    // Calendar dots represent all activity and do not disappear when the
+    // selected day's list is filtered to one entry type.
     for (const entry of this.calendar.entries()) {
-      const iso = this._localIso(entry);
+      const iso = queueEntryHistoryDate(entry);
       if (!iso) continue;
       map.set(iso, (map.get(iso) ?? 0) + 1);
     }
@@ -149,6 +156,10 @@ export class AppointmentsListComponent implements OnInit {
     this.selectedDate.set(this.selectedDate() === iso ? null : iso);
   }
 
+  protected selectEntryFilter(filter: EntryFilter): void {
+    this.entryFilter.set(filter);
+  }
+
   protected statusBadgeClasses(status: QueueEntry['status']): string {
     switch (status) {
       case 'SERVING':
@@ -163,18 +174,15 @@ export class AppointmentsListComponent implements OnInit {
     }
   }
 
+  protected typeBadgeClasses(type: QueueEntry['type']): string {
+    return type === 'APPOINTMENT'
+      ? 'bg-blue-50 text-blue-700 border-blue-200'
+      : 'bg-amber-50 text-amber-700 border-amber-200';
+  }
+
   protected staffName(entry: QueueEntry): string {
     const staff = entry.staff;
     return staff.user ? `${staff.user.firstName} ${staff.user.lastName}` : staff.email;
-  }
-
-  // scheduledAt is a UTC ISO timestamp; the grid buckets by the salon's
-  // local calendar day, which the backend's date-range query already scoped
-  // the fetch to — so grouping by the UTC date's calendar portion is safe
-  // here (the response only ever contains days within the requested
-  // salon-local range in the first place).
-  private _localIso(entry: QueueEntry): string | null {
-    return entry.scheduledAt ? entry.scheduledAt.slice(0, 10) : null;
   }
 
   private _loadMonth(month: Date): void {

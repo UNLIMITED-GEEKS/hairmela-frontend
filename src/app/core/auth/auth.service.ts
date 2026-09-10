@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, switchMap, map } from 'rxjs';
+import { Observable, tap, switchMap, map, firstValueFrom } from 'rxjs';
 import { ApiConfiguration } from '../../api/api-configuration';
 import { TokenStore } from './token.store';
 import { CurrentUserStore } from './current-user.store';
@@ -23,6 +23,7 @@ import { authControllerForgotPassword } from '../../api/fn/auth/auth-controller-
 import { authControllerResetPassword } from '../../api/fn/auth/auth-controller-reset-password';
 import { authenticatedAuthControllerGetMe } from '../../api/fn/auth/authenticated-auth-controller-get-me';
 import { authenticatedAuthControllerResendVerification } from '../../api/fn/auth/authenticated-auth-controller-resend-verification';
+import { authenticatedAuthControllerLogout } from '../../api/fn/auth/authenticated-auth-controller-logout';
 import { RoutePath } from '../routing/route-paths';
 
 @Injectable({ providedIn: 'root' })
@@ -70,10 +71,27 @@ export class AuthService {
   }
 
   logout(): void {
-    // Unsubscribe from push FIRST — the DELETE /push/subscribe needs the still
-    // -valid Bearer token. Only after it settles do we tear down the session.
-    // disable() is best-effort and never rejects, so teardown always runs.
-    void this._pushService.disable().finally(() => this._teardownSession());
+    // Both remote cleanup calls need the still-valid Bearer token. Push must
+    // go first because /auth/logout revokes that token; local teardown always
+    // runs even when either best-effort request fails.
+    void this._pushService
+      .disable()
+      .then(async () => {
+        const refreshToken = this._tokenStore.getRefreshToken();
+        if (!refreshToken || !this._tokenStore.getAccessToken()) return;
+
+        try {
+          await firstValueFrom(
+            authenticatedAuthControllerLogout(this._http, this._apiConfig.rootUrl, {
+              body: { refreshToken },
+            }),
+          );
+        } catch {
+          // Logging out locally must never be blocked by an offline or already
+          // expired server session.
+        }
+      })
+      .finally(() => this._teardownSession());
   }
 
   private _teardownSession(): void {

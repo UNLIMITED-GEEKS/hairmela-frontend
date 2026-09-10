@@ -1,19 +1,17 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { map } from 'rxjs';
+import { forkJoin, map, of, switchMap } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
-import { staffAppointmentsControllerGetStaffAppointments } from '../../../api/fn/queues/staff-appointments-controller-get-staff-appointments';
-import { staffAppointmentsControllerGetSalonAppointments } from '../../../api/fn/queues/staff-appointments-controller-get-salon-appointments';
+import { staffAppointmentsControllerGetStaffQueueEntryHistory } from '../../../api/fn/queues/staff-appointments-controller-get-staff-queue-entry-history';
+import { staffAppointmentsControllerGetQueueEntryHistory } from '../../../api/fn/queues/staff-appointments-controller-get-queue-entry-history';
 import { QueueEntry } from '../../../api/models/queue-entry';
 import { OptimisticService } from '../../../core/caching/optimistic/optimistic.service';
 import { CachedLoader } from '../../../core/caching/optimistic/cached-loader';
 import { CacheRegistry } from '../../../core/caching/cache-registry/cache-registry.service';
 
-// One month's appointments, date-ranged (unpaginated, per the backend's
-// from/to mode) and cached by "salonId:staffId:from:to" so paging back to a
-// month already viewed this session never re-fetches. staffId is empty
-// string for the salon-wide view — still a distinct cache key from any real
-// staffId, so the two views never collide.
+// One month's queue-entry history, cached by "salonId:staffId:from:to" so
+// paging back to a viewed month is instant. The history endpoints include
+// both appointments and walk-ins; the component decides which are visible.
 @Injectable({ providedIn: 'root' })
 export class AppointmentsCalendarService {
   private readonly _http = inject(HttpClient);
@@ -30,19 +28,38 @@ export class AppointmentsCalendarService {
     cache: this._cache,
     fetch: (key) => {
       const [salonId, staffId, from, to] = key.split(':');
-      const request$ = staffId
-        ? staffAppointmentsControllerGetStaffAppointments(this._http, this._apiConfig.rootUrl, {
-            salonId,
-            staffId,
-            from,
-            to,
-          })
-        : staffAppointmentsControllerGetSalonAppointments(this._http, this._apiConfig.rootUrl, {
-            salonId,
-            from,
-            to,
-          });
-      return request$.pipe(map((res) => res.body.data ?? []));
+      const requestPage = (page: number) =>
+        staffId
+          ? staffAppointmentsControllerGetStaffQueueEntryHistory(
+              this._http,
+              this._apiConfig.rootUrl,
+              { salonId, staffId, from, to, page, limit: 100 },
+            )
+          : staffAppointmentsControllerGetQueueEntryHistory(this._http, this._apiConfig.rootUrl, {
+              salonId,
+              from,
+              to,
+              page,
+              limit: 100,
+            });
+
+      return requestPage(1).pipe(
+        switchMap((first) => {
+          const firstPage = first.body.data ?? [];
+          const totalPages = first.body.meta?.totalPages ?? 1;
+          if (totalPages <= 1) return of(firstPage);
+
+          const remainingPages = Array.from({ length: totalPages - 1 }, (_, index) =>
+            requestPage(index + 2),
+          );
+          return forkJoin(remainingPages).pipe(
+            map((responses) => [
+              ...firstPage,
+              ...responses.flatMap((response) => response.body.data ?? []),
+            ]),
+          );
+        }),
+      );
     },
   });
 

@@ -4,11 +4,12 @@ import { QueueEntry } from '../../../api/models/queue-entry';
 import { GuestQueuesService } from './guest-queues.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { RoutePath } from '../../../core/routing/route-paths';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-guest-queues',
   templateUrl: './guest-queues.component.html',
-  imports: [RouterLink, PageHeaderComponent],
+  imports: [RouterLink, PageHeaderComponent, SkeletonComponent],
 })
 export class GuestQueuesComponent implements OnInit {
   private readonly _router = inject(Router);

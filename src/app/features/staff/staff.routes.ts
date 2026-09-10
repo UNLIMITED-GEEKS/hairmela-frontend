@@ -24,6 +24,15 @@ export const staffRoutes: Routes = [
       import('./invite-staff/invite-staff.component').then((m) => m.InviteStaffComponent),
   },
   {
+    path: RouteSegment.TRANSFER_OWNERSHIP,
+    canActivate: [salonRoleGuard],
+    data: { roles: [SalonRole.OWNER] },
+    loadComponent: () =>
+      import('./transfer-ownership/transfer-ownership.component').then(
+        (m) => m.TransferOwnershipComponent,
+      ),
+  },
+  {
     path: `:${RouteParam.STAFF_ID}`,
     loadComponent: () =>
       import('./staff-detail/staff-detail.component').then((m) => m.StaffDetailComponent),

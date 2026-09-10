@@ -1,6 +1,6 @@
 import { Component, DestroyRef, inject, signal, computed, OnInit, effect, viewChild, ElementRef, Injector, afterNextRender } from '@angular/core';
 import { Location } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import {
@@ -17,6 +17,7 @@ import { SalonOverviewService } from '../salon-overview/salon-overview.service';
 import { SalonService } from '../salon.service';
 import { SalonsStore } from '../../../core/salon-context/salons.store';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
+import { SalonRole } from '../../../core/salon-context/membership.types';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { ToastService } from '../../../core/toast/toast.service';
 import { RenameDialogService } from '../../../shared/components/rename-dialog/rename-dialog.service';
@@ -27,7 +28,7 @@ import { FieldErrorComponent } from '../../../shared/components/field-error/fiel
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 import { TimePickerComponent } from '../../../shared/components/time-picker/time-picker.component';
-import { RouteParam } from '../../../core/routing/route-paths';
+import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 import { endAfterStart } from '../../../core/utils/time-range.validator';
 import { ErrorCodes } from '../../../core/errors/error-codes';
 import { COUNTRIES } from '../../../core/geo/countries-states.data';
@@ -85,6 +86,7 @@ function paymentDetailsRequiredWhenFeeEnforced(group: AbstractControl): Validati
     PageHeaderComponent,
     InlineSpinnerComponent,
     TimePickerComponent,
+    RouterLink,
   ],
 })
 export class SalonSettingsComponent implements OnInit {
@@ -104,6 +106,10 @@ export class SalonSettingsComponent implements OnInit {
   private readonly _renameDialog = inject(RenameDialogService);
   private readonly _branchPicker = inject(BranchPickerService);
   protected readonly salonContext = inject(SalonContextService);
+  protected readonly RoutePath = RoutePath;
+  protected readonly isOwner = computed(
+    () => this.salonContext.membership()?.role === SalonRole.OWNER,
+  );
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _toast = inject(ToastService);
 

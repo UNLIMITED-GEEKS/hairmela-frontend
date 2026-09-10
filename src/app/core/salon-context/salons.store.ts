@@ -12,6 +12,7 @@ import {
   map,
   retry,
   catchError,
+  filter,
   shareReplay,
   take,
 } from 'rxjs';
@@ -19,6 +20,11 @@ import { ApiConfiguration } from '../../api/api-configuration';
 import { MySalonDto } from '../../api/models/my-salon-dto';
 import { userSalonsControllerFindMine } from '../../api/fn/salons/user-salons-controller-find-mine';
 import { MembershipStore } from './membership.store';
+
+interface SalonsLoadResult {
+  readonly generation: number;
+  readonly salons: MySalonDto[];
+}
 
 @Injectable({ providedIn: 'root' })
 export class SalonsStore {
@@ -39,8 +45,9 @@ export class SalonsStore {
   // refetch in the background without blanking the dashboard (see refreshSilent).
   // switchMap cancels a superseded in-flight fetch, so overlapping triggers
   // never race — the latest one always wins.
-  private readonly _reload$ = new Subject<{ showLoading: boolean }>();
+  private readonly _reload$ = new Subject<{ showLoading: boolean; generation: number }>();
   private _triggered = false;
+  private _generation = 0;
 
   // Single source of truth for the salons list. shareReplay(1) means every
   // consumer — the signals below, ensureLoaded(), any future caller — shares
@@ -48,8 +55,8 @@ export class SalonsStore {
   // inflight bookkeeping. A failed fetch surfaces as a next([]) with the error
   // signal set (not a stream error), so a transient failure doesn't tear the
   // shared stream down and permanently break every later subscriber.
-  private readonly _salons$: Observable<MySalonDto[]> = this._reload$.pipe(
-    switchMap(({ showLoading }) => {
+  private readonly _salons$: Observable<SalonsLoadResult> = this._reload$.pipe(
+    switchMap(({ showLoading, generation }) => {
       if (showLoading) this._loading.set(true);
       this._error.set(false);
       return userSalonsControllerFindMine(this._http, this._apiConfig.rootUrl).pipe(
@@ -64,11 +71,12 @@ export class SalonsStore {
                 map(() => salons),
               ),
         ),
+        map((salons) => ({ generation, salons })),
         tap(() => this._loading.set(false)),
         catchError(() => {
           this._loading.set(false);
           this._error.set(true);
-          return of<MySalonDto[]>([]);
+          return of<SalonsLoadResult>({ generation, salons: [] });
         }),
       );
     }),
@@ -78,19 +86,23 @@ export class SalonsStore {
   constructor() {
     this._cacheRegistry.register(this);
     // The one subscription that mirrors the shared stream into the signal.
-    this._salons$.pipe(takeUntilDestroyed()).subscribe((salons) => this._salons.set(salons));
+    this._salons$.pipe(takeUntilDestroyed()).subscribe(({ generation, salons }) => {
+      // clear() advances the generation. Ignore an old account's request if
+      // it happens to finish while logout is tearing down the session.
+      if (generation === this._generation) this._salons.set(salons);
+    });
   }
 
   /** Fetch once; no-op if already triggered. Use refresh() to force a refetch. */
   load(): void {
     if (this._triggered) return;
     this._triggered = true;
-    this._reload$.next({ showLoading: true });
+    this._reload$.next({ showLoading: true, generation: ++this._generation });
   }
 
   refresh(): void {
     this._triggered = true;
-    this._reload$.next({ showLoading: true });
+    this._reload$.next({ showLoading: true, generation: ++this._generation });
   }
 
   // Re-fetch without touching `loading` — for callers whose mutation already
@@ -100,7 +112,7 @@ export class SalonsStore {
   // salon simply appears in `salons` once the background fetch resolves.
   refreshSilent(): void {
     this._triggered = true;
-    this._reload$.next({ showLoading: false });
+    this._reload$.next({ showLoading: false, generation: ++this._generation });
   }
 
   // Resolves with the salons once loaded, reusing the shared stream's cached
@@ -111,9 +123,13 @@ export class SalonsStore {
   // errors to [] to stay alive, so we re-raise here off the error signal).
   ensureLoaded(): Observable<MySalonDto[]> {
     this.load();
+    const generation = this._generation;
     return this._salons$.pipe(
+      // shareReplay still contains the previous account's final result after
+      // clear(). Wait for this generation instead of taking that stale value.
+      filter((result) => result.generation === generation),
       take(1),
-      map((salons) => {
+      map(({ salons }) => {
         if (this._error()) throw new Error('Failed to load salons');
         return salons;
       }),
@@ -121,6 +137,9 @@ export class SalonsStore {
   }
 
   clear(): void {
+    // Invalidates both replayed and currently in-flight results from the old
+    // identity. The next load receives a newer generation of its own.
+    this._generation++;
     this._salons.set([]);
     this._triggered = false;
   }

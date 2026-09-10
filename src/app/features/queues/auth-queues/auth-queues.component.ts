@@ -8,11 +8,18 @@ import { RescheduleDialogComponent } from '../../visit/reschedule-dialog/resched
 import { AddToCalendarComponent } from '../../../shared/components/add-to-calendar/add-to-calendar.component';
 import { canReschedule, withinChangeWindow } from '../../../core/appointments/reschedule-policy';
 import { RoutePath } from '../../../core/routing/route-paths';
+import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-auth-queues',
   templateUrl: './auth-queues.component.html',
-  imports: [PageHeaderComponent, DatePipe, RescheduleDialogComponent, AddToCalendarComponent],
+  imports: [
+    PageHeaderComponent,
+    DatePipe,
+    RescheduleDialogComponent,
+    AddToCalendarComponent,
+    SkeletonComponent,
+  ],
 })
 export class AuthQueuesComponent implements OnInit {
   private readonly _router = inject(Router);
