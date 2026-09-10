@@ -65,7 +65,7 @@ export class CookieConsentComponent {
 
   private _choose(choice: CookieChoice): void {
     this._store.set<CookieChoice>(COOKIE_CONSENT_KEY, choice);
-    if (choice === 'accepted') this._metaPixel.init();
+    this._metaPixel.init();
     this.visible.set(false);
   }
 }
