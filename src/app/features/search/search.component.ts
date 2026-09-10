@@ -16,6 +16,7 @@ import { NearbyButtonComponent } from '../../shared/components/nearby-button/nea
 @Component({
   selector: 'app-search',
   templateUrl: './search.component.html',
+  providers: [SalonListingService],
   imports: [
     ListingScrollMemoryDirective,IconComponent, SalonCardComponent, CategoryPillsComponent, PaginationComponent, SkeletonComponent, NearbyButtonComponent],
 })

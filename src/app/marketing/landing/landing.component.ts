@@ -17,6 +17,7 @@ import { ListingScrollMemoryDirective } from '../../shared/directives/listing-sc
 @Component({
   selector: 'app-landing',
   templateUrl: './landing.component.html',
+  providers: [SalonListingService],
   imports: [
     ListingScrollMemoryDirective,
     RouterLink,

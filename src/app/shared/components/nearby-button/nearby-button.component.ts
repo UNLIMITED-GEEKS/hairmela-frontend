@@ -3,8 +3,8 @@ import { SalonListingService } from '../../../marketing/landing/salon-listing.se
 import { AppPlatformService } from '../../../core/native/app-platform.service';
 import { IconComponent } from '../icon/icon.component';
 
-// "Near me" toggle for the salon listing. Shared by the landing page and the
-// search page, which both drive the same SalonListingService.
+// "Near me" toggle for the salon listing. Each hosting page provides its own
+// SalonListingService, so this child inherits only that page's filter state.
 //
 // Nearby is a distinct MODE, not another filter — the endpoint takes only
 // lat/lng/page — so turning it on clears the text filters and category, and

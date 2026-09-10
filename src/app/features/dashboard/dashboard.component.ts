@@ -31,6 +31,7 @@ function timeOfDayGreeting(hour: number): string {
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
+  providers: [SalonListingService],
   imports: [
     ListingScrollMemoryDirective,
     RouterLink,

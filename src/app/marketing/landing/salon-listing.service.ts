@@ -36,6 +36,39 @@ export interface ListingFilters {
 
 const PAGE_SIZE = 18; // 6 rows x 3 columns on desktop
 
+/**
+ * Shared response cache for the page-scoped listing services.
+ *
+ * Filters and rendered results belong to each page instance, but identical
+ * API results remain cached for the session and are cleared centrally on
+ * logout. This preserves instant revisits without leaking active filters.
+ */
+@Injectable({ providedIn: 'root' })
+export class SalonListingSessionCache implements Clearable {
+  private readonly _cacheRegistry = inject(CacheRegistry);
+  private readonly _pages = new Map<string, CachedPage>();
+
+  constructor() {
+    this._cacheRegistry.register(this);
+  }
+
+  get(key: string): CachedPage | undefined {
+    return this._pages.get(key);
+  }
+
+  set(key: string, page: CachedPage): void {
+    this._pages.set(key, page);
+  }
+
+  delete(key: string): void {
+    this._pages.delete(key);
+  }
+
+  clear(): void {
+    this._pages.clear();
+  }
+}
+
 // Homepage salon listing — search/filter/pagination against GET /salons
 // (public, no auth). Both the name search and the location filter are free
 // text, so both are debounced; category and page changes go straight through.
@@ -44,11 +77,11 @@ const PAGE_SIZE = 18; // 6 rows x 3 columns on desktop
 // country, not the exact-match state=/city= pair it replaced — those missed
 // real data ("JOS SOUTH" vs "Jos-South") and were disabled in the UI because
 // of it. The backend handles typos and ranks by relevance.
-@Injectable({ providedIn: 'root' })
-export class SalonListingService implements Clearable {
+@Injectable()
+export class SalonListingService {
   private readonly _http = inject(HttpClient);
   private readonly _apiConfig = inject(ApiConfiguration);
-  private readonly _cacheRegistry = inject(CacheRegistry);
+  private readonly _cache = inject(SalonListingSessionCache);
 
   private readonly _items = signal<ListingItem[]>([]);
   private readonly _meta = signal<PaginatedMetaDto | null>(null);
@@ -99,13 +132,10 @@ export class SalonListingService implements Clearable {
   // opens or closes mid-session keeps its stale badge until reload. The
   // listing payload carries no operating hours, so it cannot be recomputed
   // client-side without a backend change.
-  private readonly _cache = new Map<string, CachedPage>();
   // The key of the request currently in flight — see the subscribe below.
   private _pendingKey = '';
 
   constructor() {
-    this._cacheRegistry.register(this);
-
     this._searchInput$
       .pipe(debounceTime(500), distinctUntilChanged(), takeUntilDestroyed())
       .subscribe((search) => {
