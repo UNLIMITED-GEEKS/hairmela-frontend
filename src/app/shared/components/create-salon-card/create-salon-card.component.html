@@ -1,11 +1,10 @@
 @if (canAddSalon()) {
   <a [routerLink]="newSalonLink"
-    class="flex items-center justify-between w-full bg-primary text-white  rounded-xl px-5 py-4 hover:bg-primary-hover transition-colors">
+    class="flex items-center justify-between w-full rounded-xl border border-primary/30 bg-primary/10 px-5 py-4 text-left transition-colors hover:bg-primary/15">
     <div>
-      <p class="text-sm font-semibold text-white whitespace-nowrap">Click here to create a salon</p>
-
+      <p class="text-sm font-semibold text-primary whitespace-nowrap">Click here to create a salon</p>
     </div>
-    <svg class="w-4 h-4 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <svg class="w-4 h-4 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
     </svg>
   </a>

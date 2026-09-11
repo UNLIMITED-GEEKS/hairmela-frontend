@@ -16,6 +16,9 @@ import {
   HowItWorksTab,
 } from '../../../core/routing/route-paths';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { ToastService } from '../../../core/toast/toast.service';
+import { SalonSettingsService } from '../../salons/salon-settings/salon-settings.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-queue-shell',
@@ -36,6 +39,8 @@ export class QueueShellComponent implements OnInit, OnDestroy {
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
   private readonly _salonContext = inject(SalonContextService);
+  private readonly _salonSettings = inject(SalonSettingsService);
+  private readonly _toast = inject(ToastService);
 
   // True while the active child route is queue-list (.../console/queue), not
   // current-client (the shell's default child, .../console). The back
@@ -66,7 +71,11 @@ export class QueueShellComponent implements OnInit, OnDestroy {
   // STAFF_LIMIT_REACHED; we lock the console so they see why, not a raw 403.
   protected readonly staffFrozen = this._salonContext.staffFrozen;
 
-  protected readonly statusOptions: Array<'OPEN' | 'PAUSED' | 'CLOSED'> = ['OPEN', 'PAUSED', 'CLOSED'];
+  protected readonly statusOptions: Array<'OPEN' | 'PAUSED' | 'CLOSED'> = [
+    'OPEN',
+    'PAUSED',
+    'CLOSED',
+  ];
 
   protected get salonId(): string {
     return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
@@ -78,6 +87,7 @@ export class QueueShellComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.console.init(this.salonId, this.queueId);
+    this._salonSettings.load(this.salonId);
   }
 
   ngOnDestroy(): void {
@@ -96,6 +106,17 @@ export class QueueShellComponent implements OnInit, OnDestroy {
     // chevron above is — queue-list can be reached from several places.
     this.console.callNext(this.salonId, this.queueId, () => this._goToCurrentClient());
     if (this.onQueueListRoute()) this._goToCurrentClient();
+  }
+
+  protected copyQueueLink(): void {
+    const slug = this._salonSettings.salon()?.slug ?? '';
+    if (!slug || !this.queueId) return;
+
+    const path = RoutePath.visitQueue('', slug, this.queueId).join('/');
+    navigator.clipboard
+      .writeText(`${environment.appBaseUrl}${path}`)
+      .then(() => this._toast.success('Queue link copied'))
+      .catch(() => this._toast.error('Could not copy link'));
   }
 
   private _goToCurrentClient(): void {

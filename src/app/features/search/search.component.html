@@ -2,27 +2,26 @@
 
   <!-- Search: what (name) and where (fuzzy location, matched across city,
        street, state and country). Stacked on mobile, side by side from sm. -->
-  <div class="flex flex-col sm:flex-row gap-2">
-    <div class="relative flex-1">
-      <app-icon name="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-text-disabled" />
-      <input type="text" placeholder="Search for a salon by name"
-        [value]="initialSearch"
-        (input)="onSearchInput($event)"
-        class="w-full min-h-12 pl-10 pr-3 rounded-xl border border-border bg-surface-card text-sm text-text-primary placeholder:text-text-disabled
-               focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
+  <div class="rounded-[14px] border border-border bg-surface-card p-3 ">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <div class="relative flex-1">
+        <app-icon name="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-text-disabled" />
+        <input type="text" placeholder="Search for a salon by name"
+          [value]="initialSearch"
+          (input)="onSearchInput($event)"
+          class="w-full min-h-12 pl-10 pr-3 rounded-xl border border-border bg-surface-sunken text-sm text-text-primary placeholder:text-text-disabled
+                 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
+      </div>
+      <div class="relative flex-1 sm:flex-none sm:w-58">
+        <app-icon name="location-pin" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-text-disabled" />
+        <input type="text" placeholder="Search for any location" aria-label="Filter by location"
+          [value]="listing.filters().location"
+          (input)="onLocationInput($event)"
+          class="w-full min-h-12 pl-10 pr-3 rounded-xl border border-border bg-surface-sunken text-sm text-text-primary placeholder:text-text-disabled
+                 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
+      </div>
+      <app-nearby-button class="w-full sm:w-auto sm:ml-auto" />
     </div>
-    <div class="relative flex-1 sm:flex-none sm:w-58">
-      <app-icon name="location-pin" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-text-disabled" />
-      <input type="text" placeholder="Search for any location" aria-label="Filter by location"
-        [value]="listing.filters().location"
-        (input)="onLocationInput($event)"
-        class="w-full min-h-12 pl-10 pr-3 rounded-xl border border-border bg-surface-card text-sm text-text-primary placeholder:text-text-disabled
-               focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
-    </div>
-    <!-- Right-aligned in both layouts: sm:ml-auto pushes it to the end of the
-         row on desktop, and self-end does the same once the row stacks on
-         mobile (where the button would otherwise stretch full width). -->
-    <app-nearby-button class="self-end sm:ml-auto" />
   </div>
 
   @if (listing.nearbyActive()) {

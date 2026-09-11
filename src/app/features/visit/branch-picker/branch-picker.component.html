@@ -1,49 +1,73 @@
 @if (branchPicker.loading()) {
-  <div class="py-6 px-4">
+  <div class="px-4 py-6">
     <app-skeleton variant="card" [count]="6" />
   </div>
 } @else if (branchPicker.failed()) {
   <app-page-header title="Locations" backVariant="glass" />
-  <div class="pb-6 px-4">
-    <div class="py-16 text-center">
-      <svg class="mx-auto w-10 h-10 text-text-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+  <div class="px-4 pb-6">
+    <div class="mx-auto max-w-md rounded-3xl border border-border bg-surface-card px-6 py-14 text-center shadow-sm">
+      <svg class="mx-auto h-12 w-12 text-text-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
           d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.71-3.03l-6.93-11a2 2 0 00-3.42 0l-6.93 11A2 2 0 005.07 19z" />
       </svg>
-      <p class="mt-3 text-sm text-text-disabled">We couldn't load this salon's locations.</p>
+      <p class="mt-4 text-base font-semibold text-text-primary">We couldn't load this salon's locations.</p>
+      <p class="mt-2 text-sm text-text-secondary">Please try again in a moment.</p>
       <button type="button" (click)="retry()"
-        class="mt-4 min-h-11 px-4 bg-primary text-white text-sm font-medium rounded-lg
-               hover:bg-primary-dark active:scale-95 transition-all">
+        class="mt-5 min-h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-white transition-all hover:bg-primary-hover active:scale-[0.98]">
         Try again
       </button>
     </div>
   </div>
 } @else if (branchPicker.picker(); as p) {
-  <app-page-header [title]="p.name" backVariant="glass" />
-  <div class="pb-6 px-4">
+  <div class="mx-auto  px-2 pb-10 pt-8 sm:px-0">
+    <div class="mb-6 overflow-hidden rounded-[11px] border border-border bg-surface-card shadow-sm">
+      <div class="flex flex-col gap-4 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div class="flex items-start gap-3">
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 21s-6-4.35-6-10a6 6 0 1 1 12 0c0 5.65-6 10-6 10Z" />
+              <circle cx="12" cy="11" r="2.5" />
+            </svg>
+          </div>
+          <div>
+            <p class="text-xs font-medium uppercase tracking-[0.14em] text-primary">Welcome to</p>
+            <h1 class="mt-1 text-xl font-semibold text-text-primary">{{ p.name }}</h1>
+            <p class="mt-1 text-xs text-text-secondary">
+              Pick the location that works best for you and continue to booking.
+            </p>
+          </div>
+        </div>
 
-    <p class="mb-4 text-lg font-medium text-text-muted">
-      Welcome to {{ p.name }}! Choose one of our branches to proceed.
-    </p>
+        <div class="flex items-center gap-2 self-start sm:self-auto">
+          <button type="button" (click)="goBack()"
+            class="inline-flex items-center justify-center rounded-full border border-border bg-surface-sunken px-3 py-2 text-xs font-semibold text-text-secondary transition-colors hover:border-primary/40 hover:text-primary">
+            Go back
+          </button>
+          <div class="text-xs font-semibold text-text-secondary">
+            {{ p.branches.length }} {{ p.branches.length === 1 ? 'location' : 'locations' }}
+          </div>
+        </div>
+      </div>
+    </div>
 
     @if (p.branches.length === 0) {
-      <div class="py-16 text-center">
-        <svg class="mx-auto w-10 h-10 text-text-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <div class="mx-auto max-w-md rounded-3xl border border-dashed border-border bg-surface-card px-6 py-14 text-center shadow-sm">
+        <svg class="mx-auto h-12 w-12 text-text-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
             d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
-        <p class="mt-3 text-sm text-text-disabled">No locations available right now.</p>
+        <p class="mt-4 text-base font-semibold text-text-primary">No locations available right now.</p>
+        <p class="mt-2 text-sm text-text-secondary">Please check back later for upcoming branches.</p>
       </div>
     } @else {
-      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         @for (branch of p.branches; track branch.id) {
-          <div class="h-64">
+          <div class="h-[18rem]">
             <app-salon-card [salon]="branch" [activeCategory]="activeCategory()" [showStreet]="true" />
           </div>
         }
       </div>
     }
-
   </div>
 }

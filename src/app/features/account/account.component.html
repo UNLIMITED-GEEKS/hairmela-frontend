@@ -106,13 +106,13 @@
            actions, and the footer that normally carries it is hidden inside
            the installed app. -->
       <a [routerLink]="contactLink"
-        class="flex items-center justify-center w-full py-3 rounded-xl border border-border text-text-body text-sm font-medium hover:bg-surface-sunken transition-colors min-h-11">
+        class="flex items-center justify-center w-full min-h-11 rounded-xl border border-border bg-surface-card text-sm font-medium text-text-body transition-colors hover:bg-surface-sunken">
         Contact us
       </a>
 
       <button
         (click)="_auth.logout()"
-        class="w-full py-3 rounded-xl border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors min-h-11">
+        class="w-full min-h-11 rounded-xl border border-red-500/25 bg-red-500/5 px-4 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10">
         Log out
       </button>
 

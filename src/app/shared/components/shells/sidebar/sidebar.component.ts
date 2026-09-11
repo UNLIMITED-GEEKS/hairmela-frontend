@@ -65,7 +65,7 @@ export const CONTROL_ITEMS: ControlItem[] = [
     roles: [SalonRole.OWNER, SalonRole.ADMIN],
   },
   {
-    label: 'Share / QR',
+    label: 'Salon Link/QR code',
     url: RouteSegment.SHARE,
     roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF],
   },

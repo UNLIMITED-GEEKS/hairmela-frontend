@@ -1,4 +1,5 @@
 import { Component, computed, effect, inject, untracked } from '@angular/core';
+import { Location } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { BranchPickerService } from './branch-picker.service';
@@ -21,6 +22,7 @@ import { RouteParam, RouteQueryParam } from '../../../core/routing/route-paths';
 export class BranchPickerComponent {
   protected readonly branchPicker = inject(BranchPickerService);
   private readonly _route = inject(ActivatedRoute);
+  private readonly _location = inject(Location);
 
   // Reactive, not snapshot — same reasoning as SalonShellComponent: this
   // route can in principle be navigated between two different picker slugs
@@ -47,5 +49,9 @@ export class BranchPickerComponent {
 
   protected retry(): void {
     this.branchPicker.load(this._slug());
+  }
+
+  protected goBack(): void {
+    this._location.back();
   }
 }
