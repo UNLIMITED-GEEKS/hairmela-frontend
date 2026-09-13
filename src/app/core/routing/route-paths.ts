@@ -22,6 +22,7 @@ export const RouteQueryParam = {
   SALON: 'salon',
   SERVICE_ID: 'serviceId',
   SEARCH: 'search',
+  PAGE: 'page',
   // Carries the root salon's id/name into the create-salon form when opened
   // via Salon Overview's "Create a new branch" — lets the form lock the name
   // field to the root's without an extra fetch.

@@ -9,6 +9,8 @@ import { SalonListingItemDto } from '../../api/models/salon-listing-item-dto';
 import { NearbySalonListingItemDto } from '../../api/models/nearby-salon-listing-item-dto';
 import { PaginatedMetaDto } from '../../api/models/paginated-meta-dto';
 import { CacheRegistry, Clearable } from '../../core/caching/cache-registry/cache-registry.service';
+import { ActivatedRoute, Router } from '@angular/router';
+import { RouteQueryParam } from '../../core/routing/route-paths';
 
 // A listing row: nearby results carry distanceKm, normal ones don't.
 // NearbySalonListingItemDto is otherwise identical to SalonListingItemDto.
@@ -82,6 +84,8 @@ export class SalonListingService {
   private readonly _http = inject(HttpClient);
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _cache = inject(SalonListingSessionCache);
+  private readonly _route = inject(ActivatedRoute);
+  private readonly _router = inject(Router);
 
   private readonly _items = signal<ListingItem[]>([]);
   private readonly _meta = signal<PaginatedMetaDto | null>(null);
@@ -91,7 +95,11 @@ export class SalonListingService {
     search: '',
     category: '',
   });
-  private readonly _page = signal(1);
+  // Pagination is route state, not component state. The listing service is
+  // deliberately page-scoped so filters cannot leak between Landing, Search
+  // and Dashboard; reading the page from the URL lets a newly-created service
+  // restore the page after the visitor opens a salon and navigates back.
+  private readonly _page = signal(this._initialPage());
   // Non-null only in nearby mode. NearbySalonListingItemDto is a structural
   // superset of SalonListingItemDto (it just adds distanceKm), so _items
   // holds either and the card renders both.
@@ -155,7 +163,7 @@ export class SalonListingService {
         // dropped, for the case where "Near me" was denied (so _nearby is
         // null but the banner is up) and the user typed instead.
         if (this._nearby() === null) this._nearbyError.set(null);
-        this._page.set(1);
+        this._setPage(1);
         this._refetch$.next();
       });
 
@@ -167,7 +175,7 @@ export class SalonListingService {
       .subscribe((location) => {
         this._filters.update((f) => ({ ...f, location }));
         this._exitNearby();
-        this._page.set(1);
+        this._setPage(1);
         this._refetch$.next();
       });
 
@@ -257,7 +265,7 @@ export class SalonListingService {
   // surprising behaviour.
   setCategory(category: string): void {
     this._filters.update((f) => ({ ...f, category }));
-    this._page.set(1);
+    this._setPage(1);
     this._refetch$.next();
   }
 
@@ -336,7 +344,7 @@ export class SalonListingService {
     // answers to the same question, and the endpoint has no param for it.
     this._filters.update((f) => ({ location: '', search: '', category: f.category }));
     this._nearby.set(coords);
-    this._page.set(1);
+    this._setPage(1);
     this._refetch$.next();
   }
 
@@ -352,7 +360,7 @@ export class SalonListingService {
   disableNearby(): void {
     if (!this._nearby()) return;
     this._exitNearby();
-    this._page.set(1);
+    this._setPage(1);
     this._refetch$.next();
   }
 
@@ -391,7 +399,25 @@ export class SalonListingService {
 
   goToPage(page: number): void {
     if (page < 1 || (this._meta() && page > this._meta()!.totalPages)) return;
-    this._page.set(page);
+    this._setPage(page);
     this._refetch$.next();
+  }
+
+  private _setPage(page: number): void {
+    this._page.set(page);
+    void this._router.navigate([], {
+      relativeTo: this._route,
+      queryParams: { [RouteQueryParam.PAGE]: page === 1 ? null : page },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  private _initialPage(): number {
+    const raw = this._route.snapshot.queryParamMap.get(RouteQueryParam.PAGE);
+    if (!raw || !/^\d+$/.test(raw)) return 1;
+
+    const page = Number(raw);
+    return Number.isSafeInteger(page) && page >= 1 ? page : 1;
   }
 }
