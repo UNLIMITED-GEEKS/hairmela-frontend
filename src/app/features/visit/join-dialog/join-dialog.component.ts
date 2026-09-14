@@ -26,6 +26,8 @@ import { registerOverlayWhileOpen } from '../../../core/overlay/overlay-registry
 import { Service } from '../../../api/models/service';
 import { BookingFeeStepComponent } from '../booking-fee-step/booking-fee-step.component';
 import { scrollToNewRow } from '../../../core/utils/scroll-to-new-row';
+import { PhoneInputComponent } from '../../../shared/components/phone-input/phone-input.component';
+import { normalizePhoneNumber } from '../../../core/phone/phone-number';
 
 // Matches core/media/media-upload.ts's uploadAdHocImage(): JPEG/PNG/WebP/AVIF
 // upload straight to R2, HEIC/HEIF go through the backend's conversion
@@ -48,7 +50,7 @@ const MAX_NOTE_IMAGE_BYTES = 5 * 1024 * 1024;
 @Component({
   selector: 'app-join-dialog',
   templateUrl: './join-dialog.component.html',
-  imports: [ReactiveFormsModule, FieldErrorComponent, BookingFeeStepComponent],
+  imports: [ReactiveFormsModule, FieldErrorComponent, BookingFeeStepComponent, PhoneInputComponent],
 })
 export class JoinDialogComponent {
   readonly open = input.required<boolean>();
@@ -73,9 +75,12 @@ export class JoinDialogComponent {
   private readonly _fb = inject(FormBuilder);
 
   protected readonly guestName = signal('');
-  protected readonly guestPhone = signal('');
+  protected readonly guestPhone = this._fb.nonNullable.control('', Validators.required);
   protected readonly guestNameTouched = signal(false);
   protected readonly guestPhoneTouched = signal(false);
+  protected get guestPhoneValid(): boolean {
+    return this.guestPhone.valid && !!this.guestPhone.value;
+  }
   // The joining customer's services. A list, not a single id: one person can
   // book several services in one visit, and each becomes its own members[]
   // entry sharing their name. Index 0 is the primary one.
@@ -200,7 +205,7 @@ export class JoinDialogComponent {
       untracked(() => {
         const user = this._currentUser.user();
         this.guestName.set(user?.firstName ?? '');
-        this.guestPhone.set('');
+        this.guestPhone.reset();
         this.guestNameTouched.set(false);
         this.guestPhoneTouched.set(false);
         this.step.set('form');
@@ -340,7 +345,9 @@ export class JoinDialogComponent {
     const leaderName = this.isGuest
       ? this.guestName().trim()
       : (this._currentUser.user()?.firstName ?? '');
-    const phone = this.isGuest ? this.guestPhone().trim() : undefined;
+    const phone = this.isGuest
+      ? normalizePhoneNumber(this.guestPhone.value) ?? undefined
+      : undefined;
 
     // Mark every field the user has not yet blurred, so its error actually
     // renders. Previously these paths just returned: the errors were gated on
@@ -353,6 +360,7 @@ export class JoinDialogComponent {
       if (this.isGuest) {
         this.guestNameTouched.set(true);
         this.guestPhoneTouched.set(true);
+        this.guestPhone.markAsTouched();
       }
       this.leaderServiceTouched.set(true);
       afterNextRender(() => scrollToFirstInvalidControl(this._fieldsEl()?.nativeElement), {

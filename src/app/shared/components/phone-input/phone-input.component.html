@@ -1,0 +1,31 @@
+<div
+  class="flex rounded-lg border border-border-strong bg-transparent text-text-primary transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20"
+>
+  <select
+    class="w-32 shrink-0 rounded-l-lg border-0 border-r border-border-strong bg-transparent px-2 py-2 text-sm outline-none disabled:opacity-60"
+    [value]="country()"
+    [disabled]="disabled()"
+    [attr.aria-label]="'Phone country code'"
+    (change)="setCountry($any($event.target).value)"
+    (blur)="markTouched()"
+  >
+    <option value="" [selected]="country() === null" disabled>Select country</option>
+    @for (item of countries; track item.code) {
+      <option [value]="item.code" [selected]="item.code === country()">
+        {{ item.name }} ({{ item.callingCode }})
+      </option>
+    }
+  </select>
+  <input
+    class="min-w-0 flex-1 rounded-r-lg border-0 bg-transparent px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary outline-none disabled:opacity-60"
+    [id]="inputId()"
+    type="tel"
+    inputmode="tel"
+    [autocomplete]="autocomplete()"
+    [value]="nationalNumber()"
+    [disabled]="disabled()"
+    placeholder="0803 123 4567"
+    (input)="setNumber($any($event.target).value)"
+    (blur)="markTouched()"
+  />
+</div>

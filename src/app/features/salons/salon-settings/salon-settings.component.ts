@@ -37,6 +37,9 @@ import { CURRENCIES } from '../../../core/geo/currencies.data';
 import { UpdateSalonDto } from '../../../api/models/update-salon-dto';
 import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { PhoneInputComponent } from '../../../shared/components/phone-input/phone-input.component';
+import { CountryCode } from 'libphonenumber-js';
+import { normalizePhoneNumber } from '../../../core/phone/phone-number';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -87,6 +90,7 @@ function paymentDetailsRequiredWhenFeeEnforced(group: AbstractControl): Validati
     InlineSpinnerComponent,
     TimePickerComponent,
     RouterLink,
+    PhoneInputComponent,
   ],
 })
 export class SalonSettingsComponent implements OnInit {
@@ -96,6 +100,7 @@ export class SalonSettingsComponent implements OnInit {
   private readonly _scrollInjector = inject(Injector);
 
   protected readonly _location = inject(Location);
+  protected readonly phoneCountry = signal<CountryCode>('NG');
   private readonly _route = inject(ActivatedRoute);
   private readonly _fb = inject(FormBuilder);
   private readonly _destroyRef = inject(DestroyRef);
@@ -276,10 +281,14 @@ export class SalonSettingsComponent implements OnInit {
       const s = this._overview.salon() ?? this._settings.salon();
       if (!s) return;
       const settings = s.settings as Record<string, unknown>;
+      const phoneCountry = (
+        COUNTRIES.find((country) => country.name === s.address?.country)?.code ?? 'NG'
+      ) as CountryCode;
+      this.phoneCountry.set(phoneCountry);
       this.form.patchValue(
         {
           name: s.name,
-          phone: s.phone ?? '',
+          phone: normalizePhoneNumber(s.phone, phoneCountry) ?? s.phone ?? '',
           about: s.about ?? '',
           timezone: s.timezone,
           defaultSlotDuration: s.defaultSlotDuration,

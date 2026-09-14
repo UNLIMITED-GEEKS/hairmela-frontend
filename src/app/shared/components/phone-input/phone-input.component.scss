@@ -1,0 +1,7 @@
+// Chromium renders the native popup with a light system background even when
+// the page uses a dark color scheme. Explicit option colors keep every country
+// readable while the closed select continues to use the app theme.
+option {
+  color: #111827;
+  background: #fff;
+}

@@ -112,17 +112,8 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-text-body mb-1.5">Phone</label>
-            <input
-              type="tel"
-              [attr.data-invalid]="guestPhoneTouched() && !guestPhone().trim() ? 'true' : null"
-              [value]="guestPhone()"
-              (input)="guestPhone.set($any($event.target).value)"
-              (blur)="guestPhoneTouched.set(true)"
-              placeholder="e.g. 08012345678"
-              class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors" />
-            @if (guestPhoneTouched() && !guestPhone().trim()) {
-              <p class="mt-1.5 text-xs text-red-600">This field is required.</p>
-            }
+            <app-phone-input [formControl]="guestPhone" />
+            <app-field-error [control]="guestPhone" />
           </div>
         }
 
@@ -233,7 +224,7 @@
              part payment submits straight from here as it always did. -->
         <button
           (click)="confirmJoin()"
-          [disabled]="!leaderServiceIds()[0] || (isGuest && (!guestName().trim() || !guestPhone().trim())) || visit.joining()"
+          [disabled]="!leaderServiceIds()[0] || (isGuest && (!guestName().trim() || !guestPhoneValid)) || visit.joining()"
           class="flex-1 min-h-12 rounded-2xl bg-primary text-white font-semibold text-sm disabled:opacity-50 hover:bg-secondary-light hover:text-primary transition-colors">
           {{ visit.joining()
               ? 'Joining...'

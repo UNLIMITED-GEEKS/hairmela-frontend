@@ -90,8 +90,8 @@
                   class="self-start inline-flex items-center gap-1 min-h-11 px-3 rounded-xl border border-dashed border-primary/30 text-xs font-semibold text-primary hover:bg-secondary-light disabled:text-text-disabled disabled:border-border disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors">
                   + Add another service
                 </button>
-                <input formControlName="phone" type="tel" placeholder="Phone (optional)"
-                  class="w-full border border-border rounded-xl px-3 py-2 text-sm min-h-11 focus:outline-none focus:ring-2 focus:ring-primary/30">
+                <app-phone-input formControlName="phone" />
+                <app-field-error [control]="addQueueMembers.at(i).get('phone')" />
               </div>
             }
           </div>

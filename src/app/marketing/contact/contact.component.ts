@@ -9,12 +9,13 @@ import { scrollToFirstInvalidControl } from '../../core/utils/scroll-to-first-in
 import { AppPlatformService } from '../../core/native/app-platform.service';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { RoutePath } from '../../core/routing/route-paths';
+import { PhoneInputComponent } from '../../shared/components/phone-input/phone-input.component';
 
 // Public contact form — submits to POST /v1/contact.
 @Component({
   selector: 'app-contact',
   templateUrl: './contact.component.html',
-  imports: [ReactiveFormsModule, FieldErrorComponent, PageHeaderComponent],
+  imports: [ReactiveFormsModule, FieldErrorComponent, PageHeaderComponent, PhoneInputComponent],
 })
 export class ContactComponent {
   protected readonly platform = inject(AppPlatformService);

@@ -20,6 +20,7 @@ import { registerOverlayWhileOpen } from '../../../core/overlay/overlay-registry
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 import { monthRange } from '../../../shared/components/slot-picker/iso-date';
 import { scrollToNewRow } from '../../../core/utils/scroll-to-new-row';
+import { PhoneInputComponent } from '../../../shared/components/phone-input/phone-input.component';
 
 function toIsoDate(d: Date): string {
   const yyyy = d.getFullYear();
@@ -41,7 +42,7 @@ function startOfMonth(d: Date): Date {
 @Component({
   selector: 'app-add-client-modal',
   templateUrl: './add-client-modal.component.html',
-  imports: [ReactiveFormsModule, FieldErrorComponent, MiniMonthCalendarComponent, InlineSpinnerComponent],
+  imports: [ReactiveFormsModule, FieldErrorComponent, MiniMonthCalendarComponent, InlineSpinnerComponent, PhoneInputComponent],
 })
 export class AddClientModalComponent {
   readonly open = input.required<boolean>();
@@ -180,6 +181,10 @@ export class AddClientModalComponent {
   // ── Walk-in mode actions ─────────────────────────────────────────────────
 
   protected staffAddToQueue(): void {
+    if (this.addQueueForm.invalid) {
+      this.addQueueForm.markAllAsTouched();
+      return;
+    }
     const rows = this.addQueueMembers.value as { name: string; serviceIds: string[]; phone: string }[];
     const members = this._flatten(rows, false);
     if (members.length === 0) return;

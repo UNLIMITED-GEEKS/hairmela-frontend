@@ -15,6 +15,7 @@ import { PullToRefreshIndicatorComponent } from '../../pull-to-refresh-indicator
 import { PullToRefreshService } from '../../../../core/pwa/pull-to-refresh.service';
 import { OrgContextService } from '../../../../core/salon-context/org-context.service';
 import { RoutePath } from '../../../../core/routing/route-paths';
+import { RouteScrollRestorationService } from '../../../../core/scroll/route-scroll-restoration.service';
 
 @Component({
   selector: 'app-auth-shell',
@@ -66,6 +67,7 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly _salonContext = inject(SalonContextService);
   private readonly _orgContext = inject(OrgContextService);
   private readonly _pullToRefresh = inject(PullToRefreshService);
+  private readonly _scrollRestoration = inject(RouteScrollRestorationService);
   protected readonly _currentUser = inject(CurrentUserStore);
 
   // This shell's scroll region is the inner <main>, not the window (see
@@ -140,10 +142,13 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit(): void {
-    this._pullToRefresh.init({ scrollEl: this._mainEl().nativeElement });
+    const main = this._mainEl().nativeElement;
+    this._pullToRefresh.init({ scrollEl: main });
+    this._scrollRestoration.register(main);
   }
 
   ngOnDestroy(): void {
+    this._scrollRestoration.unregister(this._mainEl().nativeElement);
     this._pullToRefresh.teardown();
   }
 }

@@ -52,6 +52,8 @@ export class FieldErrorComponent {
         return `Must be no more than ${(error as { max: number }).max}.`;
       case 'pattern':
         return 'Invalid format.';
+      case 'phone':
+        return 'Enter a valid phone number.';
       default:
         return null;
     }

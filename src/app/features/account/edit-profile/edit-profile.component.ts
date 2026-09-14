@@ -6,11 +6,12 @@ import { EditProfileService } from './edit-profile.service';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { RoutePath } from '../../../core/routing/route-paths';
 import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
+import { PhoneInputComponent } from '../../../shared/components/phone-input/phone-input.component';
 
 @Component({
   selector: 'app-edit-profile',
   templateUrl: './edit-profile.component.html',
-  imports: [ReactiveFormsModule, RouterLink, FieldErrorComponent],
+  imports: [ReactiveFormsModule, RouterLink, FieldErrorComponent, PhoneInputComponent],
 })
 export class EditProfileComponent implements OnInit {
   // The <form> element, so a blocked submit can scroll to the first

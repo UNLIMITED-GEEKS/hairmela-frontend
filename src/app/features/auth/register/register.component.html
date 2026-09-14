@@ -91,15 +91,7 @@
 
       <div>
         <label for="phone" class="block text-sm font-medium text-text-body mb-1">Phone</label>
-        <input
-          id="phone"
-          type="tel"
-          formControlName="phone"
-          autocomplete="tel"
-          class="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-          [class.border-red-400]="form.controls.phone.invalid && form.controls.phone.touched"
-          placeholder="+234 800 000 0000"
-        />
+        <app-phone-input inputId="phone" formControlName="phone" />
         <app-field-error [control]="form.controls.phone" />
       </div>
 

@@ -84,12 +84,7 @@
             <label for="s-phone" class="block text-sm font-medium text-text-body mb-1.5"
               >Phone</label
             >
-            <input
-              id="s-phone"
-              type="tel"
-              formControlName="phone"
-              class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
-            />
+            <app-phone-input inputId="s-phone" formControlName="phone" [fallbackCountry]="phoneCountry()" />
             <app-field-error [control]="form.controls.phone" />
           </div>
 

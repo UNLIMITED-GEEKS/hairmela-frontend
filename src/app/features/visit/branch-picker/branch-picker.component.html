@@ -1,6 +1,11 @@
 @if (branchPicker.loading()) {
-  <div class="px-4 py-6">
-    <app-skeleton variant="card" [count]="6" />
+  <div class="mx-auto px-2 pb-10 pt-8 sm:px-0">
+    <app-skeleton variant="card" height="8rem"  [count]="1" rounded="rounded-[11px]" />
+    <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      @for (card of [1, 2, 3, 4]; track card) {
+        <app-skeleton variant="block" height="18rem" rounded="rounded-xl" />
+      }
+    </div>
   </div>
 } @else if (branchPicker.failed()) {
   <app-page-header title="Locations" backVariant="glass" />
@@ -58,7 +63,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
         <p class="mt-4 text-base font-semibold text-text-primary">No locations available right now.</p>
-        <p class="mt-2 text-sm text-text-secondary">Please check back later for upcoming branches.</p>
+        <p class="mt-2 text-sm text-text-secondary">Please check back later.</p>
       </div>
     } @else {
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

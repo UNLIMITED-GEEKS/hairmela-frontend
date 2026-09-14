@@ -24,13 +24,14 @@ import { COUNTRY_TIMEZONES } from '../../../core/geo/country-timezones.data';
 import { CURRENCIES } from '../../../core/geo/currencies.data';
 import { CreateSalonDto } from '../../../api/models/create-salon-dto';
 import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
+import { PhoneInputComponent } from '../../../shared/components/phone-input/phone-input.component';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 @Component({
   selector: 'app-create-salon',
   templateUrl: './create-salon.component.html',
-  imports: [ReactiveFormsModule, FieldErrorComponent, InlineSpinnerComponent, TimePickerComponent],
+  imports: [ReactiveFormsModule, FieldErrorComponent, InlineSpinnerComponent, TimePickerComponent, PhoneInputComponent],
 })
 export class CreateSalonComponent implements OnInit {
   // The <form> element, so a blocked submit can scroll to the first

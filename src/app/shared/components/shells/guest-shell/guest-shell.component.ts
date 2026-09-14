@@ -13,6 +13,7 @@ import { TopBarComponent } from '../top-bar/top-bar.component';
 import { PullToRefreshIndicatorComponent } from '../../pull-to-refresh-indicator/pull-to-refresh-indicator.component';
 import { PullToRefreshService } from '../../../../core/pwa/pull-to-refresh.service';
 import { RoutePath } from '../../../../core/routing/route-paths';
+import { RouteScrollRestorationService } from '../../../../core/scroll/route-scroll-restoration.service';
 
 @Component({
   selector: 'app-guest-shell',
@@ -58,6 +59,7 @@ export class GuestShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly _router = inject(Router);
   private readonly _destroyRef = inject(DestroyRef);
   private readonly _pullToRefresh = inject(PullToRefreshService);
+  private readonly _scrollRestoration = inject(RouteScrollRestorationService);
 
   // This shell's scroll region is the inner <main>, not the window (see
   // PullToRefreshService's class doc for why that distinction matters).
@@ -107,10 +109,13 @@ export class GuestShellComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit(): void {
-    this._pullToRefresh.init({ scrollEl: this._mainEl().nativeElement });
+    const main = this._mainEl().nativeElement;
+    this._pullToRefresh.init({ scrollEl: main });
+    this._scrollRestoration.register(main);
   }
 
   ngOnDestroy(): void {
+    this._scrollRestoration.unregister(this._mainEl().nativeElement);
     this._pullToRefresh.teardown();
   }
 }

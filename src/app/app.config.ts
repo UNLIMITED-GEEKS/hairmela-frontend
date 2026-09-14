@@ -32,8 +32,9 @@ export const appConfig: ApplicationConfig = {
     provideRouter(
       routes,
       withRouterConfig({ paramsInheritanceStrategy: 'always' }),
-      // Scroll to top on navigation (footer/nav links), restore position on back/forward.
-      withInMemoryScrolling({ scrollPositionRestoration: 'top', anchorScrolling: 'enabled' }),
+      // Angular restores the public shell's window scroll. Auth/guest shells
+      // use RouteScrollRestorationService because their inner <main> scrolls.
+      withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' }),
     ),
     provideHttpClient(withInterceptors([jwtInterceptor, refreshInterceptor, errorInterceptor])),
     provideApiConfiguration(environment.apiBaseUrl),

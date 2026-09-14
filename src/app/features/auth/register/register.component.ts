@@ -12,6 +12,7 @@ import { FieldErrorComponent } from '../../../shared/components/field-error/fiel
 import { AuthBrandComponent } from '../../../shared/components/auth-brand/auth-brand.component';
 import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
 import { AppPlatformService } from '../../../core/native/app-platform.service';
+import { PhoneInputComponent } from '../../../shared/components/phone-input/phone-input.component';
 
 @Component({
   selector: 'app-register',
@@ -21,6 +22,7 @@ import { AppPlatformService } from '../../../core/native/app-platform.service';
     PasswordToggleDirective,
     FieldErrorComponent,
     AuthBrandComponent,
+    PhoneInputComponent,
   ],
   templateUrl: './register.component.html',
 })
