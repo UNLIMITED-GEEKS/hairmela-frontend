@@ -186,11 +186,9 @@ export class LiveQueueComponent {
 
   protected readonly bookDialogOpen = signal(false);
 
-  // "Not ready today? Book an appointment" — always shown (not hidden for
-  // guests, unlike the old showBookAppointment gate). A guest tapping it is
-  // sent to register with a returnUrl back to this page, same redirect
-  // pattern selectBarber() uses for the walk-in join flow, rather than never
-  // seeing the option existed at all.
+  // The secondary "Not ready right now?" prompt is shown only for salons that
+  // accept walk-ins. Guests are sent to register with a returnUrl back to this
+  // page, matching the redirect pattern used by the walk-in join flow.
   protected openBookDialog(): void {
     // Also guarded here, not just in the template: a signed-out tap redirects
     // to register and returns to this page, so the check must hold on the way
