@@ -6,15 +6,15 @@
           d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
       </svg>
       <p class="flex-1 min-w-0 text-sm text-amber-800">
-        Verify your email to secure your account. We sent a link to
+        Verify your email to secure your account
         <span class="font-medium">{{ user()?.email }}</span>.
       </p>
       <button
         type="button"
         (click)="resend()"
         [disabled]="resending()"
-        class="shrink-0 text-sm font-semibold text-amber-700 hover:text-amber-900 disabled:opacity-50 transition-colors">
-        {{ resending() ? 'Sending…' : 'Resend' }}
+        class="shrink-0 min-h-9 rounded-lg border border-amber-300 bg-amber-100 px-3 py-1.5 text-sm font-semibold text-amber-800 hover:border-amber-400 hover:bg-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40 disabled:cursor-not-allowed disabled:opacity-50 transition-colors">
+        {{ resending() ? 'Sending…' : 'Send Email' }}
       </button>
       <button
         type="button"
