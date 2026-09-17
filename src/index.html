@@ -32,13 +32,7 @@
   <meta name="twitter:image" content="https://hairmela.com/og-image.png">
   <meta name="twitter:image:alt" content="HairMela logo">
 
-  <!-- Mobile / PWA -->
-  <!-- Browser/OS chrome: Android's status bar, Safari's toolbar. Two
-       media-scoped tags are the no-JS baseline; the pre-boot script below
-       replaces them once it knows the resolved theme, because an explicit
-       in-app choice has to beat the OS preference and a media query cannot
-       see one. Light keeps the branded crimson; dark uses --color-surface
-       (#1C1C1C) so the bar continues the page instead of capping it in red. -->
+
   <meta name="theme-color" content="#8B0000" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#1C1C1C" media="(prefers-color-scheme: dark)">
   <meta name="mobile-web-app-capable" content="yes">
@@ -53,18 +47,7 @@
 
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest.webmanifest">
-  <!-- Applies the theme BEFORE Angular boots. ThemeService does the same
-       thing, but it runs as an app initializer — by then the first paint has
-       already happened, so a dark-mode user saw a white flash on every launch.
 
-       Reads localStorage directly: PersistentStore writes there on web, and on
-       native it mirrors into Capacitor Preferences while still keeping the
-       localStorage copy, so this works in the APK and iOS standalone too.
-       Absent or 'system' falls through to prefers-color-scheme, which every
-       target reports (Android WebView, iOS standalone, browsers).
-
-       Wrapped in try/catch: storage access throws outright in some private
-       modes, and a theme flash is not worth breaking boot over. -->
   <script>
     (function () {
       try {
@@ -79,9 +62,6 @@
               : 'light';
         document.documentElement.setAttribute('data-theme', mode);
         document.documentElement.style.colorScheme = mode;
-        // Collapse the two media-scoped tags into one unconditional tag for the
-        // resolved mode. Without this, someone on a light OS who picked dark
-        // in-app keeps the crimson bar over a dark page.
         var metas = document.querySelectorAll('meta[name="theme-color"]');
         for (var i = metas.length - 1; i >= 0; i--) metas[i].remove();
         var m = document.createElement('meta');
@@ -89,88 +69,10 @@
         m.content = mode === 'dark' ? '#1C1C1C' : '#8B0000';
         document.head.appendChild(m);
 
-        // Reveal the splash immediately in an installed app. Same test as
-        // AppPlatformService.isAppContext, minus environment.native — which is
-        // a build-time constant this script cannot see. The APK runs the WebView
-        // in standalone display mode, so the media query catches it anyway.
-        //
-        // The web case is deliberately NOT handled here: whether to show it
-        // depends on the user being signed in AND heading for the dashboard,
-        // and a stale refresh token in storage does not tell us that. Angular
-        // decides instead (see SplashService).
-        // THREE checks, because "installed app" looks different in each shell:
-        //
-        //   window.Capacitor — the Android/iOS APK. A Capacitor WebView does
-        //     NOT report display-mode: standalone (it is a WebView, not a
-        //     browser in an installed PWA), so the media query alone left the
-        //     splash permanently hidden in the native app. Verified on device.
-        //
-        //   display-mode — an installed PWA. Not just 'standalone': a desktop
-        //     PWA may report minimal-ui, window-controls-overlay or fullscreen
-        //     depending on platform and window configuration.
-        //
-        //   navigator.standalone — the iOS-specific flag, which predates the
-        //     media query and is what an iOS home-screen app sets.
-        // Capacitor (Android) is EXCLUDED on purpose. Android 12+ draws its own
-        // system splash from the launch theme and there is no way to opt out,
-        // so showing the web splash after it meant two screens for one launch.
-        // The system splash already carries the same mark on the same #1C1C1C
-        // ground, and MainActivity holds it until the WebView paints — so the
-        // native app gets one continuous splash, not a handoff between two.
-        //
-        // The other installed shells DO get it: an installed PWA and an iOS
-        // home-screen app have no system splash of their own worth the name.
-        // WHO GETS THE WEB SPLASH: iOS standalone, and nobody else installed.
-        //
-        // Every other installed shell already has a splash of its own, and
-        // drawing ours after it means the user sits through two:
-        //
-        //   Android APK   Android 12+ draws a system splash from the launch
-        //                 theme. Mandatory since API 31 — there is no opt-out.
-        //   Installed PWA Chrome generates one from the manifest's icons and
-        //                 background_color. Also not suppressible.
-        //   iOS standalone  Safari generates NOTHING. It ignores the web app
-        //                 manifest's splash entirely, so without ours the app
-        //                 opens on a blank white screen while Angular boots.
-        //                 THIS is the gap the web splash exists to fill.
-        //
-        // navigator.standalone is the discriminator: it is Safari-proprietary,
-        // so Chrome never sets it, while display-mode:standalone is what an
-        // installed Chrome PWA reports. Testing the iOS flag ALONE therefore
-        // selects iOS home-screen apps and excludes installed PWAs, which is
-        // exactly the split we want.
-        // FIXME: the web splash STILL appears on Android despite everything
-        // below, so launches there show two splashes — the system one, then
-        // ours. Verified in the packaged APK that the exclusion is present and
-        // correctly ordered, and that platformSplash no longer adds the class
-        // that reveals #hm-splash, so the remaining cause is unidentified.
-        // Next things to try: log what isCapacitor/standalone actually evaluate
-        // to inside the WebView (chrome://inspect), and check whether some
-        // other code path clears [hidden] on the element. Cosmetic, not
-        // functional — the app itself behaves correctly.
-        //
-        // isCapacitor, not window.Capacitor alone: the native bridge is injected
-        // by the WebView and is NOT guaranteed to exist this early in <head>,
-        // which is exactly why the web splash kept appearing on Android. The
-        // origin check is available immediately — Capacitor serves the app from
-        // https://localhost by default (no `server` block in
-        // capacitor.config.ts), an origin a real browser never has for this
-        // site.
+      
         var isCapacitor =
           !!window.Capacitor ||
           location.hostname === 'localhost' && location.protocol === 'https:';
-        // WHO GETS THE WEB SPLASH: every installed shell EXCEPT Android.
-        //
-        //   iOS standalone   Safari generates no splash at all, so without ours
-        //                    the app opens on a blank white screen.
-        //   Installed PWA    Chrome does generate one, and ours plays after it.
-        //                    That IS two splashes, accepted deliberately: the
-        //                    Chrome one is a static icon it composites itself
-        //                    with no way to animate or suppress it, so this is
-        //                    the only way the PWA gets the branded animation.
-        //   Android APK      EXCLUDED. Its system splash is the whole launch
-        //                    screen and drawing ours after it was the
-        //                    double-splash we set out to remove.
         var standalone =
           !isCapacitor &&
           (navigator.standalone === true ||
@@ -180,53 +82,19 @@
                   return window.matchMedia('(display-mode: ' + mode + ')').matches;
                 },
               )));
-        // A CLASS ON <html>, not splash.hidden = false: this script runs in
-        // <head>, so #hm-splash does not exist yet and getElementById returns
-        // null. The class is applied to the root now and the CSS below reveals
-        // the element the moment the parser reaches it — no flash, no timing
-        // dependency on DOMContentLoaded.
-        // Shells whose splash is drawn by the PLATFORM, not by us: the Android
-        // APK (system splash) and an installed PWA (Chrome's manifest splash).
-        // Both skip the web splash — that is the double-splash this avoids —
-        // but both still need the app-root fade, because the platform splash
-        // dismisses onto an Angular app that has not painted yet and would
-        // otherwise snap in.
-        // Android only, now that the PWA takes the web splash: the one shell
-        // that skips our splash but still needs app-root faded in behind its
-        // platform one.
+
         var platformSplash = isCapacitor;
         if (platformSplash) {
-          // hm-splash-showing ONLY — deliberately not hm-app-context, which is
-          // what reveals #hm-splash (see the CSS below). These shells have a
-          // platform splash already; all they want from us is the fade.
+         
           document.documentElement.classList.add('hm-splash-showing');
-          // Released by SplashService once Angular has BOOTED — not from
-          // readystatechange here. document 'complete' fires while the WebView
-          // has only the empty shell, well before Angular has rendered a route,
-          // so releasing there faded in a blank page and the real content then
-          // snapped in behind it with nothing left to animate.
-          // See SplashService.dismiss(), which handles this case too.
+        
         }
 
         if (standalone) {
-          // Both classes NOW, before Angular exists. hm-splash-showing holds
-          // app-root at opacity 0 so the app can fade UP as the splash fades
-          // down. Setting it later — from SplashService, which runs as an app
-          // initializer — is too late: app-root has already painted by then, so
-          // the content appears, gets hidden, then transitions back in, which
-          // reads as a flash rather than a fade.
+          
           document.documentElement.classList.add('hm-app-context', 'hm-splash-showing');
 
-          // LAST-RESORT FAILSAFE, for one narrow case only: main.ts never
-          // RUNS. A throw during bootstrap is handled properly in main.ts's
-          // catch, which clears these classes at the real signal; this covers
-          // the case where that file never executes at all — a script that
-          // 404s, a dead network on a cold start — where no app code exists to
-          // react and only something already in this HTML can recover.
-          //
-          // A timer is genuinely the only instrument here: there is no event
-          // for "a script you were waiting on will never arrive". Kept long
-          // enough that a slow connection is never cut short.
+         
           setTimeout(function () {
             var root = document.documentElement;
             if (!root.classList.contains('hm-splash-showing')) return;
@@ -234,15 +102,7 @@
             var s = document.getElementById('hm-splash');
             if (s) s.remove();
           }, 15000);
-          // Also drop the [hidden] ATTRIBUTE, not just out-specify it in CSS.
-          // A CSS-only reveal leaves the element visible while still marked
-          // hidden, which is a lie to assistive tech and to
-          // SplashService.isVisible, which reads el.hidden.
-          //
-          // The element does not exist yet (this runs in <head>), so this waits
-          // for the parser to reach it. readystatechange fires at
-          // 'interactive', i.e. as soon as the DOM is parsed — well before
-          // load, and before Angular boots.
+         
           document.addEventListener('readystatechange', function reveal() {
             var el = document.getElementById('hm-splash');
             if (!el) return;
@@ -254,11 +114,7 @@
     })();
   </script>
 
-  <!-- Splash styles are INLINE, not in styles.css: the stylesheet is a separate
-       request that has not arrived on the first frame, which is the one frame
-       this exists to cover. Colours are hardcoded for the same reason — the CSS
-       custom properties live in that same unloaded stylesheet. They mirror
-       --color-surface per theme; if those tokens change, change these too. -->
+  
   <style>
     #hm-splash {
       position: fixed;
@@ -267,14 +123,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      /* #1C1C1C matches the logo tile's own background exactly, so the icon's
-         rounded edges disappear into the screen and only the ring and dot are
-         visible. Deliberately the SAME in both themes: the mark is a fixed
-         dark tile and there is no light variant of it, so a white light-mode
-         splash would frame it in a visible black square. */
+    
       background: #1C1C1C;
-      /* Only the fade-out is animated; the splash is already on screen when the
-         first frame paints, so there is nothing to fade in FROM. */
+     
       transition: opacity 300ms ease-out;
     }
     #hm-splash-inner {
@@ -284,52 +135,32 @@
       gap: 18px;
     }
 
-    /* Logo drops in from above and settles. backwards fill so it is already at
-       opacity 0 on frame one — without it the logo flashes in place before
-       animating. The cubic-bezier overshoots slightly past 1, so it arrives
-       with a small bounce rather than stopping dead. */
     #hm-splash-svg {
       width: min(200px, 52vw);
       height: auto;
     }
 
-    /* The MARK drops in from above and settles with a slight overshoot.
-       backwards fill so it is already at opacity 0 on frame one — without it
-       it flashes in place before animating. */
+   
     #hm-splash-ring,
     #hm-splash-dot {
       animation: hm-splash-logo 540ms cubic-bezier(0.34, 1.32, 0.44, 1) backwards;
-      /* view-box, NOT fill-box. The ring is a stroked circle with fill="none",
-         so its fill bounding box is degenerate — under fill-box the scale() in
-         the keyframe collapsed it and the ring vanished the moment the
-         animation settled. view-box resolves against the SVG's own coordinate
-         system, which both the ring and the dot actually occupy. */
+    
       transform-box: view-box;
     }
-    /* EACH ELEMENT SCALES ABOUT ITSELF. Both shared 600 570 (the ring's centre)
-       before, but the dot sits at 762 801 — scaling it about a point ~200 units
-       up and to the left dragged it sideways on the way in, which read as the
-       mark arriving from the right rather than straight down. */
+   
     #hm-splash-ring { transform-origin: 600px 570px; }
     #hm-splash-dot {
       transform-origin: 762px 801px;
-      /* Lands last, once the ring has almost arrived — it sits in the ring's
-         gap, so appearing first would read as a stray mark. */
+     
       animation-delay: 140ms;
     }
-    /* -700 is in VIEWBOX units, not screen pixels: a CSS transform on an SVG
-       child is resolved in the element's own coordinate system, and this
-       viewBox is 1200x1500 rendered at ~200x250 — a factor of 6. The earlier
-       -90 therefore travelled 15 screen px and read as a twitch. -700 lands
-       the mark from roughly a screen-height above. */
+   
     @keyframes hm-splash-logo {
       from { opacity: 0; transform: translateY(-700px) scale(0.94); }
       to   { opacity: 1; transform: none; }
     }
 
-    /* The WORDMARK arrives letter by letter, each tspan carrying its own delay
-       inline. This is why the SVG is inlined rather than an <img>: glyphs
-       inside an image are not addressable. */
+   
     #hm-splash-word tspan {
       animation: hm-splash-letter 280ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
     }
@@ -338,32 +169,9 @@
       to   { opacity: 1; }
     }
 
-    /* Set by SplashService to start the fade; the element is removed on
-       transitionend so it never sits in the tree eating pointer events. */
+   
     #hm-splash.hm-splash-out { opacity: 0; }
 
-    /* Fade the APP in as the splash fades out, rather than relying on the
-       content happening to be finished underneath.
-       On the web that illusion mostly holds: the splash only appears for a
-       signed-in dashboard redirect, by which point Angular has booted and the
-       page is rendered, so the splash dissolving over it already reads as a
-       cross-fade. In an installed app the splash is up from the FIRST frame —
-       well before bootstrap — so it dissolved onto a half-built screen, which
-       reads as a pop instead.
-       Scoped to .hm-splash-showing so an ordinary web visit, which never shows
-       a splash, still paints instantly with no fade at all. */
-    /* The transition is declared HERE, on the showing state, not introduced by
-       the leaving rule. Declaring a transition in the same rule that changes
-       the value gives the browser no prior transition to interpolate from, and
-       it commonly applies the new value instantly — which is why the fade-in
-       stopped working when this was split.
-
-       Hiding must still be INSTANT: the web path adds this class after
-       sessionInit has awaited hydration and a token refresh, by which point
-       Angular has already painted the dashboard, and easing to hidden meant
-       320ms of the dashboard fading out underneath the splash with both
-       visible. transition-behavior handles that — 0s in, 320ms out — via the
-       duration swap on the leaving rule below. */
     :root.hm-splash-showing app-root {
       opacity: 0;
       transition: opacity 0s;
@@ -373,23 +181,9 @@
       transition-duration: 320ms;
       transition-timing-function: ease-out;
     }
-    /* Hidden by default — the web case. Revealed either by the boot script's
-       root class (installed app) or by SplashService (signed-in web user
-       heading to the dashboard), which clears the [hidden] attribute. */
     #hm-splash[hidden] { display: none; }
-    /* Covers the window between the element being parsed and the boot script's
-       readystatechange handler clearing [hidden] — without it the splash would
-       blink in a frame late. Both paths are needed: this one for the first
-       frame, the attribute removal for a DOM that tells the truth. */
-    /* hm-app-context means "draw OUR web splash" and is set only where no
-       platform splash exists — iOS standalone. Android and installed PWAs get
-       hm-splash-showing alone, so they fade in without this ever matching. */
     :root.hm-app-context #hm-splash { display: flex; }
     @media (prefers-reduced-motion: reduce) {
-      #hm-splash { transition-duration: 1ms; }
-      /* Show the mark and word outright rather than animating them in. Not
-         `animation: none`, which would strand them at the keyframe's `from`
-         state (opacity 0) because these use fill-mode backwards. */
       #hm-splash-ring,
       #hm-splash-dot,
       #hm-splash-word tspan {
@@ -400,37 +194,11 @@
   </style>
 </head>
 <body>
-  <!-- Boot splash. Lives here, not in a component, so it paints with the FIRST
-       frame the WebView draws — a component cannot, because Angular has to
-       download, parse and bootstrap first, which is exactly the blank gap this
-       covers.
-
-       Shown only in an installed app (Android APK / standalone PWA / iOS
-       standalone), decided by the script below. On the web it starts hidden and
-       SplashService opts it in for one case only: a signed-in visitor being
-       redirected to the dashboard. Showing it to everyone on the web would put
-       a launch animation in front of a marketing page, and — worse — in front
-       of people who are about to land on the login screen.
-
-       aria-hidden + inert: purely decorative, and it must never take focus or
-       be read out while the real page is loading underneath it. -->
+  
   <div id="hm-splash" aria-hidden="true" inert hidden>
     <div id="hm-splash-inner">
-      <!-- INLINE svg, not <img src>: the wordmark animates letter by letter,
-           and glyphs inside an <img> are not reachable as DOM nodes. Geometry
-           copied verbatim from public/icons/logo-with-text.svg — keep the two
-           in step if that file changes.
-
-           Currency of the values: ring cx600 cy570 r310 stroke92 with the gap
-           via dasharray + rotate(78); dot at 762,801 r62; wordmark 150px bold
-           centred at y=1120. -->
       <svg id="hm-splash-svg" viewBox="0 0 1200 1500" width="200" height="250"
         role="img" aria-hidden="true" focusable="false">
-        <!-- The rotation lives on a WRAPPER, not on the circle: a CSS
-             transform (the entrance animation) replaces an element's transform
-             attribute wholesale, so animating the circle directly wiped
-             rotate(78) and moved the gap. Two elements, two transforms, no
-             collision. -->
         <g transform="rotate(78 600 570)">
           <circle id="hm-splash-ring"
             cx="600" cy="570" r="310" fill="none" stroke="#ffffff" stroke-width="92"
