@@ -5,31 +5,40 @@
        the waiting list. -->
   <div class="h-screen-minus-topbar bg-surface px-4 py-8">
     <div class="max-w-lg mx-auto space-y-4">
-
       <div class="rounded-2xl border border-border bg-surface-card p-5 space-y-3">
         <app-skeleton variant="block" height="0.875rem" width="6rem" rounded="rounded" />
         <div class="flex items-center gap-3">
-          <div class="shrink-0"><app-skeleton variant="block" height="3rem" width="3rem" rounded="rounded-full" /></div>
+          <div class="shrink-0">
+            <app-skeleton variant="block" height="3rem" width="3rem" rounded="rounded-full" />
+          </div>
           <div class="min-w-0 flex-1 space-y-1.5">
             <app-skeleton variant="block" height="1rem" width="8rem" rounded="rounded" />
             <app-skeleton variant="block" height="0.75rem" width="6rem" rounded="rounded" />
           </div>
         </div>
         <div class="flex gap-2 pt-1">
-          <div class="flex-1"><app-skeleton variant="block" height="2.5rem" rounded="rounded-xl" /></div>
-          <div class="flex-1"><app-skeleton variant="block" height="2.5rem" rounded="rounded-xl" /></div>
+          <div class="flex-1">
+            <app-skeleton variant="block" height="2.5rem" rounded="rounded-xl" />
+          </div>
+          <div class="flex-1">
+            <app-skeleton variant="block" height="2.5rem" rounded="rounded-xl" />
+          </div>
         </div>
       </div>
 
       <div class="divide-y divide-border-subtle rounded-xl border border-border bg-surface-card">
         @for (row of [1, 2, 3, 4]; track row) {
           <div class="flex items-center gap-3 px-4 py-3.5">
-            <div class="shrink-0"><app-skeleton variant="block" height="2rem" width="2rem" rounded="rounded-full" /></div>
+            <div class="shrink-0">
+              <app-skeleton variant="block" height="2rem" width="2rem" rounded="rounded-full" />
+            </div>
             <div class="min-w-0 flex-1 space-y-1.5">
               <app-skeleton variant="block" height="1rem" width="7rem" rounded="rounded" />
               <app-skeleton variant="block" height="0.75rem" width="5rem" rounded="rounded" />
             </div>
-            <div class="shrink-0"><app-skeleton variant="block" height="1rem" width="3rem" rounded="rounded-full" /></div>
+            <div class="shrink-0">
+              <app-skeleton variant="block" height="1rem" width="3rem" rounded="rounded-full" />
+            </div>
           </div>
         }
       </div>
@@ -39,100 +48,164 @@
   <div class="h-screen-minus-topbar bg-surface flex items-center justify-center px-4">
     <div class="max-w-sm text-center space-y-3">
       <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
-        <svg class="h-6 w-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        <svg
+          class="h-6 w-6 text-amber-600"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+          />
         </svg>
       </div>
       <h1 class="text-lg font-bold text-text-primary">Console locked</h1>
       <p class="text-sm text-text-secondary">
-        Your salon has more staff than its plan allows, so your queue controls are paused.
-        Ask the owner to upgrade to restore access.
+        Your salon has more staff than its plan allows, so your queue controls are paused. Ask the
+        owner to upgrade to restore access.
       </p>
-      <button type="button" (click)="_location.back()"
-        class="inline-block rounded-lg border border-border-strong px-5 py-2.5 text-sm font-semibold text-text-body hover:bg-surface transition-colors">
+      <button
+        type="button"
+        (click)="_location.back()"
+        class="inline-block rounded-lg border border-border-strong px-5 py-2.5 text-sm font-semibold text-text-body hover:bg-surface transition-colors"
+      >
         Go back
       </button>
     </div>
   </div>
 } @else {
   <div class="h-screen-minus-topbar bg-surface flex flex-col">
-
-    <!-- Top bar: back + status pills + call next -->
-    <div class="shrink-0 bg-surface  px-4 pt-4 md:pt-2  space-y-2">
-
-      <!-- Help sits on the existing hint line rather than as its own row: this
-           header is already dense (back, three status pills, call-next), and a
-           staff member who needs the guide needs it once, not prominently. -->
-      <!-- Help sits on the existing hint line rather than as its own row: this
-           header is already dense (back, three status pills, call-next), and a
-           staff member who needs the guide needs it once, not prominently.
-           text-brand-accent, NOT text-primary: the latter is remapped to plain
-           ink in dark mode (styles.css) because the burgundy scores 1.30:1
-           there — the link rendered the same grey as the sentence around it
-           and read as more hint text. -->
-      <p class="text-xs text-text-disabled mb-1 mt-2 ml-11">
-        Tap to open, pause, or close your queue ·
-        <a [routerLink]="howItWorksLink" [queryParams]="howItWorksStaffParams"
-          class="font-semibold text-brand-accent underline underline-offset-2">
-          Click here to learn how this works
-        </a>
-      </p>
-      <div class="flex items-center gap-2">
-        @if (onQueueListRoute()) {
-          <a [routerLink]="currentClientLink" aria-label="Back to current client"
-            class="min-w-11 min-h-11 flex items-center justify-center text-text-disabled hover:text-primary -ml-2 shrink-0">
-            <app-icon name="chevron-left" class="w-2 h-3.5" />
-          </a>
-        } @else {
-          <app-back-button variant="plain" />
-        }
-        <div class="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
-          @for (s of statusOptions; track s) {
+    <!-- The shell header has three distinct jobs: navigation, queue status,
+         and the primary serving action. Keeping each in its own visual group
+         prevents the controls from reading as one crowded toolbar. -->
+    <header class="shrink-0 border-b border-border-subtle bg-surface px-4 py-4">
+      <div class="mx-auto max-w-lg space-y-2">
+        <div class="flex items-center gap-2.5">
+          @if (onQueueListRoute()) {
+            <a
+              [routerLink]="currentClientLink"
+              aria-label="Back to current client"
+              class="flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-card text-text-secondary transition-colors hover:border-primary hover:text-primary"
+            >
+              <app-icon name="chevron-left" class="w-2 h-3.5" />
+            </a>
+          } @else {
             <button
-              (click)="setStatus(s)"
-              [disabled]="console.acting() || console.queueStatus() === null || console.queueStatus() === s"
-              [class]="'px-3 min-h-9 rounded-xl border text-xs font-semibold transition-colors disabled:cursor-not-allowed ' +
-                (console.queueStatus() === s
-                  ? (s === 'OPEN'   ? 'bg-primary text-white  shadow-sm'
-                   : s === 'PAUSED' ? 'bg-warning text-white border-warning shadow-sm'
-                                    : 'bg-red-600 text-white border-red-600 shadow-sm')
-                  : 'bg-surface-card text-text-secondary border-border-strong hover:bg-surface-sunken hover:border-border-strong disabled:opacity-40')">
-              {{ s === 'OPEN' ? 'Open' : s === 'PAUSED' ? 'Pause' : 'Close' }}
+              type="button"
+              (click)="_location.back()"
+              aria-label="Go back"
+              class="flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-card text-text-secondary transition-colors hover:border-primary hover:text-primary"
+            >
+              <app-icon name="chevron-left" class="w-2 h-3.5" />
             </button>
           }
+          <div class="min-w-0 flex-1">
+            <h1 class="truncate text-base font-bold text-text-primary">Queue console</h1>
+            <p class="truncate text-xs text-text-secondary">
+              {{ onQueueListRoute() ? 'Manage waiting clients' : 'Manage the current client' }}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            (click)="copyQueueLink()"
+            aria-label="Copy queue link"
+            class="flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-card text-text-secondary transition-colors hover:border-primary hover:text-primary"
+          >
+            <app-icon name="share" class="h-4 w-4" />
+          </button>
         </div>
 
-        <button
-          type="button"
-          (click)="copyQueueLink()"
-          aria-label="Copy queue link"
-          class="min-w-11 min-h-11 flex items-center justify-center rounded-xl border border-border-strong bg-surface-card text-text-secondary hover:bg-surface-sunken hover:text-primary transition-colors">
-                   <app-icon name="share" class="h-4 w-4 text-primary" />
+        <section
+          class="rounded-xl border border-border bg-surface-card p-2"
+          aria-label="Queue status"
+        >
+          <div class="mb-1.5 flex items-center justify-between gap-3 px-1">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wide text-text-primary">
+                Queue status
+              </p>
+              <p class="text-[10px] text-text-secondary">Set your queue to open, paused, or closed.</p>
+            </div>
+            <a
+              [routerLink]="howItWorksLink"
+              [queryParams]="howItWorksStaffParams"
+              class="inline-flex min-h-8 shrink-0 items-center rounded-lg bg-primary px-2.5 text-xs font-semibold text-white transition-colors hover:bg-primary-hover"
+            >
+              How it works
+            </a>
+          </div>
 
-        </button>
-      </div>
+          <div class="grid grid-cols-3 gap-2">
+            @for (s of statusOptions; track s) {
+              <button
+                (click)="setStatus(s)"
+                [disabled]="
+                  console.acting() || console.queueStatus() === null || console.queueStatus() === s
+                "
+                [class]="
+                  'min-h-9 rounded-lg border px-3 text-xs font-semibold transition-colors disabled:cursor-not-allowed ' +
+                  (console.queueStatus() === s
+                    ? s === 'OPEN'
+                      ? 'bg-primary text-white border-primary shadow-sm'
+                      : s === 'PAUSED'
+                        ? 'bg-warning text-white border-warning shadow-sm'
+                        : 'bg-red-600 text-white border-red-600 shadow-sm'
+                    : 'bg-surface text-text-secondary border-border-strong hover:bg-surface-sunken disabled:opacity-40')
+                "
+              >
+                {{ s === 'OPEN' ? 'Open' : s === 'PAUSED' ? 'Pause' : 'Close' }}
+              </button>
+            }
+          </div>
+        </section>
 
-      <div class="mt-2 flex gap-2">
-        <button
-          (click)="callNext()"
-          [disabled]="console.queueStatus() !== 'OPEN' || console.waitingEntries().length === 0 || console.hasServingEntry() || console.nextIsLocked()"
-          class="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-40 transition-opacity whitespace-nowrap">
-          Click To Serve Next Client
-        </button>
-        <button
-          type="button"
-          (click)="showAutoCallNextSettings.set(true)"
-          aria-label="Queue automation settings"
-          class="min-w-11 min-h-11 flex items-center justify-center rounded-xl border border-border-strong bg-surface-card text-text-secondary hover:bg-surface-sunken hover:text-primary transition-colors">
-          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-              d="M10.325 4.317a1.5 1.5 0 0 1 2.85 0 1.5 1.5 0 0 0 2.286.912 1.5 1.5 0 0 1 2.015 2.015 1.5 1.5 0 0 0 .912 2.286 1.5 1.5 0 0 1 0 2.85 1.5 1.5 0 0 0-.912 2.286 1.5 1.5 0 0 1-2.015 2.015 1.5 1.5 0 0 0-2.286.912 1.5 1.5 0 0 1-2.85 0 1.5 1.5 0 0 0-2.286-.912 1.5 1.5 0 0 1-2.015-2.015 1.5 1.5 0 0 0-.912-2.286 1.5 1.5 0 0 1 0-2.85 1.5 1.5 0 0 0 .912-2.286 1.5 1.5 0 0 1 2.015-2.015 1.5 1.5 0 0 0 2.286-.912Z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 15.25A3.25 3.25 0 1 0 12 8.75a3.25 3.25 0 0 0 0 6.5Z" />
-          </svg>
-        </button>
+        <div class="flex gap-2">
+          <button
+            (click)="callNext()"
+            [disabled]="
+              console.queueStatus() !== 'OPEN' ||
+              console.waitingEntries().length === 0 ||
+              console.hasServingEntry() ||
+              console.nextIsLocked()
+            "
+            class="min-h-11 flex-1 rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary-hover disabled:opacity-40"
+          >
+          Click To Serve Next Client          </button>
+          <button
+            type="button"
+            (click)="showAutoCallNextSettings.set(true)"
+            aria-label="Queue automation settings"
+            class="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-border-strong bg-surface-card text-text-secondary transition-colors hover:border-primary hover:text-primary"
+          >
+            <svg
+              class="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.8"
+                d="M10.325 4.317a1.5 1.5 0 0 1 2.85 0 1.5 1.5 0 0 0 2.286.912 1.5 1.5 0 0 1 2.015 2.015 1.5 1.5 0 0 0 .912 2.286 1.5 1.5 0 0 1 0 2.85 1.5 1.5 0 0 0-.912 2.286 1.5 1.5 0 0 1-2.015 2.015 1.5 1.5 0 0 0-2.286.912 1.5 1.5 0 0 1-2.85 0 1.5 1.5 0 0 0-2.286-.912 1.5 1.5 0 0 1-2.015-2.015 1.5 1.5 0 0 0-.912-2.286 1.5 1.5 0 0 1 0-2.85 1.5 1.5 0 0 0 .912-2.286 1.5 1.5 0 0 1 2.015-2.015 1.5 1.5 0 0 0 2.286-.912Z"
+              />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.8"
+                d="M12 15.25A3.25 3.25 0 1 0 12 8.75a3.25 3.25 0 0 0 0 6.5Z"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
-    </div>
+    </header>
 
     <!-- Page content — overflow-hidden hre previously clipped the routed
          pages' md:static desktop action bar (position: fixed on mobile
@@ -142,50 +215,70 @@
     <div class="flex-1 min-h-0">
       <router-outlet />
     </div>
+  </div>
 
-    </div>
-
-    @if (showAutoCallNextSettings()) {
+  @if (showAutoCallNextSettings()) {
+    <div
+      animate.enter="modal-backdrop-enter"
+      animate.leave="modal-backdrop-leave"
+      class="fixed inset-0 z-40 flex items-center justify-center px-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="auto-call-next-title"
+    >
+      <div class="absolute inset-0 bg-black/40" (click)="showAutoCallNextSettings.set(false)"></div>
       <div
-        animate.enter="modal-backdrop-enter"
-        animate.leave="modal-backdrop-leave"
-        class="fixed inset-0 z-40 flex items-center justify-center px-4"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="auto-call-next-title">
-        <div class="absolute inset-0 bg-black/40" (click)="showAutoCallNextSettings.set(false)"></div>
-        <div
-          animate.enter="modal-card-enter"
-          animate.leave="modal-card-leave"
-          class="relative z-10 w-full max-w-md rounded-3xl bg-surface-card px-5 pt-5 pb-6">
-          <div class="mb-4 flex items-center justify-between">
-            <h2 id="auto-call-next-title" class="text-base font-bold text-text-primary">Queue settings</h2>
-            <button
-              type="button"
-              (click)="showAutoCallNextSettings.set(false)"
-              class="min-w-10 min-h-10 flex items-center justify-center text-text-secondary hover:text-text-primary"
-              aria-label="Close">
-              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          <label class="flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border border-border px-4 py-3">
-            <span class="min-w-0 flex-1">
-              <span class="block text-sm font-semibold text-text-primary">Auto call next</span>
-              <span class="mt-0.5 block text-xs text-text-secondary">
-                Automatically move the queue on after a session ends and its grace period passes.
-              </span>
-            </span>
-            <input
-              type="checkbox"
-              [checked]="console.queue()?.autoCallNext ?? true"
-              [disabled]="console.acting() || !console.queue()"
-              (change)="setAutoCallNext($any($event.target).checked)"
-              class="h-5 w-5 shrink-0 rounded border-border-strong text-primary focus:ring-primary/40" />
-          </label>
+        animate.enter="modal-card-enter"
+        animate.leave="modal-card-leave"
+        class="relative z-10 w-full max-w-md rounded-3xl bg-surface-card px-5 pt-5 pb-6"
+      >
+        <div class="mb-4 flex items-center justify-between">
+          <h2 id="auto-call-next-title" class="text-base font-bold text-text-primary">
+            Queue settings
+          </h2>
+          <button
+            type="button"
+            (click)="showAutoCallNextSettings.set(false)"
+            class="min-w-10 min-h-10 flex items-center justify-center text-text-secondary hover:text-text-primary"
+            aria-label="Close"
+          >
+            <svg
+              class="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18 18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
         </div>
+
+        <label
+          class="flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border border-border px-4 py-3"
+        >
+          <span class="min-w-0 flex-1">
+            <span class="block text-sm font-semibold text-text-primary">Auto end session</span>
+            <span class="mt-0.5 block text-xs text-text-secondary">
+              Automatically end the current client’s session and call the next client when the timer
+              runs out. Anytime you end a session manually, you’ll need to call the next client
+              manually. Automatic calling will then continue for the following clients.
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            [checked]="console.queue()?.autoCallNext ?? true"
+            [disabled]="console.acting() || !console.queue()"
+            (change)="setAutoCallNext($any($event.target).checked)"
+            class="h-5 w-5 shrink-0 rounded border-border-strong text-primary focus:ring-primary/40"
+          />
+        </label>
       </div>
-    }
+    </div>
   }
+}

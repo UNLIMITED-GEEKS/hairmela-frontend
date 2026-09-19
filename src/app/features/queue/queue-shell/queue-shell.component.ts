@@ -6,7 +6,6 @@ import { filter, map, startWith } from 'rxjs';
 import { QueueConsoleService } from '../queue-console/queue-console.service';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { ConnectionBannerComponent } from '../../../shared/components/connection-banner/connection-banner.component';
-import { BackButtonComponent } from '../../../shared/components/back-button/back-button.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import {
   RouteParam,
@@ -24,14 +23,7 @@ import { environment } from '../../../../environments/environment';
   selector: 'app-queue-shell',
   templateUrl: './queue-shell.component.html',
   providers: [QueueConsoleService],
-  imports: [
-    SkeletonComponent,
-    RouterOutlet,
-    RouterLink,
-    ConnectionBannerComponent,
-    BackButtonComponent,
-    IconComponent,
-  ],
+  imports: [SkeletonComponent, RouterOutlet, RouterLink, ConnectionBannerComponent, IconComponent],
 })
 export class QueueShellComponent implements OnInit, OnDestroy {
   protected readonly console = inject(QueueConsoleService);

@@ -24,8 +24,7 @@ android {
         //
         // versionName: the string users see. Independent of versionCode — it can
         // repeat or move backwards without Play caring.
-        versionCode 46
-        versionName "1.0.0"
+        versionCode 47        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

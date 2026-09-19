@@ -152,7 +152,9 @@
                 }
               }
               @case ('upgrade') {
-                <button type="button" (click)="upgrade(plan.tier)"
+                <button 
+                [disabled]="acting()"
+                type="button" (click)="upgrade(plan.tier)"
                   class="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-colors">
                   {{ acting() ? 'Working…' : (hasLapsed() ? 'Choose plan' : 'Upgrade') }}
                 </button>
