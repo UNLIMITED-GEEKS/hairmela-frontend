@@ -1,4 +1,11 @@
-import { ApplicationConfig, ErrorHandler, provideBrowserGlobalErrorListeners, provideAppInitializer, inject, isDevMode } from '@angular/core';
+import {
+  ApplicationConfig,
+  ErrorHandler,
+  provideBrowserGlobalErrorListeners,
+  provideAppInitializer,
+  inject,
+  isDevMode,
+} from '@angular/core';
 import { provideRouter, withRouterConfig, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideCloudinaryLoader } from '@angular/common';
@@ -10,6 +17,7 @@ import { environment } from '../environments/environment';
 import { jwtInterceptor } from './core/interceptors/jwt.interceptor';
 import { refreshInterceptor } from './core/interceptors/refresh.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
+import { payloadEncryptionInterceptor } from './core/interceptors/payload-encryption.interceptor';
 import { sessionInit } from './core/auth/session-init';
 import { SplashService } from './core/splash/splash.service';
 import { UpdateService } from './core/pwa/update.service';
@@ -36,7 +44,16 @@ export const appConfig: ApplicationConfig = {
       // use RouteScrollRestorationService because their inner <main> scrolls.
       withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' }),
     ),
-    provideHttpClient(withInterceptors([jwtInterceptor, refreshInterceptor, errorInterceptor])),
+    provideHttpClient(
+      withInterceptors([
+        jwtInterceptor,
+        refreshInterceptor,
+        errorInterceptor,
+        // Must remain innermost: it decrypts both successful and error
+        // responses before auth/error interceptors inspect their bodies.
+        payloadEncryptionInterceptor,
+      ]),
+    ),
     provideApiConfiguration(environment.apiBaseUrl),
     // Starts loading Capacitor Preferences into PersistentStore's synchronous
     // cache (no-op on web). This is a HEAD START, not a guarantee: Angular runs
@@ -61,7 +78,9 @@ export const appConfig: ApplicationConfig = {
     // NOT awaited and returns nothing: an initializer that returned the timer
     // would hold up bootstrap for a full second, which is the opposite of the
     // point — the app must load underneath the splash, not behind it.
-    provideAppInitializer(() => { inject(SplashService).dismiss(); }),
+    provideAppInitializer(() => {
+      inject(SplashService).dismiss();
+    }),
     provideCloudinaryLoader(`https://res.cloudinary.com/${environment.cloudinaryCloudName}`),
     provideServiceWorker('ngsw-worker.js', {
       // environment.serviceWorker is false only in the Capacitor native build,

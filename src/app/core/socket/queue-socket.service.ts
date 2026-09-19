@@ -1,5 +1,5 @@
 import { Injectable, OnDestroy, inject } from '@angular/core';
-import { Observable, Subject, BehaviorSubject, ReplaySubject } from 'rxjs';
+import { Observable, Subject, BehaviorSubject, ReplaySubject, Subscription } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { environment } from '../../../environments/environment';
 import { TokenStore } from '../auth/token.store';
@@ -11,6 +11,8 @@ import {
   CustomerCalledPayload,
   ConnectionState,
 } from './socket.types';
+import { PayloadEncryptionService } from '../payload-encryption/payload-encryption.service';
+import { EncryptedSocketEnvelope } from '../payload-encryption/payload-encryption.types';
 
 // FIXME: this whole self-action-suppression window is a timing-based patch,
 // not the correct fix. A staff-initiated mutation (call next, add client,
@@ -36,8 +38,11 @@ export class QueueSocketService implements OnDestroy {
   private readonly _tokenStore = inject(TokenStore);
   private readonly _guestStore = inject(GuestStore);
   private readonly _sound = inject(QueueSoundService);
+  private readonly _encryption = inject(PayloadEncryptionService);
 
   private _socket: Socket | null = null;
+  private _connectPromise: Promise<void> | null = null;
+  private readonly _encryptionSubscription: Subscription;
   private readonly _watchedQueues = new Set<string>();
   private readonly _watchedStaffQueues = new Set<string>();
   // Refcounts staff-watch callers per queueId. More than one caller can watch
@@ -65,12 +70,52 @@ export class QueueSocketService implements OnDestroy {
 
   readonly connectionState$ = this._connectionState$.asObservable();
 
+  constructor() {
+    this._encryptionSubscription = this._encryption.sessionChanged$.subscribe(() => {
+      if (!this._socket) return;
+      // Auth responses publish the replacement ticket before AuthService stores
+      // the replacement access token. Reconnect on the next microtask so the
+      // socket sends the matching token/ticket pair.
+      queueMicrotask(() => {
+        this._socket?.disconnect();
+        this._socket = null;
+        this.connect();
+      });
+    });
+  }
+
   connect(): void {
-    if (this._socket?.connected) return;
+    void this._connect();
+  }
+
+  private async _connect(): Promise<void> {
+    if (this._socket?.connected && this._encryption.socketSessionIsCurrent()) return;
+    if (this._connectPromise) return this._connectPromise;
+
+    this._connectPromise = this._openSocket().finally(() => {
+      this._connectPromise = null;
+    });
+    return this._connectPromise;
+  }
+
+  private async _openSocket(): Promise<void> {
+    if (this._socket) {
+      this._socket.disconnect();
+      this._socket = null;
+    }
 
     const token = this._tokenStore.getAccessToken() ?? this._guestStore.getToken();
+    const encryptionSession = await this._encryption.ensureSession();
     this._socket = io(`${environment.socketUrl}/queues`, {
-      auth: { token },
+      auth: {
+        token,
+        ...(encryptionSession
+          ? {
+              encryptionVersion: 1,
+              encryptionTicket: encryptionSession.ticket,
+            }
+          : {}),
+      },
       transports: ['websocket'],
     });
 
@@ -90,19 +135,26 @@ export class QueueSocketService implements OnDestroy {
     // The only live-update event name the gateway actually emits over the
     // wire (confirmed against queue.gateway.ts — 'queue.updated' is an
     // internal NestJS EventEmitter2 name only, never a socket.io event).
-    this._socket.on('queueTimeline', (data: QueueTimelinePayload) => {
-      this._lastTimeline.set(data.queueId, data.timeline);
-      this._timelines.get(data.queueId)?.next(data.timeline);
-      if (data.serverTime) this._serverTimes.get(data.queueId)?.next(data.serverTime);
-      this._maybePlaySound(data);
+    this._socket.on('queueTimeline', (payload: QueueTimelinePayload | EncryptedSocketEnvelope) => {
+      void this._handleIncoming<QueueTimelinePayload>('queueTimeline', payload, (data) => {
+        this._lastTimeline.set(data.queueId, data.timeline);
+        this._timelines.get(data.queueId)?.next(data.timeline);
+        if (data.serverTime) this._serverTimes.get(data.queueId)?.next(data.serverTime);
+        this._maybePlaySound(data);
+      }).catch(() => this.disconnect());
     });
 
     // Wire event name is 'customerCalled' (no dot) — confirmed against
     // queue.gateway.ts. The previous 'customer.called' listener here never
     // fired against the real backend.
-    this._socket.on('customerCalled', (payload: CustomerCalledPayload) => {
-      this._called.get(payload.queueId)?.next(payload);
-    });
+    this._socket.on(
+      'customerCalled',
+      (payload: CustomerCalledPayload | EncryptedSocketEnvelope) => {
+        void this._handleIncoming<CustomerCalledPayload>('customerCalled', payload, (data) => {
+          this._called.get(data.queueId)?.next(data);
+        }).catch(() => this.disconnect());
+      },
+    );
   }
 
   disconnect(): void {
@@ -118,7 +170,7 @@ export class QueueSocketService implements OnDestroy {
     this._ensureTimelineSubject(queueId);
     this._watchedQueues.add(queueId);
     if (this._socket?.connected) {
-      this._socket.emit('joinQueue', { queueId });
+      void this._emit('joinQueue', { queueId });
     }
   }
 
@@ -127,7 +179,7 @@ export class QueueSocketService implements OnDestroy {
     this._watchedStaffQueues.add(queueId);
     this._staffWatchRefs.set(queueId, (this._staffWatchRefs.get(queueId) ?? 0) + 1);
     if (this._socket?.connected) {
-      this._socket.emit('joinQueueStaff', { queueId });
+      void this._emit('joinQueueStaff', { queueId });
     }
   }
 
@@ -150,7 +202,7 @@ export class QueueSocketService implements OnDestroy {
     // wants this queue — otherwise unmounting one watcher would tear the room
     // out from under a surviving one.
     if (!this._watchedQueues.has(queueId) && !this._watchedStaffQueues.has(queueId)) {
-      this._socket?.emit('leaveQueue', { queueId });
+      void this._emit('leaveQueue', { queueId });
     }
   }
 
@@ -211,12 +263,38 @@ export class QueueSocketService implements OnDestroy {
     }
   }
 
+  private async _emit(event: string, data: unknown): Promise<void> {
+    await this._connect();
+    if (!this._socket?.connected) return;
+    const encrypted = await this._encryption.encryptSocket(event, data);
+    this._socket.emit(event, encrypted ?? data);
+  }
+
+  private async _handleIncoming<T>(
+    event: string,
+    payload: T | EncryptedSocketEnvelope,
+    handle: (value: T) => void,
+  ): Promise<void> {
+    if (
+      payload &&
+      typeof payload === 'object' &&
+      'requestId' in payload &&
+      'iv' in payload &&
+      'ciphertext' in payload
+    ) {
+      handle(await this._encryption.decryptSocket<T>(event, payload as EncryptedSocketEnvelope));
+      return;
+    }
+    handle(payload as T);
+  }
+
   private _rejoinAll(): void {
-    this._watchedQueues.forEach((id) => this._socket?.emit('joinQueue', { queueId: id }));
-    this._watchedStaffQueues.forEach((id) => this._socket?.emit('joinQueueStaff', { queueId: id }));
+    this._watchedQueues.forEach((id) => void this._emit('joinQueue', { queueId: id }));
+    this._watchedStaffQueues.forEach((id) => void this._emit('joinQueueStaff', { queueId: id }));
   }
 
   ngOnDestroy(): void {
+    this._encryptionSubscription.unsubscribe();
     this.disconnect();
   }
 }

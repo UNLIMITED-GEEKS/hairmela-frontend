@@ -3,6 +3,8 @@
 
 export type { AppControllerGetHello$Params as AppControllerGetHello$Params } from './fn/app/app-controller-get-hello';
 export { appControllerGetHello as appControllerGetHello } from './fn/app/app-controller-get-hello';
+export type { PayloadEncryptionControllerCreateSession$Params as PayloadEncryptionControllerCreateSession$Params } from './fn/payload-encryption/payload-encryption-controller-create-session';
+export { payloadEncryptionControllerCreateSession as payloadEncryptionControllerCreateSession } from './fn/payload-encryption/payload-encryption-controller-create-session';
 export type { HealthControllerLive$Params as HealthControllerLive$Params } from './fn/health/health-controller-live';
 export { healthControllerLive as healthControllerLive } from './fn/health/health-controller-live';
 export type { HealthControllerReady$Params as HealthControllerReady$Params } from './fn/health/health-controller-ready';
@@ -203,6 +205,8 @@ export type { QueueManagementControllerGetStaffTimeline$Params as QueueManagemen
 export { queueManagementControllerGetStaffTimeline as queueManagementControllerGetStaffTimeline } from './fn/queues/queue-management-controller-get-staff-timeline';
 export type { QueueManagementControllerSetStatus$Params as QueueManagementControllerSetStatus$Params } from './fn/queues/queue-management-controller-set-status';
 export { queueManagementControllerSetStatus as queueManagementControllerSetStatus } from './fn/queues/queue-management-controller-set-status';
+export type { QueueManagementControllerSetAutoCallNext$Params as QueueManagementControllerSetAutoCallNext$Params } from './fn/queues/queue-management-controller-set-auto-call-next';
+export { queueManagementControllerSetAutoCallNext as queueManagementControllerSetAutoCallNext } from './fn/queues/queue-management-controller-set-auto-call-next';
 export type { QueueManagementControllerCallNext$Params as QueueManagementControllerCallNext$Params } from './fn/queues/queue-management-controller-call-next';
 export { queueManagementControllerCallNext as queueManagementControllerCallNext } from './fn/queues/queue-management-controller-call-next';
 export type { QueueManagementControllerServeMember$Params as QueueManagementControllerServeMember$Params } from './fn/queues/queue-management-controller-serve-member';

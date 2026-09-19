@@ -3,5 +3,7 @@
 
 export interface AuthTokensDto {
   accessToken: string;
+  payloadEncryptionExpiresAt?: string;
+  payloadEncryptionTicket?: string;
   refreshToken: string;
 }

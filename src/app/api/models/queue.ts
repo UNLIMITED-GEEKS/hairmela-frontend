@@ -5,6 +5,7 @@ import { QueueEntry } from '../models/queue-entry';
 import { Salon } from '../models/salon';
 import { SalonStaff } from '../models/salon-staff';
 export interface Queue {
+  autoCallNext: boolean;
   createdAt: string;
   entries: Array<QueueEntry>;
   id: string;

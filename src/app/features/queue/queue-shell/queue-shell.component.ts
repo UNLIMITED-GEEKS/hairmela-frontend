@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterOutlet, RouterLink, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -76,6 +76,7 @@ export class QueueShellComponent implements OnInit, OnDestroy {
     'PAUSED',
     'CLOSED',
   ];
+  protected readonly showAutoCallNextSettings = signal(false);
 
   protected get salonId(): string {
     return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
@@ -106,6 +107,10 @@ export class QueueShellComponent implements OnInit, OnDestroy {
     // chevron above is — queue-list can be reached from several places.
     this.console.callNext(this.salonId, this.queueId, () => this._goToCurrentClient());
     if (this.onQueueListRoute()) this._goToCurrentClient();
+  }
+
+  protected setAutoCallNext(autoCallNext: boolean): void {
+    this.console.setAutoCallNext(this.salonId, this.queueId, autoCallNext);
   }
 
   protected copyQueueLink(): void {

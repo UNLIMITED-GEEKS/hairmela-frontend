@@ -25,6 +25,7 @@ import { authenticatedAuthControllerGetMe } from '../../api/fn/auth/authenticate
 import { authenticatedAuthControllerResendVerification } from '../../api/fn/auth/authenticated-auth-controller-resend-verification';
 import { authenticatedAuthControllerLogout } from '../../api/fn/auth/authenticated-auth-controller-logout';
 import { RoutePath } from '../routing/route-paths';
+import { PayloadEncryptionService } from '../payload-encryption/payload-encryption.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -39,6 +40,7 @@ export class AuthService {
   private readonly _guestStore = inject(GuestStore);
   private readonly _activeEntryStore = inject(ActiveEntryStore);
   private readonly _pushService = inject(PushService);
+  private readonly _payloadEncryption = inject(PayloadEncryptionService);
 
   login(dto: LoginDto): Observable<UserResponseDto> {
     return authControllerLogin(this._http, this._apiConfig.rootUrl, { body: dto }).pipe(
@@ -96,6 +98,7 @@ export class AuthService {
 
   private _teardownSession(): void {
     this._socketService.disconnect();
+    this._payloadEncryption.clear();
     this._tokenStore.clearTokens();
     this._currentUserStore.clear();
     this._membershipStore.invalidateAll();
@@ -114,23 +117,24 @@ export class AuthService {
   }
 
   resendVerification(): Observable<void> {
-    return authenticatedAuthControllerResendVerification(
-      this._http,
-      this._apiConfig.rootUrl,
-    ).pipe(map(() => undefined));
+    return authenticatedAuthControllerResendVerification(this._http, this._apiConfig.rootUrl).pipe(
+      map(() => undefined),
+    );
   }
 
   // Requests a reset code be emailed. The caller must NOT reveal whether the
   // email exists — always show a neutral message regardless of outcome.
   forgotPassword(body: ForgotPasswordDto): Observable<void> {
-    return authControllerForgotPassword(this._http, this._apiConfig.rootUrl, { body })
-      .pipe(map(() => undefined));
+    return authControllerForgotPassword(this._http, this._apiConfig.rootUrl, { body }).pipe(
+      map(() => undefined),
+    );
   }
 
   // Completes the reset using the emailed code (token) + new password.
   resetPassword(body: ResetPasswordDto): Observable<void> {
-    return authControllerResetPassword(this._http, this._apiConfig.rootUrl, { body })
-      .pipe(map(() => undefined));
+    return authControllerResetPassword(this._http, this._apiConfig.rootUrl, { body }).pipe(
+      map(() => undefined),
+    );
   }
 
   private _fetchAndStoreUser(): Observable<UserResponseDto> {

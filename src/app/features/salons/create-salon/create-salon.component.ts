@@ -1,4 +1,14 @@
-import { Component, DestroyRef, inject, signal, OnInit, viewChild, ElementRef, Injector, afterNextRender } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  inject,
+  signal,
+  OnInit,
+  viewChild,
+  ElementRef,
+  Injector,
+  afterNextRender,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -31,7 +41,13 @@ const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 
 @Component({
   selector: 'app-create-salon',
   templateUrl: './create-salon.component.html',
-  imports: [ReactiveFormsModule, FieldErrorComponent, InlineSpinnerComponent, TimePickerComponent, PhoneInputComponent],
+  imports: [
+    ReactiveFormsModule,
+    FieldErrorComponent,
+    InlineSpinnerComponent,
+    TimePickerComponent,
+    PhoneInputComponent,
+  ],
 })
 export class CreateSalonComponent implements OnInit {
   // The <form> element, so a blocked submit can scroll to the first
@@ -119,7 +135,7 @@ export class CreateSalonComponent implements OnInit {
     service: this._fb.group({
       categoryId: ['', Validators.required],
       name: ['', [Validators.required, Validators.minLength(2)]],
-      duration: [30, [Validators.required, Validators.min(5), Validators.max(480)]],
+      duration: [30, [Validators.required, Validators.min(2), Validators.max(480)]],
       // No default — unlike duration, there's no sensible universal starting
       // price, and a prefilled 0 would silently satisfy `required` even if
       // the owner never touches the field, publishing a service that looks

@@ -1,4 +1,15 @@
-import { Component, effect, inject, OnInit, computed, signal, viewChild, ElementRef, Injector, afterNextRender } from '@angular/core';
+import {
+  Component,
+  effect,
+  inject,
+  OnInit,
+  computed,
+  signal,
+  viewChild,
+  ElementRef,
+  Injector,
+  afterNextRender,
+} from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -71,15 +82,14 @@ export class ServiceFormComponent implements OnInit {
       .staffList()
       .filter(
         (s) =>
-          s.staff.status === 'ACTIVE' &&
-          (s.staff.isAcceptingClients || checked.has(s.staff.id)),
+          s.staff.status === 'ACTIVE' && (s.staff.isAcceptingClients || checked.has(s.staff.id)),
       );
   });
 
   protected readonly form = this._fb.group({
     categoryId: ['', Validators.required],
     name: ['', [Validators.required, Validators.maxLength(100)]],
-    duration: [30, [Validators.required, Validators.min(1)]],
+    duration: [30, [Validators.required, Validators.min(2)]],
     // No default — unlike duration, there's no sensible universal starting
     // price, and a prefilled 0 would silently satisfy `required` even if the
     // owner never touches the field, publishing a service that looks free by
@@ -171,10 +181,9 @@ export class ServiceFormComponent implements OnInit {
       // Deferred: markAllAsTouched only renders the error messages on the next
       // change detection pass, and those messages shift layout — scrolling
       // before they exist lands at the wrong offset.
-      afterNextRender(
-        () => scrollToFirstInvalidControl(this._formEl()?.nativeElement),
-        { injector: this._scrollInjector },
-      );
+      afterNextRender(() => scrollToFirstInvalidControl(this._formEl()?.nativeElement), {
+        injector: this._scrollInjector,
+      });
       return;
     }
     // The assign-staff dialog IS the submit step — unless the user already

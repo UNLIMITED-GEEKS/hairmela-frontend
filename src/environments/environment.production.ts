@@ -56,4 +56,5 @@ export const environment = {
   serviceWorker: true,
   // See environment.ts — false for every web build.
   native: false,
+  payloadEncryptionMode: 'optional' as const,
 };

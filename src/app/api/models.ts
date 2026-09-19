@@ -48,6 +48,8 @@ export type { NotificationInboxMetaDto } from './models/notification-inbox-meta-
 export type { OperatingHourDto } from './models/operating-hour-dto';
 export type { Organization } from './models/organization';
 export type { PaginatedMetaDto } from './models/paginated-meta-dto';
+export type { PayloadEncryptionHandshakeRequestDto } from './models/payload-encryption-handshake-request-dto';
+export type { PayloadEncryptionHandshakeResponseDto } from './models/payload-encryption-handshake-response-dto';
 export type { PendingInviteDto } from './models/pending-invite-dto';
 export type { PresignMediaUploadDto } from './models/presign-media-upload-dto';
 export type { PresignMediaUploadResponseDto } from './models/presign-media-upload-response-dto';
@@ -81,6 +83,7 @@ export type { Service } from './models/service';
 export type { ServiceBreakdownItemDto } from './models/service-breakdown-item-dto';
 export type { ServiceCategory } from './models/service-category';
 export type { ServiceResponseDto } from './models/service-response-dto';
+export type { SetAutoCallNextDto } from './models/set-auto-call-next-dto';
 export type { SetDefaultServiceDto } from './models/set-default-service-dto';
 export type { SetQueueStatusDto } from './models/set-queue-status-dto';
 export type { StaffPerformanceItemDto } from './models/staff-performance-item-dto';

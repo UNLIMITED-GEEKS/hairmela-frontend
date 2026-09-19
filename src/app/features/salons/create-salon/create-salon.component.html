@@ -1,68 +1,74 @@
 <div class="py-6 px-4">
+  <div class="mb-6">
+    @if (parentSalonId()) {
+      <h1 class="text-2xl font-bold text-text-primary">Create a new branch</h1>
+      <p class="text-sm text-text-secondary mt-1">
+        Set up this location's details and opening hours.
+      </p>
+    } @else {
+      <h1 class="text-2xl font-bold text-text-primary">Create a salon</h1>
+      <p class="text-sm text-text-secondary mt-1">Set up your salon details and opening hours.</p>
+    }
+  </div>
 
-    <div class="mb-6">
-      @if (parentSalonId()) {
-        <h1 class="text-2xl font-bold text-text-primary">Create a new branch</h1>
-        <p class="text-sm text-text-secondary mt-1">Set up this location's details and opening hours.</p>
-      } @else {
-        <h1 class="text-2xl font-bold text-text-primary">Create a salon</h1>
-        <p class="text-sm text-text-secondary mt-1">Set up your salon details and opening hours.</p>
-      }
-    </div>
+  <form #formEl [formGroup]="form" (ngSubmit)="save()" class="space-y-6">
+    <!-- Name -->
+    <div class="bg-surface-card rounded-xl border border-border p-5 space-y-4">
+      <h2 class="text-sm font-semibold text-text-body">Salon info</h2>
 
-    <form #formEl [formGroup]="form" (ngSubmit)="save()" class="space-y-6">
+      <div>
+        <label for="salon-name" class="block text-sm font-medium text-text-body mb-1.5">
+          Salon name
+          @if (parentSalonId()) {
+            <span class="text-text-disabled font-normal"
+              >(fixed to match the main salon branch)</span
+            >
+          }
+        </label>
+        <input
+          id="salon-name"
+          type="text"
+          formControlName="name"
+          placeholder="e.g. Sunny Cuts"
+          class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors disabled:opacity-50 disabled:bg-surface-sunken"
+        />
+        <app-field-error [control]="form.get('name')" />
+      </div>
 
-      <!-- Name -->
-      <div class="bg-surface-card rounded-xl border border-border p-5 space-y-4">
-        <h2 class="text-sm font-semibold text-text-body">Salon info</h2>
+      <div>
+        <label for="salon-phone" class="block text-sm font-medium text-text-body mb-1.5"
+          >Phone</label
+        >
+        <app-phone-input inputId="salon-phone" formControlName="phone" />
+        <app-field-error [control]="form.get('phone')" />
+      </div>
 
-        <div>
-          <label for="salon-name" class="block text-sm font-medium text-text-body mb-1.5">
-            Salon name
-            @if (parentSalonId()) {
-              <span class="text-text-disabled font-normal">(fixed to match the main salon branch)</span>
-            }
-          </label>
-          <input
-            id="salon-name"
-            type="text"
-            formControlName="name"
-            placeholder="e.g. Sunny Cuts"
-            class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg
-                   focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors
-                   disabled:opacity-50 disabled:bg-surface-sunken" />
-          <app-field-error [control]="form.get('name')" />
-        </div>
+      <div>
+        <label for="salon-about" class="block text-sm font-medium text-text-body mb-1.5">
+          About <span class="text-text-disabled font-normal">(optional)</span>
+        </label>
+        <textarea
+          id="salon-about"
+          formControlName="about"
+          rows="3"
+          placeholder="Tell customers about your salon…"
+          class="w-full px-3 py-2.5 text-sm border border-border-strong rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+        >
+        </textarea>
+        <app-field-error
+          [control]="form.get('about')"
+          [messages]="{ maxlength: 'Keep it under 1000 characters.' }"
+        />
+      </div>
 
-        <div>
-          <label for="salon-phone" class="block text-sm font-medium text-text-body mb-1.5">Phone</label>
-          <app-phone-input inputId="salon-phone" formControlName="phone" />
-          <app-field-error [control]="form.get('phone')" />
-        </div>
-
-        <div>
-          <label for="salon-about" class="block text-sm font-medium text-text-body mb-1.5">
-            About <span class="text-text-disabled font-normal">(optional)</span>
-          </label>
-          <textarea
-            id="salon-about"
-            formControlName="about"
-            rows="3"
-            placeholder="Tell customers about your salon…"
-            class="w-full px-3 py-2.5 text-sm border border-border-strong rounded-lg resize-none
-                   focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors">
-          </textarea>
-          <app-field-error [control]="form.get('about')" [messages]="{ maxlength: 'Keep it under 1000 characters.' }" />
-        </div>
-
-        <!-- Referral code — optional, and deliberately last in this section:
+      <!-- Referral code — optional, and deliberately last in this section:
              it is the only field here that is not about the salon itself, and
              most owners will have no code at all.
 
              Hidden when creating a BRANCH: a branch joins an organisation that
              already exists, so there is no new signup for anyone to be
              credited with referring. -->
-        @if (!parentSalonId()) {
+      @if (!parentSalonId()) {
         <div>
           <label for="referral-code" class="block text-sm font-medium text-text-body mb-1.5">
             Referral code <span class="text-text-disabled font-normal">(optional)</span>
@@ -74,303 +80,375 @@
             autocapitalize="characters"
             autocomplete="off"
             placeholder="Enter a code if someone referred you"
-            class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg
-                   focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors" />
-        </div>
-        }
-
-        <!-- Pre-filled from the country above, but editable: a salon can
-             legitimately price in a currency other than its country's. -->
-        <div>
-          <label for="currency" class="block text-sm font-medium text-text-body mb-1.5">Currency</label>
-          <select id="currency" formControlName="currency"
-            class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg bg-surface-card
-                   focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors">
-            @for (c of currencies; track c.code) {
-              <option [value]="c.code">{{ c.label }}</option>
-            }
-          </select>
-          <p class="mt-1 text-xs text-text-secondary">Prices in your salon are shown in this currency.</p>
-          <app-field-error [control]="form.get('currency')" />
-        </div>
-
-        <!-- Time between bookings. Labelled by what it DOES, not by the API
-             field name (defaultSlotDuration): "slot duration" reads as how
-             long an appointment lasts, which is the opposite of what it
-             controls. Same wording as Salon Settings. -->
-        <div>
-          <label for="slot-duration" class="block text-sm font-medium text-text-body mb-1.5">
-            Time between bookings (minutes)
-          </label>
-          <input
-            id="slot-duration"
-            type="number"
-            formControlName="defaultSlotDuration"
-            min="5"
-            max="240"
-            class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg
-                   focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors" />
-          <p class="mt-1.5 text-xs text-text-disabled">
-            How far apart bookable times are. Set 30 and customers pick from 3:00, 3:30, 4:00.
-            You can change this later.
-          </p>
-          <app-field-error
-            [control]="form.get('defaultSlotDuration')"
-            [messages]="{ min: 'Must be between 5 and 240 minutes.', max: 'Must be between 5 and 240 minutes.' }" />
-        </div>
-      </div>
-
-      <!-- Pricing -->
-      <div class="bg-surface-card rounded-xl border border-border p-5 space-y-4">
-        <h2 class="text-sm font-semibold text-text-body">Pricing</h2>
-
-        <label class="flex items-center justify-between min-h-11 cursor-pointer">
-          <span>
-            <span class="block text-sm text-text-body">Show prices to customers</span>
-            <span class="block text-xs text-text-disabled">If enabled, customers will see the price of each service before joining the queue.</span>
-          </span>
-          <input type="checkbox" formControlName="showPrice"
-            class="w-4 h-4 rounded border-border-strong text-primary focus:ring-primary/40 shrink-0" />
-        </label>
-      </div>
-
-      <!-- Copy the parent's services. Branch creation only: a standalone
-           salon has no parent to copy from. Sits outside the `service`
-           formGroup below because it belongs to the branch-attach call, not
-           to CreateSalonDto. -->
-      @if (parentSalonId()) {
-        <div class="bg-surface-card rounded-xl border border-border p-5 space-y-4">
-          <h2 class="text-sm font-semibold text-text-body">Services</h2>
-
-          <label class="flex items-center justify-between min-h-11 cursor-pointer">
-            <span>
-              <span class="block text-sm text-text-body">Copy services from the main salon</span>
-              <span class="block text-xs text-text-disabled">
-                Copies the main salon's current services into this branch so you don't retype them.
-                Done once, now, later changes to the main salon's services won't carry over, and
-                you can edit or remove this branch's services independently.
-              </span>
-            </span>
-            <input type="checkbox" formControlName="copyServices"
-              class="w-4 h-4 rounded border-border-strong text-primary focus:ring-primary/40 shrink-0" />
-          </label>
+            class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+          />
         </div>
       }
 
-      <!-- Address -->
-      <div class="bg-surface-card rounded-xl border border-border p-5 space-y-4" formGroupName="address">
-        <h2 class="text-sm font-semibold text-text-body">Address</h2>
+      <!-- Pre-filled from the country above, but editable: a salon can
+             legitimately price in a currency other than its country's. -->
+      <div>
+        <label for="currency" class="block text-sm font-medium text-text-body mb-1.5"
+          >Currency</label
+        >
+        <select
+          id="currency"
+          formControlName="currency"
+          class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg bg-surface-card focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+        >
+          @for (c of currencies; track c.code) {
+            <option [value]="c.code">{{ c.label }}</option>
+          }
+        </select>
+        <p class="mt-1 text-xs text-text-secondary">
+          Prices in your salon are shown in this currency.
+        </p>
+        <app-field-error [control]="form.get('currency')" />
+      </div>
 
-        <div>
-          <label for="country" class="block text-sm font-medium text-text-body mb-1.5">Country</label>
-          <select id="country" formControlName="country"
-            class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg bg-surface-card
-                   focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors">
-            @for (c of countries; track c.code) {
-              <option [value]="c.name">{{ c.name }}</option>
-            }
-          </select>
-          <app-field-error [control]="form.get('address.country')" />
-        </div>
+      <!-- Time between bookings. Labelled by what it DOES, not by the API
+             field name (defaultSlotDuration): "slot duration" reads as how
+             long an appointment lasts, which is the opposite of what it
+             controls. Same wording as Salon Settings. -->
+      <div>
+        <label for="slot-duration" class="block text-sm font-medium text-text-body mb-1.5">
+          Time between bookings (minutes)
+        </label>
+        <input
+          id="slot-duration"
+          type="number"
+          formControlName="defaultSlotDuration"
+          min="5"
+          max="240"
+          class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+        />
+        <p class="mt-1.5 text-xs text-text-disabled">
+          How far apart bookable times are. Set 30 and customers pick from 3:00, 3:30, 4:00. You can
+          change this later.
+        </p>
+        <app-field-error
+          [control]="form.get('defaultSlotDuration')"
+          [messages]="{
+            min: 'Must be between 5 and 240 minutes.',
+            max: 'Must be between 5 and 240 minutes.',
+          }"
+        />
+      </div>
+    </div>
 
-        <!-- Auto-selected from the country above. Disabled when the country
+    <!-- Pricing -->
+    <div class="bg-surface-card rounded-xl border border-border p-5 space-y-4">
+      <h2 class="text-sm font-semibold text-text-body">Pricing</h2>
+
+      <label class="flex items-center justify-between min-h-11 cursor-pointer">
+        <span>
+          <span class="block text-sm text-text-body">Show prices to customers</span>
+          <span class="block text-xs text-text-disabled"
+            >If enabled, customers will see the price of each service before joining the
+            queue.</span
+          >
+        </span>
+        <input
+          type="checkbox"
+          formControlName="showPrice"
+          class="w-4 h-4 rounded border-border-strong text-primary focus:ring-primary/40 shrink-0"
+        />
+      </label>
+    </div>
+
+    <!-- Copy the parent's services. Branch creation only: a standalone
+           salon has no parent to copy from. Sits outside the `service`
+           formGroup below because it belongs to the branch-attach call, not
+           to CreateSalonDto. -->
+    @if (parentSalonId()) {
+      <div class="bg-surface-card rounded-xl border border-border p-5 space-y-4">
+        <h2 class="text-sm font-semibold text-text-body">Services</h2>
+
+        <label class="flex items-center justify-between min-h-11 cursor-pointer">
+          <span>
+            <span class="block text-sm text-text-body">Copy services from the main salon</span>
+            <span class="block text-xs text-text-disabled">
+              Copies the main salon's current services into this branch so you don't retype them.
+              Done once, now, later changes to the main salon's services won't carry over, and you
+              can edit or remove this branch's services independently.
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            formControlName="copyServices"
+            class="w-4 h-4 rounded border-border-strong text-primary focus:ring-primary/40 shrink-0"
+          />
+        </label>
+      </div>
+    }
+
+    <!-- Address -->
+    <div
+      class="bg-surface-card rounded-xl border border-border p-5 space-y-4"
+      formGroupName="address"
+    >
+      <h2 class="text-sm font-semibold text-text-body">Address</h2>
+
+      <div>
+        <label for="country" class="block text-sm font-medium text-text-body mb-1.5">Country</label>
+        <select
+          id="country"
+          formControlName="country"
+          class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg bg-surface-card focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+        >
+          @for (c of countries; track c.code) {
+            <option [value]="c.name">{{ c.name }}</option>
+          }
+        </select>
+        <app-field-error [control]="form.get('address.country')" />
+      </div>
+
+      <!-- Auto-selected from the country above. Disabled when the country
              has only one zone — nothing left to choose — and left enabled,
              scoped to that country's own zones, when it has more than one
              (US, Canada, Russia...). -->
-        <div>
-          <label for="timezone" class="block text-sm font-medium text-text-body mb-1.5">Timezone</label>
-          <select
-            id="timezone"
-            [formControl]="form.controls.timezone"
-            class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg
-                   focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary bg-surface-card transition-colors
-                   disabled:opacity-70 disabled:cursor-not-allowed">
-            @for (tz of timezonesForCountry(); track tz) {
-              <option [value]="tz">{{ tz }}</option>
-            }
-          </select>
-          <app-field-error [control]="form.get('timezone')" />
-        </div>
+      <div>
+        <label for="timezone" class="block text-sm font-medium text-text-body mb-1.5"
+          >Timezone</label
+        >
+        <select
+          id="timezone"
+          [formControl]="form.controls.timezone"
+          class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary bg-surface-card transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+        >
+          @for (tz of timezonesForCountry(); track tz) {
+            <option [value]="tz">{{ tz }}</option>
+          }
+        </select>
+        <app-field-error [control]="form.get('timezone')" />
+      </div>
 
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label for="state" class="block text-sm font-medium text-text-body mb-1.5">State</label>
-            <!-- Dropdown where the country has subdivisions; 21 countries
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label for="state" class="block text-sm font-medium text-text-body mb-1.5">State</label>
+          <!-- Dropdown where the country has subdivisions; 21 countries
                  (Antarctica, Bouvet Island, Christmas Island, ...) have none,
                  and there a free-text input is correct rather than an empty
                  select. -->
-            @if (statesForCountry().length) {
-              <select id="state" formControlName="state"
-                class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg bg-surface-card
-                       focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors">
-                <option value="" disabled>Select a state</option>
-                @for (s of statesForCountry(); track s) {
-                  <option [value]="s">{{ s }}</option>
-                }
-              </select>
-            } @else {
-              <input id="state" type="text" formControlName="state" placeholder="State or region"
-                class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg
-                       focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors" />
-            }
-            <app-field-error [control]="form.get('address.state')" />
-          </div>
-          <div>
-            <label for="city" class="block text-sm font-medium text-text-body mb-1.5">City</label>
-            <input id="city" type="text" formControlName="city" placeholder="e.g. Ikeja"
-              class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg
-                     focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors" />
-            <app-field-error [control]="form.get('address.city')" />
-          </div>
+          @if (statesForCountry().length) {
+            <select
+              id="state"
+              formControlName="state"
+              class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg bg-surface-card focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+            >
+              <option value="" disabled>Select a state</option>
+              @for (s of statesForCountry(); track s) {
+                <option [value]="s">{{ s }}</option>
+              }
+            </select>
+          } @else {
+            <input
+              id="state"
+              type="text"
+              formControlName="state"
+              placeholder="State or region"
+              class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+            />
+          }
+          <app-field-error [control]="form.get('address.state')" />
         </div>
-
         <div>
-          <label for="street" class="block text-sm font-medium text-text-body mb-1.5">Street</label>
-          <input id="street" type="text" formControlName="street" placeholder="e.g. 12 Allen Avenue"
-            class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg
-                   focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors" />
-          <app-field-error [control]="form.get('address.street')" />
+          <label for="city" class="block text-sm font-medium text-text-body mb-1.5">City</label>
+          <input
+            id="city"
+            type="text"
+            formControlName="city"
+            placeholder="e.g. Ikeja"
+            class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+          />
+          <app-field-error [control]="form.get('address.city')" />
         </div>
       </div>
 
-      <!-- Operating hours -->
-      <div class="bg-surface-card rounded-xl border border-border p-5 space-y-1" formArrayName="operatingHours">
-        <h2 class="text-sm font-semibold text-text-body mb-2">Opening hours</h2>
+      <div>
+        <label for="street" class="block text-sm font-medium text-text-body mb-1.5">Street</label>
+        <input
+          id="street"
+          type="text"
+          formControlName="street"
+          placeholder="e.g. 12 Allen Avenue"
+          class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+        />
+        <app-field-error [control]="form.get('address.street')" />
+      </div>
+    </div>
 
-        @for (day of hoursArray.controls; track $index) {
-          <div [formGroupName]="$index" class="py-2 border-b border-border-subtle last:border-0">
-            <!-- Day toggle row -->
-            <label class="flex items-center gap-2 cursor-pointer min-h-11">
-              <input type="checkbox" formControlName="enabled"
-                class="w-4 h-4 rounded border-border-strong text-primary focus:ring-primary/40 shrink-0" />
-              <span class="text-sm font-medium text-text-body flex-1">{{ days[$index] }}</span>
-              @if (!day.get('enabled')?.value) {
-                <span class="text-xs text-text-disabled">Closed</span>
-              }
-            </label>
+    <!-- Operating hours -->
+    <div
+      class="bg-surface-card rounded-xl border border-border p-5 space-y-1"
+      formArrayName="operatingHours"
+    >
+      <h2 class="text-sm font-semibold text-text-body mb-2">Opening hours</h2>
 
-            <!-- Time inputs — shown below the toggle when enabled -->
-            @if (day.get('enabled')?.value) {
-              <div class="mt-2 pl-6">
-                <!-- Each label+picker is its own row so the two never split
+      @for (day of hoursArray.controls; track $index) {
+        <div [formGroupName]="$index" class="py-2 border-b border-border-subtle last:border-0">
+          <!-- Day toggle row -->
+          <label class="flex items-center gap-2 cursor-pointer min-h-11">
+            <input
+              type="checkbox"
+              formControlName="enabled"
+              class="w-4 h-4 rounded border-border-strong text-primary focus:ring-primary/40 shrink-0"
+            />
+            <span class="text-sm font-medium text-text-body flex-1">{{ days[$index] }}</span>
+            @if (!day.get('enabled')?.value) {
+              <span class="text-xs text-text-disabled">Closed</span>
+            }
+          </label>
+
+          <!-- Time inputs — shown below the toggle when enabled -->
+          @if (day.get('enabled')?.value) {
+            <div class="mt-2 pl-6">
+              <!-- Each label+picker is its own row so the two never split
                      apart mid-pair when space runs out; the fixed-width
                      labels keep both pickers on the same left edge. -->
-                <div class="flex flex-col gap-1.5">
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs text-text-disabled w-12 shrink-0">Opens</span>
-                    <app-time-picker formControlName="startTime" ariaLabel="Opening time" />
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs text-text-disabled w-12 shrink-0">Closes</span>
-                    <app-time-picker formControlName="endTime" ariaLabel="Closing time" />
-                  </div>
+              <div class="flex flex-col gap-1.5">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-text-disabled w-12 shrink-0">Opens</span>
+                  <app-time-picker formControlName="startTime" ariaLabel="Opening time" />
                 </div>
-                @if (day.errors?.['endBeforeStart'] && day.get('endTime')?.touched) {
-                  <p class="mt-1.5 text-xs text-red-600">Closing time must be after opening time.</p>
-                }
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-text-disabled w-12 shrink-0">Closes</span>
+                  <app-time-picker formControlName="endTime" ariaLabel="Closing time" />
+                </div>
               </div>
-            }
-          </div>
+              @if (day.errors?.['endBeforeStart'] && day.get('endTime')?.touched) {
+                <p class="mt-1.5 text-xs text-red-600">Closing time must be after opening time.</p>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- First service -->
+    <div
+      class="bg-surface-card rounded-xl border border-border p-5 space-y-4"
+      formGroupName="service"
+    >
+      <div>
+        <h2 class="text-sm font-semibold text-text-body">First service</h2>
+        @if (parentSalonId()) {
+          <p class="text-xs text-text-disabled mt-0.5">
+            Required for every new location. It's added alongside any copied services (a matching
+            name is skipped, not duplicated).
+          </p>
+        } @else {
+          <p class="text-xs text-text-disabled mt-0.5">
+            You can add more after your salon is created.
+          </p>
         }
       </div>
 
-      <!-- First service -->
-      <div class="bg-surface-card rounded-xl border border-border p-5 space-y-4" formGroupName="service">
-        <div>
-          <h2 class="text-sm font-semibold text-text-body">First service</h2>
-          @if (parentSalonId()) {
-            <p class="text-xs text-text-disabled mt-0.5">
-              Required for every new location. It's added alongside any copied services (a matching
-              name is skipped, not duplicated).
-            </p>
-          } @else {
-            <p class="text-xs text-text-disabled mt-0.5">You can add more after your salon is created.</p>
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium text-text-body flex items-center gap-2">
+          Category
+          @if (categoriesService.loading()) {
+            <app-inline-spinner sizeClass="w-3.5 h-3.5" label="Loading categories" />
           }
-        </div>
+        </label>
+        <select
+          formControlName="categoryId"
+          [disabled]="categoriesService.loading()"
+          class="w-full min-h-11 px-3 rounded-lg border border-border-strong text-sm bg-surface-card focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary disabled:opacity-50"
+        >
+          <option value="" disabled>
+            {{ categoriesService.loading() ? 'Loading…' : 'Select a category' }}
+          </option>
+          @for (cat of categoriesService.categories(); track cat.id) {
+            <option [value]="cat.id">{{ cat.name }}</option>
+          }
+        </select>
+        <app-field-error [control]="form.get('service.categoryId')" />
+      </div>
 
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium text-text-body">Service name</label>
+        <input
+          formControlName="name"
+          type="text"
+          placeholder="e.g. Classic Haircut"
+          class="w-full min-h-11 px-3 rounded-lg border border-border-strong text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+          [class.border-red-400]="
+            form.get('service.name')?.invalid && form.get('service.name')?.touched
+          "
+        />
+        <app-field-error [control]="form.get('service.name')" />
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
         <div class="space-y-1.5">
-          <label class="text-sm font-medium text-text-body flex items-center gap-2">
-            Category
-            @if (categoriesService.loading()) {
-              <app-inline-spinner sizeClass="w-3.5 h-3.5" label="Loading categories" />
-            }
-          </label>
-          <select formControlName="categoryId" [disabled]="categoriesService.loading()"
-            class="w-full min-h-11 px-3 rounded-lg border border-border-strong text-sm bg-surface-card
-                   focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary
-                   disabled:opacity-50">
-            <option value="" disabled>
-              {{ categoriesService.loading() ? 'Loading…' : 'Select a category' }}
-            </option>
-            @for (cat of categoriesService.categories(); track cat.id) {
-              <option [value]="cat.id">{{ cat.name }}</option>
-            }
-          </select>
-          <app-field-error [control]="form.get('service.categoryId')" />
+          <label class="text-sm font-medium text-text-body">Duration (mins)</label>
+          <input
+            formControlName="duration"
+            type="number"
+            min="2"
+            placeholder="30"
+            class="w-full min-h-11 px-3 rounded-lg border border-border-strong text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            [class.border-red-400]="
+              form.get('service.duration')?.invalid && form.get('service.duration')?.touched
+            "
+          />
+          <app-field-error [control]="form.get('service.duration')" />
         </div>
-
         <div class="space-y-1.5">
-          <label class="text-sm font-medium text-text-body">Service name</label>
-          <input formControlName="name" type="text" placeholder="e.g. Classic Haircut"
-            class="w-full min-h-11 px-3 rounded-lg border border-border-strong text-sm
-                   focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-            [class.border-red-400]="form.get('service.name')?.invalid && form.get('service.name')?.touched" />
-          <app-field-error [control]="form.get('service.name')" />
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1.5">
-            <label class="text-sm font-medium text-text-body">Duration (mins)</label>
-            <input formControlName="duration" type="number" min="1" placeholder="30"
-              class="w-full min-h-11 px-3 rounded-lg border border-border-strong text-sm
-                     focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-              [class.border-red-400]="form.get('service.duration')?.invalid && form.get('service.duration')?.touched" />
-            <app-field-error [control]="form.get('service.duration')" />
-          </div>
-          <div class="space-y-1.5">
-            <label class="text-sm font-medium text-text-body">Price</label>
-            <input formControlName="price" type="number" min="0" step="0.01" placeholder="0.00"
-              class="w-full min-h-11 px-3 rounded-lg border border-border-strong text-sm
-                     focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-              [class.border-red-400]="form.get('service.price')?.invalid && form.get('service.price')?.touched" />
-            <app-field-error
-              [control]="form.get('service.price')"
-              [messages]="{ min: 'Price cannot be negative' }" />
-          </div>
-        </div>
-
-        <div class="space-y-1.5">
-          <label class="text-sm font-medium text-text-body">
-            Description <span class="text-text-disabled font-normal">(optional)</span>
-          </label>
-          <textarea formControlName="description" rows="2" placeholder="Short description…"
-            class="w-full px-3 py-2.5 rounded-lg border border-border-strong text-sm resize-none
-                   focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
-          </textarea>
+          <label class="text-sm font-medium text-text-body">Price</label>
+          <input
+            formControlName="price"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+            class="w-full min-h-11 px-3 rounded-lg border border-border-strong text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            [class.border-red-400]="
+              form.get('service.price')?.invalid && form.get('service.price')?.touched
+            "
+          />
+          <app-field-error
+            [control]="form.get('service.price')"
+            [messages]="{ min: 'Price cannot be negative' }"
+          />
         </div>
       </div>
 
-      <!-- Actions -->
-      <div class="flex gap-3 pb-8">
-        <button
-          type="button"
-          (click)="cancel()"
-          class="flex-1 min-h-11 border border-border-strong text-text-body text-sm font-medium rounded-lg
-                 hover:bg-surface-sunken active:scale-95 transition-all">
-          Cancel
-        </button>
-        <button
-          type="submit"
-          [disabled]="saving()"
-          class="flex-1 min-h-11 flex items-center justify-center gap-2 bg-primary text-white text-sm font-medium rounded-lg
-                 hover:bg-primary-dark disabled:opacity-50 active:scale-95 transition-all">
-          @if (saving()) {
-            <app-inline-spinner sizeClass="w-4 h-4" label="Creating salon" />
-          } @else {
-            Create salon
-          }
-        </button>
+      <div class="space-y-1.5">
+        <label class="text-sm font-medium text-text-body">
+          Description <span class="text-text-disabled font-normal">(optional)</span>
+        </label>
+        <textarea
+          formControlName="description"
+          rows="2"
+          placeholder="Short description…"
+          class="w-full px-3 py-2.5 rounded-lg border border-border-strong text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+        >
+        </textarea>
       </div>
+    </div>
 
-    </form>
+    <!-- Actions -->
+    <div class="flex gap-3 pb-8">
+      <button
+        type="button"
+        (click)="cancel()"
+        class="flex-1 min-h-11 border border-border-strong text-text-body text-sm font-medium rounded-lg hover:bg-surface-sunken active:scale-95 transition-all"
+      >
+        Cancel
+      </button>
+      <button
+        type="submit"
+        [disabled]="saving()"
+        class="flex-1 min-h-11 flex items-center justify-center gap-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark disabled:opacity-50 active:scale-95 transition-all"
+      >
+        @if (saving()) {
+          <app-inline-spinner sizeClass="w-4 h-4" label="Creating salon" />
+        } @else {
+          Create salon
+        }
+      </button>
+    </div>
+  </form>
 </div>

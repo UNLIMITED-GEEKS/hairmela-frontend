@@ -18,4 +18,10 @@ export const environment = {
   // bundle — a runtime Capacitor.isNativePlatform() check cannot do that,
   // since it requires loading the very module we want to keep out.
   native: false,
+  // Rollout mode: attempts encryption but permits plaintext only when the
+  // backend explicitly reports that payload encryption is disabled.
+  // required
+  // optional
+  // off
+  payloadEncryptionMode: 'required' as const,
 };

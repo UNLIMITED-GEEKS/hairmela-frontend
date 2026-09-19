@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
+import { Subject } from 'rxjs';
 import { QueueSocketService } from './queue-socket.service';
+import { PayloadEncryptionService } from '../payload-encryption/payload-encryption.service';
 
 // Fakes socket.io-client's io() so watch/unwatch refcounting can be tested
 // without a real network connection. connect() only wires listeners and
@@ -12,6 +14,14 @@ const fakeSocket = {
   on: vi.fn(),
   emit: vi.fn(),
   disconnect: vi.fn(),
+};
+
+const fakeEncryption = {
+  sessionChanged$: new Subject<void>(),
+  socketSessionIsCurrent: () => true,
+  ensureSession: async () => null,
+  encryptSocket: async () => null,
+  decryptSocket: async <T>(_event: string, payload: T) => payload,
 };
 
 // FIXME: this spec fails intermittently (~1 run in 6) in the FULL suite, while
@@ -39,16 +49,25 @@ vi.mock('socket.io-client', () => ({
 describe('QueueSocketService — staff-watch refcounting', () => {
   let service: QueueSocketService;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     fakeSocket.emit.mockClear();
-    TestBed.configureTestingModule({ providers: [QueueSocketService] });
+    fakeSocket.on.mockClear();
+    TestBed.configureTestingModule({
+      providers: [
+        QueueSocketService,
+        { provide: PayloadEncryptionService, useValue: fakeEncryption },
+      ],
+    });
     service = TestBed.inject(QueueSocketService);
     service.connect();
+    await vi.waitFor(() => expect(fakeSocket.on).toHaveBeenCalled());
   });
 
-  it('joins the staff room on first watch', () => {
+  it('joins the staff room on first watch', async () => {
     service.watchQueueAsStaff('q1');
-    expect(fakeSocket.emit).toHaveBeenCalledWith('joinQueueStaff', { queueId: 'q1' });
+    await vi.waitFor(() =>
+      expect(fakeSocket.emit).toHaveBeenCalledWith('joinQueueStaff', { queueId: 'q1' }),
+    );
   });
 
   it('does not leave the room while a second watcher still wants it', () => {
@@ -61,7 +80,7 @@ describe('QueueSocketService — staff-watch refcounting', () => {
     expect(fakeSocket.emit).not.toHaveBeenCalledWith('leaveQueue', expect.anything());
   });
 
-  it('leaves the room once the last watcher drops', () => {
+  it('leaves the room once the last watcher drops', async () => {
     service.watchQueueAsStaff('q1');
     service.watchQueueAsStaff('q1');
     fakeSocket.emit.mockClear();
@@ -70,31 +89,37 @@ describe('QueueSocketService — staff-watch refcounting', () => {
     expect(fakeSocket.emit).not.toHaveBeenCalledWith('leaveQueue', expect.anything());
 
     service.unwatchQueue('q1'); // last watcher gone
-    expect(fakeSocket.emit).toHaveBeenCalledWith('leaveQueue', { queueId: 'q1' });
+    await vi.waitFor(() =>
+      expect(fakeSocket.emit).toHaveBeenCalledWith('leaveQueue', { queueId: 'q1' }),
+    );
   });
 
-  it('re-watching after a full unwatch rejoins the room', () => {
+  it('re-watching after a full unwatch rejoins the room', async () => {
     service.watchQueueAsStaff('q1');
     service.unwatchQueue('q1');
     fakeSocket.emit.mockClear();
 
     service.watchQueueAsStaff('q1');
 
-    expect(fakeSocket.emit).toHaveBeenCalledWith('joinQueueStaff', { queueId: 'q1' });
+    await vi.waitFor(() =>
+      expect(fakeSocket.emit).toHaveBeenCalledWith('joinQueueStaff', { queueId: 'q1' }),
+    );
   });
 
-  it('tracks separate queues independently', () => {
+  it('tracks separate queues independently', async () => {
     service.watchQueueAsStaff('q1');
     service.watchQueueAsStaff('q2');
     fakeSocket.emit.mockClear();
 
     service.unwatchQueue('q1');
 
-    expect(fakeSocket.emit).toHaveBeenCalledWith('leaveQueue', { queueId: 'q1' });
+    await vi.waitFor(() =>
+      expect(fakeSocket.emit).toHaveBeenCalledWith('leaveQueue', { queueId: 'q1' }),
+    );
     expect(fakeSocket.emit).not.toHaveBeenCalledWith('leaveQueue', { queueId: 'q2' });
   });
 
-  it('customer watch and single staff watch both clear on one unwatchQueue call', () => {
+  it('customer watch and single staff watch both clear on one unwatchQueue call', async () => {
     // unwatchQueue has no notion of "which kind of watch is this caller
     // dropping" — it always clears the customer entry and decrements the
     // staff refcount together. With only one staff watcher, one call empties
@@ -105,10 +130,12 @@ describe('QueueSocketService — staff-watch refcounting', () => {
 
     service.unwatchQueue('q1');
 
-    expect(fakeSocket.emit).toHaveBeenCalledWith('leaveQueue', { queueId: 'q1' });
+    await vi.waitFor(() =>
+      expect(fakeSocket.emit).toHaveBeenCalledWith('leaveQueue', { queueId: 'q1' }),
+    );
   });
 
-  it('disconnect() clears refcounts so a later watch starts fresh', () => {
+  it('disconnect() clears refcounts so a later watch starts fresh', async () => {
     service.watchQueueAsStaff('q1');
     service.watchQueueAsStaff('q1');
     service.disconnect();
@@ -120,6 +147,8 @@ describe('QueueSocketService — staff-watch refcounting', () => {
 
     // Refcount should be 1 after disconnect wiped state, not 2 — so this
     // single unwatch already leaves the room.
-    expect(fakeSocket.emit).toHaveBeenCalledWith('leaveQueue', { queueId: 'q1' });
+    await vi.waitFor(() =>
+      expect(fakeSocket.emit).toHaveBeenCalledWith('leaveQueue', { queueId: 'q1' }),
+    );
   });
 });

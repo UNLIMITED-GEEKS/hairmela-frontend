@@ -9,6 +9,13 @@ export const ErrorCodes = {
   // in-memory access token was set, so refresh-and-retry rather than log out.
   TOKEN_MISSING: 'TOKEN_MISSING',
 
+  // ── Application payload encryption ───────────────────────────────────────────
+  ENCRYPTION_REQUIRED: 'ENCRYPTION_REQUIRED',
+  ENCRYPTION_SESSION_EXPIRED: 'ENCRYPTION_SESSION_EXPIRED',
+  ENCRYPTION_INVALID_PAYLOAD: 'ENCRYPTION_INVALID_PAYLOAD',
+  ENCRYPTION_VERSION_UNSUPPORTED: 'ENCRYPTION_VERSION_UNSUPPORTED',
+  ENCRYPTION_REPLAY_DETECTED: 'ENCRYPTION_REPLAY_DETECTED',
+
   // ── Users ─────────────────────────────────────────────────────────────────────
   USER_NOT_FOUND: 'USER_NOT_FOUND',
   EMAIL_ALREADY_REGISTERED: 'EMAIL_ALREADY_REGISTERED',

@@ -16,12 +16,12 @@ export interface StaffAppointmentsControllerGetQueueEntryHistory$Params {
  * Salon UUID
  */
   salonId: string;
+  page?: number;
+  limit?: number;
   type?: 'WALK_IN' | 'APPOINTMENT';
   status?: 'WAITING' | 'SERVING' | 'SERVED' | 'NO_SHOW' | 'CANCELLED';
   from?: string;
   to?: string;
-  page?: number;
-  limit?: number;
 }
 
 export function staffAppointmentsControllerGetQueueEntryHistory(http: HttpClient, rootUrl: string, params: StaffAppointmentsControllerGetQueueEntryHistory$Params, context?: HttpContext): Observable<StrictHttpResponse<{
@@ -31,12 +31,12 @@ export function staffAppointmentsControllerGetQueueEntryHistory(http: HttpClient
   const rb = new RequestBuilder(rootUrl, staffAppointmentsControllerGetQueueEntryHistory.PATH, 'get');
   if (params) {
     rb.path('salonId', params.salonId, {});
+    rb.query('page', params.page, {});
+    rb.query('limit', params.limit, {});
     rb.query('type', params.type, {});
     rb.query('status', params.status, {});
     rb.query('from', params.from, {});
     rb.query('to', params.to, {});
-    rb.query('page', params.page, {});
-    rb.query('limit', params.limit, {});
   }
 
   return http.request(

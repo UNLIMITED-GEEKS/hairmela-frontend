@@ -1,4 +1,10 @@
-import { HttpInterceptorFn, HttpErrorResponse, HttpRequest, HttpHandlerFn, HttpEvent } from '@angular/common/http';
+import {
+  HttpInterceptorFn,
+  HttpErrorResponse,
+  HttpRequest,
+  HttpHandlerFn,
+  HttpEvent,
+} from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Observable, throwError, BehaviorSubject, filter, take, switchMap, catchError } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
@@ -10,6 +16,7 @@ import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { CacheRegistry } from '../caching/cache-registry/cache-registry.service';
 import { RoutePath } from '../routing/route-paths';
+import { PayloadEncryptionService } from '../payload-encryption/payload-encryption.service';
 
 let isRefreshing = false;
 const refreshDone$ = new BehaviorSubject<string | null>(null);
@@ -29,7 +36,9 @@ function doLogout(
   router: Router,
   cacheRegistry: CacheRegistry,
   reason: string,
+  payloadEncryption: PayloadEncryptionService,
 ): void {
+  payloadEncryption.clear();
   tokenStore.clearTokens();
   currentUserStore.clear();
   cacheRegistry.clearAll();
@@ -44,14 +53,13 @@ function refreshAndRetry(
   currentUserStore: CurrentUserStore,
   router: Router,
   cacheRegistry: CacheRegistry,
+  payloadEncryption: PayloadEncryptionService,
 ): Observable<HttpEvent<unknown>> {
   if (isRefreshing) {
     return refreshDone$.pipe(
       filter((token): token is string => token !== null),
       take(1),
-      switchMap((token) =>
-        next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }))
-      ),
+      switchMap((token) => next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }))),
     );
   }
 
@@ -61,7 +69,14 @@ function refreshAndRetry(
   const refreshToken = tokenStore.getRefreshToken();
   if (!refreshToken) {
     isRefreshing = false;
-    doLogout(tokenStore, currentUserStore, router, cacheRegistry, 'no refresh token in storage');
+    doLogout(
+      tokenStore,
+      currentUserStore,
+      router,
+      cacheRegistry,
+      'no refresh token in storage',
+      payloadEncryption,
+    );
     return throwError(() => new Error('No refresh token'));
   }
 
@@ -69,28 +84,31 @@ function refreshAndRetry(
   // setGlobalPrefix('v1')), so the un-prefixed path 404s. It was missing here
   // while session-init.ts had it right, which meant every retry through this
   // path failed and fell straight into doLogout.
-  return http.post<{ accessToken: string; refreshToken: string }>(
-    `${environment.apiBaseUrl}/v1/auth/refresh`,
-    { refreshToken },
-  ).pipe(
-    switchMap((tokens) => {
-      isRefreshing = false;
-      tokenStore.setTokens(tokens.accessToken, tokens.refreshToken);
-      refreshDone$.next(tokens.accessToken);
-      return next(req.clone({ setHeaders: { Authorization: `Bearer ${tokens.accessToken}` } }));
-    }),
-    catchError((err) => {
-      isRefreshing = false;
-      doLogout(
-        tokenStore,
-        currentUserStore,
-        router,
-        cacheRegistry,
-        `refresh POST failed status=${(err as { status?: number })?.status}`,
-      );
-      return throwError(() => err);
-    }),
-  );
+  return http
+    .post<{
+      accessToken: string;
+      refreshToken: string;
+    }>(`${environment.apiBaseUrl}/v1/auth/refresh`, { refreshToken })
+    .pipe(
+      switchMap((tokens) => {
+        isRefreshing = false;
+        tokenStore.setTokens(tokens.accessToken, tokens.refreshToken);
+        refreshDone$.next(tokens.accessToken);
+        return next(req.clone({ setHeaders: { Authorization: `Bearer ${tokens.accessToken}` } }));
+      }),
+      catchError((err) => {
+        isRefreshing = false;
+        doLogout(
+          tokenStore,
+          currentUserStore,
+          router,
+          cacheRegistry,
+          `refresh POST failed status=${(err as { status?: number })?.status}`,
+          payloadEncryption,
+        );
+        return throwError(() => err);
+      }),
+    );
 }
 
 export const refreshInterceptor: HttpInterceptorFn = (req, next) => {
@@ -99,6 +117,7 @@ export const refreshInterceptor: HttpInterceptorFn = (req, next) => {
   const http = inject(HttpClient);
   const router = inject(Router);
   const cacheRegistry = inject(CacheRegistry);
+  const payloadEncryption = inject(PayloadEncryptionService);
 
   // Never intercept the refresh call itself
   if (req.url.includes('/auth/refresh')) {
@@ -125,7 +144,16 @@ export const refreshInterceptor: HttpInterceptorFn = (req, next) => {
       // race again.
       if (code === ErrorCodes.TOKEN_MISSING) {
         if (tokenStore.getRefreshToken()) {
-          return refreshAndRetry(req, next, http, tokenStore, currentUserStore, router, cacheRegistry);
+          return refreshAndRetry(
+            req,
+            next,
+            http,
+            tokenStore,
+            currentUserStore,
+            router,
+            cacheRegistry,
+            payloadEncryption,
+          );
         }
         // Genuinely no session — let it surface; guards handle routing.
         return throwError(() => err);
@@ -134,12 +162,28 @@ export const refreshInterceptor: HttpInterceptorFn = (req, next) => {
       // A token WAS sent and the server rejected it. Not recoverable by
       // retrying with the same credentials.
       if (code === ErrorCodes.TOKEN_INVALID) {
-        doLogout(tokenStore, currentUserStore, router, cacheRegistry, `TOKEN_INVALID on ${req.url}`);
+        doLogout(
+          tokenStore,
+          currentUserStore,
+          router,
+          cacheRegistry,
+          `TOKEN_INVALID on ${req.url}`,
+          payloadEncryption,
+        );
         return throwError(() => err);
       }
 
       if (code === ErrorCodes.TOKEN_EXPIRED) {
-        return refreshAndRetry(req, next, http, tokenStore, currentUserStore, router, cacheRegistry);
+        return refreshAndRetry(
+          req,
+          next,
+          http,
+          tokenStore,
+          currentUserStore,
+          router,
+          cacheRegistry,
+          payloadEncryption,
+        );
       }
 
       return throwError(() => err);

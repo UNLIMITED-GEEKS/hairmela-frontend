@@ -4,6 +4,8 @@
 import { QueueEntry } from '../models/queue-entry';
 import { Service } from '../models/service';
 export interface QueueEntryMember {
+  autoAdvanceDueAt: string | null;
+  autoAdvanceToken: string | null;
   createdAt: string;
   durationSnapshot: number;
   entry: QueueEntry;

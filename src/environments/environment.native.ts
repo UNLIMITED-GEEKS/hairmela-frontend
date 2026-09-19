@@ -57,4 +57,5 @@ export const environment = {
   // plugin packages, keeping them out of the web bundles entirely rather than
   // shipping them to web users behind a runtime check that never passes.
   native: true,
+  payloadEncryptionMode: 'optional' as const,
 };

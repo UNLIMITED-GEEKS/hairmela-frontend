@@ -15,6 +15,7 @@ import { publicQueueControllerGetTimeline } from '../../../api/fn/queues/public-
 import { publicQueueControllerGetQueue } from '../../../api/fn/queues/public-queue-controller-get-queue';
 import { SalonSettingsService } from '../../salons/salon-settings/salon-settings.service';
 import { queueManagementControllerSetStatus } from '../../../api/fn/queues/queue-management-controller-set-status';
+import { queueManagementControllerSetAutoCallNext } from '../../../api/fn/queues/queue-management-controller-set-auto-call-next';
 import { queueManagementControllerCallNext } from '../../../api/fn/queues/queue-management-controller-call-next';
 import { queueManagementControllerServeMember } from '../../../api/fn/queues/queue-management-controller-serve-member';
 import { queueManagementControllerCompleteAllMembers } from '../../../api/fn/queues/queue-management-controller-complete-all-members';
@@ -663,6 +664,29 @@ export class QueueConsoleService {
       onError: () => {
         this.queue.set(prev);
         this._toast.error('Failed to update queue status');
+      },
+      destroyRef: this._destroyRef,
+      onSettled: () => this.acting.set(false),
+    });
+  }
+
+  setAutoCallNext(salonId: string, queueId: string, autoCallNext: boolean): void {
+    if (this.acting()) return;
+    const previous = this.queue();
+    this.acting.set(true);
+    this._socketPredict.run({
+      signal: this.queue,
+      apply: (queue) => (queue ? { ...queue, autoCallNext } : queue),
+      request: () =>
+        queueManagementControllerSetAutoCallNext(this._http, this._apiConfig.rootUrl, {
+          salonId,
+          queueId,
+          body: { autoCallNext },
+        }),
+      onSuccess: (res) => this.queue.set(res.body),
+      onError: () => {
+        this.queue.set(previous);
+        this._toast.error('Failed to update auto call next');
       },
       destroyRef: this._destroyRef,
       onSettled: () => this.acting.set(false),
