@@ -4,12 +4,14 @@ import { firstValueFrom } from 'rxjs';
 import { ApiConfiguration } from '../../api/api-configuration';
 import { pushControllerFcmSubscribe } from '../../api/fn/push/push-controller-fcm-subscribe';
 import { pushControllerFcmUnsubscribe } from '../../api/fn/push/push-controller-fcm-unsubscribe';
+import { pushControllerApnsSubscribe } from '../../api/fn/push/push-controller-apns-subscribe';
+import { pushControllerApnsUnsubscribe } from '../../api/fn/push/push-controller-apns-unsubscribe';
 
-// Liveness guard on FCM registration — see _register() for why waiting longer
+// Liveness guard on native registration — see _register() for why waiting longer
 // would not help. Generous relative to the sub-second normal case.
 const REGISTRATION_TIMEOUT_MS = 15_000;
 
-/** Payload the backend sends inside FCM's `data` block. Every value is a string. */
+/** Payload the backend sends to a native device. Every custom value is a string. */
 export interface NativePushData {
   title?: string;
   body?: string;
@@ -19,7 +21,8 @@ export interface NativePushData {
   url?: string;
 }
 
-// FCM half of push, for the Capacitor build only. Web keeps SwPush/VAPID
+// Native half of push for the Capacitor build. Android uses FCM; iOS uses APNs.
+// Web keeps SwPush/VAPID
 // untouched in PushService, which delegates here when running natively.
 //
 // Every Capacitor import is a dynamic import() behind an environment.native
@@ -40,7 +43,7 @@ export class NativePushService {
   private readonly _subscribed = signal(false);
   readonly subscribed = this._subscribed.asReadonly();
 
-  /** Current FCM registration token, kept so unsubscribe can name it. */
+  /** Current native registration token, kept so unsubscribe can name it. */
   private _token: string | null = null;
   private _listenersBound = false;
   /** In-flight listener binding, so every caller awaits the same pass. */
@@ -50,7 +53,7 @@ export class NativePushService {
   private _tokenResolve: ((token: string | null) => void) | null = null;
 
   /**
-   * Wire FCM + local-notification listeners. Safe to call repeatedly; only the
+   * Wire native push + local-notification listeners. Safe to call repeatedly; only the
    * first call binds. Does NOT request permission — enable() does that, so the
    * OS prompt stays tied to a user action.
    */
@@ -101,7 +104,7 @@ export class NativePushService {
   }
 
   /**
-   * Ask for permission, register with FCM, and persist the token server-side.
+   * Ask for permission, register with the OS, and persist the token server-side.
    *
    * Distinguishes 'denied' (the user said no — a settled, final answer) from
    * 'unsupported' (permission was granted but registration or the server call
@@ -119,7 +122,7 @@ export class NativePushService {
 
     // Separate permission on Android 13+: without it our own posted
     // notifications are silently dropped even though FCM delivery succeeds.
-    await LocalNotifications.requestPermissions();
+    if (platform === 'android') await LocalNotifications.requestPermissions();
 
     // Listeners must be bound before register() or the token event is lost.
     await this._ready;
@@ -127,11 +130,7 @@ export class NativePushService {
     if (!token) return 'unsupported';
 
     try {
-      await firstValueFrom(
-        pushControllerFcmSubscribe(this._http, this._apiConfig.rootUrl, {
-          body: { fcmToken: token, platform },
-        }),
-      );
+      await this._subscribe(token, platform);
     } catch {
       // Token obtained but not persisted — push genuinely will not arrive, and
       // permission is already granted, so reporting 'denied' would be wrong.
@@ -146,24 +145,20 @@ export class NativePushService {
    * Deregister this device. Best-effort: a 404 means the row is already gone,
    * which the backend documents as equivalent to success.
    */
-  async disable(): Promise<void> {
+  async disable(platform: 'android' | 'ios'): Promise<void> {
     this._subscribed.set(false);
     const token = this._token;
     if (!token) return;
 
     try {
-      await firstValueFrom(
-        pushControllerFcmUnsubscribe(this._http, this._apiConfig.rootUrl, {
-          body: { fcmToken: token },
-        }),
-      );
+      await this._unsubscribe(token, platform);
     } catch {
       // 404 = already unsubscribed; anything else must not block logout.
     }
   }
 
   /**
-   * Re-send the current token. FCM tokens rotate, and the backend upserts, so
+   * Re-send the current token. Native tokens rotate, and the backend upserts, so
    * this is called on every launch to keep the row fresh.
    */
   async refresh(platform: 'android' | 'ios'): Promise<void> {
@@ -176,11 +171,7 @@ export class NativePushService {
     if (!token) return;
 
     try {
-      await firstValueFrom(
-        pushControllerFcmSubscribe(this._http, this._apiConfig.rootUrl, {
-          body: { fcmToken: token, platform },
-        }),
-      );
+      await this._subscribe(token, platform);
       this._subscribed.set(true);
     } catch {
       // Offline or a transient failure — the next launch retries.
@@ -200,9 +191,9 @@ export class NativePushService {
   //
   // The timeout is a liveness guard, not a deadline: registration normally
   // completes in well under a second, and the only realistic causes of silence
-  // are missing/stale Google Play Services or no network — neither of which
-  // resolves by waiting longer. Callers treat null as 'unsupported', never
-  // 'denied', so a slow device is never reported as a user refusal.
+  // are missing native push services, provisioning trouble, or no network —
+  // none resolves by waiting longer. Callers treat null as 'unsupported',
+  // never 'denied', so a slow device is never reported as a user refusal.
   private _register(
     pushNotifications: typeof import('@capacitor/push-notifications').PushNotifications,
   ): Promise<string | null> {
@@ -218,6 +209,40 @@ export class NativePushService {
         }
       }, REGISTRATION_TIMEOUT_MS);
     });
+  }
+
+  private async _subscribe(token: string, platform: 'android' | 'ios'): Promise<void> {
+    if (platform === 'ios') {
+      await firstValueFrom(
+        pushControllerApnsSubscribe(this._http, this._apiConfig.rootUrl, {
+          body: { deviceToken: token },
+        }),
+      );
+      return;
+    }
+
+    await firstValueFrom(
+      pushControllerFcmSubscribe(this._http, this._apiConfig.rootUrl, {
+        body: { fcmToken: token, platform },
+      }),
+    );
+  }
+
+  private async _unsubscribe(token: string, platform: 'android' | 'ios'): Promise<void> {
+    if (platform === 'ios') {
+      await firstValueFrom(
+        pushControllerApnsUnsubscribe(this._http, this._apiConfig.rootUrl, {
+          body: { deviceToken: token },
+        }),
+      );
+      return;
+    }
+
+    await firstValueFrom(
+      pushControllerFcmUnsubscribe(this._http, this._apiConfig.rootUrl, {
+        body: { fcmToken: token },
+      }),
+    );
   }
 
   private async _present(

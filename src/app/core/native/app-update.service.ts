@@ -87,7 +87,7 @@ export class AppUpdateService {
    * feature exists to prevent.
    */
   init(): void {
-    if (!this._platform.isNative) return;
+    if (!this._isAndroidApp()) return;
     void this._check();
   }
 
@@ -159,7 +159,7 @@ export class AppUpdateService {
    * for the case where the user dismissed the sheet the first time.
    */
   async startUpdate(): Promise<void> {
-    if (!this._platform.isNative) return;
+    if (!this._isAndroidApp()) return;
     const { AppUpdate } = await import('@capawesome/capacitor-app-update');
     try {
       // In-place first: Google's own full-screen updater installs without
@@ -181,5 +181,9 @@ export class AppUpdateService {
         // remains and the button can be pressed again.
       }
     }
+  }
+
+  private _isAndroidApp(): boolean {
+    return this._platform.isNative && this._platform.nativePlatform === 'android';
   }
 }

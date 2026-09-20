@@ -12,6 +12,8 @@ export interface QueueEntryMember {
   id: string;
   isLeader: boolean;
   memberName: string;
+  notifiedSessionEnding3At: string | null;
+  notifiedSessionEnding7At: string | null;
   notifiedSessionEndingAt: string | null;
   phone: string | null;
   priceSnapshot: string;

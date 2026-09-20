@@ -69,12 +69,14 @@ export class QrScannerComponent implements OnDestroy {
     try {
       const { BarcodeScanner, BarcodeFormat } = await import('@capacitor-mlkit/barcode-scanning');
 
-      // The scanning module is a Google Play Services dependency downloaded on
-      // demand, not shipped in the APK. On a device that has never scanned
-      // before it may be missing, and scanning would fail with no explanation.
-      const { available } = await BarcodeScanner.isGoogleBarcodeScannerModuleAvailable();
-      if (!available) {
-        await BarcodeScanner.installGoogleBarcodeScannerModule();
+      if (this._platform.nativePlatform === 'android') {
+        // The scanning module is a Google Play Services dependency downloaded on
+        // demand, not shipped in the APK. iOS bundles ML Kit through CocoaPods,
+        // and these two module-management methods are unavailable there.
+        const { available } = await BarcodeScanner.isGoogleBarcodeScannerModuleAvailable();
+        if (!available) {
+          await BarcodeScanner.installGoogleBarcodeScannerModule();
+        }
       }
 
       const { camera } = await BarcodeScanner.requestPermissions();
@@ -111,7 +113,9 @@ export class QrScannerComponent implements OnDestroy {
     try {
       const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning');
       await BarcodeScanner.stopScan();
-    } catch { /* not scanning */ }
+    } catch {
+      /* not scanning */
+    }
   }
 
   // ── Web (unchanged behaviour) ─────────────────────────────────────────────
@@ -147,7 +151,9 @@ export class QrScannerComponent implements OnDestroy {
       try {
         await this._scanner.stop();
         this._scanner.clear();
-      } catch { /* already stopped */ }
+      } catch {
+        /* already stopped */
+      }
       this._scanner = null;
     }
     this.scanning.set(false);

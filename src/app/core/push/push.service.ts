@@ -108,7 +108,6 @@ export class PushService {
 
   /** True only where push can actually run (prod build + SW support present). */
   get isSupported(): boolean {
-    // Native always supports push — FCM needs no service worker.
     return this._platform.isNative || this._swPush.isEnabled;
   }
 
@@ -197,7 +196,7 @@ export class PushService {
   // the token when initiated, so the early signal flip is safe.
   async disable(): Promise<void> {
     if (this._platform.isNative) {
-      await this._native.disable();
+      await this._native.disable(this._platform.nativePlatform);
       return;
     }
 

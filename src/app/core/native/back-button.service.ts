@@ -36,7 +36,7 @@ export class NativeBackButtonService {
   private readonly _renameDialog = inject(RenameDialogService);
 
   async init(): Promise<void> {
-    if (!this._platform.isNative) return;
+    if (!this._platform.isNative || this._platform.nativePlatform !== 'android') return;
 
     const { App: CapacitorApp } = await import('@capacitor/app');
     await CapacitorApp.addListener('backButton', () => this._onBack(CapacitorApp));

@@ -3,10 +3,10 @@ import { environment } from '../../../environments/environment';
 import { RoutePath } from '../routing/route-paths';
 
 /** Which shell the app is running inside. */
-export type AppShell = 'android' | 'web';
+export type AppShell = 'android' | 'ios' | 'web';
 
 /**
- * Single answer to "am I running in the Android app or on the web?".
+ * Single answer to "am I running in a native app or on the web?".
  *
  * Inject this rather than reading `environment.native` directly, so call sites
  * express intent ("this is native-only") instead of depending on how the build
@@ -16,7 +16,7 @@ export type AppShell = 'android' | 'web';
  * ('android' | 'ios' | 'desktop'). That one sniffs the user agent to decide
  * which PWA *install instructions* to show a web visitor — a phone browsing
  * the website is `'android'` there but `'web'` here. This service answers
- * which *shell* is executing: the packaged APK, or a browser.
+ * which *shell* is executing: the packaged app, or a browser.
  *
  * WHY A BUILD-TIME CONSTANT, NOT `Capacitor.isNativePlatform()`:
  * `environment.native` is replaced at build time, so `if (!platform.isNative)`
@@ -34,13 +34,11 @@ export type AppShell = 'android' | 'web';
  */
 @Injectable({ providedIn: 'root' })
 export class AppPlatformService {
-  /** True only in the Capacitor Android build. */
+  /** True only in a Capacitor native build. */
   readonly isNative = environment.native;
 
   /** True in every browser build (dev server, Vercel production). */
   readonly isWeb = !environment.native;
-
-  readonly shell: AppShell = environment.native ? 'android' : 'web';
 
   /**
    * Native OS, for APIs that need to name it (e.g. the push subscribe DTO's
@@ -48,9 +46,9 @@ export class AppPlatformService {
    * an iOS build reports 'ios' without hunting down scattered literals.
    * Meaningless when !isNative — callers should be inside a native branch.
    */
-  readonly nativePlatform: 'android' | 'ios' = /iphone|ipad|ipod/i.test(navigator.userAgent)
-    ? 'ios'
-    : 'android';
+  readonly nativePlatform: 'android' | 'ios' = AppPlatformService._isIos() ? 'ios' : 'android';
+
+  readonly shell: AppShell = environment.native ? this.nativePlatform : 'web';
 
   /**
    * Running as an installed app rather than in browser chrome — the Capacitor
@@ -73,6 +71,13 @@ export class AppPlatformService {
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(display-mode: standalone)').matches;
     return standaloneDisplay || (navigator as { standalone?: boolean }).standalone === true;
+  }
+
+  private static _isIos(): boolean {
+    const ua = navigator.userAgent;
+    return (
+      /iphone|ipad|ipod/i.test(ua) || (ua.includes('Macintosh') && navigator.maxTouchPoints > 1)
+    );
   }
 
   /**
@@ -144,8 +149,7 @@ export class AppPlatformService {
     //
     // Same sniff InstallPromptService._detectPlatform uses, including the
     // iPadOS-13+-reports-as-Macintosh case.
-    const ua = navigator.userAgent;
-    if (/iphone|ipad|ipod/i.test(ua) || (ua.includes('Macintosh') && navigator.maxTouchPoints > 1)) {
+    if (AppPlatformService._isIos()) {
       document.documentElement.classList.add('hm-ios');
     }
   }

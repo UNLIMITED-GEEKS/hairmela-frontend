@@ -16,7 +16,10 @@ export interface QueueEntry {
   notifiedLateAt: string | null;
   notifiedNextAt: string | null;
   notifiedRunningBehindAt: string | null;
+  notifiedWait10At: string | null;
+  notifiedWait15At: string | null;
   notifiedWait20At: string | null;
+  notifiedWait25At: string | null;
   notifiedWait5At: string | null;
   queue: Queue;
   queueId: string;

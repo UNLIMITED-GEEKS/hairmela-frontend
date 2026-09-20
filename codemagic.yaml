@@ -1,0 +1,45 @@
+workflows:
+  ios-app-store:
+    name: HairMela iOS App Store
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: hairmela-app-store-connect
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.hairmela.app
+      vars:
+        XCODE_WORKSPACE: ios/App/App.xcworkspace
+        XCODE_SCHEME: App
+      node: 24
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install JavaScript dependencies
+        script: npm ci
+      - name: Build native web assets
+        script: npx ng build --configuration native
+      - name: Sync Capacitor iOS project
+        script: npx cap sync ios
+      - name: Apply App Store signing profile
+        script: xcode-project use-profiles
+      - name: Set iOS build number
+        script: |
+          cd "$CM_BUILD_DIR/ios/App"
+          agvtool new-version -all "$BUILD_NUMBER"
+      - name: Build signed IPA
+        script: |
+          xcode-project build-ipa \
+            --workspace "$CM_BUILD_DIR/$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - ios/App/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false

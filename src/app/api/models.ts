@@ -4,6 +4,8 @@
 export type { Address } from './models/address';
 export type { AddressDto } from './models/address-dto';
 export type { AdHocUploadResponseDto } from './models/ad-hoc-upload-response-dto';
+export type { ApnsSubscribeDto } from './models/apns-subscribe-dto';
+export type { ApnsUnsubscribeDto } from './models/apns-unsubscribe-dto';
 export type { AppConfigResponseDto } from './models/app-config-response-dto';
 export type { AttachMediaDto } from './models/attach-media-dto';
 export type { AuthTokensDto } from './models/auth-tokens-dto';
