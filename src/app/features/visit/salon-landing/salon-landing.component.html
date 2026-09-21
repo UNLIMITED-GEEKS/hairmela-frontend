@@ -65,19 +65,16 @@
 
       <h1 class="mt-2 text-xl font-semibold text-text-primary">{{ s.name }}</h1>
 
-      <!-- Hidden when frozen, same reasoning as the phone number below:
-           the salon is suspended, so sending customers to its door is as
-           unhelpful as sending them to its phone. -->
-      @if (!frozen()) {
-        <p class="mt-1 flex items-start gap-1 text-sm text-text-muted">
-          <app-icon name="location-pin" class="h-4 w-4 shrink-0 mt-0.5" />
+      <!-- FIXME: Restore the frozen guard when the temporary bypass ends. -->
+      <!-- @if (!frozen()) { -->
+      <p class="mt-1 flex items-start gap-1 text-sm text-text-muted">
+        <app-icon name="location-pin" class="h-4 w-4 shrink-0 mt-0.5" />
         {{s.address.street}} {{ s.address?.city }}{{ s.address?.state ? ', ' + s.address.state : '' }}
-        </p>
-      }
+      </p>
+      <!-- } -->
 
-      <!-- Hidden when frozen: the salon is suspended, so pointing customers at
-           its phone number invites calls it isn't taking business through. -->
-      @if (s.phone && !frozen()) {
+      <!-- FIXME: When restoring the other frozen checks, use the shared frozen() guard here too. -->
+      @if (s.phone && !visit.salonData()?.isFrozen) {
         <a [href]="'tel:' + s.phone"
           class="mt-5 w-full  min-h-12 rounded-full bg-primary text-white text-sm font-normal flex items-center justify-center gap-2 hover:bg-surface-hover transition-colors">
           <app-icon name="phone" class="w-4 h-4" />
@@ -104,12 +101,16 @@
       <!-- About / Services / Staffs tabs -->
       <app-tabs class="block mt-8 mb-4" [tabs]="landingTabs" [activeId]="activeTab()" (tabChange)="setTab($event)" />
 
+      <!-- FIXME: Restore this frozen notice and the @else before the About tab. -->
+      <!--
       @if (frozen()) {
         <div class="w-full rounded-2xl border border-border bg-surface-sunken px-5 py-8 text-center">
           <p class="text-sm font-semibold text-text-body">Something went wrong</p>
           <p class="mt-1 text-sm text-text-secondary">Please check back later.</p>
         </div>
       } @else if (activeTab() === 'about') {
+      -->
+      @if (activeTab() === 'about') {
         <!-- Tab: About -->
         <div animate.enter="tab-content-enter">
           <div class="space-y-2 text-sm text-text-muted">

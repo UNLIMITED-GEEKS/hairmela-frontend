@@ -148,10 +148,10 @@ export class SalonLandingComponent implements OnInit {
     });
   }
 
-  // Frozen = the salon is over its org's plan limit and can't accept walk-ins
-  // (the backend rejects the join). Pre-block: hide the barbers entirely and
-  // show a notice instead of letting a customer tap into a dead flow.
-  protected readonly frozen = computed(() => this.visit.salonData()?.isFrozen ?? false);
+  // FIXME: Restore the isFrozen checks on this landing page (details, status,
+  // and booking) when the temporary frozen-salon bypass is no longer needed.
+  // The live-queue page and backend still enforce their own frozen checks.
+  // protected readonly frozen = computed(() => this.visit.salonData()?.isFrozen ?? false);
 
   // operatingHours is an untyped Array<{}> on the generated DTO (Swagger
   // doesn't declare its nested shape, same gap salon-settings.component.ts
@@ -265,12 +265,13 @@ export class SalonLandingComponent implements OnInit {
   // "Book ahead" is the walk-in fallback for a closed salon — while open,
   // customers use the per-staff "Book an appointment" section on the
   // live-queue page instead (staff already known there).
-  // Closed is precisely WHEN book-ahead is offered — it's the walk-in
-  // fallback. Frozen is different: the salon is suspended, so booking must not
-  // be offered at all. Without the frozen check the button rendered directly
-  // above the "Not accepting walk-ins right now" panel, contradicting it.
+  // Closed is precisely WHEN book-ahead is offered — it's the walk-in fallback.
+  // FIXME: When restoring the other frozen checks, use frozen() here too.
+  // protected readonly showBookAhead = computed(
+  //   () => !this.visit.salonData()?.isOpen && !this.frozen(),
+  // );
   protected readonly showBookAhead = computed(
-    () => !this.visit.salonData()?.isOpen && !this.frozen(),
+    () => !this.visit.salonData()?.isOpen && !this.visit.salonData()?.isFrozen,
   );
 
   protected readonly bookDialogOpen = signal(false);
@@ -358,11 +359,8 @@ export class SalonLandingComponent implements OnInit {
   protected readonly salonStatus = computed<SalonStatusBadge | null>(() => {
     const data = this.visit.salonData();
     if (!data) return null;
-    // A frozen salon isn't taking check-ins whatever its hours say, so "Open
-    // Now" would contradict the "Not accepting walk-ins right now" panel below.
-    // Returning null here also drops the adjacent nextOpenLabel, which would
-    // otherwise promise an opening time that changes nothing while suspended.
-    if (this.frozen()) return null;
+    // FIXME: Restore this frozen status guard when the temporary bypass ends.
+    // if (this.frozen()) return null;
     switch (data.openState) {
       case 'OPEN':
         return {
