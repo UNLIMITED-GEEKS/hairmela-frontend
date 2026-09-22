@@ -1,4 +1,4 @@
-import { Component, inject, signal, viewChild, ElementRef, OnInit, AfterViewInit, OnDestroy, DestroyRef } from '@angular/core';
+import { Component, inject, viewChild, ElementRef, OnInit, AfterViewInit, OnDestroy, DestroyRef } from '@angular/core';
 import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
@@ -7,7 +7,6 @@ import { GuestEntryValidatorService } from '../../../../core/guest/guest-entry-v
 import { NavItem } from '../nav-item.types';
 import { MobileTopBarComponent } from '../mobile-top-bar/mobile-top-bar.component';
 import { BottomNavComponent } from '../bottom-nav/bottom-nav.component';
-import { MobileSheetComponent } from '../mobile-sheet/mobile-sheet.component';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { TopBarComponent } from '../top-bar/top-bar.component';
 import { PullToRefreshIndicatorComponent } from '../../pull-to-refresh-indicator/pull-to-refresh-indicator.component';
@@ -24,7 +23,6 @@ import { RouteScrollRestorationService } from '../../../../core/scroll/route-scr
     TopBarComponent,
     MobileTopBarComponent,
     BottomNavComponent,
-    MobileSheetComponent,
     PullToRefreshIndicatorComponent,
   ],
 })
@@ -43,10 +41,6 @@ export class GuestShellComponent implements OnInit, AfterViewInit, OnDestroy {
    * the same tick means the browser never paints the intermediate state.
    */
   protected onRouteActivate(): void {
-    // Any navigation closes the sheet — see AuthShellComponent for the full
-    // reasoning; both shells share the bottom nav that opens it.
-    this.sheetOpen.set(false);
-
     const el = this._routeWrapper()?.nativeElement;
     if (!el) return;
     el.classList.remove('route-enter');
@@ -65,16 +59,22 @@ export class GuestShellComponent implements OnInit, AfterViewInit, OnDestroy {
   // PullToRefreshService's class doc for why that distinction matters).
   private readonly _mainEl = viewChild.required<ElementRef<HTMLElement>>('mainScroll');
 
-  protected readonly sheetOpen = signal(false);
-
   protected readonly navItems: NavItem[] = [
+    {
+      label: 'Home',
+      icon: 'home',
+      // "/" renders the marketing landing on the web and the app home in an
+      // installed/native context; HomeShellComponent owns that platform check.
+      url: RoutePath.root()[0],
+      bottomNav: true,
+      sidebar: true,
+    },
     {
       label: 'Search',
       icon: 'search',
       url: RoutePath.guestSearch()[0],
       bottomNav: true,
       sidebar: true,
-      sheet: true,
     },
     {
       label: 'My History',
@@ -82,16 +82,13 @@ export class GuestShellComponent implements OnInit, AfterViewInit, OnDestroy {
       url: RoutePath.guestQueues()[0],
       bottomNav: true,
       sidebar: true,
-      sheet: true,
     },
     {
       label: 'Sign Up',
-      icon: 'person-add',
+      icon: 'person',
       url: RoutePath.register()[0],
       bottomNav: true,
       sidebar: true,
-      sheet: true,
-      cta: true,
     },
   ];
 

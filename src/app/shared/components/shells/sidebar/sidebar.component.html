@@ -20,7 +20,9 @@
       <a
         [routerLink]="item.url"
         routerLinkActive="bg-primary text-white"
-        [routerLinkActiveOptions]="{ exact: item.url === RoutePath.dashboard()[0] }"
+        [routerLinkActiveOptions]="item.url === RoutePath.root()[0] || item.url === RoutePath.dashboard()[0]
+          ? { paths: 'exact', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }
+          : { paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
         class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-primary hover:text-white transition-all ease-in min-h-11 relative"
         [class.justify-center]="collapsed()"
         [title]="collapsed() ? item.label : ''">

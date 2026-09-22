@@ -11,15 +11,6 @@
     <!-- Mobile top bar -->
     <app-mobile-top-bar [isGuest]="true" />
 
-    <!-- Bottom sheet. A SIBLING of the top bar, not projected into it: that
-         bar declares backdrop-blur, which creates a stacking context a
-         position:fixed child cannot escape. -->
-    <app-mobile-sheet
-      #sheet
-      [navItems]="navItems"
-      [open]="sheetOpen()"
-      (closed)="sheetOpen.set(false)" />
-
     <!-- Content -->
     <main #mainScroll class="flex-1 overflow-y-auto pt-8 md:pt-0 pb-bottom-nav">
       <app-pull-to-refresh-indicator />
@@ -33,15 +24,7 @@
     </main>
 
     <!-- Mobile bottom nav -->
-    <!-- The guest sheet opens from here, since the top bar's hamburger was
-         replaced by the account avatar (which a guest does not get). -->
-    <app-bottom-nav
-      [navItems]="navItems"
-      [showSheetTab]="!sheet.isEmpty()"
-      [sheetOpen]="sheetOpen()"
-      (sheetToggle)="sheetOpen.update(v => !v)"
-      (navigate)="sheetOpen.set(false)" />
+    <app-bottom-nav [navItems]="navItems" />
   </div>
 
 </div>
-

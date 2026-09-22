@@ -27,18 +27,23 @@ export class AboutComponent {
   protected readonly values: readonly CoreValue[] = [
     {
       number: '01.',
-      title: 'Respect your customer’s time',
-      body: 'Standing around guessing when you’ll be seen is the worst part of a haircut. HairMela turns the wait into a number you can watch, so people show up right when it’s their turn, not an hour early.',
+      title: 'Help your business grow',
+      body: 'Your public HairMela page helps new clients discover your business. A smoother queue and booking experience also makes it easier for existing clients to come back more often.',
     },
     {
       number: '02.',
-      title: 'Built for the chair, not the desk',
-      body: 'Staffs run their day from a phone between clients, not a back-office computer. Every screen is designed to be glanced at and tapped once: open the queue, call the next client, get back to work.',
+      title: 'Respect your clients’ time',
+      body: 'Waiting is easier when people know how long it will take. HairMela shows each client their position and estimated wait time, so they can arrive closer to their turn.',
     },
     {
       number: '03.',
-      title: 'Simple beats clever',
-      body: 'No hardware, no training day, no manual. Set up your salon, share a link, and start taking walk-ins. The fastest tool is the one your team actually uses.',
+      title: 'Made for busy professionals',
+      body: 'You can manage HairMela from your phone between clients. Open the queue, call the next person, and get back to work.',
+    },
+    {
+      number: '04.',
+      title: 'Keep it simple',
+      body: 'You do not need special equipment or a long training session. Set up your business, share your link, and start taking walk-ins and bookings.',
     },
   ];
 }

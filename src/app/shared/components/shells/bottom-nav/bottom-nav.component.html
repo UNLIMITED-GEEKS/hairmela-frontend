@@ -45,7 +45,9 @@
         #rla="routerLinkActive"
         [routerLink]="item.url"
         routerLinkActive
-        [routerLinkActiveOptions]="{ exact: item.url === RoutePath.dashboard()[0] || item.url === RoutePath.guestQueues()[0], queryParams: 'ignored' }"
+        [routerLinkActiveOptions]="item.url === RoutePath.root()[0] || item.url === RoutePath.dashboard()[0] || item.url === RoutePath.guestQueues()[0]
+          ? { paths: 'exact', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }
+          : { paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
         (click)="navigate.emit()"
         class="flex-1 flex flex-col items-center justify-center gap-0.5 pt-2 min-h-14 transition-colors relative"
         [class]="rla.isActive ? 'text-primary' : 'text-text-secondary'"
