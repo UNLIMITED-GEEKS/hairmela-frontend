@@ -24,6 +24,7 @@ import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
 import { InstallPromptService } from '../../../core/pwa/install-prompt.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { staffAvailability } from '../../../core/utils/staff-availability';
+import { capitalizeWords } from '../../../core/utils/capitalize-words';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 import { environment } from '../../../../environments/environment';
 import { AppPlatformService } from '../../../core/native/app-platform.service';
@@ -393,7 +394,8 @@ export class SalonLandingComponent implements OnInit {
       { id: string; name: string; slug: string; sortOrder: number; services: Service[] }
     >();
     for (const service of this.visit.services()) {
-      const cat = service.category;
+      const cat = service.category ?? service.salonCategory;
+      if (!cat) continue;
       let group = groups.get(cat.id);
       if (!group) {
         // slug is carried alongside id so a ?category=<slug> deep link can be
@@ -401,16 +403,19 @@ export class SalonLandingComponent implements OnInit {
         // accordions key on id.
         group = {
           id: cat.id,
-          name: cat.name,
-          slug: cat.slug,
-          sortOrder: cat.sortOrder,
+          name: service.salonCategory ? capitalizeWords(cat.name) : cat.name,
+          slug: service.category?.slug ?? '',
+          sortOrder: service.category?.sortOrder ?? Number.MAX_SAFE_INTEGER,
           services: [],
         };
         groups.set(cat.id, group);
       }
       group.services.push(service);
     }
-    return [...groups.values()].sort((a, b) => a.sortOrder - b.sortOrder);
+    return [...groups.values()].sort((a, b) =>
+      Number(a.name.toLocaleLowerCase() === 'other') - Number(b.name.toLocaleLowerCase() === 'other')
+      || a.sortOrder - b.sortOrder,
+    );
   });
 
   // ── Deep link: ?category=<slug> ──────────────────────────────────────────

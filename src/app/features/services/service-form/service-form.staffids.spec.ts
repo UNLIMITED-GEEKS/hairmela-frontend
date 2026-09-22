@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { Subject } from 'rxjs';
 import { provideRouter } from '@angular/router';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { ServiceFormComponent } from './service-form.component';
@@ -25,7 +27,12 @@ class MockServicesService {
   updateBody: UpdateServiceDto | null = null;
   loading = () => false;
   services = () => [];
+  customCategories = () => [];
+  customCategoriesLoading = () => false;
+  categoryCreateResponse = new Subject<{ body: { id: string; name: string } }>();
   load(): void {}
+  loadCustomCategories(): void {}
+  createCustomCategory() { return this.categoryCreateResponse.asObservable(); }
   create(_salonId: string, body: CreateServiceDto): void {
     this.createBody = body;
   }
@@ -39,6 +46,7 @@ function configure(params: Record<string, string>) {
   TestBed.configureTestingModule({
     providers: [
       provideHttpClient(),
+      provideHttpClientTesting(),
       // Wildcard route so save()'s post-success navigate() resolves instead of
       // throwing an unhandled NG04002 against an empty router config.
       provideRouter([{ path: '**', children: [] }]),
@@ -62,7 +70,7 @@ function configure(params: Record<string, string>) {
   const cmp = fixture.componentInstance as unknown as {
     form: {
       patchValue(v: Record<string, unknown>): void;
-      controls: { staffIds: { value: string[] } };
+      controls: { staffIds: { value: string[] }; categoryId: { value: string } };
     };
     toggleStaff(id: string, checked: boolean): void;
     isStaffChecked(id: string): boolean;
@@ -71,6 +79,9 @@ function configure(params: Record<string, string>) {
     // opens the assign-staff dialog, and THIS is where the request goes out.
     assignOpen: { (): boolean; set(v: boolean): void };
     onAssignConfirmed(result: { staffIds: string[]; changed: boolean }): void;
+    createCategory(name: string): void;
+    categoryDialogOpen: { (): boolean; set(v: boolean): void };
+    categoryCreating: { (): boolean };
   };
   return { cmp, services };
 }
@@ -144,5 +155,40 @@ describe('ServiceFormComponent — staffIds wiring', () => {
     cmp.toggleStaff('c', true); // marks the control dirty
     cmp.save();
     expect(services.updateBody!.staffIds).toEqual(['a', 'b', 'c']);
+  });
+
+  it('selects a custom category only after its create request succeeds', () => {
+    const { cmp, services } = configure({ salonId: 's1' });
+    cmp.form.patchValue({ categoryId: 'default-id' });
+    cmp.categoryDialogOpen.set(true);
+    cmp.createCategory('Hair Colour');
+
+    expect(cmp.categoryCreating()).toBe(true);
+    expect(cmp.form.controls.categoryId.value).toBe('default-id');
+    services.categoryCreateResponse.next({ body: { id: 'custom-id', name: 'Hair Colour' } });
+
+    expect(cmp.form.controls.categoryId.value).toBe('custom:custom-id');
+    expect(cmp.categoryDialogOpen()).toBe(false);
+    expect(cmp.categoryCreating()).toBe(false);
+  });
+
+  it('sends salonCategoryId instead of categoryId for a custom selection', () => {
+    const { cmp, services } = configure({ salonId: 's1', serviceId: 'svc1' });
+    cmp.form.patchValue({ ...validCore, categoryId: 'custom:custom-id' });
+    cmp.toggleStaff('a', true);
+    cmp.save();
+
+    expect(services.updateBody!.salonCategoryId).toBe('custom-id');
+    expect('categoryId' in services.updateBody!).toBe(false);
+  });
+
+  it('creates a service with the selected custom category', () => {
+    const { cmp, services } = configure({ salonId: 's1' });
+    cmp.form.patchValue({ ...validCore, categoryId: 'custom:custom-id' });
+    cmp.toggleStaff('a', true);
+    cmp.save();
+
+    expect(services.createBody!.salonCategoryId).toBe('custom-id');
+    expect('categoryId' in services.createBody!).toBe(false);
   });
 });

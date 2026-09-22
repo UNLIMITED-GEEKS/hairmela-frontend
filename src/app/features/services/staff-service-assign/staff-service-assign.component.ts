@@ -38,8 +38,20 @@ export class StaffServiceAssignComponent implements OnInit {
   );
 
   protected readonly serviceGroups = computed(() =>
-    groupByServiceCategory(this.allServices(), (s: Service) => s),
+    groupByServiceCategory(
+      this.allServices(),
+      (s: Service) => s,
+      new Map(this._servicesService.customCategories().map((category) => [category.id, category.name])),
+    ),
   );
+
+  protected readonly serviceSections = computed(() => {
+    const groups = this.serviceGroups();
+    return [
+      { title: 'Default category', groups: groups.filter((group) => !!group.items[0]?.categoryId) },
+      { title: 'Custom category', groups: groups.filter((group) => !!group.items[0]?.salonCategoryId) },
+    ].filter((section) => section.groups.length > 0);
+  });
 
   protected readonly assignedServices = computed(() =>
     this.allServices().filter((s) => this.assignedIds().has(s.id)),
@@ -57,6 +69,7 @@ export class StaffServiceAssignComponent implements OnInit {
     this._servicesService.load(this._salonId);
     this._servicesService.loadStaffServices(this._salonId, this._staffId);
     this._assignService.load(this._salonId, this._staffId);
+    this._servicesService.loadCustomCategories(this._salonId);
   }
 
   protected retry(): void {

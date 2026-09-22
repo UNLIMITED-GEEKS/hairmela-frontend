@@ -24,7 +24,7 @@ export interface ControlItem {
 }
 
 const COLLAPSED_KEY = 'hm_sidebar_collapsed';
-
+export const NPB_ORG_ID = '05802333-2e32-484d-a8c6-d87ccfcb9388';
 export const CONTROL_ITEMS: ControlItem[] = [
   { label: 'Staff', url: RouteSegment.STAFF, roles: [SalonRole.OWNER, SalonRole.ADMIN] },
   {
@@ -163,6 +163,8 @@ export class SidebarComponent implements OnInit {
   // link to staff. Returns the id (not a boolean) so the template can bind it
   // with @if (...; as orgId).
   private readonly _platform = inject(AppPlatformService);
+  private NPB_ORG_ID = NPB_ORG_ID;
+
   readonly billingOrgId = computed(() =>
     !this._platform.isNative && this.isOwner() ? (this._orgContext.ownedOrg()?.id ?? null) : null,
   );

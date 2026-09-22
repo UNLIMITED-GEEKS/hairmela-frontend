@@ -1,4 +1,5 @@
 import { Component, OnInit, inject, computed, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Service } from '../../../api/models/service';
 import { ServicesService } from '../services.service';
@@ -15,6 +16,8 @@ import { RouteParam, RouteSegment } from '../../../core/routing/route-paths';
 import { CurrencyNgnPipe } from '../../../shared/pipes/currency-ngn.pipe';
 import { filter } from 'rxjs';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { DeleteCategoryDialogComponent } from '../delete-category-dialog/delete-category-dialog.component';
+import { RenameCategoryDialogComponent } from '../rename-category-dialog/rename-category-dialog.component';
 
 @Component({
   selector: 'app-service-list',
@@ -28,6 +31,8 @@ import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.
     PageHeaderComponent,
     ScreenLayoutComponent,
     CurrencyNgnPipe,
+    DeleteCategoryDialogComponent,
+    RenameCategoryDialogComponent,
   ],
 })
 export class ServiceListComponent implements OnInit {
@@ -40,6 +45,18 @@ export class ServiceListComponent implements OnInit {
   protected readonly loading = this._servicesService.loading;
   protected readonly error = this._servicesService.error;
   protected readonly services = this._servicesService.services;
+  protected readonly categoryToDelete = signal<{ id: string; name: string } | null>(null);
+  protected readonly categoryDeleting = signal(false);
+  protected readonly categoryDeleteError = signal<string | null>(null);
+  protected readonly categoryToRename = signal<{ id: string; name: string } | null>(null);
+  protected readonly categoryRenaming = signal(false);
+  protected readonly categoryRenameError = signal<string | null>(null);
+  protected readonly customReplacementCategories = computed(() =>
+    this._servicesService
+      .customCategories()
+      .filter((category) => category.id !== this.categoryToDelete()?.id),
+  );
+  protected readonly defaultReplacementCategories = this._categoriesService.categories;
 
   protected readonly canManage = computed(() => {
     const role = this.salonContext.membership()?.role;
@@ -67,19 +84,37 @@ export class ServiceListComponent implements OnInit {
   // placeholder name rather than crashing on `undefined.id`.
   protected readonly serviceCategories = computed(() => {
     const categoriesById = new Map(this._categoriesService.categories().map((c) => [c.id, c]));
+    const customCategoriesById = new Map(
+      this._servicesService.customCategories().map((c) => [c.id, c]),
+    );
     const groups = new Map<
       string,
-      { id: string; name: string; sortOrder: number; services: Service[] }
+      { id: string; name: string; sortOrder: number; isCustom: boolean; services: Service[] }
     >();
+    for (const category of this._servicesService.customCategories()) {
+      groups.set(category.id, {
+        id: category.id,
+        name: category.name,
+        sortOrder: Number.MAX_SAFE_INTEGER,
+        isCustom: true,
+        services: [],
+      });
+    }
     for (const service of this.services()) {
-      const cat = service.category ?? categoriesById.get(service.categoryId);
-      const id = cat?.id ?? service.categoryId;
+      const categoryId = service.categoryId;
+      const cat = service.category ?? (categoryId ? categoriesById.get(categoryId) : null);
+      const salonCat =
+        service.salonCategory ??
+        (service.salonCategoryId ? customCategoriesById.get(service.salonCategoryId) : null);
+      const id = cat?.id ?? salonCat?.id ?? categoryId ?? service.salonCategoryId;
+      if (!id) continue;
       let group = groups.get(id);
       if (!group) {
         group = {
           id,
-          name: cat?.name ?? service.categoryId,
-          sortOrder: cat?.sortOrder ?? Number.MAX_SAFE_INTEGER,
+          name: cat?.name ?? salonCat?.name ?? id,
+          sortOrder: service.category?.sortOrder ?? Number.MAX_SAFE_INTEGER,
+          isCustom: !!service.salonCategoryId,
           services: [],
         };
         groups.set(id, group);
@@ -87,6 +122,16 @@ export class ServiceListComponent implements OnInit {
       group.services.push(service);
     }
     return [...groups.values()].sort((a, b) => a.sortOrder - b.sortOrder);
+  });
+
+  protected readonly serviceSections = computed(() => {
+    const categories = this.serviceCategories();
+    const defaults = categories.filter((category) => !category.isCustom);
+    const custom = categories.filter((category) => category.isCustom);
+    return [
+      { title: 'Default category', categories: defaults },
+      { title: 'Custom category', categories: custom },
+    ].filter((section) => section.categories.length > 0);
   });
 
   // A single category is always expanded (nothing to collapse against); with
@@ -119,10 +164,68 @@ export class ServiceListComponent implements OnInit {
   ngOnInit(): void {
     this._servicesService.load(this._salonId);
     this._categoriesService.load();
+    this._servicesService.loadCustomCategories(this._salonId);
   }
 
   protected retry(): void {
     this._servicesService.refresh(this._salonId);
+  }
+
+  protected openDeleteCategory(category: { id: string; name: string }): void {
+    this.categoryDeleteError.set(null);
+    this.categoryToDelete.set(category);
+  }
+
+  protected openRenameCategory(category: { id: string; name: string }): void {
+    this.categoryRenameError.set(null);
+    this.categoryToRename.set(category);
+  }
+
+  protected renameCategory(name: string): void {
+    const category = this.categoryToRename();
+    if (!category || this.categoryRenaming()) return;
+    this.categoryRenaming.set(true);
+    this.categoryRenameError.set(null);
+    this._servicesService.renameCustomCategory(this._salonId, category.id, name).subscribe({
+      next: () => {
+        this.refreshCategoryLists();
+        this.categoryRenaming.set(false);
+        this.categoryToRename.set(null);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.categoryRenaming.set(false);
+        this.categoryRenameError.set(
+          error.error?.message ?? 'Could not rename this category. Please try again.',
+        );
+      },
+    });
+  }
+
+  protected deleteCategory(replacementCategoryId?: string): void {
+    const category = this.categoryToDelete();
+    if (!category || this.categoryDeleting()) return;
+    this.categoryDeleting.set(true);
+    this.categoryDeleteError.set(null);
+    this._servicesService
+      .deleteCustomCategory(this._salonId, category.id, replacementCategoryId)
+      .subscribe({
+        next: () => {
+          this.refreshCategoryLists();
+          this.categoryDeleting.set(false);
+          this.categoryToDelete.set(null);
+        },
+        error: (error: HttpErrorResponse) => {
+          this.categoryDeleting.set(false);
+          this.categoryDeleteError.set(
+            error.error?.message ?? 'Could not delete this category. Please try again.',
+          );
+        },
+      });
+  }
+
+  private refreshCategoryLists(): void {
+    this._servicesService.refresh(this._salonId);
+    this._servicesService.refreshCustomCategories(this._salonId);
   }
 
   protected deactivate(service: Service): void {

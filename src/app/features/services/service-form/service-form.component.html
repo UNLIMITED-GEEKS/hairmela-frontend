@@ -55,23 +55,38 @@
         <div class="bg-surface-card rounded-xl border border-border p-5 space-y-4">
           <!-- Category -->
           <div class="space-y-1.5">
-            <label class="text-sm font-medium text-text-body flex items-center gap-2">
-              Category
-              @if (categoriesService.loading()) {
-                <app-inline-spinner sizeClass="w-3.5 h-3.5" label="Loading categories" />
-              }
-            </label>
+            <div class="flex items-center justify-between gap-3">
+              <label for="service-category" class="text-sm font-medium text-text-body flex items-center gap-2">
+                Category
+                @if (categoriesService.loading() || customCategoriesLoading()) {
+                  <app-inline-spinner sizeClass="w-3.5 h-3.5" label="Loading categories" />
+                }
+              </label>
+              <button type="button" (click)="categoryError.set(null); categoryDialogOpen.set(true)"
+                [disabled]="salonContext.isFrozen()"
+                class="min-h-9 px-3 inline-flex items-center justify-center rounded-lg border border-primary text-sm font-semibold text-primary hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50 transition-colors">
+                Create new custom category
+              </button>
+            </div>
             <select
+              id="service-category"
               formControlName="categoryId"
-              [disabled]="categoriesService.loading()"
+              [disabled]="categoriesService.loading() || customCategoriesLoading()"
               class="w-full min-h-11 px-3 rounded-lg border border-border-strong text-sm bg-surface-card focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary disabled:opacity-50"
             >
               <option value="" disabled>
                 {{ categoriesService.loading() ? 'Loading…' : 'Select a category' }}
               </option>
-              @for (cat of categoriesService.categories(); track cat.id) {
-                <option [value]="cat.id">{{ cat.name }}</option>
-              }
+              <optgroup label="Default">
+                @for (cat of categoriesService.categories(); track cat.id) {
+                  <option [value]="cat.id">{{ cat.name }}</option>
+                }
+              </optgroup>
+              <optgroup label="Custom category">
+                @for (cat of customCategories(); track cat.id) {
+                  <option [value]="'custom:' + cat.id">{{ cat.name }}</option>
+                }
+              </optgroup>
             </select>
             <app-field-error [control]="form.get('categoryId')" />
           </div>
@@ -214,4 +229,12 @@
   [confirmLabel]="isEdit() ? 'Save changes' : 'Create service'"
   (confirmed)="onAssignConfirmed($event)"
   (closed)="assignOpen.set(false)"
+/>
+
+<app-create-category-dialog
+  [open]="categoryDialogOpen()"
+  [saving]="categoryCreating()"
+  [error]="categoryError()"
+  (created)="createCategory($event)"
+  (closed)="categoryDialogOpen.set(false)"
 />

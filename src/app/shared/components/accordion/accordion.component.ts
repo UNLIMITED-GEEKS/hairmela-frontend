@@ -16,6 +16,7 @@ export class AccordionComponent {
   readonly title = input.required<string>();
   readonly open = model(false);
   readonly compact = input(false);
+  readonly count = input<number | null>(null);
 
   protected toggle(): void {
     this.open.update((v) => !v);

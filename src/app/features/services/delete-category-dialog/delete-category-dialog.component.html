@@ -1,0 +1,110 @@
+@if (open()) {
+  <div
+    class="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4 pb-4 sm:items-center sm:pb-0"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="delete-category-title"
+  >
+    <form (ngSubmit)="submit()" class="w-full max-w-md rounded-3xl bg-surface p-6 shadow-xl">
+      <h2 id="delete-category-title" class="text-lg font-bold text-text-primary">
+        Delete “{{ categoryName() }}”?
+      </h2>
+      <p class="mt-2 text-sm leading-5 text-text-secondary">
+        You can move its services to another category before deleting it. This is optional, but
+        highly recommended.
+      </p>
+
+      <div
+        class="mt-5 flex items-center justify-between gap-4 rounded-lg border border-border bg-surface-card p-3"
+      >
+        <div>
+          <p class="text-sm font-medium text-text-primary">Move services before deleting</p>
+          <p class="mt-0.5 text-xs text-text-secondary">
+            Recommended to keep your services and staff assignments.
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          [attr.aria-checked]="moveServices()"
+          aria-label="Move services before deleting category"
+          [disabled]="deleting()"
+          (click)="setMoveServices(!moveServices())"
+          [class]="
+            'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50 ' +
+            (moveServices() ? 'bg-primary' : 'bg-surface-strong')
+          "
+        >
+          <span
+            [class]="
+              'inline-block h-4 w-4 rounded-full bg-surface-card shadow transition-transform ' +
+              (moveServices() ? 'translate-x-6' : 'translate-x-1')
+            "
+          ></span>
+        </button>
+      </div>
+
+      <label for="replacement-category" class="mt-4 block text-sm font-medium text-text-body">
+        Destination category
+      </label>
+      <select
+        id="replacement-category"
+        name="replacementCategoryId"
+        [ngModel]="replacementCategoryId()"
+        (ngModelChange)="replacementCategoryId.set($event)"
+        [disabled]="deleting() || !moveServices()"
+        class="mt-1.5 w-full min-h-11 rounded-lg border border-border-strong bg-surface-card px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary disabled:opacity-50"
+      >
+        <option value="" disabled>Select a destination category</option>
+        @if (defaultReplacements().length > 0) {
+          <optgroup label="Default categories">
+            @for (category of defaultReplacements(); track category.id) {
+              <option [value]="category.id">{{ category.name }}</option>
+            }
+          </optgroup>
+        }
+        @if (customReplacements().length > 0) {
+          <optgroup label="Custom categories">
+            @for (category of customReplacements(); track category.id) {
+              <option [value]="category.id">{{ category.name }}</option>
+            }
+          </optgroup>
+        }
+      </select>
+
+      @if (!moveServices()) {
+        <div
+          class="mt-4 rounded-lg border border-red-300/60 bg-red-500/10 p-3 text-sm leading-5 text-red-700 dark:text-red-300"
+        >
+          Without a destination category, all services in this category will be deleted and
+          unassigned from staff.
+        </div>
+      }
+
+      @if (error(); as message) {
+        <p class="mt-3 text-xs text-error" role="alert">{{ message }}</p>
+      }
+
+      <div class="mt-6 flex gap-3">
+        <button
+          type="button"
+          (click)="close()"
+          [disabled]="deleting()"
+          class="flex-1 min-h-11 rounded-lg border border-border-strong text-sm font-medium text-text-body hover:bg-surface-sunken disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          [disabled]="deleting() || (moveServices() && !replacementCategoryId())"
+          class="flex-1 min-h-11 rounded-lg bg-red-600 px-3 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 inline-flex items-center justify-center gap-2"
+        >
+          @if (deleting()) {
+            <app-inline-spinner sizeClass="w-4 h-4" label="Deleting category" />
+          }
+          {{ moveServices() ? 'Move and delete' : 'Delete category' }}
+        </button>
+      </div>
+    </form>
+  </div>
+}

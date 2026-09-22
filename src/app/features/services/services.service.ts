@@ -1,14 +1,19 @@
 import { CacheRegistry } from '../../core/caching/cache-registry/cache-registry.service';
 import { Injectable, inject, signal } from '@angular/core';
-import { map } from 'rxjs';
+import { map, tap } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { ApiConfiguration } from '../../api/api-configuration';
 import { ServiceResponseDto } from '../../api/models/service-response-dto';
+import { SalonCategoryResponseDto } from '../../api/models/salon-category-response-dto';
 import { StaffService as StaffServiceModel } from '../../api/models/staff-service';
 import { CreateServiceDto } from '../../api/models/create-service-dto';
 import { UpdateServiceDto } from '../../api/models/update-service-dto';
 import { SetDefaultServiceDto } from '../../api/models/set-default-service-dto';
 import { publicServicesControllerFindBySalon } from '../../api/fn/services/public-services-controller-find-by-salon';
+import { publicSalonCategoriesControllerFindAll } from '../../api/fn/services/public-salon-categories-controller-find-all';
+import { salonCategoriesManagementControllerCreate } from '../../api/fn/services/salon-categories-management-controller-create';
+import { salonCategoriesManagementControllerRemove } from '../../api/fn/services/salon-categories-management-controller-remove';
+import { salonCategoriesManagementControllerRename } from '../../api/fn/services/salon-categories-management-controller-rename';
 import { servicesControllerCreate } from '../../api/fn/services/services-controller-create';
 import { servicesControllerUpdate } from '../../api/fn/services/services-controller-update';
 import { servicesControllerDeactivate } from '../../api/fn/services/services-controller-deactivate';
@@ -33,9 +38,11 @@ export class ServicesService {
   }
 
   private readonly _cache = new Map<string, ServiceResponseDto[]>();
+  private readonly _customCategoriesCache = new Map<string, SalonCategoryResponseDto[]>();
   private readonly _staffServicesCache = new Map<string, StaffServiceModel[]>();
 
   private readonly _services = signal<ServiceResponseDto[]>([]);
+  private readonly _customCategories = signal<SalonCategoryResponseDto[]>([]);
   private readonly _staffServices = signal<StaffServiceModel[]>([]);
 
   // Two independent loaders — salon services and staff services are separate
@@ -46,6 +53,15 @@ export class ServicesService {
     cache: this._cache,
     fetch: (salonId) =>
       publicServicesControllerFindBySalon(this._http, this._apiConfig.rootUrl, { salonId }).pipe(
+        map((r) => r.body),
+      ),
+  });
+  private readonly _customCategoriesLoader = new CachedLoader({
+    signal: this._customCategories,
+    optimistic: this._optimistic,
+    cache: this._customCategoriesCache,
+    fetch: (salonId) =>
+      publicSalonCategoriesControllerFindAll(this._http, this._apiConfig.rootUrl, { salonId }).pipe(
         map((r) => r.body),
       ),
   });
@@ -65,6 +81,8 @@ export class ServicesService {
   });
 
   readonly services = this._services.asReadonly();
+  readonly customCategories = this._customCategories.asReadonly();
+  readonly customCategoriesLoading = this._customCategoriesLoader.loading;
   readonly staffServices = this._staffServices.asReadonly();
   readonly loading = this._servicesLoader.loading;
   readonly staffServicesLoading = this._staffServicesLoader.loading;
@@ -75,12 +93,97 @@ export class ServicesService {
     this._servicesLoader.load(salonId);
   }
 
+  loadCustomCategories(salonId: string): void {
+    this._customCategoriesLoader.load(salonId);
+  }
+
+  createCustomCategory(salonId: string, name: string) {
+    return salonCategoriesManagementControllerCreate(this._http, this._apiConfig.rootUrl, {
+      salonId,
+      body: { name },
+    }).pipe(
+      tap(({ body }) => {
+        const categories = [
+          ...this._customCategories().filter((category) => category.id !== body.id),
+          body,
+        ].sort((a, b) => a.name.localeCompare(b.name));
+        this._customCategories.set(categories);
+        this._customCategoriesCache.set(salonId, categories);
+      }),
+    );
+  }
+
+  deleteCustomCategory(salonId: string, categoryId: string, replacementCategoryId?: string) {
+    const replacementIsCustom = this._customCategories().some(
+      (category) => category.id === replacementCategoryId,
+    );
+    return salonCategoriesManagementControllerRemove(this._http, this._apiConfig.rootUrl, {
+      salonId,
+      categoryId,
+      body: { replacementCategoryId },
+    }).pipe(
+      tap(() => {
+        const categories = this._customCategories().filter(
+          (category) => category.id !== categoryId,
+        );
+        const services = replacementCategoryId
+          ? this._services().map((service) =>
+              service.salonCategoryId === categoryId
+                ? {
+                    ...service,
+                    categoryId: replacementIsCustom ? null : replacementCategoryId,
+                    salonCategoryId: replacementIsCustom ? replacementCategoryId : null,
+                    category: null,
+                    salonCategory: null,
+                  }
+                : service,
+            )
+          : this._services().filter((service) => service.salonCategoryId !== categoryId);
+
+        this._customCategories.set(categories);
+        this._customCategoriesCache.set(salonId, categories);
+        this._services.set(services);
+        this._cache.set(salonId, services);
+        this._toast.success('Custom category deleted');
+      }),
+    );
+  }
+
+  renameCustomCategory(salonId: string, categoryId: string, name: string) {
+    return salonCategoriesManagementControllerRename(this._http, this._apiConfig.rootUrl, {
+      salonId,
+      categoryId,
+      body: { name },
+    }).pipe(
+      tap(({ body }) => {
+        const categories = this._customCategories().map((category) =>
+          category.id === categoryId ? body : category,
+        );
+        const services = this._services().map((service) =>
+          service.salonCategoryId === categoryId && service.salonCategory
+            ? { ...service, salonCategory: { ...service.salonCategory, name: body.name } }
+            : service,
+        );
+
+        this._customCategories.set(categories);
+        this._customCategoriesCache.set(salonId, categories);
+        this._services.set(services);
+        this._cache.set(salonId, services);
+        this._toast.success('Custom category renamed');
+      }),
+    );
+  }
+
   loadStaffServices(salonId: string, staffId: string): void {
     this._staffServicesLoader.load(`${salonId}:${staffId}`);
   }
 
   refresh(salonId: string): void {
     this._servicesLoader.refresh(salonId);
+  }
+
+  refreshCustomCategories(salonId: string): void {
+    this._customCategoriesLoader.refresh(salonId);
   }
 
   refreshStaffServices(salonId: string, staffId: string): void {
@@ -262,8 +365,10 @@ export class ServicesService {
 
   clear(): void {
     this._cache.clear();
+    this._customCategoriesCache.clear();
     this._staffServicesCache.clear();
     this._optimistic.reset(this._services, []);
+    this._optimistic.reset(this._customCategories, []);
     this._optimistic.reset(this._staffServices, []);
   }
 }

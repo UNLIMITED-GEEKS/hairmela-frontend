@@ -165,6 +165,14 @@ export type { StaffServicesControllerSetDefaultService$Params as StaffServicesCo
 export { staffServicesControllerSetDefaultService as staffServicesControllerSetDefaultService } from './fn/services/staff-services-controller-set-default-service';
 export type { CategoriesControllerFindAll$Params as CategoriesControllerFindAll$Params } from './fn/services/categories-controller-find-all';
 export { categoriesControllerFindAll as categoriesControllerFindAll } from './fn/services/categories-controller-find-all';
+export type { PublicSalonCategoriesControllerFindAll$Params as PublicSalonCategoriesControllerFindAll$Params } from './fn/services/public-salon-categories-controller-find-all';
+export { publicSalonCategoriesControllerFindAll as publicSalonCategoriesControllerFindAll } from './fn/services/public-salon-categories-controller-find-all';
+export type { SalonCategoriesManagementControllerCreate$Params as SalonCategoriesManagementControllerCreate$Params } from './fn/services/salon-categories-management-controller-create';
+export { salonCategoriesManagementControllerCreate as salonCategoriesManagementControllerCreate } from './fn/services/salon-categories-management-controller-create';
+export type { SalonCategoriesManagementControllerRemove$Params as SalonCategoriesManagementControllerRemove$Params } from './fn/services/salon-categories-management-controller-remove';
+export { salonCategoriesManagementControllerRemove as salonCategoriesManagementControllerRemove } from './fn/services/salon-categories-management-controller-remove';
+export type { SalonCategoriesManagementControllerRename$Params as SalonCategoriesManagementControllerRename$Params } from './fn/services/salon-categories-management-controller-rename';
+export { salonCategoriesManagementControllerRename as salonCategoriesManagementControllerRename } from './fn/services/salon-categories-management-controller-rename';
 export type { SchedulesControllerFindAll$Params as SchedulesControllerFindAll$Params } from './fn/schedules/schedules-controller-find-all';
 export { schedulesControllerFindAll as schedulesControllerFindAll } from './fn/schedules/schedules-controller-find-all';
 export type { SchedulesControllerCreate$Params as SchedulesControllerCreate$Params } from './fn/schedules/schedules-controller-create';

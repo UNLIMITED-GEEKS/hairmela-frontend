@@ -3,7 +3,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { NavItem } from '../nav-item.types';
 import { NavIconComponent } from '../nav-icon/nav-icon.component';
 import { Membership, SalonRole } from '../../../../core/salon-context/membership.types';
-import { CONTROL_ITEMS, VisibleControl } from '../sidebar/sidebar.component';
+import { CONTROL_ITEMS, NPB_ORG_ID, VisibleControl } from '../sidebar/sidebar.component';
 import { RouteSegment, RoutePath } from '../../../../core/routing/route-paths';
 import { OrgContextService } from '../../../../core/salon-context/org-context.service';
 import { AppPlatformService } from '../../../../core/native/app-platform.service';
@@ -66,6 +66,7 @@ export class MobileSheetComponent {
   // for both why this sits outside "Salon Controls" and why the org id alone
   // is not proof of ownership.
   private readonly _platform = inject(AppPlatformService);
+  private NPB_ORG_ID = NPB_ORG_ID;
   readonly billingOrgId = computed(() =>
     !this._platform.isNative && this.isOwner() ? (this._orgContext.ownedOrg()?.id ?? null) : null,
   );

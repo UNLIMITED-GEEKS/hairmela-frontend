@@ -1,5 +1,6 @@
 import {
   Component,
+  DestroyRef,
   effect,
   inject,
   OnInit,
@@ -11,6 +12,8 @@ import {
   afterNextRender,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Location } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ServicesService } from '../services.service';
@@ -27,6 +30,7 @@ import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
 import { AssignStaffDialogComponent } from '../assign-staff-dialog/assign-staff-dialog.component';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { CreateCategoryDialogComponent } from '../create-category-dialog/create-category-dialog.component';
 
 @Component({
   selector: 'app-service-form',
@@ -40,6 +44,7 @@ import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.
     InlineSpinnerComponent,
     PageHeaderComponent,
     AssignStaffDialogComponent,
+    CreateCategoryDialogComponent,
   ],
 })
 export class ServiceFormComponent implements OnInit {
@@ -52,6 +57,7 @@ export class ServiceFormComponent implements OnInit {
   private readonly _router = inject(Router);
   protected readonly _location = inject(Location);
   private readonly _fb = inject(FormBuilder);
+  private readonly _destroyRef = inject(DestroyRef);
   private readonly _servicesService = inject(ServicesService);
   private readonly _staffService = inject(StaffService);
   protected readonly salonContext = inject(SalonContextService);
@@ -60,6 +66,11 @@ export class ServiceFormComponent implements OnInit {
   protected readonly loading = this._servicesService.loading;
   protected readonly staffLoading = this._staffService.loading;
   protected readonly assignOpen = signal(false);
+  protected readonly categoryDialogOpen = signal(false);
+  protected readonly categoryCreating = signal(false);
+  protected readonly categoryError = signal<string | null>(null);
+  protected readonly customCategories = this._servicesService.customCategories;
+  protected readonly customCategoriesLoading = this._servicesService.customCategoriesLoading;
   // Guards against a double-tap firing two ngSubmits before navigation away
   // completes — each would create its own optimistic op + a real duplicate
   // server-side create (nothing else in the form/service call chain blocks it).
@@ -132,7 +143,9 @@ export class ServiceFormComponent implements OnInit {
         const service = this._servicesService.services().find((s) => s.id === sid);
         if (service && !this.form.dirty) {
           this.form.patchValue({
-            categoryId: service.categoryId,
+            categoryId: service.salonCategoryId
+              ? `custom:${service.salonCategoryId}`
+              : (service.categoryId ?? ''),
             name: service.name,
             duration: service.duration,
             price: Number(service.price),
@@ -148,6 +161,7 @@ export class ServiceFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.categoriesService.load();
+    this._servicesService.loadCustomCategories(this._salonId);
     this._staffService.load(this._salonId);
     // Edit mode: refresh() (a forced fetch bypassing cache), not load(). The
     // staff pre-check below reads service.assignedStaffIds, which the list
@@ -172,6 +186,30 @@ export class ServiceFormComponent implements OnInit {
 
   protected staffName(s: SalonStaff): string {
     return s.user ? `${s.user.firstName} ${s.user.lastName}` : s.email;
+  }
+
+  protected createCategory(name: string): void {
+    if (this.categoryCreating()) return;
+    this.categoryError.set(null);
+    this.categoryCreating.set(true);
+    this._servicesService.createCustomCategory(this._salonId, name)
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: ({ body }) => {
+          this.form.controls.categoryId.setValue(`custom:${body.id}`);
+          this.form.controls.categoryId.markAsDirty();
+          this.categoryCreating.set(false);
+          this.categoryDialogOpen.set(false);
+        },
+        error: (error: HttpErrorResponse) => {
+          this.categoryCreating.set(false);
+          this.categoryError.set(
+            error.status === 409
+              ? 'This salon already has that category.'
+              : 'Could not create category. Please try again.',
+          );
+        },
+      });
   }
 
   protected save(): void {
@@ -217,7 +255,9 @@ export class ServiceFormComponent implements OnInit {
       this.form.getRawValue();
     const sid = this._serviceId;
     const baseBody = {
-      categoryId: categoryId!,
+      ...(categoryId!.startsWith('custom:')
+        ? { salonCategoryId: categoryId!.slice('custom:'.length) }
+        : { categoryId: categoryId! }),
       name: name!,
       duration: duration!,
       price: String(price ?? 0),

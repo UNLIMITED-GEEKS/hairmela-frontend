@@ -1,0 +1,62 @@
+@if (open()) {
+  <div
+    class="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4 pb-4 sm:items-center sm:pb-0"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="rename-category-title"
+  >
+    <form (ngSubmit)="submit()" class="w-full max-w-sm rounded-3xl bg-surface p-6 shadow-xl">
+      <h2 id="rename-category-title" class="text-lg font-bold text-text-primary">
+        Rename custom category
+      </h2>
+      <p class="mt-1 text-sm text-text-secondary">
+        Services in this category will remain unchanged.
+      </p>
+
+      <label for="rename-category-name" class="mt-5 block text-sm font-medium text-text-body">
+        Category name
+      </label>
+      <input
+        id="rename-category-name"
+        name="categoryName"
+        type="text"
+        maxlength="100"
+        autocomplete="off"
+        [ngModel]="name()"
+        (ngModelChange)="name.set($event)"
+        [disabled]="saving()"
+        class="mt-1.5 min-h-11 w-full rounded-lg border border-border-strong bg-surface-card px-3 text-sm text-text-primary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50"
+      />
+
+      @if (error(); as message) {
+        <p class="mt-2 text-xs text-error" role="alert">{{ message }}</p>
+      }
+
+      <div class="mt-6 flex gap-3">
+        <button
+          type="button"
+          (click)="close()"
+          [disabled]="saving()"
+          class="min-h-11 flex-1 rounded-lg border border-border-strong text-sm font-medium text-text-body hover:bg-surface-sunken disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          [disabled]="
+            saving() ||
+            name().trim().length < 2 ||
+            name().trim().length > 100 ||
+            name().trim() === currentName().trim()
+          "
+          class="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-primary text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-50"
+        >
+          @if (saving()) {
+            <app-inline-spinner sizeClass="w-4 h-4" label="Renaming category" />
+          }
+          Save name
+        </button>
+      </div>
+    </form>
+  </div>
+}

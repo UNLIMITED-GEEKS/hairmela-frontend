@@ -16,14 +16,23 @@ export interface ServiceCategoryGroup<T> {
 export function groupByServiceCategory<T>(
   items: readonly T[],
   getService: (item: T) => Service,
+  customCategories: ReadonlyMap<string, string> = new Map(),
 ): ServiceCategoryGroup<T>[] {
   const groups = new Map<string, ServiceCategoryGroup<T>>();
   for (const item of items) {
-    const cat = getService(item).category;
-    let group = groups.get(cat.id);
+    const service = getService(item);
+    const cat = service.category ?? service.salonCategory;
+    const id = cat?.id ?? service.salonCategoryId;
+    if (!id) continue;
+    let group = groups.get(id);
     if (!group) {
-      group = { id: cat.id, name: cat.name, sortOrder: cat.sortOrder, items: [] };
-      groups.set(cat.id, group);
+      group = {
+        id,
+        name: cat?.name ?? customCategories.get(id) ?? id,
+        sortOrder: service.category?.sortOrder ?? Number.MAX_SAFE_INTEGER,
+        items: [],
+      };
+      groups.set(id, group);
     }
     group.items.push(item);
   }

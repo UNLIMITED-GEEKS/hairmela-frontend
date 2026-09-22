@@ -188,7 +188,7 @@
                        element's native id, which silently breaks the day someone adds an
                        `id` input to AccordionComponent. -->
                   <div [id]="'service-category-' + category.id">
-                  <app-accordion [title]="category.name" [open]="isCategoryOpen(category.id)" [compact]="true"
+                  <app-accordion [title]="category.name" [count]="category.services.length" [open]="isCategoryOpen(category.id)" [compact]="true"
                     (openChange)="setCategoryOpen(category.id, $event)">
                     <div class="space-y-2">
                       @for (service of category.services; track service.id) {

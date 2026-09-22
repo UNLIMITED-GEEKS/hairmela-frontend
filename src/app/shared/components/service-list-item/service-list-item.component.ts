@@ -21,6 +21,7 @@ export class ServiceListItemComponent {
   readonly select = output<void>();
 
   protected readonly categoryIcon = computed(() => {
+    if (this.service().salonCategoryId) return 'sparkles';
     const icons: Record<string, string> = {
       'beard-cut': 'beard',
       haircut: 'scissors',
@@ -33,6 +34,6 @@ export class ServiceListItemComponent {
       'tattoos-piercings': 'diamond',
       other: 'category-other',
     };
-    return icons[this.service().category.slug] ?? 'scissors';
+    return icons[this.service().category?.slug ?? ''] ?? 'scissors';
   });
 }

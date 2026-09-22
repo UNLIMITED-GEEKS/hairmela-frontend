@@ -1,16 +1,31 @@
-<div class="border mb-2 border-border rounded-2xl overflow-hidden">
+<div class="border mb-2 overflow-hidden transition-colors"
+  [class.rounded-[6px]]="compact()"
+  [class.rounded-2xl]="!compact()"
+  [class.border-primary/30]="compact() && open()"
+  [class.border-border]="!compact() || !open()"
+  [class.bg-surface-card]="compact()">
   <button type="button" (click)="toggle()" [attr.aria-expanded]="open()"
-    class="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left">
+    class="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors"
+    [class.bg-secondary-light/30]="compact() && open()"
+    [class.hover:bg-surface-sunken]="compact()">
     <!-- min-w-0 + wrap-break-word: without it a long title (a service category
          name, say) pushes the chevron off the edge instead of wrapping. -->
     <span class="min-w-0 text-sm font-semibold text-text-primary wrap-break-word">{{ title() }}</span>
-    <app-icon name="chevron-left" class="w-3.5 h-3.5 text-text-secondary shrink-0 transition-transform duration-200"
-      [class.-rotate-90]="!open()" [class.rotate-90]="open()" />
+    <span class="flex shrink-0 items-center gap-2.5">
+      @if (count() !== null) {
+        <span class="rounded-full bg-surface-sunken px-2 py-0.5 text-[11px] font-semibold text-text-secondary">
+          {{ count() }}
+        </span>
+      }
+      <app-icon name="chevron-left" class="w-3.5 h-3.5 text-text-secondary transition-transform duration-200"
+        [class.-rotate-90]="!open()" [class.rotate-90]="open()" />
+    </span>
   </button>
   <div class="grid transition-[grid-template-rows] duration-200 ease-out"
     [style.grid-template-rows]="open() ? '1fr' : '0fr'">
     <div class="overflow-hidden">
       <div [class.px-3]="compact()" [class.pb-3]="compact()"
+        [class.pt-3]="compact()" [class.bg-surface-sunken]="compact()"
         [class.px-4]="!compact()" [class.pb-4]="!compact()">
         <ng-content />
       </div>

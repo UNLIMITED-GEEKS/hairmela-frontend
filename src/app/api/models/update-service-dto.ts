@@ -8,5 +8,6 @@ export interface UpdateServiceDto {
   isDynamicPricing?: boolean;
   name?: string;
   price?: string;
+  salonCategoryId?: string;
   staffIds?: Array<string>;
 }
