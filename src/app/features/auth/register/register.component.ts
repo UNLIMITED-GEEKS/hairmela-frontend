@@ -1,4 +1,12 @@
-import { Component, inject, signal, viewChild, ElementRef, Injector, afterNextRender } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  viewChild,
+  ElementRef,
+  Injector,
+  afterNextRender,
+} from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { switchMap } from 'rxjs';
@@ -13,6 +21,7 @@ import { AuthBrandComponent } from '../../../shared/components/auth-brand/auth-b
 import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
 import { AppPlatformService } from '../../../core/native/app-platform.service';
 import { PhoneInputComponent } from '../../../shared/components/phone-input/phone-input.component';
+import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 
 @Component({
   selector: 'app-register',
@@ -23,6 +32,7 @@ import { PhoneInputComponent } from '../../../shared/components/phone-input/phon
     FieldErrorComponent,
     AuthBrandComponent,
     PhoneInputComponent,
+    InlineSpinnerComponent,
   ],
   templateUrl: './register.component.html',
 })
@@ -65,10 +75,9 @@ export class RegisterComponent {
       this.form.markAllAsTouched();
       // Deferred: markAllAsTouched only renders the error messages on the next
       // change detection pass, and those messages shift layout.
-      afterNextRender(
-        () => scrollToFirstInvalidControl(this._formEl()?.nativeElement),
-        { injector: this._scrollInjector },
-      );
+      afterNextRender(() => scrollToFirstInvalidControl(this._formEl()?.nativeElement), {
+        injector: this._scrollInjector,
+      });
       return;
     }
 
@@ -78,28 +87,34 @@ export class RegisterComponent {
     const { email, password, firstName, lastName, phone } = this.form.getRawValue();
     const guestToken = this._guestStore.getToken() ?? undefined;
     const dto = {
-      email, password, firstName, lastName,
+      email,
+      password,
+      firstName,
+      lastName,
       phone: phone.trim(),
       ...(guestToken ? { guestToken } : {}),
     };
 
-    this._auth.register(dto).pipe(
-      switchMap(() => this._auth.login({ email, password })),
-    ).subscribe({
-      next: () => {
-        this._guestStore.clear();
-        const returnUrl = new URLSearchParams(window.location.search).get(RouteQueryParam.RETURN_URL);
-        this._router.navigateByUrl(returnUrl ?? RoutePath.dashboard()[0]);
-      },
-      error: (err) => {
-        this.loading.set(false);
-        const body = err?.error;
-        if (isApiError(body) && body.code === ErrorCodes.EMAIL_ALREADY_REGISTERED) {
-          this.errorMessage.set('An account with this email already exists.');
-        } else {
-          this.errorMessage.set('Something went wrong. Please try again.');
-        }
-      },
-    });
+    this._auth
+      .register(dto)
+      .pipe(switchMap(() => this._auth.login({ email, password })))
+      .subscribe({
+        next: () => {
+          this._guestStore.clear();
+          const returnUrl = new URLSearchParams(window.location.search).get(
+            RouteQueryParam.RETURN_URL,
+          );
+          this._router.navigateByUrl(returnUrl ?? RoutePath.dashboard()[0]);
+        },
+        error: (err) => {
+          this.loading.set(false);
+          const body = err?.error;
+          if (isApiError(body) && body.code === ErrorCodes.EMAIL_ALREADY_REGISTERED) {
+            this.errorMessage.set('An account with this email already exists.');
+          } else {
+            this.errorMessage.set('Something went wrong. Please try again.');
+          }
+        },
+      });
   }
 }

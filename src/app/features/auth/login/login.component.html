@@ -4,8 +4,10 @@
      has no nav, and AuthBrandComponent supplies its own spacing there —
      so the app gets py-8 instead, which on a shorter phone is the
      difference between this form fitting and having to be scrolled. -->
-<div [class]="platform.isAppContext ? 'py-6' : 'py-24'"
-  class="flex items-center justify-center min-h-screen px-6">
+<div
+  [class]="platform.isAppContext ? 'py-6' : 'py-24'"
+  class="flex items-center justify-center min-h-screen px-6"
+>
   <div class="w-full max-w-sm">
     <!-- Installed app only: on the web the public shell's nav already
          carries the brand directly above this. -->
@@ -19,23 +21,36 @@
     <!-- border-border-subtle, not border-border: in dark mode the latter sits
          at 1.06:1 against a card and is effectively invisible there, so the
          form would have looked borderless in exactly one theme. -->
-    <form #formEl [formGroup]="form" (ngSubmit)="submit()" novalidate
-      class="space-y-4 bg-surface-card rounded-2xl border border-border-subtle p-6">
-
+    <form
+      #formEl
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+      novalidate
+      class="space-y-4 bg-surface-card rounded-2xl border border-border-subtle p-6"
+    >
       @if (justRegistered()) {
-        <div class="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700" role="status">
+        <div
+          class="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700"
+          role="status"
+        >
           Account created! Sign in to continue.
         </div>
       }
 
       @if (justReset()) {
-        <div class="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700" role="status">
+        <div
+          class="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700"
+          role="status"
+        >
           Password reset! Sign in with your new password.
         </div>
       }
 
       @if (errorMessage()) {
-        <div class="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700" role="alert">
+        <div
+          class="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+          role="alert"
+        >
           {{ errorMessage() }}
         </div>
       }
@@ -57,7 +72,11 @@
       <div>
         <div class="flex items-center justify-between mb-1">
           <label for="password" class="block text-sm font-medium text-text-body">Password</label>
-          <a [routerLink]="forgotPasswordLink" class="text-xs font-medium text-primary hover:underline">Forgot password?</a>
+          <a
+            [routerLink]="forgotPasswordLink"
+            class="text-xs font-medium text-primary hover:underline"
+            >Forgot password?</a
+          >
         </div>
         <input
           id="password"
@@ -75,24 +94,35 @@
       <button
         type="submit"
         [disabled]="loading()"
-        class="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        {{ loading() ? 'Signing in…' : 'Sign in' }}
+        @if (loading()) {
+          <app-inline-spinner sizeClass="w-4 h-4" label="Signing in" />
+          Signing in…
+        } @else {
+          Sign in
+        }
       </button>
-
     </form>
 
     <p class="mt-6 text-center text-sm text-text-secondary">
       Don't have an account?
-      <a [routerLink]="registerLink" [queryParams]="registerQueryParams" class="font-medium text-primary hover:underline">Sign up</a>
+      <a
+        [routerLink]="registerLink"
+        [queryParams]="registerQueryParams"
+        class="font-medium text-primary hover:underline"
+        >Sign up</a
+      >
     </p>
 
     <!-- Back home. Points at "/" on every platform — HomeShellComponent
          resolves that to the marketing landing on web and the app welcome
          screen when installed, so one link covers both with no platform check.
          Matters most on iOS standalone, which has no hardware back button. -->
-    <a routerLink="/"
-      class="mt-4 flex items-center justify-center gap-2 min-h-11 w-full rounded-xl border border-border text-text-muted text-sm font-medium hover:bg-surface-sunken transition-colors">
+    <a
+      routerLink="/"
+      class="mt-4 flex items-center justify-center gap-2 min-h-11 w-full rounded-xl border border-border text-text-muted text-sm font-medium hover:bg-surface-sunken transition-colors"
+    >
       <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
       </svg>

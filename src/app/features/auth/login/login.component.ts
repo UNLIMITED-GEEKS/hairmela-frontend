@@ -1,4 +1,12 @@
-import { Component, inject, signal, viewChild, ElementRef, Injector, afterNextRender } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  viewChild,
+  ElementRef,
+  Injector,
+  afterNextRender,
+} from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -13,6 +21,7 @@ import { LAST_SALON_KEY } from '../../../core/salon-context/salon-context.servic
 import { RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
 import { AppPlatformService } from '../../../core/native/app-platform.service';
+import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 
 @Component({
   selector: 'app-login',
@@ -22,6 +31,7 @@ import { AppPlatformService } from '../../../core/native/app-platform.service';
     PasswordToggleDirective,
     FieldErrorComponent,
     AuthBrandComponent,
+    InlineSpinnerComponent,
   ],
   templateUrl: './login.component.html',
 })
@@ -71,10 +81,9 @@ export class LoginComponent {
       this.form.markAllAsTouched();
       // Deferred: markAllAsTouched only renders the error messages on the next
       // change detection pass, and those messages shift layout.
-      afterNextRender(
-        () => scrollToFirstInvalidControl(this._formEl()?.nativeElement),
-        { injector: this._scrollInjector },
-      );
+      afterNextRender(() => scrollToFirstInvalidControl(this._formEl()?.nativeElement), {
+        injector: this._scrollInjector,
+      });
       return;
     }
 
@@ -83,7 +92,9 @@ export class LoginComponent {
 
     this._auth.login(this.form.getRawValue()).subscribe({
       next: () => {
-        const returnUrl = new URLSearchParams(window.location.search).get(RouteQueryParam.RETURN_URL);
+        const returnUrl = new URLSearchParams(window.location.search).get(
+          RouteQueryParam.RETURN_URL,
+        );
         if (returnUrl) {
           this._router.navigateByUrl(returnUrl);
           return;

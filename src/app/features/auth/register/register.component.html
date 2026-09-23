@@ -4,8 +4,10 @@
      has no nav, and AuthBrandComponent supplies its own spacing there —
      so the app gets py-8 instead, which on a shorter phone is the
      difference between this form fitting and having to be scrolled. -->
-<div [class]="platform.isAppContext ? 'py-6' : 'py-24'"
-  class="flex items-center justify-center min-h-screen px-6">
+<div
+  [class]="platform.isAppContext ? 'py-6' : 'py-24'"
+  class="flex items-center justify-center min-h-screen px-6"
+>
   <div class="w-full max-w-sm">
     <!-- Installed app only: on the web the public shell's nav already
          carries the brand directly above this. -->
@@ -19,41 +21,61 @@
     <!-- border-border-subtle, not border-border: in dark mode the latter sits
          at 1.06:1 against a card and is effectively invisible there, so the
          form would have looked borderless in exactly one theme. -->
-    <form #formEl [formGroup]="form" (ngSubmit)="submit()" novalidate
-      class="space-y-4 bg-surface-card rounded-2xl border border-border-subtle p-6">
-
+    <form
+      #formEl
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+      novalidate
+      class="space-y-4 bg-surface-card rounded-2xl border border-border-subtle p-6"
+    >
       @if (errorMessage()) {
-        <div class="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700" role="alert">
+        <div
+          class="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+          role="alert"
+        >
           {{ errorMessage() }}
           @if (errorMessage()?.includes('already exists')) {
-            <a [routerLink]="loginLink" [queryParams]="loginQueryParams" class="ml-1 font-medium underline">Sign in instead</a>
+            <a
+              [routerLink]="loginLink"
+              [queryParams]="loginQueryParams"
+              class="ml-1 font-medium underline"
+              >Sign in instead</a
+            >
           }
         </div>
       }
 
       <div class="flex gap-3">
         <div class="flex-1">
-          <label for="firstName" class="block text-sm font-medium text-text-body mb-1">First name</label>
+          <label for="firstName" class="block text-sm font-medium text-text-body mb-1"
+            >First name</label
+          >
           <input
             id="firstName"
             type="text"
             formControlName="firstName"
             autocomplete="given-name"
             class="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-            [class.border-red-400]="form.controls.firstName.invalid && form.controls.firstName.touched"
+            [class.border-red-400]="
+              form.controls.firstName.invalid && form.controls.firstName.touched
+            "
             placeholder="Ada"
           />
           <app-field-error [control]="form.controls.firstName" />
         </div>
         <div class="flex-1">
-          <label for="lastName" class="block text-sm font-medium text-text-body mb-1">Last name</label>
+          <label for="lastName" class="block text-sm font-medium text-text-body mb-1"
+            >Last name</label
+          >
           <input
             id="lastName"
             type="text"
             formControlName="lastName"
             autocomplete="family-name"
             class="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-            [class.border-red-400]="form.controls.lastName.invalid && form.controls.lastName.touched"
+            [class.border-red-400]="
+              form.controls.lastName.invalid && form.controls.lastName.touched
+            "
             placeholder="Obi"
           />
           <app-field-error [control]="form.controls.lastName" />
@@ -98,24 +120,35 @@
       <button
         type="submit"
         [disabled]="loading()"
-        class="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        {{ loading() ? 'Creating account…' : 'Create account' }}
+        @if (loading()) {
+          <app-inline-spinner sizeClass="w-4 h-4" label="Creating account" />
+          Creating account…
+        } @else {
+          Create account
+        }
       </button>
-
     </form>
 
     <p class="mt-6 text-center text-sm text-text-secondary">
       Already have an account?
-      <a [routerLink]="loginLink" [queryParams]="loginQueryParams" class="font-medium text-primary hover:underline">Sign in</a>
+      <a
+        [routerLink]="loginLink"
+        [queryParams]="loginQueryParams"
+        class="font-medium text-primary hover:underline"
+        >Sign in</a
+      >
     </p>
 
     <!-- Back home. Points at "/" on every platform — HomeShellComponent
          resolves that to the marketing landing on web and the app welcome
          screen when installed, so one link covers both with no platform check.
          Matters most on iOS standalone, which has no hardware back button. -->
-    <a routerLink="/"
-      class="mt-4 flex items-center justify-center gap-2 min-h-11 w-full rounded-xl border border-border text-text-muted text-sm font-medium hover:bg-surface-sunken transition-colors">
+    <a
+      routerLink="/"
+      class="mt-4 flex items-center justify-center gap-2 min-h-11 w-full rounded-xl border border-border text-text-muted text-sm font-medium hover:bg-surface-sunken transition-colors"
+    >
       <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
       </svg>
