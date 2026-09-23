@@ -1,14 +1,16 @@
 import { Component, inject, signal } from '@angular/core';
 import { InstallPromptService } from '../../core/pwa/install-prompt.service';
+import { IconComponent } from '../../shared/components/icon/icon.component';
+import { YoutubeEmbedComponent } from '../../shared/components/youtube-embed/youtube-embed.component';
 
 // Public help page walking visitors through adding HairMela to their home
-// screen. Android gets a one-click Install button when the browser offers it
-// (beforeinstallprompt), falling back to manual steps otherwise. iOS has no
-// programmatic install API at all (Apple never implemented one) — Add to Home
-// Screen only exists in Safari's own Share Sheet, so a non-Safari iOS visitor
-// is told to reopen the page in Safari before the steps apply to them.
+// screen. Android installs through Google Play. iOS has no programmatic web
+// install API (Apple never implemented one), so the page provides a short
+// walkthrough video and keeps the Safari Add to Home Screen steps as a written
+// fallback.
 @Component({
   selector: 'app-how-to-install',
+  imports: [IconComponent, YoutubeEmbedComponent],
   templateUrl: './how-to-install.component.html',
   styleUrl: './how-to-install.component.scss',
 })
