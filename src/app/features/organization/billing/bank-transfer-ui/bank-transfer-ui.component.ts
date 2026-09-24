@@ -41,6 +41,9 @@ export class BankTransferUiComponent {
     const plan = this.plans.find((item) => item.tier === tier);
     return plan && duration ? plan.price * duration : null;
   });
+  protected readonly canCheckout = computed(
+    () => this.selectedTier() !== null && this.selectedDuration() !== null && !this.acting(),
+  );
 
   protected selectTier(tier: Tier): void {
     if (!this.canSelect(tier)) return;
@@ -53,6 +56,7 @@ export class BankTransferUiComponent {
   }
 
   protected startCheckout(): void {
+    if (!this.canCheckout()) return;
     const tier = this.selectedTier();
     const durationMonths = this.selectedDuration();
     if (tier === null || durationMonths === null) return;

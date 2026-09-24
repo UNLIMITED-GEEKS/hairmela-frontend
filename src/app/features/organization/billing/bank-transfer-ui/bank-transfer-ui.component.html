@@ -117,6 +117,18 @@
           You can renew your current plan while it is active. Change plans after it ends.
         </p>
       }
+      @if (
+        activePrepaid() && plan.tier === access().tier && selectedTier() !== plan.tier
+      ) {
+        <button
+          type="button"
+          [disabled]="acting()"
+          (click)="selectTier(plan.tier)"
+          class="mt-4 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+        >
+          Buy more months
+        </button>
+      }
       @if (selectedTier() === plan.tier) {
         <div class="mt-5 border-t border-border-subtle pt-4">
           <p class="text-sm font-semibold text-text-body">Choose duration</p>
@@ -148,7 +160,7 @@
 
 <button
   type="button"
-  [disabled]="selectedTier() === null || selectedDuration() === null || acting()"
+  [disabled]="!canCheckout()"
   (click)="startCheckout()"
   class="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
 >
