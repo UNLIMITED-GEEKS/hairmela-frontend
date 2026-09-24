@@ -4,9 +4,9 @@ import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { TokenStore } from './token.store';
 import { CurrentUserStore } from './current-user.store';
+import { CurrentUserService } from './current-user.service';
 import { ApiConfiguration } from '../../api/api-configuration';
 import { GuestStore } from '../guest/guest-store';
-import { authenticatedAuthControllerGetMe } from '../../api/fn/auth/authenticated-auth-controller-get-me';
 import { PersistentStore } from '../storage/persistent-store';
 import { LAST_SALON_KEY } from '../salon-context/salon-context.service';
 import { RoutePath, RouteQueryParam } from '../routing/route-paths';
@@ -37,6 +37,7 @@ export function sessionInit(): () => Promise<void> {
     const http = inject(HttpClient);
     const tokenStore = inject(TokenStore);
     const currentUserStore = inject(CurrentUserStore);
+    const currentUserService = inject(CurrentUserService);
     const apiConfig = inject(ApiConfiguration);
     const guestStore = inject(GuestStore);
     const router = inject(Router);
@@ -77,20 +78,33 @@ export function sessionInit(): () => Promise<void> {
     tokenStore.restoreFromStorage();
 
     const refreshToken = tokenStore.getRefreshToken();
-    if (!refreshToken) return;
+    if (!refreshToken) {
+      currentUserService.clear();
+      return;
+    }
 
     // Already signed in from storage: skip the refresh round-trip entirely and
     // let the app boot. The token is only trusted if it still has real life
     // left (see TokenStore.hasUsableTtl), and if the server rejects it anyway
     // the 401 path in refresh.interceptor refreshes and retries transparently.
-    // getMe still runs, but in the BACKGROUND — nothing here awaits it, so the
-    // router is not held up by a profile fetch no guard reads.
+    // A validated cached profile gives guards the identity they need without
+    // adding a network round-trip to boot. Refresh it in the background so
+    // profile edits still converge to server truth. Existing installs with no
+    // cached profile pay one blocking /auth/me request, then persist it.
     if (tokenStore.isAuthenticated()) {
-      firstValueFrom(authenticatedAuthControllerGetMe(http, apiConfig.rootUrl, {}))
-        .then((res) => currentUserStore.set(res.body))
-        .catch(() => {
-          /* interceptor handles auth failures; a profile miss is not fatal */
+      const restoredUser = restoreUserForAccessToken();
+      if (restoredUser) {
+        void firstValueFrom(currentUserService.refresh()).catch(() => {
+          // A rejected token is handled by the interceptor. A temporary
+          // profile-refresh failure must not discard an otherwise valid session.
         });
+      } else {
+        try {
+          await firstValueFrom(currentUserService.ensureLoaded());
+        } catch {
+          return;
+        }
+      }
       if (shouldRedirect) {
         splash.showForDashboard();
         const lastId = persistentStore.get<string>(LAST_SALON_KEY);
@@ -108,10 +122,15 @@ export function sessionInit(): () => Promise<void> {
       );
       tokenStore.setTokens(tokens.accessToken, tokens.refreshToken);
 
-      const userResponse = await firstValueFrom(
-        authenticatedAuthControllerGetMe(http, apiConfig.rootUrl, {})
-      );
-      currentUserStore.set(userResponse.body);
+      const restoredUser = restoreUserForAccessToken();
+      if (restoredUser) {
+        void firstValueFrom(currentUserService.refresh()).catch(() => {
+          // Keep the cached identity on a temporary failure; protected API
+          // requests still remain server-authorized.
+        });
+      } else {
+        await firstValueFrom(currentUserService.ensureLoaded());
+      }
 
       // No socket connect here — QueueConsoleService and SalonVisitService
       // each connect() themselves (idempotent) right before they actually
@@ -135,6 +154,16 @@ export function sessionInit(): () => Promise<void> {
     } catch {
       tokenStore.clearTokens();
       currentUserStore.clear();
+    }
+
+    function restoreUserForAccessToken(): boolean {
+      const restored = currentUserStore.restoreFromStorage();
+      const userId = currentUserStore.user()?.id;
+      const tokenSubject = tokenStore.getAccessTokenSubject();
+      if (restored && userId === tokenSubject) return true;
+
+      currentUserService.clear();
+      return false;
     }
   };
 }

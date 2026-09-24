@@ -11,6 +11,21 @@ const ACCESS_TOKEN_KEY = 'hm_access_token';
  */
 const ACCESS_TOKEN_MIN_TTL_S = 30;
 
+interface JwtPayload {
+  exp?: number;
+  sub?: string;
+}
+
+function readJwtPayload(token: string): JwtPayload | null {
+  try {
+    const [, payload] = token.split('.');
+    if (!payload) return null;
+    return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) as JwtPayload;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * True when a JWT's `exp` is at least ACCESS_TOKEN_MIN_TTL_S away.
  *
@@ -21,17 +36,8 @@ const ACCESS_TOKEN_MIN_TTL_S = 30;
  * behaviour rather than breaking the session.
  */
 function hasUsableTtl(token: string): boolean {
-  try {
-    const [, payload] = token.split('.');
-    if (!payload) return false;
-    const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) as {
-      exp?: number;
-    };
-    if (typeof json.exp !== 'number') return false;
-    return json.exp - Date.now() / 1000 > ACCESS_TOKEN_MIN_TTL_S;
-  } catch {
-    return false;
-  }
+  const payload = readJwtPayload(token);
+  return typeof payload?.exp === 'number' && payload.exp - Date.now() / 1000 > ACCESS_TOKEN_MIN_TTL_S;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -77,6 +83,12 @@ export class TokenStore {
 
   getAccessToken(): string | null {
     return this._accessToken();
+  }
+
+  getAccessTokenSubject(): string | null {
+    const token = this._accessToken();
+    const subject = token ? readJwtPayload(token)?.sub : null;
+    return typeof subject === 'string' && subject ? subject : null;
   }
 
   getRefreshToken(): string | null {

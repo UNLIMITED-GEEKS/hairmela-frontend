@@ -8,6 +8,7 @@ import { AppPlatformService } from '../native/app-platform.service';
 const PERSISTED_KEYS = [
   'hm_refresh_token',
   'hm_access_token',
+  'hm_current_user',
   'hm_last_selected_salon_id',
   'hm_cookie_consent',
   'hm_push_asked',

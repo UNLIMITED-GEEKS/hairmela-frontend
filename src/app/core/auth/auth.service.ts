@@ -5,6 +5,7 @@ import { Observable, tap, switchMap, map, firstValueFrom } from 'rxjs';
 import { ApiConfiguration } from '../../api/api-configuration';
 import { TokenStore } from './token.store';
 import { CurrentUserStore } from './current-user.store';
+import { CurrentUserService } from './current-user.service';
 import { MembershipStore } from '../salon-context/membership.store';
 import { QueueSocketService } from '../socket/queue-socket.service';
 import { CacheRegistry } from '../caching/cache-registry/cache-registry.service';
@@ -21,7 +22,6 @@ import { authControllerRegister } from '../../api/fn/auth/auth-controller-regist
 import { authControllerVerifyEmail } from '../../api/fn/auth/auth-controller-verify-email';
 import { authControllerForgotPassword } from '../../api/fn/auth/auth-controller-forgot-password';
 import { authControllerResetPassword } from '../../api/fn/auth/auth-controller-reset-password';
-import { authenticatedAuthControllerGetMe } from '../../api/fn/auth/authenticated-auth-controller-get-me';
 import { authenticatedAuthControllerResendVerification } from '../../api/fn/auth/authenticated-auth-controller-resend-verification';
 import { authenticatedAuthControllerLogout } from '../../api/fn/auth/authenticated-auth-controller-logout';
 import { RoutePath } from '../routing/route-paths';
@@ -34,6 +34,7 @@ export class AuthService {
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _tokenStore = inject(TokenStore);
   private readonly _currentUserStore = inject(CurrentUserStore);
+  private readonly _currentUserService = inject(CurrentUserService);
   private readonly _membershipStore = inject(MembershipStore);
   private readonly _socketService = inject(QueueSocketService);
   private readonly _cacheRegistry = inject(CacheRegistry);
@@ -138,9 +139,6 @@ export class AuthService {
   }
 
   private _fetchAndStoreUser(): Observable<UserResponseDto> {
-    return authenticatedAuthControllerGetMe(this._http, this._apiConfig.rootUrl).pipe(
-      tap((res) => this._currentUserStore.set(res.body)),
-      map((res) => res.body),
-    );
+    return this._currentUserService.refresh();
   }
 }

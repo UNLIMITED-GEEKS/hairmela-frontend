@@ -3,6 +3,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { OrgContextService } from '../salon-context/org-context.service';
 import { CurrentUserStore } from '../auth/current-user.store';
+import { CurrentUserService } from '../auth/current-user.service';
 import { RouteParam, RoutePath } from '../routing/route-paths';
 
 // Uses OrgContextService's cache (ensureLoaded()) instead of its own raw
@@ -18,6 +19,7 @@ import { RouteParam, RoutePath } from '../routing/route-paths';
 export const orgOwnerGuard: CanActivateFn = async (route) => {
   const orgContext = inject(OrgContextService);
   const currentUser = inject(CurrentUserStore);
+  const currentUserService = inject(CurrentUserService);
   const router = inject(Router);
 
   const orgId = route.paramMap.get(RouteParam.ORG_ID);
@@ -26,6 +28,10 @@ export const orgOwnerGuard: CanActivateFn = async (route) => {
   }
 
   try {
+    // Usually already hydrated by sessionInit. Keeping this requirement in
+    // the guard itself makes ownership correct even when navigation is
+    // triggered from a non-standard bootstrap or future route reuse path.
+    await firstValueFrom(currentUserService.ensureLoaded());
     const org = orgContext.ownedOrg() ?? (await firstValueFrom(orgContext.ensureLoaded()));
     // Re-confirm ownership rather than trusting the id alone. OrgContextService
     // already resolves ownedOrg() by ownerId, so this is belt-and-braces — but
