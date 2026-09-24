@@ -136,14 +136,19 @@
             @for (duration of durations; track duration) {
               <button
                 type="button"
-                (click)="selectedDuration.set(duration)"
+                [disabled]="!canCheckout() || acting()"
+                (click)="selectDuration(duration)"
                 [class.border-primary]="selectedDuration() === duration"
                 [class.bg-primary]="selectedDuration() === duration"
                 [class.text-white]="selectedDuration() === duration"
                 [class.border-border-strong]="selectedDuration() !== duration"
-                class="rounded-lg border px-3 py-2 text-sm font-semibold transition-colors"
+                class="rounded-lg border px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {{ duration }} {{ duration === 1 ? 'month' : 'months' }}
+               @if (acting()) {
+    <app-inline-spinner sizeClass="w-4 h-4" label="Starting bank transfer" /> Opening bank transfer…
+  } @else {
+    {{ duration }} {{ duration === 1 ? 'month' : 'months' }}
+  }
               </button>
             }
           </div>
@@ -158,7 +163,7 @@
   }
 </div>
 
-<button
+<!-- <button
   type="button"
   [disabled]="!canCheckout()"
   (click)="startCheckout()"
@@ -181,4 +186,4 @@
       Cancel plan
     </button>
   </div>
-}
+} -->

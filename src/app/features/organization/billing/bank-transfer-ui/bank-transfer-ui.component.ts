@@ -63,6 +63,10 @@ export class BankTransferUiComponent {
     this.checkout.emit({ tier, durationMonths });
   }
 
+  protected selectDuration(duration: PrepaidDurationMonths): void {
+    this.selectedDuration.set(duration);
+    this.startCheckout();
+  }
   protected formatTotal(amount: number): string {
     return `₦${amount.toLocaleString('en-NG')}`;
   }
