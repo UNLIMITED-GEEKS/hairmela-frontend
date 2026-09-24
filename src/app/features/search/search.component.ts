@@ -1,5 +1,5 @@
-import { Component, OnInit, computed, inject } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { Component, OnDestroy, OnInit, computed, inject } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { SalonCardComponent } from '../../shared/components/salon-card/salon-card.component';
 import { CategoryPillsComponent } from '../../shared/components/category-pills/category-pills.component';
@@ -12,6 +12,7 @@ import { CurrentUserStore } from '../../core/auth/current-user.store';
 import { RouteQueryParam } from '../../core/routing/route-paths';
 import { ListingScrollMemoryDirective } from '../../shared/directives/listing-scroll-memory.directive';
 import { NearbyButtonComponent } from '../../shared/components/nearby-button/nearby-button.component';
+import { SearchPageStateStore } from './search-page-state.store';
 
 @Component({
   selector: 'app-search',
@@ -20,8 +21,11 @@ import { NearbyButtonComponent } from '../../shared/components/nearby-button/nea
   imports: [
     ListingScrollMemoryDirective,IconComponent, SalonCardComponent, CategoryPillsComponent, PaginationComponent, SkeletonComponent, NearbyButtonComponent],
 })
-export class SearchComponent implements OnInit {
+export class SearchComponent implements OnInit, OnDestroy {
   private readonly _route = inject(ActivatedRoute);
+  private readonly _router = inject(Router);
+  private readonly _pageState = inject(SearchPageStateStore);
+  private readonly _pageStateKey = this._router.url.split('?')[0];
   protected readonly listing = inject(SalonListingService);
   protected readonly categoriesService = inject(CategoriesService);
   private readonly _favorites = inject(FavoritesService);
@@ -77,9 +81,16 @@ export class SearchComponent implements OnInit {
       this._favorites.ensureIdsLoaded();
     }
 
-    if (this.initialSearch) {
+    const savedState = this._pageState.take(this._pageStateKey);
+    if (savedState) {
+      this.listing.restoreState(savedState);
+    } else if (this.initialSearch) {
       this.listing.setSearch(this.initialSearch);
     }
+  }
+
+  ngOnDestroy(): void {
+    this._pageState.save(this._pageStateKey, this.listing.snapshotState());
   }
 
   protected onSearchInput(event: Event): void {

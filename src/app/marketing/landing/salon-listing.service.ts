@@ -36,6 +36,12 @@ export interface ListingFilters {
   category: string;
 }
 
+export interface SalonListingState {
+  readonly filters: ListingFilters;
+  readonly page: number;
+  readonly nearby: NearbyCoords | null;
+}
+
 const PAGE_SIZE = 18; // 6 rows x 3 columns on desktop
 
 /**
@@ -254,6 +260,22 @@ export class SalonListingService {
   // Debounced — free text now, safe to call on every keystroke.
   setLocation(value: string): void {
     this._locationInput$.next(value);
+  }
+
+  snapshotState(): SalonListingState {
+    return {
+      filters: { ...this._filters() },
+      page: this._page(),
+      nearby: this._nearby() ? { ...this._nearby()! } : null,
+    };
+  }
+
+  restoreState(state: SalonListingState): void {
+    this._filters.set({ ...state.filters });
+    this._page.set(state.page);
+    this._nearby.set(state.nearby ? { ...state.nearby } : null);
+    this._nearbyError.set(null);
+    this._refetch$.next();
   }
 
   // Not debounced — selecting a category chip is a deliberate, infrequent action.
