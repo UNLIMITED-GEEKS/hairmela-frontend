@@ -136,7 +136,7 @@
             @for (duration of durations; track duration) {
               <button
                 type="button"
-                [disabled]="!canCheckout() || acting()"
+                [disabled]="acting()"
                 (click)="selectDuration(duration)"
                 [class.border-primary]="selectedDuration() === duration"
                 [class.bg-primary]="selectedDuration() === duration"
