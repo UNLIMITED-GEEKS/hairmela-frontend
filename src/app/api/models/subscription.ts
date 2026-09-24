@@ -3,6 +3,7 @@
 
 import { Organization } from '../models/organization';
 export interface Subscription {
+  billingOption: ('RECURRING_CARD' | 'PREPAID_BANK_TRANSFER') | null;
   createdAt: string;
   endsAt: string | null;
   id: string;

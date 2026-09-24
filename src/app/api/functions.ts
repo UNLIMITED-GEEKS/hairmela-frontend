@@ -41,6 +41,8 @@ export type { OrganizationsControllerUpdate$Params as OrganizationsControllerUpd
 export { organizationsControllerUpdate as organizationsControllerUpdate } from './fn/organizations/organizations-controller-update';
 export type { SubscriptionsControllerGetMine$Params as SubscriptionsControllerGetMine$Params } from './fn/subscriptions/subscriptions-controller-get-mine';
 export { subscriptionsControllerGetMine as subscriptionsControllerGetMine } from './fn/subscriptions/subscriptions-controller-get-mine';
+export type { SubscriptionsControllerGetPaymentStatus$Params as SubscriptionsControllerGetPaymentStatus$Params } from './fn/subscriptions/subscriptions-controller-get-payment-status';
+export { subscriptionsControllerGetPaymentStatus as subscriptionsControllerGetPaymentStatus } from './fn/subscriptions/subscriptions-controller-get-payment-status';
 export type { SubscriptionsControllerCheckout$Params as SubscriptionsControllerCheckout$Params } from './fn/subscriptions/subscriptions-controller-checkout';
 export { subscriptionsControllerCheckout as subscriptionsControllerCheckout } from './fn/subscriptions/subscriptions-controller-checkout';
 export type { SubscriptionsControllerVerify$Params as SubscriptionsControllerVerify$Params } from './fn/subscriptions/subscriptions-controller-verify';

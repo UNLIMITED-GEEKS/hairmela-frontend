@@ -4,6 +4,11 @@
 export interface EffectiveAccessDto {
 
   /**
+   * Null for trials and ended cycles. Legacy active paid cycles use RECURRING_CARD.
+   */
+  billingOption: ('RECURRING_CARD' | 'PREPAID_BANK_TRANSFER') | null;
+
+  /**
    * Whole trial days remaining; null when not trialing.
    */
   daysLeft: number | null;
@@ -28,6 +33,11 @@ export interface EffectiveAccessDto {
    * Max staff at this tier (1000000 = unlimited).
    */
   staffLimit: number;
+
+  /**
+   * Start of the active paid cycle; null for trials and ended cycles.
+   */
+  startsAt: string | null;
   status: 'TRIALING' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
 
   /**

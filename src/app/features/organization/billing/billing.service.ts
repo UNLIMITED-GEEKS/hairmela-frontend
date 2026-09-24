@@ -1,17 +1,31 @@
+import {
+  EMPTY,
+  Observable,
+  Subscription as RxSubscription,
+  catchError,
+  filter,
+  finalize,
+  map,
+  switchMap,
+  takeUntil,
+  tap,
+  timer,
+} from 'rxjs';
 import { CacheRegistry } from '../../../core/caching/cache-registry/cache-registry.service';
 import { Injectable, inject, signal, effect, untracked } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, map } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { subscriptionsControllerGetMine } from '../../../api/fn/subscriptions/subscriptions-controller-get-mine';
 import { subscriptionsControllerCheckout } from '../../../api/fn/subscriptions/subscriptions-controller-checkout';
 import { subscriptionsControllerVerify } from '../../../api/fn/subscriptions/subscriptions-controller-verify';
 import { subscriptionsControllerDowngrade } from '../../../api/fn/subscriptions/subscriptions-controller-downgrade';
 import { subscriptionsControllerCancel } from '../../../api/fn/subscriptions/subscriptions-controller-cancel';
+import { subscriptionsControllerGetPaymentStatus } from '../../../api/fn/subscriptions/subscriptions-controller-get-payment-status';
 import { EffectiveAccessDto } from '../../../api/models/effective-access-dto';
 import { CheckoutSessionDto } from '../../../api/models/checkout-session-dto';
 import { Subscription } from '../../../api/models/subscription';
+import { PaymentStatusDto } from '../../../api/models/payment-status-dto';
 import { Tier } from '../../../core/tier/tier-limits';
 import { MembershipStore } from '../../../core/salon-context/membership.store';
 import { OrgContextService } from '../../../core/salon-context/org-context.service';
@@ -21,6 +35,18 @@ import { CachedLoader } from '../../../core/caching/optimistic/cached-loader';
 import { RoutePath } from '../../../core/routing/route-paths';
 import { AppPlatformService } from '../../../core/native/app-platform.service';
 import { AppResumeService } from '../../../core/native/app-resume.service';
+import { PersistentStore } from '../../../core/storage/persistent-store';
+
+type BillingOption = 'RECURRING_CARD' | 'PREPAID_BANK_TRANSFER';
+type PrepaidDurationMonths = 1 | 3 | 6 | 12;
+
+interface PendingBankTransfer {
+  orgId: string;
+  reference: string;
+  status: PaymentStatusDto['status'];
+}
+
+const PENDING_BANK_TRANSFER_KEY = 'hm_pending_bank_transfer';
 
 @Injectable({ providedIn: 'root' })
 export class BillingService {
@@ -34,12 +60,16 @@ export class BillingService {
   private readonly _router = inject(Router);
   private readonly _platform = inject(AppPlatformService);
   private readonly _appResume = inject(AppResumeService);
+  private readonly _persistentStore = inject(PersistentStore);
 
   constructor() {
     this._cacheRegistry.register(this);
   }
 
   private readonly _acting = signal(false);
+  private readonly _bankTransferPayment = signal<PaymentStatusDto | null>(null);
+  private readonly _checkingBankTransfer = signal(false);
+  private _bankTransferPolling?: RxSubscription;
 
   // Releases the acting lock whenever the app returns to the foreground.
   //
@@ -81,6 +111,8 @@ export class BillingService {
   readonly access = this._access.asReadonly();
   readonly loading = this._loader.loading;
   readonly acting = this._acting.asReadonly();
+  readonly bankTransferPayment = this._bankTransferPayment.asReadonly();
+  readonly checkingBankTransfer = this._checkingBankTransfer.asReadonly();
 
   // Current plan / effective access — drives the billing page (handoff §4b).
   //
@@ -121,10 +153,15 @@ export class BillingService {
   // an app-scheme redirect_url instead, which only this app can handle and so
   // always returns to it (see DeepLinkService and the hairmela:// intent
   // filter in AndroidManifest.xml).
-  checkout(orgId: string, tier: Tier): Observable<CheckoutSessionDto> {
+  checkout(
+    orgId: string,
+    tier: Tier,
+    billingOption: BillingOption = 'RECURRING_CARD',
+    durationMonths?: PrepaidDurationMonths,
+  ): Observable<CheckoutSessionDto> {
     return subscriptionsControllerCheckout(this._http, this._apiConfig.rootUrl, {
       orgId,
-      body: { tier, native: this._platform.isNative },
+      body: { tier, native: this._platform.isNative, billingOption, durationMonths },
     }).pipe(map((res) => res.body));
   }
 
@@ -207,6 +244,40 @@ export class BillingService {
     });
   }
 
+  startBankTransfer(orgId: string, tier: Tier, durationMonths: PrepaidDurationMonths): void {
+    if (this._acting()) return;
+    this._acting.set(true);
+    this.checkout(orgId, tier, 'PREPAID_BANK_TRANSFER', durationMonths).subscribe({
+      next: (session) => {
+        this._saveBankTransfer({ orgId, reference: session.reference, status: 'PENDING' });
+        window.location.href = session.checkoutUrl;
+      },
+      error: () => this._acting.set(false),
+    });
+  }
+
+  resumeBankTransferStatus(orgId: string): void {
+    const pending = this._pendingBankTransfer();
+    if (!pending || pending.orgId !== orgId) {
+      this._bankTransferPayment.set(null);
+      return;
+    }
+
+    this._bankTransferPayment.set({ reference: pending.reference, status: pending.status });
+    if (pending.status === 'PENDING') this._pollBankTransfer(orgId, pending.reference);
+  }
+
+  checkBankTransferStatus(orgId: string): void {
+    const pending = this._pendingBankTransfer();
+    if (!pending || pending.orgId !== orgId) return;
+    this._checkingBankTransfer.set(true);
+    this._fetchBankTransferStatus(orgId, pending.reference)
+      .pipe(finalize(() => this._checkingBankTransfer.set(false)))
+      .subscribe((payment) => {
+        this._handleBankTransferStatus(orgId, payment);
+      });
+  }
+
   // The payment provider's webhook — not verify() — is the real source of
   // truth for activating a tier; it can land a few seconds after the
   // checkout redirect. Called from PaymentCallbackComponent after a
@@ -257,7 +328,70 @@ export class BillingService {
   }
 
   clear(): void {
+    this._bankTransferPolling?.unsubscribe();
+    this._bankTransferPolling = undefined;
+    this._bankTransferPayment.set(null);
     this._cache.clear();
     this._optimistic.reset(this._access, null);
+  }
+
+  // Clear only the locally-tracked pending bank transfer state (polling,
+  // persisted reference and in-memory signal) without touching the access
+  // cache or optimistic state. This allows the UI to stop treating the
+  // org as in-bank-transfer mode while the pending payment still exists on
+  // the provider; useful when a user explicitly wants to switch back to
+  // card UI while a transfer is awaiting confirmation.
+  clearPendingBankTransfer(): void {
+    this._bankTransferPolling?.unsubscribe();
+    this._bankTransferPolling = undefined;
+    this._bankTransferPayment.set(null);
+    this._persistentStore.remove(PENDING_BANK_TRANSFER_KEY);
+  }
+
+  private _pollBankTransfer(orgId: string, reference: string): void {
+    this._bankTransferPolling?.unsubscribe();
+    this._bankTransferPolling = timer(0, 5000)
+      .pipe(
+        // Avoid network work while the app is not visible. The timer remains
+        // bounded to ten minutes; users can always press "Check status" later.
+        filter(() => typeof document === 'undefined' || document.visibilityState === 'visible'),
+        switchMap(() => this._fetchBankTransferStatus(orgId, reference)),
+        takeUntil(timer(10 * 60 * 1000)),
+      )
+      .subscribe((payment) => {
+        this._handleBankTransferStatus(orgId, payment);
+        if (payment.status !== 'PENDING') this._bankTransferPolling?.unsubscribe();
+      });
+  }
+
+  private _fetchBankTransferStatus(orgId: string, reference: string): Observable<PaymentStatusDto> {
+    return subscriptionsControllerGetPaymentStatus(this._http, this._apiConfig.rootUrl, {
+      orgId,
+      reference,
+    }).pipe(
+      map((response) => response.body),
+      // A temporary connection error must not turn a pending payment into a
+      // failure or stop the remaining scheduled checks.
+      catchError(() => EMPTY),
+    );
+  }
+
+  private _handleBankTransferStatus(orgId: string, payment: PaymentStatusDto): void {
+    this._bankTransferPayment.set(payment);
+    this._saveBankTransfer({ orgId, reference: payment.reference, status: payment.status });
+    if (payment.status !== 'CONFIRMED') return;
+
+    this._persistentStore.remove(PENDING_BANK_TRANSFER_KEY);
+    this._bankTransferPolling?.unsubscribe();
+    this._bankTransferPolling = undefined;
+    this._onSubscriptionChanged(orgId);
+  }
+
+  private _pendingBankTransfer(): PendingBankTransfer | null {
+    return this._persistentStore.get<PendingBankTransfer>(PENDING_BANK_TRANSFER_KEY);
+  }
+
+  private _saveBankTransfer(payment: PendingBankTransfer): void {
+    this._persistentStore.set(PENDING_BANK_TRANSFER_KEY, payment);
   }
 }

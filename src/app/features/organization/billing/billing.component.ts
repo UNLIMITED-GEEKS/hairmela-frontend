@@ -1,45 +1,57 @@
-import { Component, OnInit, computed, inject } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { DatePipe } from '@angular/common';
 import { BillingService } from './billing.service';
 import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/confirm-dialog.service';
-import { Tier, TIER_NAMES, displayLimit } from '../../../core/tier/tier-limits';
-import { PLAN_CARDS, formatPlanPrice } from '../../../core/tier/tier-plans';
+import { Tier } from '../../../core/tier/tier-limits';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { RouteParam } from '../../../core/routing/route-paths';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import { CardPaymentUiComponent } from './card-payment-ui/card-payment-ui.component';
+import {
+  BankTransferUiComponent,
+  PrepaidDurationMonths,
+} from './bank-transfer-ui/bank-transfer-ui.component';
 
 @Component({
   selector: 'app-billing',
   templateUrl: './billing.component.html',
   imports: [
-    SkeletonComponent, DatePipe, PageHeaderComponent],
+    SkeletonComponent,
+    PageHeaderComponent,
+    CardPaymentUiComponent,
+    BankTransferUiComponent,
+  ],
 })
 export class BillingComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
   private readonly _billing = inject(BillingService);
   private readonly _confirm = inject(ConfirmDialogService);
 
-  // All three plans are paid — Standard, Pro, Scale. No free tier.
-  protected readonly plans = PLAN_CARDS;
-  protected readonly tierNames = TIER_NAMES;
-  protected readonly formatPlanPrice = formatPlanPrice;
-
   protected readonly access = this._billing.access;
   protected readonly loading = this._billing.loading;
   protected readonly acting = this._billing.acting;
+  protected readonly bankTransferPayment = this._billing.bankTransferPayment;
+  protected readonly checkingBankTransfer = this._billing.checkingBankTransfer;
+  private readonly _selectedPaymentMode = signal<'card' | 'bank'>('card');
 
-  protected readonly currentTier = computed<Tier>(() => (this.access()?.tier ?? 0) as Tier);
-  protected readonly isTrialing = computed(() => this.access()?.isTrialing ?? false);
-  protected readonly status = computed(() => this.access()?.status ?? null);
-
-  // A scheduled downgrade/cancellation that takes effect at endsAt. pendingTier
-  // is null when no change is scheduled; 0 means a scheduled cancellation.
-  protected readonly pendingTier = computed<Tier | null>(() => this.access()?.pendingTier ?? null);
-  protected readonly endsAt = computed<string | null>(() => this.access()?.endsAt ?? null);
-
-  protected readonly salonLimitLabel = computed(() => displayLimit(this.access()?.salonLimit ?? 0));
-  protected readonly staffLimitLabel = computed(() => displayLimit(this.access()?.staffLimit ?? 0));
+  // Active subscriptions determine their own UI. A trial or ended plan has no
+  // billing option, so it starts on card and can opt into prepaid transfer.
+  protected readonly paymentMode = computed<'card' | 'bank'>(() => {
+    const access = this.access();
+    if (access?.status === 'ACTIVE') {
+      return access.billingOption === 'PREPAID_BANK_TRANSFER' ? 'bank' : 'card';
+    }
+    if (this.bankTransferPayment()) return 'bank';
+    return this._selectedPaymentMode();
+  });
+  protected readonly canSwitchToBank = computed(() => {
+    const access = this.access();
+    return !(access?.status === 'ACTIVE' && access.billingOption === 'RECURRING_CARD');
+  });
+  protected readonly canSwitchToCard = computed(() => {
+    const access = this.access();
+    return !(access?.status === 'ACTIVE' && access.billingOption === 'PREPAID_BANK_TRANSFER');
+  });
 
   private get _orgId(): string {
     return this._route.snapshot.paramMap.get(RouteParam.ORG_ID) ?? '';
@@ -47,47 +59,37 @@ export class BillingComponent implements OnInit {
 
   ngOnInit(): void {
     this._billing.load(this._orgId);
-  }
-
-  // No live paid plan: still trialing, or lapsed. Branches on status, never on
-  // the tier number (trial reads as 3).
-  protected readonly needsPlan = computed(() => {
-    const status = this.status();
-    return this.isTrialing() || status === 'EXPIRED' || status === 'CANCELLED';
-  });
-
-  /** Access already lost — trial/plan ended with nothing live replacing it. */
-  protected readonly hasLapsed = computed(() => {
-    const status = this.status();
-    return !this.isTrialing() && (status === 'EXPIRED' || status === 'CANCELLED');
-  });
-
-  // Upgrade = immediate (checkout -> verify -> re-fetch), offered whenever
-  // there's no live plan. Was `isTrialing() ? 'upgrade' : 'current'`, which
-  // left EXPIRED users with no buyable button at all.
-  //
-  // Once a plan IS live, no plan-switching is offered — changes go through
-  // cancel + a fresh purchase. Downgrade stays disabled app-wide (backend
-  // doesn't bill the lower tier correctly at period end).
-  protected actionFor(_tier: Tier): 'current' | 'upgrade' | 'downgrade' {
-    return this.needsPlan() ? 'upgrade' : 'current';
+    this._billing.resumeBankTransferStatus(this._orgId);
   }
 
   protected upgrade(tier: Tier): void {
     this._billing.upgrade(this._orgId, tier);
   }
 
-  protected downgrade(tier: Tier): void {
-    this._confirm
-      .open({
-        title: `Downgrade to ${this.tierNames[tier]}?`,
-        message: `You'll keep your current plan until the end of your billing period, then move to ${this.tierNames[tier]}. Salons or staff over the new limit will be frozen, not deleted.`,
-        confirmLabel: 'Schedule downgrade',
-        danger: false,
-      })
-      .subscribe((ok) => {
-        if (ok) this._billing.downgrade(this._orgId, tier);
-      });
+  protected selectBankTransfer(): void {
+    this._selectedPaymentMode.set('bank');
+  }
+
+  protected selectCardPayment(): void {
+    // Clear any locally-tracked pending bank transfer so UI can switch
+    // back to card mode immediately even if a transfer remains pending
+    // with the provider.
+    this._billing.clearPendingBankTransfer();
+    this._selectedPaymentMode.set('card');
+  }
+
+  protected startBankTransfer({
+    tier,
+    durationMonths,
+  }: {
+    tier: Tier;
+    durationMonths: PrepaidDurationMonths;
+  }): void {
+    this._billing.startBankTransfer(this._orgId, tier, durationMonths);
+  }
+
+  protected checkBankTransferStatus(): void {
+    this._billing.checkBankTransferStatus(this._orgId);
   }
 
   protected cancelPlan(): void {

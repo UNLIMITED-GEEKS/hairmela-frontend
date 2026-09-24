@@ -17,6 +17,7 @@ const PERSISTED_KEYS = [
   'hm_theme',
   'hairmela_guest',
   'hairmela_active_entries',
+  'hm_pending_bank_transfer',
 ] as const;
 
 /**
@@ -108,7 +109,9 @@ export class PersistentStore {
   set<T>(key: string, value: T): void {
     try {
       this.setRaw(key, JSON.stringify(value));
-    } catch { /* ignore — value not serialisable */ }
+    } catch {
+      /* ignore — value not serialisable */
+    }
   }
 
   /** Plain string value (for non-JSON payloads like a raw token). */
@@ -131,7 +134,9 @@ export class PersistentStore {
     }
     try {
       localStorage.setItem(key, value);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   remove(key: string): void {
@@ -142,20 +147,26 @@ export class PersistentStore {
     }
     try {
       localStorage.removeItem(key);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   private async _persist(key: string, value: string): Promise<void> {
     try {
       const { Preferences } = await import('@capacitor/preferences');
       await Preferences.set({ key, value });
-    } catch { /* ignore — cache still holds it for this session */ }
+    } catch {
+      /* ignore — cache still holds it for this session */
+    }
   }
 
   private async _removePersisted(key: string): Promise<void> {
     try {
       const { Preferences } = await import('@capacitor/preferences');
       await Preferences.remove({ key });
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 }

@@ -54,6 +54,7 @@ export type { Organization } from './models/organization';
 export type { PaginatedMetaDto } from './models/paginated-meta-dto';
 export type { PayloadEncryptionHandshakeRequestDto } from './models/payload-encryption-handshake-request-dto';
 export type { PayloadEncryptionHandshakeResponseDto } from './models/payload-encryption-handshake-response-dto';
+export type { PaymentStatusDto } from './models/payment-status-dto';
 export type { PendingInviteDto } from './models/pending-invite-dto';
 export type { PresignMediaUploadDto } from './models/presign-media-upload-dto';
 export type { PresignMediaUploadResponseDto } from './models/presign-media-upload-response-dto';
