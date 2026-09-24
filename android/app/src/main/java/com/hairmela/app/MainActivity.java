@@ -1,6 +1,8 @@
 package com.hairmela.app;
 
 import android.os.Bundle;
+import android.os.Build;
+import android.view.View;
 import androidx.core.splashscreen.SplashScreen;
 import com.getcapacitor.BridgeActivity;
 
@@ -41,6 +43,12 @@ public class MainActivity extends BridgeActivity {
 
         super.onCreate(savedInstanceState);
 
+        // Make the Capacitor WebView participate explicitly in Android's
+        // Autofill Framework so password managers can detect the username and
+        // password fields declared by the web form.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            getBridge().getWebView().setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_YES);
+        }
 
         // First paint of the WebView's content. postVisualStateCallback fires
         // once the given state has been rendered to the screen — not merely
