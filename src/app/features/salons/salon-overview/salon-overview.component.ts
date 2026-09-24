@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, computed } from '@angular/core';
+import { Component, OnInit, computed, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SalonOverviewService } from './salon-overview.service';
 import { InvitesService } from '../../dashboard/invites.service';
@@ -11,6 +11,7 @@ import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.
 import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/frozen-banner.component';
 import { TierBannerComponent } from '../../../shared/components/tier-banner/tier-banner.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { StaffAppointmentModalService } from '../../queue/staff-appointment-modal/staff-appointment-modal.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 import { environment } from '../../../../environments/environment';
@@ -18,7 +19,15 @@ import { environment } from '../../../../environments/environment';
 @Component({
   selector: 'app-salon-overview',
   templateUrl: './salon-overview.component.html',
-  imports: [RouterLink, SkeletonComponent, FrozenBannerComponent, TierBannerComponent, IconComponent, NoPhotoBannerComponent, PushPromptComponent],
+  imports: [
+    RouterLink,
+    SkeletonComponent,
+    FrozenBannerComponent,
+    TierBannerComponent,
+    IconComponent,
+    NoPhotoBannerComponent,
+    PushPromptComponent,
+  ],
 })
 export class SalonOverviewComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
@@ -27,6 +36,7 @@ export class SalonOverviewComponent implements OnInit {
   private readonly _salonOverviewService = inject(SalonOverviewService);
   private readonly _invitesService = inject(InvitesService);
   private readonly _toast = inject(ToastService);
+  private readonly _staffAppointmentModal = inject(StaffAppointmentModalService);
 
   protected readonly salonContext = inject(SalonContextService);
   protected readonly salon = this._salonOverviewService.salon;
@@ -78,6 +88,12 @@ export class SalonOverviewComponent implements OnInit {
 
   protected queueConsoleLink(salonId: string, queueId: string): string[] {
     return RoutePath.salonQueueConsole(salonId, queueId);
+  }
+
+  protected openCreateAppointment(queueId: string): void {
+    const staffId = this.myStaff()?.id;
+    if (!staffId) return;
+    this._staffAppointmentModal.open({ salonId: this._salonId, queueId, staffId });
   }
 
   // The public link customers use to join THIS staff member's queue — same

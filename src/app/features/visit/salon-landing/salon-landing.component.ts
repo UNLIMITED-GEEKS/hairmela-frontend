@@ -1,5 +1,14 @@
 import { DOCUMENT } from '@angular/common';
-import { Component, OnInit, computed, inject, signal, effect, afterNextRender, Injector } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+  effect,
+  afterNextRender,
+  Injector,
+} from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SalonVisitService } from '../salon-visit.service';
 import { SalonPublicStaffDto } from '../../../api/models/salon-public-staff-dto';
@@ -271,24 +280,12 @@ export class SalonLandingComponent implements OnInit {
   // protected readonly showBookAhead = computed(
   //   () => !this.visit.salonData()?.isOpen && !this.frozen(),
   // );
-  protected readonly showBookAhead = computed(
-    () => !this.visit.salonData()?.isOpen && !this.visit.salonData()?.isFrozen,
-  );
+  protected readonly showBookAhead = computed(() => !this.visit.salonData()?.isFrozen);
 
   protected readonly bookDialogOpen = signal(false);
 
-  // Always shown for a closed salon, even to guests — tapping it while
-  // signed out redirects to register with a returnUrl back to this page,
-  // same pattern selectBarber() uses for the walk-in join flow, rather than
-  // hiding the option from anyone not yet signed in.
+  // Guests can book directly and provide their contact details in the dialog.
   protected openBookDialog(): void {
-    if (!this._currentUser.user()) {
-      const returnUrl = RoutePath.visitSalon('', this._slug).join('/');
-      this._router.navigate(RoutePath.register(), {
-        queryParams: { [RouteQueryParam.RETURN_URL]: returnUrl },
-      });
-      return;
-    }
     this.bookDialogOpen.set(true);
   }
 
@@ -412,9 +409,10 @@ export class SalonLandingComponent implements OnInit {
       }
       group.services.push(service);
     }
-    return [...groups.values()].sort((a, b) =>
-      Number(a.name.toLocaleLowerCase() === 'other') - Number(b.name.toLocaleLowerCase() === 'other')
-      || a.sortOrder - b.sortOrder,
+    return [...groups.values()].sort(
+      (a, b) =>
+        Number(a.name.toLocaleLowerCase() === 'other') -
+          Number(b.name.toLocaleLowerCase() === 'other') || a.sortOrder - b.sortOrder,
     );
   });
 

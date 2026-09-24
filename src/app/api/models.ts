@@ -11,6 +11,7 @@ export type { AttachMediaDto } from './models/attach-media-dto';
 export type { AuthTokensDto } from './models/auth-tokens-dto';
 export type { AvailableSlotDto } from './models/available-slot-dto';
 export type { BookAppointmentDto } from './models/book-appointment-dto';
+export type { BookAppointmentResponseDto } from './models/book-appointment-response-dto';
 export type { BookingFeeQuoteResponseDto } from './models/booking-fee-quote-response-dto';
 export type { BookMemberDto } from './models/book-member-dto';
 export type { BranchSalonDto } from './models/branch-salon-dto';

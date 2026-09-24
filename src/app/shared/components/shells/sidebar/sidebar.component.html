@@ -1,7 +1,7 @@
 <aside
   class="hidden md:flex flex-col h-full bg-surface border-r border-border transition-[width] duration-250 ease-in-out shrink-0 overflow-hidden"
-  [style.width]="collapsed() ? '64px' : '220px'">
-
+  [style.width]="collapsed() ? '64px' : '220px'"
+>
   <!-- Logo -->
   <div class="flex items-center h-16 px-4 shrink-0 border-b border-border overflow-hidden">
     <a [routerLink]="rootLink()" class="flex items-center gap-2.5">
@@ -13,32 +13,52 @@
   </div>
 
   <!-- Nav items -->
-  <nav class="flex-1 overflow-y-auto themed-scrollbar py-3 px-2 space-y-0.5" aria-label="Main navigation">
-
+  <nav
+    class="flex-1 overflow-y-auto themed-scrollbar py-3 px-2 space-y-0.5"
+    aria-label="Main navigation"
+  >
     <!-- Main section -->
     @for (item of sidebarItems(); track item.label) {
       <a
         [routerLink]="item.url"
         routerLinkActive="bg-primary text-white"
-        [routerLinkActiveOptions]="item.url === RoutePath.root()[0] || item.url === RoutePath.dashboard()[0]
-          ? { paths: 'exact', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }
-          : { paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
+        [routerLinkActiveOptions]="
+          item.url === RoutePath.root()[0] || item.url === RoutePath.dashboard()[0]
+            ? {
+                paths: 'exact',
+                queryParams: 'ignored',
+                matrixParams: 'ignored',
+                fragment: 'ignored',
+              }
+            : {
+                paths: 'subset',
+                queryParams: 'ignored',
+                matrixParams: 'ignored',
+                fragment: 'ignored',
+              }
+        "
         class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-primary hover:text-white transition-all ease-in min-h-11 relative"
         [class.justify-center]="collapsed()"
-        [title]="collapsed() ? item.label : ''">
+        [title]="collapsed() ? item.label : ''"
+      >
         <span class="shrink-0">
           <app-nav-icon [icon]="item.icon" />
         </span>
         @if (!collapsed()) {
           <span class="truncate">{{ item.label }}</span>
           @if (item.badge && item.badge() > 0) {
-            <span class="ml-auto shrink-0 min-w-5 h-5 flex items-center justify-center rounded-full bg-primary text-white text-xs font-bold px-1"
-              aria-label="{{ item.badge() }} notifications">
+            <span
+              class="ml-auto shrink-0 min-w-5 h-5 flex items-center justify-center rounded-full bg-primary text-white text-xs font-bold px-1"
+              aria-label="{{ item.badge() }} notifications"
+            >
               {{ item.badge() }}
             </span>
           }
         } @else if (item.badge && item.badge() > 0) {
-          <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" aria-hidden="true"></span>
+          <span
+            class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary"
+            aria-hidden="true"
+          ></span>
         }
       </a>
     }
@@ -47,8 +67,10 @@
     @if (visibleControls().length > 0) {
       <div class="pt-4">
         @if (!collapsed()) {
-          <p class="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-text-secondary/60 truncate">
-           Salon Controls
+          <p
+            class="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-text-secondary/60 truncate"
+          >
+            Salon Controls
           </p>
         } @else {
           <div class="h-px bg-border mx-2 mb-2"></div>
@@ -61,12 +83,28 @@
           [routerLinkActiveOptions]="{ exact: true }"
           class="flex items-center gap-3 rounded-xl px-3 mb-1 py-2.5 text-sm font-medium text-text-secondary hover:bg-primary hover:text-white transition-all ease-in min-h-11"
           [class.justify-center]="collapsed()"
-          [title]="collapsed() ? 'Salon' : ''">
+          [title]="collapsed() ? 'Salon' : ''"
+        >
           <app-nav-icon icon="scissors" />
           @if (!collapsed()) {
             <span class="truncate">Salon Profile</span>
           }
         </a>
+
+        @if (canCreateAppointment()) {
+          <button
+            type="button"
+            (click)="openCreateAppointment()"
+            class="flex w-full items-center gap-3 rounded-xl px-3 mb-1 py-2.5 text-sm font-medium text-text-secondary hover:bg-primary hover:text-white transition-all ease-in min-h-11"
+            [class.justify-center]="collapsed()"
+            [title]="collapsed() ? 'Create appointment for customer' : ''"
+          >
+            <app-nav-icon icon="queue" />
+            @if (!collapsed()) {
+              <span class="truncate">Create appointment</span>
+            }
+          </button>
+        }
 
         @for (item of visibleControls(); track item.label) {
           <a
@@ -78,26 +116,39 @@
             [class.hover:text-white]="item.unlocked"
             [class.opacity-60]="!item.unlocked"
             [class.justify-center]="collapsed()"
-            [title]="collapsed() ? item.label : (item.unlocked ? '' : 'Available on the Pro plan')">
+            [title]="collapsed() ? item.label : item.unlocked ? '' : 'Available on the Pro plan'"
+          >
             <span class="w-5 h-5 shrink-0 flex items-center justify-center">
               @if (item.unlocked) {
                 <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
               } @else {
-                <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                <svg
+                  class="w-3.5 h-3.5 opacity-70"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
                 </svg>
               }
             </span>
             @if (!collapsed()) {
               <span class="truncate flex-1">{{ item.label }}</span>
               @if (!item.unlocked) {
-                <span class="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Pro</span>
+                <span
+                  class="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700"
+                  >Pro</span
+                >
               }
             }
           </a>
         }
-
       </div>
     }
 
@@ -108,7 +159,9 @@
     @if (billingOrgId(); as orgId) {
       <div class="pt-4">
         @if (!collapsed()) {
-          <p class="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-text-secondary/60 truncate">
+          <p
+            class="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-text-secondary/60 truncate"
+          >
             Account
           </p>
         } @else {
@@ -120,7 +173,8 @@
           routerLinkActive="bg-primary text-white"
           class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-primary hover:text-white transition-all ease-in min-h-11"
           [class.justify-center]="collapsed()"
-          [title]="collapsed() ? 'Plan & billing' : ''">
+          [title]="collapsed() ? 'Plan & billing' : ''"
+        >
           <span class="w-5 h-5 shrink-0 flex items-center justify-center">
             <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
           </span>
@@ -130,7 +184,6 @@
         </a>
       </div>
     }
-
   </nav>
 
   <!-- Logout -->
@@ -139,7 +192,8 @@
       <button
         (click)="onLogout()"
         class="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors min-h-11"
-        [title]="collapsed() ? 'Logout' : ''">
+        [title]="collapsed() ? 'Logout' : ''"
+      >
         <app-nav-icon icon="login" />
         @if (!collapsed()) {
           <span class="truncate">Logout</span>
@@ -153,12 +207,22 @@
     <button
       (click)="toggle()"
       class="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-overlay transition-colors min-h-11"
-      [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
+      [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+    >
       <svg
         class="w-5 h-5 shrink-0 transition-transform duration-250"
         [class.rotate-180]="collapsed()"
-        fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+        />
       </svg>
       @if (!collapsed()) {
         <span class="truncate">Collapse</span>

@@ -65,6 +65,8 @@ export type PendingJoin =
 export interface BookMemberRow {
   name: string;
   serviceId: string;
+  phone?: string;
+  email?: string;
 }
 
 export type BookingResult =
@@ -698,7 +700,12 @@ export class SalonVisitService implements Clearable {
     const body: BookAppointmentDto = {
       date,
       startTime,
-      members: members.map((m) => ({ memberName: m.name.trim(), serviceId: m.serviceId })),
+      members: members.map((m) => ({
+        memberName: m.name.trim(),
+        serviceId: m.serviceId,
+        phone: m.phone,
+        email: m.email,
+      })),
       notes,
       receiptVerificationId,
     };
@@ -711,22 +718,25 @@ export class SalonVisitService implements Clearable {
       .pipe(takeUntilDestroyed(this._destroyRef))
       .subscribe({
         next: (res) => {
+          const bookedEntry = res.body.entry;
+          const guestToken = res.body.guestToken;
           const entry: ActiveEntry = {
             queueId,
-            entryId: res.body.id,
+            entryId: bookedEntry.id,
             salonId,
             salonSlug,
             pendingMemberNames: captureMemberNames(body.members.map((m) => m.memberName)),
             type: 'APPOINTMENT',
             // Kept so _reconcileEntries can tell "scheduled for a later day,
             // so not in today's timeline" from "finished, drop it".
-            scheduledAt: res.body.scheduledAt,
+            scheduledAt: bookedEntry.scheduledAt,
           };
           this.activeEntries.update((list) => [
             ...list.filter((e) => e.entryId !== entry.entryId),
             entry,
           ]);
           this._activeEntryStore.save(entry);
+          if (guestToken) this._guestStore.setToken(guestToken);
           this.booking.set(false);
           this.bookingResult.set({ status: 'booked' });
           // My Queues is fed by ActiveQueuesService's own cached list, gated
@@ -739,7 +749,7 @@ export class SalonVisitService implements Clearable {
           // the DB — no incomplete-list flash, no need for a second corrective
           // fetch. There's nothing local to update, My Queues reads its own
           // separate signal.
-          this._activeQueues.refresh();
+          if (this._currentUser.user()) this._activeQueues.refresh();
           this._toast.success('Appointment booked.');
           onSuccess?.();
 

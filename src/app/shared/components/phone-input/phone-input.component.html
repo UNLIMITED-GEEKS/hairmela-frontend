@@ -1,5 +1,5 @@
 <div
-  class="flex rounded-lg border border-border-strong bg-transparent text-text-primary transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20"
+  class="flex rounded-lg border border-border-strong bg-surface-card text-text-primary transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20"
 >
   <select
     class="w-32 shrink-0 rounded-l-lg border-0 border-r border-border-strong bg-transparent px-2 py-2 text-sm outline-none disabled:opacity-60"
@@ -24,7 +24,6 @@
     [autocomplete]="autocomplete()"
     [value]="nationalNumber()"
     [disabled]="disabled()"
-    placeholder="0803 123 4567"
     (input)="setNumber($any($event.target).value)"
     (blur)="markTouched()"
   />

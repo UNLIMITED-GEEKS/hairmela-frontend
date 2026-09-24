@@ -12,6 +12,8 @@ import { CommentsThreadComponent } from '../../comments/comments-thread/comments
 import { RouteParam } from '../../../core/routing/route-paths';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { canChatFromHistory, queueEntryHistoryDate } from './queue-entry-history.util';
+import { SalonContextService } from '../../../core/salon-context/salon-context.service';
+import { StaffAppointmentModalService } from '../../queue/staff-appointment-modal/staff-appointment-modal.service';
 
 function toIsoDate(d: Date): string {
   const yyyy = d.getFullYear();
@@ -41,9 +43,15 @@ type EntryFilter = 'ALL' | 'APPOINTMENTS' | 'WALK_INS';
 })
 export class AppointmentsListComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
+  private readonly _salonContext = inject(SalonContextService);
+  private readonly _staffAppointmentModal = inject(StaffAppointmentModalService);
   protected readonly calendar = inject(AppointmentsCalendarService);
 
   protected readonly isStaffScoped = computed(() => !!this._staffId);
+  protected readonly canCreateAppointment = computed(() => {
+    const membership = this._salonContext.membership();
+    return !!membership?.queueId && !!membership.staffId;
+  });
 
   // Only one entry's Notes accordion open at a time — same pattern as
   // queue-list's per-row Notes.
@@ -149,7 +157,9 @@ export class AppointmentsListComponent implements OnInit {
       return;
     }
     this.openNotesEntryId.set(entryId);
-    this._commentsThreads().find((c) => c.entryId() === entryId)?.refresh();
+    this._commentsThreads()
+      .find((c) => c.entryId() === entryId)
+      ?.refresh();
   }
 
   protected onDaySelect(iso: string): void {
@@ -158,6 +168,16 @@ export class AppointmentsListComponent implements OnInit {
 
   protected selectEntryFilter(filter: EntryFilter): void {
     this.entryFilter.set(filter);
+  }
+
+  protected openCreateAppointment(): void {
+    const membership = this._salonContext.membership();
+    if (!membership?.queueId || !membership.staffId) return;
+    this._staffAppointmentModal.open({
+      salonId: membership.salonId,
+      queueId: membership.queueId,
+      staffId: membership.staffId,
+    });
   }
 
   protected statusBadgeClasses(status: QueueEntry['status']): string {

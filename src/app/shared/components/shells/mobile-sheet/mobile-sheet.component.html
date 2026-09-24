@@ -4,14 +4,14 @@
 
 <div class="sheet-links mobile-sheet-nav" [class.open]="open()">
   <nav class="px-3 py-3 flex flex-col gap-1" aria-label="Mobile navigation">
-
     <!-- Main nav items -->
     @for (item of sheetItems(); track item.label) {
       @if (item.cta && item.url) {
         <a
           [routerLink]="item.url"
           (click)="closed.emit()"
-          class="flex items-center justify-center gap-2 w-full min-h-11 rounded-xl bg-primary text-white font-bold text-sm mt-1 transition-colors hover:bg-primary/90">
+          class="flex items-center justify-center gap-2 w-full min-h-11 rounded-xl bg-primary text-white font-bold text-sm mt-1 transition-colors hover:bg-primary/90"
+        >
           <app-nav-icon [icon]="item.icon" size="w-5 h-5" />
           <span>{{ item.label }}</span>
         </a>
@@ -21,11 +21,14 @@
           routerLinkActive="bg-primary text-white"
           [routerLinkActiveOptions]="{ exact: item.url === RoutePath.dashboard()[0] }"
           (click)="closed.emit()"
-          class="flex items-center gap-3 px-3 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors">
+          class="flex items-center gap-3 px-3 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors"
+        >
           <app-nav-icon [icon]="item.icon" size="w-5 h-5" />
           <span class="text-sm font-medium">{{ item.label }}</span>
           @if (item.badge && item.badge() > 0) {
-            <span class="ml-auto min-w-5 h-5 flex items-center justify-center rounded-full bg-primary text-white text-xs font-bold px-1">
+            <span
+              class="ml-auto min-w-5 h-5 flex items-center justify-center rounded-full bg-primary text-white text-xs font-bold px-1"
+            >
               {{ item.badge() > 99 ? '99+' : item.badge() }}
             </span>
           }
@@ -33,7 +36,8 @@
       } @else if (item.action) {
         <button
           (click)="item.action!(); closed.emit()"
-          class="flex items-center gap-3 px-3 min-h-11 rounded-xl w-full text-left text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors">
+          class="flex items-center gap-3 px-3 min-h-11 rounded-xl w-full text-left text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors"
+        >
           <app-nav-icon [icon]="item.icon" size="w-5 h-5" />
           <span class="text-sm font-medium">{{ item.label }}</span>
         </button>
@@ -43,8 +47,10 @@
     <!-- Controls section -->
     @if (visibleControls().length > 0) {
       <div class="pt-3">
-        <p class="px-3 pb-3 text-[10px] font-semibold uppercase tracking-widest text-text-secondary/60">
-         Salon Controls
+        <p
+          class="px-3 pb-3 text-[10px] font-semibold uppercase tracking-widest text-text-secondary/60"
+        >
+          Salon Controls
         </p>
 
         <!-- TWO COLUMNS. This list overflowed the sheet on a shorter phone
@@ -55,59 +61,87 @@
              whitespace-nowrap rather than truncated — nowrap keeps each row
              one line tall without hiding any text. -->
         <div class="grid grid-cols-2 gap-2 pr-1">
+          <!-- Salon Profiles -->
+          <a
+            [routerLink]="['/' + RouteSegment.SALONS, activeSalonId()]"
+            routerLinkActive="bg-primary text-white"
+            [routerLinkActiveOptions]="{ exact: true }"
+            (click)="closed.emit()"
+            class="flex items-center gap-2 px-2.5 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors"
+          >
+            <app-nav-icon icon="scissors" size="w-5 h-5" />
+            <span class="text-sm font-medium whitespace-nowrap">Salon Profile</span>
+          </a>
 
-        <!-- Salon Profiles -->
-        <a
-          [routerLink]="['/' + RouteSegment.SALONS, activeSalonId()]"
-          routerLinkActive="bg-primary text-white"
-          [routerLinkActiveOptions]="{ exact: true }"
-          (click)="closed.emit()"
-          class="flex items-center gap-2 px-2.5 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors">
-          <app-nav-icon icon="scissors" size="w-5 h-5" />
-          <span class="text-sm font-medium whitespace-nowrap">Salon Profile</span>
-        </a>
-
-        <!-- The user's OWN queue console. Not part of CONTROL_ITEMS because
+          <!-- The user's OWN queue console. Not part of CONTROL_ITEMS because
              those are all salon-scoped, while this needs the queue id off
              Membership — see myQueueConsoleLink. Absent for anyone without a
              queue of their own. -->
-        @if (myQueueConsoleLink(); as consoleLink) {
-          <a
-            [routerLink]="consoleLink"
-            routerLinkActive="bg-primary text-white"
-            (click)="closed.emit()"
-            class="flex items-center gap-2 px-2.5 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors">
-            <span class="w-5 h-5 flex items-center justify-center shrink-0">
-              <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
-            </span>
-            <span class="text-sm font-medium whitespace-nowrap">My Queue Console</span>
-          </a>
-        }
-
-        @for (item of visibleControls(); track item.label) {
-          <a
-            [routerLink]="controlLink(item)"
-            routerLinkActive="bg-primary text-white"
-            (click)="closed.emit()"
-            class="flex items-center gap-2 px-2.5 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors"
-            [class.opacity-60]="!item.unlocked">
-            <span class="w-5 h-5 flex items-center justify-center shrink-0">
-              @if (item.unlocked) {
+          @if (myQueueConsoleLink(); as consoleLink) {
+            <a
+              [routerLink]="consoleLink"
+              routerLinkActive="bg-primary text-white"
+              (click)="closed.emit()"
+              class="flex items-center gap-2 px-2.5 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors"
+            >
+              <span class="w-5 h-5 flex items-center justify-center shrink-0">
                 <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
-              } @else {
-                <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                </svg>
-              }
-            </span>
-            <span class="text-sm font-medium whitespace-nowrap">{{ item.label }}</span>
-            @if (!item.unlocked) {
-              <span class="ml-auto shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Pro</span>
-            }
-          </a>
-        }
+              </span>
+              <span class="text-sm font-medium whitespace-nowrap">My Queue Console</span>
+            </a>
+          }
 
+          @if (canCreateAppointment()) {
+            <button
+              type="button"
+              (click)="openCreateAppointment()"
+              class="flex items-center gap-2 px-2.5 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors"
+            >
+              <span class="w-5 h-5 flex items-center justify-center shrink-0">
+            <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
+          </span>
+              <!-- <app-nav-icon icon="queue" size="w-5 h-5" /> -->
+              <span class="text-sm font-medium whitespace-nowrap">Create appointment</span>
+            </button>
+          }
+
+          @for (item of visibleControls(); track item.label) {
+            <a
+              [routerLink]="controlLink(item)"
+              routerLinkActive="bg-primary text-white"
+              (click)="closed.emit()"
+              class="flex items-center gap-2 px-2.5 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors"
+              [class.opacity-60]="!item.unlocked"
+            >
+              <span class="w-5 h-5 flex items-center justify-center shrink-0">
+                @if (item.unlocked) {
+                  <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
+                } @else {
+                  <svg
+                    class="w-3.5 h-3.5 opacity-70"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
+                  </svg>
+                }
+              </span>
+              <span class="text-sm font-medium whitespace-nowrap">{{ item.label }}</span>
+              @if (!item.unlocked) {
+                <span
+                  class="ml-auto shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700"
+                  >Pro</span
+                >
+              }
+            </a>
+          }
         </div>
       </div>
     }
@@ -118,7 +152,9 @@
          billing at all). -->
     @if (billingOrgId(); as orgId) {
       <div class="pt-3">
-        <p class="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-text-secondary/60">
+        <p
+          class="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-text-secondary/60"
+        >
           Account
         </p>
 
@@ -126,7 +162,8 @@
           [routerLink]="RoutePath.orgBilling(orgId)"
           routerLinkActive="bg-primary text-white"
           (click)="closed.emit()"
-          class="flex items-center gap-3 px-3 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors">
+          class="flex items-center gap-3 px-3 min-h-11 rounded-xl text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors"
+        >
           <span class="w-5 h-5 flex items-center justify-center shrink-0">
             <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
           </span>
@@ -134,6 +171,5 @@
         </a>
       </div>
     }
-
   </nav>
 </div>

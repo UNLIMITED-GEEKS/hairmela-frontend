@@ -11,7 +11,6 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { BackButtonComponent } from '../../../shared/components/back-button/back-button.component';
 import { PushPromptComponent } from '../../../shared/components/push-prompt/push-prompt.component';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
-import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { ToastService } from '../../../core/toast/toast.service';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 import { environment } from '../../../../environments/environment';
@@ -38,7 +37,6 @@ export class LiveQueueComponent {
   protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
-  private readonly _currentUser = inject(CurrentUserStore);
   private readonly _toast = inject(ToastService);
 
   // Reactive, not snapshot-based — q/:queueId is a single route, so navigating
@@ -187,19 +185,12 @@ export class LiveQueueComponent {
   protected readonly bookDialogOpen = signal(false);
 
   // The secondary "Not ready right now?" prompt is shown only for salons that
-  // accept walk-ins. Guests are sent to register with a returnUrl back to this
-  // page, matching the redirect pattern used by the walk-in join flow.
+  // accept walk-ins. Guests can book directly and provide their contact
+  // details in the appointment dialog.
   protected openBookDialog(): void {
-    // Also guarded here, not just in the template: a signed-out tap redirects
-    // to register and returns to this page, so the check must hold on the way
-    // back in too. The backend rejects appointments for a frozen salon either
-    // way — this stops the customer filling a form that cannot succeed.
+    // The backend rejects appointments for a frozen salon either way — this
+    // stops the customer filling a form that cannot succeed.
     if (this.frozen()) return;
-    if (!this._currentUser.user()) {
-      const returnUrl = RoutePath.visitQueue(this._shellPrefix, this._slug(), this._queueId()).join('/');
-      this._router.navigate(RoutePath.register(), { queryParams: { [RouteQueryParam.RETURN_URL]: returnUrl } });
-      return;
-    }
     this.bookDialogOpen.set(true);
   }
 

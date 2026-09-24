@@ -2,12 +2,16 @@
   <div
     animate.enter="modal-backdrop-enter"
     animate.leave="modal-backdrop-leave"
-    class="fixed inset-0 z-50 flex  items-end sm:items-center justify-center bg-black/40 px-4 pb-4 sm:pb-0" role="dialog" aria-modal="true" aria-label="Book an appointment">
+    class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-4 pb-4 sm:pb-0"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Book an appointment"
+  >
     <div
       animate.enter="modal-card-enter"
       animate.leave="modal-card-leave"
-      class="w-full max-w-sm bg-surface rounded-3xl p-6  space-y-5 shadow-xl max-h-85dvh flex flex-col">
-
+      class="w-full max-w-sm bg-surface rounded-3xl p-6 space-y-5 shadow-xl max-h-85dvh flex flex-col"
+    >
       <div class="shrink-0">
         <h2 class="text-lg font-bold text-text-primary">Book an appointment</h2>
         <p class="text-sm text-text-secondary mt-1">Pick a date and time that works for you.</p>
@@ -20,237 +24,443 @@
             [queueId]="feeQueueId()"
             [serviceIds]="pendingServiceIds()"
             (verified)="onFeeVerified($event)"
-            (back)="backToForm()" />
+            (back)="backToForm()"
+          />
         </div>
       } @else {
-      <div #fieldsEl class="flex-1 overflow-y-auto themed-scrollbar scroll-fade space-y-4">
-        @if (needsStaffPicker() && !selectedStaff()) {
-          @if (!pickerServiceId()) {
-            <!-- Step 1 of 2: service first — the customer picks WHAT before
+        <div #fieldsEl class="flex-1 overflow-y-auto themed-scrollbar scroll-fade space-y-4">
+          @if (needsStaffPicker() && !selectedStaff()) {
+            @if (!pickerServiceId()) {
+              <!-- Step 1 of 2: service first — the customer picks WHAT before
                  WHO, then the next step only shows staff who offer it. -->
-            <div>
-              <label class="block text-sm font-medium text-text-body mb-1.5">What would you like done?</label>
-              @if (pickerServiceGroups().length === 0) {
-                <p class="text-sm text-text-secondary">No services available to book right now.</p>
-              } @else {
-                <div class="space-y-2">
-                  @for (group of pickerServiceGroups(); track group.id) {
-                    <app-accordion [title]="group.name" [open]="isPickerCategoryOpen(group.id)"
-                      (openChange)="setPickerCategoryOpen(group.id, $event)">
-                      <div class="space-y-2">
-                        @for (s of group.items; track s.id) {
-                          <button type="button" (click)="pickPickerService(s.id)"
-                            class="w-full flex items-center gap-3 rounded-xl border border-border px-3 py-2.5 text-left hover:bg-secondary-light transition-colors">
-                            <span class="text-sm font-medium text-text-primary">{{ s.name }}</span>
-                          </button>
-                        }
-                      </div>
-                    </app-accordion>
-                  }
-                </div>
-              }
-            </div>
-          } @else {
-            <!-- Step 2 of 2: staff who offer the chosen service -->
-            <div>
-              <div class="flex items-center justify-between mb-1.5">
-                <label class="block text-sm font-medium text-text-body">Who would you like to see?</label>
-                <button type="button" (click)="backToServicePicker()" class="text-xs font-semibold text-primary">
-                  Change service
-                </button>
-              </div>
-              <div class="grid grid-cols-2 gap-3">
-                @for (s of staffOfferingPickerService(); track s.staffId) {
-                  <div class="h-40">
-                    <app-staff-card [staff]="s" (select)="pickStaff(s)" />
-                  </div>
-                }
-              </div>
-              @if (staffOfferingPickerService().length === 0) {
-                <p class="text-sm text-text-secondary">No staff currently offer this service.</p>
-              }
-            </div>
-          }
-        } @else {
-        <app-slot-picker
-          [salonId]="salonId()"
-          [staffId]="selectedStaff()?.staffId ?? null"
-          [minDate]="minDate"
-          [resetToken]="slotResetToken()"
-          [(selectedDate)]="selectedDate"
-          [(selectedStartTime)]="selectedStartTime">
-          @if (selectedStaff(); as staff) {
-            <span slotPickerDateHint class="font-normal text-text-secondary">
-              with {{ staff.firstName }}@if (staff.nickname) { ({{ staff.nickname }}) }
-            </span>
-          }
-        </app-slot-picker>
-
-        <!-- Your service — leader is always the signed-in customer, no name field -->
-        <div>
-          <label class="block text-sm font-medium mt-6 text-text-body mb-1.5">
-            {{ leaderServiceIds().length > 1 ? 'Services' : 'Service' }}
-          </label>
-          <!-- One select per service. Each becomes its own members[] entry
-               sharing your name, and counts separately against the party
-               limit. -->
-          <div class="space-y-2">
-            @for (id of leaderServiceIds(); track $index; let i = $index) {
-              <div class="flex gap-2 items-center">
-                <select
-                  [attr.data-invalid]="i === 0 && leaderServiceTouched() && !id ? 'true' : null"
-                  [value]="id"
-                  (change)="setLeaderServiceAt(i, $any($event.target).value)"
-                  (blur)="leaderServiceTouched.set(true)"
-                  class="flex-1 min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-xl bg-surface-card focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors">
-                  <option value="" disabled>Select a service</option>
-                  @for (s of staffServices(); track s.id) {
-                    <option [value]="s.id" [selected]="s.id === id">{{ s.name }}</option>
-                  }
-                </select>
-                @if (leaderServiceIds().length > 1) {
-                  <button type="button" (click)="removeLeaderService(i)"
-                    class="text-text-secondary hover:text-red-500 min-w-10 min-h-10 flex items-center justify-center shrink-0"
-                    aria-label="Remove service">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                  </button>
-                }
-              </div>
-            }
-          </div>
-          <button type="button" (click)="addLeaderService()" [disabled]="atMaxPartySize"
-            [title]="atMaxPartySize ? 'Party limit reached (' + visit.maxPartySize() + ' services)' : ''"
-            class="mt-2 inline-flex items-center gap-1 min-h-11 px-3 rounded-xl border border-dashed border-primary/30 text-xs font-semibold text-primary hover:bg-secondary-light disabled:text-text-disabled disabled:border-border disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors">
-            + Add another service for yourself
-          </button>
-          @if (leaderServiceTouched() && !leaderServiceIds()[0]) {
-            <p class="mt-1.5 text-xs text-red-600">Please select a service.</p>
-          }
-        </div>
-
-        <!-- Optional extra party members -->
-        <div [formGroup]="membersForm">
-          <div #memberRows formArrayName="members" class="space-y-2">
-            @for (ctrl of membersArray.controls; track $index; let i = $index) {
-              <div [formGroupName]="i" class="bg-surface-card border border-border rounded-2xl px-3 py-4 flex gap-2 items-start">
-                <div class="flex-1 space-y-2">
-                  <input formControlName="name" type="text" [placeholder]="'Person ' + (i + 1) + ' name'"
-                    class="w-full border border-primary/10 rounded-xl px-3 py-2 text-sm min-h-11 focus:outline-none focus:ring-2 focus:ring-primary/30">
-                  <app-field-error [control]="ctrl.get('name')" [messages]="{ required: 'Enter a name.' }" />
-                  <div formArrayName="serviceIds" class="space-y-2">
-                    @for (svcCtrl of memberServiceIds(i).controls; track $index; let si = $index) {
-                      <div class="flex gap-2 items-start">
-                        <div class="flex-1">
-                          <select [formControlName]="si"
-                            class="w-full border border-border rounded-xl px-3 py-2 text-sm min-h-11 bg-surface-card focus:outline-none focus:ring-2 focus:ring-primary/30">
-                            <option value="" disabled>Select a service</option>
-                            @for (s of staffServices(); track s.id) {
-                              <option [value]="s.id">{{ s.name }}</option>
-                            }
-                          </select>
-                          <app-field-error [control]="svcCtrl" [messages]="{ required: 'Select a service.' }" />
+              <div>
+                <label class="block text-sm font-medium text-text-body mb-1.5"
+                  >What would you like done?</label
+                >
+                @if (pickerServiceGroups().length === 0) {
+                  <p class="text-sm text-text-secondary">
+                    No services available to book right now.
+                  </p>
+                } @else {
+                  <div class="space-y-2">
+                    @for (group of pickerServiceGroups(); track group.id) {
+                      <app-accordion
+                        [compact]="true"
+                        [title]="group.name"
+                        [count]="group.items.length"
+                        [open]="isPickerCategoryOpen(group.id)"
+                        (openChange)="setPickerCategoryOpen(group.id, $event)"
+                      >
+                        <div class="space-y-2">
+                          @for (s of group.items; track s.id) {
+                            <button
+                              type="button"
+                              (click)="pickPickerService(s.id)"
+                              class="w-full flex items-center gap-3 rounded-xl border border-border px-3 py-2.5 text-left hover:bg-secondary-light transition-colors"
+                            >
+                              <span class="text-sm font-medium text-text-primary">{{
+                                s.name
+                              }}</span>
+                            </button>
+                          }
                         </div>
-                        @if (memberServiceIds(i).length > 1) {
-                          <button type="button" (click)="removeMemberService(i, si)"
-                            class="text-text-secondary hover:text-red-500 min-w-11 min-h-11 flex items-center justify-center shrink-0"
-                            aria-label="Remove service">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                          </button>
-                        }
-                      </div>
+                      </app-accordion>
                     }
                   </div>
-                  <button type="button" (click)="addMemberService(i)" [disabled]="atMaxPartySize"
-                    class="inline-flex items-center gap-1 min-h-11 px-3 rounded-xl border border-dashed border-primary/30 text-xs font-semibold text-primary hover:bg-secondary-light disabled:text-text-disabled disabled:border-border disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors">
-                    + Add another service
-                  </button>
-                </div>
-                <button (click)="removeMember(i)" type="button"
-                  class="text-text-secondary hover:text-red-500 min-w-10 min-h-10 flex items-center justify-center"
-                  aria-label="Remove person">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                  </svg>
+                }
+              </div>
+            } @else {
+              <!-- Step 2 of 2: staff who offer the chosen service -->
+              <div animate.enter="tab-content-enter">
+                <button type="button" (click)="backToServicePicker()"
+                  class="mb-3 inline-flex min-h-10 items-center gap-2 rounded-full border border-border bg-surface-card px-3.5 text-sm font-semibold text-text-primary transition-colors hover:border-primary/30 hover:bg-surface-sunken">
+                  <app-icon name="chevron-left" class="h-3.5 w-2.5 text-primary" />
+                  Back to services
                 </button>
+
+                @if (pickerService(); as service) {
+                  <div class="rounded-2xl border border-primary/15 bg-secondary-light/50 p-4">
+                    <div class="flex items-start gap-3">
+                      <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-card text-primary shadow-sm">
+                        <app-icon name="scissors" class="h-4.5 w-4.5" />
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-primary">Selected service</p>
+                        <h3 class="mt-0.5 text-base font-bold text-text-primary wrap-break-word">{{ service.name }}</h3>
+                        <p class="mt-1 inline-flex items-center gap-1.5 text-xs text-text-secondary">
+                          <app-icon name="clock" class="h-3.5 w-3.5 text-primary" />
+                          {{ service.duration }} min
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                }
+
+                @if (staffOfferingPickerService().length > 0) {
+                  <div class="mb-3 mt-6">
+                    <h3 class="text-base font-bold text-text-primary">Choose your professional</h3>
+                    <p class="mt-1 text-sm text-text-secondary">
+                      {{ staffOfferingPickerService().length }}
+                      {{ staffOfferingPickerService().length === 1 ? 'staff member offers' : 'staff members offer' }} this service.
+                    </p>
+                  </div>
+                }
+
+                <div class="grid grid-cols-2 gap-3">
+                  @for (s of staffOfferingPickerService(); track s.staffId) {
+                    <div class="h-52">
+                      <app-staff-card [staff]="s" (select)="pickStaff(s)" />
+                    </div>
+                  }
+                </div>
+                @if (staffOfferingPickerService().length === 0) {
+                  <div class="mt-5 rounded-2xl border border-border bg-surface-card px-5 py-9 text-center">
+                    <div class="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-secondary-light">
+                      <app-icon name="person" class="h-5 w-5 text-primary" />
+                    </div>
+                    <p class="mt-3 text-sm font-semibold text-text-primary">No staff available</p>
+                    <p class="mt-1 text-sm text-text-secondary">No one currently offers this service.</p>
+                  </div>
+                }
               </div>
             }
-          </div>
-          <button (click)="addMember()" type="button" [disabled]="atMaxPartySize"
-            [title]="atMaxPartySize ? 'Party limit reached (' + visit.maxPartySize() + ' services)' : ''"
-            class="mt-2 w-full min-h-11 rounded-2xl border-2 border-dashed border-primary/30 text-primary text-sm font-medium hover:bg-secondary-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-            + Add another person
-          </button>
-        </div>
+          } @else {
+            @if (isGuest()) {
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-sm font-medium text-text-body mb-1.5">Name</label>
+                  <input
+                    type="text"
+                    [attr.data-invalid]="guestNameTouched() && !guestName().trim() ? 'true' : null"
+                    [value]="guestName()"
+                    (input)="guestName.set($any($event.target).value)"
+                    (blur)="guestNameTouched.set(true)"
+                    placeholder="e.g. John"
+                    class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-xl bg-surface-card focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+                  />
+                  @if (guestNameTouched() && !guestName().trim()) {
+                    <p class="mt-1.5 text-xs text-red-600">This field is required.</p>
+                  }
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-text-body mb-1.5">Phone</label>
+                  <app-phone-input [formControl]="guestPhone" />
+                  <app-field-error [control]="guestPhone" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-text-body mb-1.5">Email (optional)</label>
+                  <input
+                    type="email"
+                    [formControl]="guestEmail"
+                    placeholder="you@example.com"
+                    class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-xl bg-surface-card focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+                  />
+                  <app-field-error [control]="guestEmail" />
+                </div>
+              </div>
+            }
+            <app-slot-picker
+              [salonId]="salonId()"
+              [staffId]="selectedStaff()?.staffId ?? null"
+              [minDate]="minDate"
+              [resetToken]="slotResetToken()"
+              [(selectedDate)]="selectedDate"
+              [(selectedStartTime)]="selectedStartTime"
+            >
+              @if (selectedStaff(); as staff) {
+                <span slotPickerDateHint class="font-normal text-text-secondary">
+                  with {{ staff.firstName }}
+                  @if (staff.nickname) {
+                    ({{ staff.nickname }})
+                  }
+                </span>
+              }
+            </app-slot-picker>
 
-        <!-- One-shot note at intake — write-only, sent as the first comment
-             once the appointment entry exists. Visible later on My
-             Position's "View notes". -->
-        <div>
-          <label class="block text-sm font-medium text-text-body mb-1.5">Note (optional)</label>
-          <textarea
-            [value]="noteBody()"
-            (input)="noteBody.set($any($event.target).value)"
-            placeholder="Anything the salon should know?"
-            rows="2"
-            class="w-full resize-none px-3 py-2.5 text-sm border border-border-strong rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
-          ></textarea>
+            <!-- Service for the signed-in customer or guest booking leader. -->
+            <div>
+              <label class="block text-sm font-medium mt-6 text-text-body mb-1.5">
+                {{ leaderServiceIds().length > 1 ? 'Services' : 'Service' }}
+              </label>
+              <!-- One select per service. Each becomes its own members[] entry
+               sharing your name, and counts separately against the party
+               limit. -->
+              <div class="space-y-2">
+                @for (id of leaderServiceIds(); track $index; let i = $index) {
+                  <div class="flex gap-2 items-center">
+                    <select
+                      [attr.data-invalid]="i === 0 && leaderServiceTouched() && !id ? 'true' : null"
+                      [value]="id"
+                      (change)="setLeaderServiceAt(i, $any($event.target).value)"
+                      (blur)="leaderServiceTouched.set(true)"
+                      class="flex-1 min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-xl bg-surface-card focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+                    >
+                      <option value="" disabled>Select a service</option>
+                      @for (s of staffServices(); track s.id) {
+                        <option [value]="s.id" [selected]="s.id === id">{{ s.name }}</option>
+                      }
+                    </select>
+                    @if (leaderServiceIds().length > 1) {
+                      <button
+                        type="button"
+                        (click)="removeLeaderService(i)"
+                        class="text-text-secondary hover:text-red-500 min-w-10 min-h-10 flex items-center justify-center shrink-0"
+                        aria-label="Remove service"
+                      >
+                        <svg
+                          class="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+              <button
+                type="button"
+                (click)="addLeaderService()"
+                [disabled]="atMaxPartySize"
+                [title]="
+                  atMaxPartySize
+                    ? 'Party limit reached (' + visit.maxPartySize() + ' services)'
+                    : ''
+                "
+                class="mt-2 inline-flex items-center gap-1 min-h-11 px-3 rounded-xl border border-dashed border-primary/30 text-xs font-semibold text-primary hover:bg-secondary-light disabled:text-text-disabled disabled:border-border disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors"
+              >
+                + Add another service for yourself
+              </button>
+              @if (leaderServiceTouched() && !leaderServiceIds()[0]) {
+                <p class="mt-1.5 text-xs text-red-600">Please select a service.</p>
+              }
+            </div>
 
-          @if (noteImageError()) {
-            <p class="mt-1.5 text-xs text-red-600">{{ noteImageError() }}</p>
-          }
-
-          @if (noteImagePreviewUrl(); as preview) {
-            <div class="relative w-16 h-16 mt-2">
-              <img [src]="preview" alt="" class="w-full h-full object-cover rounded-lg" />
-              <button type="button" (click)="removeNoteImage()" aria-label="Remove image"
-                class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-surface-inverse text-white flex items-center justify-center">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+            <!-- Optional extra party members -->
+            <div [formGroup]="membersForm">
+              <div #memberRows formArrayName="members" class="space-y-2">
+                @for (ctrl of membersArray.controls; track $index; let i = $index) {
+                  <div
+                    [formGroupName]="i"
+                    class="bg-surface-card border border-border rounded-2xl px-3 py-4 flex gap-2 items-start"
+                  >
+                    <div class="flex-1 space-y-2">
+                      <input
+                        formControlName="name"
+                        type="text"
+                        [placeholder]="'Person ' + (i + 1) + ' name'"
+                        class="w-full border border-primary/10 rounded-xl px-3 py-2 text-sm min-h-11 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                      <app-field-error
+                        [control]="ctrl.get('name')"
+                        [messages]="{ required: 'Enter a name.' }"
+                      />
+                      <div formArrayName="serviceIds" class="space-y-2">
+                        @for (
+                          svcCtrl of memberServiceIds(i).controls;
+                          track $index;
+                          let si = $index
+                        ) {
+                          <div class="flex gap-2 items-start">
+                            <div class="flex-1">
+                              <select
+                                [formControlName]="si"
+                                class="w-full border border-border rounded-xl px-3 py-2 text-sm min-h-11 bg-surface-card focus:outline-none focus:ring-2 focus:ring-primary/30"
+                              >
+                                <option value="" disabled>Select a service</option>
+                                @for (s of staffServices(); track s.id) {
+                                  <option [value]="s.id">{{ s.name }}</option>
+                                }
+                              </select>
+                              <app-field-error
+                                [control]="svcCtrl"
+                                [messages]="{ required: 'Select a service.' }"
+                              />
+                            </div>
+                            @if (memberServiceIds(i).length > 1) {
+                              <button
+                                type="button"
+                                (click)="removeMemberService(i, si)"
+                                class="text-text-secondary hover:text-red-500 min-w-11 min-h-11 flex items-center justify-center shrink-0"
+                                aria-label="Remove service"
+                              >
+                                <svg
+                                  class="w-3.5 h-3.5"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                  aria-hidden="true"
+                                >
+                                  <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"
+                                  />
+                                </svg>
+                              </button>
+                            }
+                          </div>
+                        }
+                      </div>
+                      <button
+                        type="button"
+                        (click)="addMemberService(i)"
+                        [disabled]="atMaxPartySize"
+                        class="inline-flex items-center gap-1 min-h-11 px-3 rounded-xl border border-dashed border-primary/30 text-xs font-semibold text-primary hover:bg-secondary-light disabled:text-text-disabled disabled:border-border disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors"
+                      >
+                        + Add another service
+                      </button>
+                    </div>
+                    <button
+                      (click)="removeMember(i)"
+                      type="button"
+                      class="text-text-secondary hover:text-red-500 min-w-10 min-h-10 flex items-center justify-center"
+                      aria-label="Remove person"
+                    >
+                      <svg
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                }
+              </div>
+              <button
+                (click)="addMember()"
+                type="button"
+                [disabled]="atMaxPartySize"
+                [title]="
+                  atMaxPartySize
+                    ? 'Party limit reached (' + visit.maxPartySize() + ' services)'
+                    : ''
+                "
+                class="mt-2 w-full min-h-11 rounded-2xl border-2 border-dashed border-primary/30 text-primary text-sm font-medium hover:bg-secondary-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                + Add another person
               </button>
             </div>
-          } @else {
-            <label class="mt-2 mb-4 inline-flex items-center gap-1.5 min-h-9 px-3 rounded-lg border border-primary/40 text-primary text-xs font-semibold cursor-pointer hover:bg-primary/5 transition-colors relative">
-              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M3 16.5V18a2 2 0 002 2h14a2 2 0 002-2v-1.5M16 10l-4-4m0 0L8 10m4-4v12" />
-              </svg>
-              <span>Attach a photo</span>
-              <input type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif" (change)="onNoteImagePicked($event)"
-                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-            </label>
+
+            <!-- One-shot note at intake — write-only, sent as the first comment
+             once the appointment entry exists. Visible later on My
+             Position's "View notes". -->
+            <div>
+              <label class="block text-sm font-medium text-text-body mb-1.5">Note (optional)</label>
+              <textarea
+                [value]="noteBody()"
+                (input)="noteBody.set($any($event.target).value)"
+                placeholder="Anything the salon should know?"
+                rows="2"
+                class="w-full resize-none px-3 py-2.5 text-sm border border-border-strong rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+              ></textarea>
+
+              @if (noteImageError()) {
+                <p class="mt-1.5 text-xs text-red-600">{{ noteImageError() }}</p>
+              }
+
+              @if (noteImagePreviewUrl(); as preview) {
+                <div class="relative w-16 h-16 mt-2">
+                  <img [src]="preview" alt="" class="w-full h-full object-cover rounded-lg" />
+                  <button
+                    type="button"
+                    (click)="removeNoteImage()"
+                    aria-label="Remove image"
+                    class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-surface-inverse text-white flex items-center justify-center"
+                  >
+                    <svg
+                      class="w-3 h-3"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2.5"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              } @else {
+                <label
+                  class="mt-2 mb-4 inline-flex items-center gap-1.5 min-h-9 px-3 rounded-lg border border-primary/40 text-primary text-xs font-semibold cursor-pointer hover:bg-primary/5 transition-colors relative"
+                >
+                  <svg
+                    class="w-3.5 h-3.5 shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M3 16.5V18a2 2 0 002 2h14a2 2 0 002-2v-1.5M16 10l-4-4m0 0L8 10m4-4v12"
+                    />
+                  </svg>
+                  <span>Attach a photo</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif"
+                    (change)="onNoteImagePicked($event)"
+                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </label>
+              }
+            </div>
           }
         </div>
-        }
-      </div>
 
-      <div class="shrink-0 flex gap-3">
-        <button
-          (click)="cancel()"
-          class="flex-1 min-h-12 rounded-2xl border-2 border-border bg-surface-card text-text-muted font-semibold text-sm hover:bg-surface-sunken transition-colors">
-          Cancel
-        </button>
-        @if (!needsStaffPicker() || selectedStaff()) {
-          <!-- "Next" only when a payment step actually follows; a salon with no
-               part payment books straight from here as it always did. -->
+        <div class="shrink-0 flex gap-3">
           <button
-            (click)="confirmBooking()"
-            [disabled]="!selectedDate() || !selectedStartTime() || visit.booking()"
-            class="flex-1 min-h-12 rounded-2xl bg-primary text-white font-semibold text-sm disabled:opacity-50 hover:bg-secondary-light hover:text-primary transition-colors
-                   flex items-center justify-center gap-2">
-            @if (visit.booking()) {
-              <app-inline-spinner sizeClass="w-4 h-4" label="Booking" />
-              <span>Booking…</span>
-            } @else {
-              <span>{{ visit.enforcesBookingFee() ? 'Next' : 'Book appointment' }}</span>
-            }
+            (click)="cancel()"
+            class="flex-1 min-h-12 rounded-2xl border-2 border-border bg-surface-card text-text-muted font-semibold text-sm hover:bg-surface-sunken transition-colors"
+          >
+            Cancel
           </button>
-        }
-      </div>
+          @if (!needsStaffPicker() || selectedStaff()) {
+            <!-- "Next" only when a payment step actually follows; a salon with no
+               part payment books straight from here as it always did. -->
+            <button
+              (click)="confirmBooking()"
+              [disabled]="
+                !selectedDate() ||
+                !selectedStartTime() ||
+                visit.booking() ||
+                (isGuest() && (!guestName().trim() || !guestPhoneValid || guestEmail.invalid))
+              "
+              class="flex-1 min-h-12 rounded-2xl bg-primary text-white font-semibold text-sm disabled:opacity-50 hover:bg-secondary-light hover:text-primary transition-colors flex items-center justify-center gap-2"
+            >
+              @if (visit.booking()) {
+                <app-inline-spinner sizeClass="w-4 h-4" label="Booking" />
+                <span>Booking…</span>
+              } @else {
+                <span>{{ visit.enforcesBookingFee() ? 'Next' : 'Book appointment' }}</span>
+              }
+            </button>
+          }
+        </div>
       }
     </div>
   </div>

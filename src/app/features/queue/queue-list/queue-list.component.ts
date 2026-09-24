@@ -82,7 +82,9 @@ export class QueueListComponent {
       return;
     }
     this.openNotesEntryId.set(entryId);
-    this._commentsThreads().find((c) => c.entryId() === entryId)?.refresh();
+    this._commentsThreads()
+      .find((c) => c.entryId() === entryId)
+      ?.refresh();
   }
 
   protected noShow(entryId: string): void {
@@ -99,5 +101,9 @@ export class QueueListComponent {
 
   protected openAddQueueModal(): void {
     this.showAddQueueModal.set(true);
+  }
+
+  protected closeAddQueueModal(): void {
+    this.showAddQueueModal.set(false);
   }
 }

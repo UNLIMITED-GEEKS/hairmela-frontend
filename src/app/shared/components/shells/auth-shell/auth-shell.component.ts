@@ -1,4 +1,16 @@
-import { Component, inject, signal, computed, viewChild, ElementRef, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  inject,
+  OnDestroy,
+  OnInit,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { CurrentUserStore } from '../../../../core/auth/current-user.store';
 import { SalonContextService } from '../../../../core/salon-context/salon-context.service';
@@ -16,10 +28,14 @@ import { PullToRefreshService } from '../../../../core/pwa/pull-to-refresh.servi
 import { OrgContextService } from '../../../../core/salon-context/org-context.service';
 import { RoutePath } from '../../../../core/routing/route-paths';
 import { RouteScrollRestorationService } from '../../../../core/scroll/route-scroll-restoration.service';
+import { AddClientModalComponent } from '../../../../features/queue/add-client-modal/add-client-modal.component';
+import { QueueConsoleService } from '../../../../features/queue/queue-console/queue-console.service';
+import { StaffAppointmentModalService } from '../../../../features/queue/staff-appointment-modal/staff-appointment-modal.service';
 
 @Component({
   selector: 'app-auth-shell',
   templateUrl: './auth-shell.component.html',
+  providers: [QueueConsoleService],
   imports: [
     RouterOutlet,
     SidebarComponent,
@@ -28,6 +44,7 @@ import { RouteScrollRestorationService } from '../../../../core/scroll/route-scr
     BottomNavComponent,
     MobileSheetComponent,
     PullToRefreshIndicatorComponent,
+    AddClientModalComponent,
   ],
 })
 export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -68,6 +85,8 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly _orgContext = inject(OrgContextService);
   private readonly _pullToRefresh = inject(PullToRefreshService);
   private readonly _scrollRestoration = inject(RouteScrollRestorationService);
+  private readonly _queueConsole = inject(QueueConsoleService);
+  private readonly _staffAppointmentModal = inject(StaffAppointmentModalService);
   protected readonly _currentUser = inject(CurrentUserStore);
 
   // This shell's scroll region is the inner <main>, not the window (see
@@ -75,6 +94,15 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly _mainEl = viewChild.required<ElementRef<HTMLElement>>('mainScroll');
 
   protected readonly sheetOpen = signal(false);
+  protected readonly appointmentRequest = this._staffAppointmentModal.request;
+
+  constructor() {
+    effect(() => {
+      const request = this.appointmentRequest();
+      if (!request) return;
+      untracked(() => this._queueConsole.init(request.salonId, request.queueId));
+    });
+  }
 
   protected readonly salons = this._dashboardService.salons;
   // Display only (top bar / sidebar dropdown) — persists across pages with no
@@ -148,7 +176,15 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    const request = this.appointmentRequest();
+    if (request) this._queueConsole.destroy(request.queueId);
     this._scrollRestoration.unregister(this._mainEl().nativeElement);
     this._pullToRefresh.teardown();
+  }
+
+  protected closeCreateAppointment(): void {
+    const request = this.appointmentRequest();
+    if (request) this._queueConsole.destroy(request.queueId);
+    this._staffAppointmentModal.close();
   }
 }

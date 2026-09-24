@@ -8,7 +8,7 @@ import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
 import { BookAppointmentDto } from '../../models/book-appointment-dto';
-import { QueueEntry } from '../../models/queue-entry';
+import { BookAppointmentResponseDto } from '../../models/book-appointment-response-dto';
 
 export interface BookingControllerBookAppointment$Params {
 
@@ -29,7 +29,7 @@ export interface BookingControllerBookAppointment$Params {
       body: BookAppointmentDto
 }
 
-export function bookingControllerBookAppointment(http: HttpClient, rootUrl: string, params: BookingControllerBookAppointment$Params, context?: HttpContext): Observable<StrictHttpResponse<QueueEntry>> {
+export function bookingControllerBookAppointment(http: HttpClient, rootUrl: string, params: BookingControllerBookAppointment$Params, context?: HttpContext): Observable<StrictHttpResponse<BookAppointmentResponseDto>> {
   const rb = new RequestBuilder(rootUrl, bookingControllerBookAppointment.PATH, 'post');
   if (params) {
     rb.path('salonId', params.salonId, {});
@@ -43,7 +43,7 @@ export function bookingControllerBookAppointment(http: HttpClient, rootUrl: stri
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<QueueEntry>;
+      return r as StrictHttpResponse<BookAppointmentResponseDto>;
     })
   );
 }

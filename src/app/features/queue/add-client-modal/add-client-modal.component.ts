@@ -1,4 +1,13 @@
-import { Component, DestroyRef, inject, input, output, signal, computed, effect, untracked,
+import {
+  Component,
+  DestroyRef,
+  inject,
+  input,
+  output,
+  signal,
+  computed,
+  effect,
+  untracked,
   ElementRef,
   Injector,
   afterNextRender,
@@ -42,13 +51,20 @@ function startOfMonth(d: Date): Date {
 @Component({
   selector: 'app-add-client-modal',
   templateUrl: './add-client-modal.component.html',
-  imports: [ReactiveFormsModule, FieldErrorComponent, MiniMonthCalendarComponent, InlineSpinnerComponent, PhoneInputComponent],
+  imports: [
+    ReactiveFormsModule,
+    FieldErrorComponent,
+    MiniMonthCalendarComponent,
+    InlineSpinnerComponent,
+    PhoneInputComponent,
+  ],
 })
 export class AddClientModalComponent {
   readonly open = input.required<boolean>();
   readonly salonId = input.required<string>();
   readonly queueId = input.required<string>();
   readonly staffId = input.required<string>();
+  readonly initialMode = input<'walk-in' | 'appointment'>('walk-in');
 
   readonly closed = output<void>();
 
@@ -102,7 +118,11 @@ export class AddClientModalComponent {
   protected readonly selectedStartTime = signal<string | null>(null);
 
   protected readonly badgeFor = computed(() => {
-    const daysWithSlots = new Set(this.monthSlots().map((s) => s.date).filter((d): d is string => !!d));
+    const daysWithSlots = new Set(
+      this.monthSlots()
+        .map((s) => s.date)
+        .filter((d): d is string => !!d),
+    );
     return (iso: string) => (daysWithSlots.has(iso) ? 1 : 0);
   });
 
@@ -151,7 +171,9 @@ export class AddClientModalComponent {
         this.monthSlots.set([]);
         this.selectedStartTime.set(null);
         this.appointmentMembers.clear();
-        this.appointmentMembers.push(this._buildAppointmentRow(this.staffServices()[0]?.serviceId ?? ''));
+        this.appointmentMembers.push(
+          this._buildAppointmentRow(this.staffServices()[0]?.serviceId ?? ''),
+        );
 
         // Appointments-only salons have no walk-in queue to add to, so open
         // straight into Appointment — the toggle is hidden in that case too.
@@ -162,7 +184,11 @@ export class AddClientModalComponent {
         // trigger it), and setMode's fetch must run AFTER the monthSlots
         // reset above — otherwise that reset wipes the result it just asked
         // for.
-        this.setMode(this.console.allowsWalkIns() ? 'walk-in' : 'appointment');
+        this.setMode(
+          this.initialMode() === 'appointment' || !this.console.allowsWalkIns()
+            ? 'appointment'
+            : 'walk-in',
+        );
       });
     });
   }
@@ -185,15 +211,14 @@ export class AddClientModalComponent {
       this.addQueueForm.markAllAsTouched();
       return;
     }
-    const rows = this.addQueueMembers.value as { name: string; serviceIds: string[]; phone: string }[];
+    const rows = this.addQueueMembers.value as {
+      name: string;
+      serviceIds: string[];
+      phone: string;
+    }[];
     const members = this._flatten(rows, false);
     if (members.length === 0) return;
-    this.console.staffAddToQueue(
-      this.salonId(),
-      this.queueId(),
-      members,
-      () => this.closed.emit(),
-    );
+    this.console.staffAddToQueue(this.salonId(), this.queueId(), members, () => this.closed.emit());
   }
 
   protected addWalkInRow(): void {
@@ -234,10 +259,7 @@ export class AddClientModalComponent {
   private _scrollToNewRow(ref: typeof this._walkInFieldsEl): void {
     // Deferred: the row does not exist in the DOM until Angular has rendered
     // the FormArray change.
-    afterNextRender(
-      () => scrollToNewRow(ref()?.nativeElement),
-      { injector: this._scrollInjector },
-    );
+    afterNextRender(() => scrollToNewRow(ref()?.nativeElement), { injector: this._scrollInjector });
   }
 
   protected addAppointmentRow(): void {

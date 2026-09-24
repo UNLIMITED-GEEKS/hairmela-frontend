@@ -8,6 +8,7 @@ export interface QueueEntryMember {
   autoAdvanceToken: string | null;
   createdAt: string;
   durationSnapshot: number;
+  email: string | null;
   entry: QueueEntry;
   id: string;
   isLeader: boolean;

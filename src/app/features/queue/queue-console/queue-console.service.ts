@@ -1,7 +1,17 @@
 import { Injectable, DestroyRef, inject, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
-import { Observable, Subject, catchError, concatMap, filter, of, retry, switchMap, tap } from 'rxjs';
+import {
+  Observable,
+  Subject,
+  catchError,
+  concatMap,
+  filter,
+  of,
+  retry,
+  switchMap,
+  tap,
+} from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { QueueSocketService } from '../../../core/socket/queue-socket.service';
 import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/confirm-dialog.service';
@@ -171,9 +181,7 @@ export class QueueConsoleService {
   // Same source as allowsWalkIns. This previously read queue().salon.settings,
   // which the queue payload does not include — so every salon silently got the
   // default of 5 no matter what its owner had configured.
-  readonly maxPartySize = computed(
-    () => (this._salonSettings()?.['maxPartySize'] as number) ?? 5,
-  );
+  readonly maxPartySize = computed(() => (this._salonSettings()?.['maxPartySize'] as number) ?? 5);
   readonly loading = signal(true);
   readonly error = signal(false);
   // Global lock — for actions with no single entry/member target (status change).
@@ -581,12 +589,12 @@ export class QueueConsoleService {
     return { timeline, sinceSnapshotMs, servingElapsedMs, servingBookedMinutes };
   });
 
-  readonly liveWaitMinutes = computed((): Map<string, number> =>
-    computeLiveWaitMinutes(this._waitContext()),
+  readonly liveWaitMinutes = computed(
+    (): Map<string, number> => computeLiveWaitMinutes(this._waitContext()),
   );
 
-  readonly memberWaitMinutes = computed((): Map<string, number> =>
-    computeMemberWaitMinutes(this._waitContext()),
+  readonly memberWaitMinutes = computed(
+    (): Map<string, number> => computeMemberWaitMinutes(this._waitContext()),
   );
 
   init(salonId: string, queueId: string): void {
@@ -1057,6 +1065,7 @@ export class QueueConsoleService {
           serviceName: svc?.service.name ?? null,
           serviceDuration: svc?.service.duration ?? 30,
           phone: null,
+          email: null,
           updatedAt: now,
         };
       }),
@@ -1141,7 +1150,15 @@ export class QueueConsoleService {
     // once confirmed. So future-day bookings skip the optimistic-add
     // machinery entirely: fire the request, toast on success, done.
     if (date !== toIsoDate(new Date())) {
-      this._staffBookFutureAppointment(salonId, queueId, date, startTime, members, onSuccess, onError);
+      this._staffBookFutureAppointment(
+        salonId,
+        queueId,
+        date,
+        startTime,
+        members,
+        onSuccess,
+        onError,
+      );
       return;
     }
     // Doesn't route through _runLocked (uses _socketPredict.run directly) —
@@ -1182,6 +1199,7 @@ export class QueueConsoleService {
           serviceName: svc?.service.name ?? null,
           serviceDuration: svc?.service.duration ?? 30,
           phone: null,
+          email: null,
           updatedAt: now,
         };
       }),

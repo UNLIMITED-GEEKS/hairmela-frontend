@@ -17,8 +17,11 @@ const SKIP_AUTH_PATHS = [
 // never sent to genuinely-protected endpoints.
 const GUEST_TOKEN_PATHS = [
   '/walk-in',
+  '/appointments',
+  '/receipt-verification',
   '/queues/guest-entries',
   '/queues/my-entries',
+  '/entries/',
   '/push/subscribe',
   '/comments',
 ];

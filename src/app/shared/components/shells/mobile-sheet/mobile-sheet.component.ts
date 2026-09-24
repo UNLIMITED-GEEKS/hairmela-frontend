@@ -7,6 +7,7 @@ import { CONTROL_ITEMS, NPB_ORG_ID, VisibleControl } from '../sidebar/sidebar.co
 import { RouteSegment, RoutePath } from '../../../../core/routing/route-paths';
 import { OrgContextService } from '../../../../core/salon-context/org-context.service';
 import { AppPlatformService } from '../../../../core/native/app-platform.service';
+import { StaffAppointmentModalService } from '../../../../features/queue/staff-appointment-modal/staff-appointment-modal.service';
 
 @Component({
   selector: 'app-mobile-sheet',
@@ -34,6 +35,7 @@ export class MobileSheetComponent {
   });
 
   private readonly _orgContext = inject(OrgContextService);
+  private readonly _staffAppointmentModal = inject(StaffAppointmentModalService);
 
   readonly isOwner = computed(() => this.membership()?.role === SalonRole.OWNER);
 
@@ -105,4 +107,20 @@ export class MobileSheetComponent {
     }
     return ['/' + RouteSegment.SALONS, salonId, item.url];
   }
+
+  protected openCreateAppointment(): void {
+    const membership = this.membership();
+    if (!membership?.queueId || !membership.staffId) return;
+    this._staffAppointmentModal.open({
+      salonId: membership.salonId,
+      queueId: membership.queueId,
+      staffId: membership.staffId,
+    });
+    this.closed.emit();
+  }
+
+  protected readonly canCreateAppointment = computed(() => {
+    const membership = this.membership();
+    return !!membership?.queueId && !!membership.staffId;
+  });
 }

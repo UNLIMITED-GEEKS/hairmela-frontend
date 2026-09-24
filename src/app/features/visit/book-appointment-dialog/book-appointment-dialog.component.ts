@@ -1,4 +1,12 @@
-import { Component, inject, input, output, signal, computed, effect, untracked,
+import {
+  Component,
+  inject,
+  input,
+  output,
+  signal,
+  computed,
+  effect,
+  untracked,
   ElementRef,
   Injector,
   afterNextRender,
@@ -16,12 +24,16 @@ import { toIsoDate } from '../../../shared/components/slot-picker/iso-date';
 import { AccordionComponent } from '../../../shared/components/accordion/accordion.component';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 import { StaffCardComponent } from '../../../shared/components/staff-card/staff-card.component';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { RoutePath } from '../../../core/routing/route-paths';
 import { groupByServiceCategory } from '../../../core/utils/group-by-category';
 import { Service } from '../../../api/models/service';
 import { registerOverlayWhileOpen } from '../../../core/overlay/overlay-registry';
 import { BookingFeeStepComponent } from '../booking-fee-step/booking-fee-step.component';
 import { scrollToNewRow } from '../../../core/utils/scroll-to-new-row';
+import { PhoneInputComponent } from '../../../shared/components/phone-input/phone-input.component';
+import { normalizePhoneNumber } from '../../../core/phone/phone-number';
+import { BookMemberRow } from '../salon-visit.service';
 
 // Matches core/media/media-upload.ts's uploadAdHocImage(): JPEG/PNG/WebP/AVIF
 // upload straight to R2, HEIC/HEIF go through the backend's conversion
@@ -46,10 +58,8 @@ const MAX_NOTE_IMAGE_BYTES = 5 * 1024 * 1024;
 // salon-landing page's "Book ahead" button, shown only while the salon is
 // closed (no staff known yet — `staff` omitted, the dialog's own
 // staff-picker step resolves one from `staffList` before the rest of the
-// flow proceeds). Only ever for a signed-in customer (BookingController
-// requires JwtAuthGuard — no guest path exists here, unlike joining a
-// walk-in queue), so the leader is always the signed-in user, never a name
-// field — same self-is-the-leader pattern as join-dialog.
+// flow proceeds). Signed-in customers book as their account identity; guests
+// provide the leader's name, phone number, and email, just like guest walk-ins.
 //
 // Availability is fetched a WHOLE MONTH at a time (getAvailabilityRange) and
 // re-fetched only when the visible month changes — not on every day click —
@@ -68,7 +78,9 @@ const MAX_NOTE_IMAGE_BYTES = 5 * 1024 * 1024;
     AccordionComponent,
     InlineSpinnerComponent,
     StaffCardComponent,
+    IconComponent,
     BookingFeeStepComponent,
+    PhoneInputComponent,
   ],
 })
 export class BookAppointmentDialogComponent {
@@ -104,6 +116,15 @@ export class BookAppointmentDialogComponent {
   private readonly _router = inject(Router);
   private readonly _fb = inject(FormBuilder);
 
+  protected readonly isGuest = computed(() => !this._currentUser.user());
+  protected readonly guestName = signal('');
+  protected readonly guestPhone = this._fb.nonNullable.control('', Validators.required);
+  protected readonly guestEmail = this._fb.nonNullable.control('', Validators.email);
+  protected readonly guestNameTouched = signal(false);
+  protected get guestPhoneValid(): boolean {
+    return this.guestPhone.valid && !!this.guestPhone.value;
+  }
+
   protected readonly minDate = toIsoDate(new Date());
   // Owned here (this is what gets submitted), but CHOSEN by app-slot-picker,
   // which two-way binds them. The month/availability/slot-grid machinery all
@@ -127,6 +148,10 @@ export class BookAppointmentDialogComponent {
   // appointment"), the flow is unchanged: date -> time -> service straight
   // away, since who is fixed already.
   protected readonly pickerServiceId = signal<string | null>(null);
+  protected readonly pickerService = computed(() => {
+    const serviceId = this.pickerServiceId();
+    return serviceId ? (this.visit.services().find((service) => service.id === serviceId) ?? null) : null;
+  });
   protected readonly staffOfferingPickerService = computed(() => {
     const serviceId = this.pickerServiceId();
     if (!serviceId) return [];
@@ -216,7 +241,9 @@ export class BookAppointmentDialogComponent {
   protected readonly noteImageError = signal<string | null>(null);
 
   protected get leaderName(): string {
-    return this._currentUser.user()?.firstName ?? 'You';
+    return this.isGuest()
+      ? this.guestName().trim()
+      : (this._currentUser.user()?.firstName ?? 'You');
   }
 
   // The leader (signed-in user)'s chosen services — a plain signal, same
@@ -255,7 +282,7 @@ export class BookAppointmentDialogComponent {
   // Same two-step shape as join-dialog: salons with enforceBookingFee on get a
   // quote -> pay -> receipt step between this form and the actual booking.
   protected readonly step = signal<'form' | 'fee'>('form');
-  private readonly _pendingMembers = signal<{ name: string; serviceId: string }[] | null>(null);
+  private readonly _pendingMembers = signal<BookMemberRow[] | null>(null);
   private readonly _pendingNote = signal<{ body: string; image: File | null } | undefined>(
     undefined,
   );
@@ -322,6 +349,10 @@ export class BookAppointmentDialogComponent {
           this.staffServices().some((svc) => svc.id === initial);
         this.leaderServiceIds.set(seedNow ? [initial!] : ['']);
         this.leaderServiceTouched.set(false);
+        this.guestName.set('');
+        this.guestPhone.reset();
+        this.guestEmail.reset();
+        this.guestNameTouched.set(false);
         this.pickedStaff.set(null);
         this.pickerServiceId.set(null);
         this.membersArray.clear();
@@ -452,6 +483,16 @@ export class BookAppointmentDialogComponent {
     if (!date || !startTime) return;
     // Both branches scroll: the offending field is often below the dialog's
     // fold, and without this the Book button reads as doing nothing.
+    if (
+      this.isGuest() &&
+      (!this.guestName().trim() || this.guestPhone.invalid || this.guestEmail.invalid)
+    ) {
+      this.guestNameTouched.set(true);
+      this.guestPhone.markAsTouched();
+      this.guestEmail.markAsTouched();
+      this._scrollToFirstError();
+      return;
+    }
     if (!this.leaderServiceIds().some((id) => !!id)) {
       this.leaderServiceTouched.set(true);
       this._scrollToFirstError();
@@ -472,9 +513,15 @@ export class BookAppointmentDialogComponent {
           .filter((id) => !!id)
           .map((serviceId) => ({ name: m.name.trim(), serviceId })),
       );
-    const leaderEntries = this.leaderServiceIds()
+    const guestContact = this.isGuest()
+      ? {
+          phone: normalizePhoneNumber(this.guestPhone.value) ?? undefined,
+          email: this.guestEmail.value.trim() || undefined,
+        }
+      : {};
+    const leaderEntries: BookMemberRow[] = this.leaderServiceIds()
       .filter((id) => !!id)
-      .map((serviceId) => ({ name: this.leaderName, serviceId }));
+      .map((serviceId) => ({ name: this.leaderName, serviceId, ...guestContact }));
     const members = [...leaderEntries, ...extras];
 
     // Navigate only after the booking POST resolves (not immediately, unlike
@@ -519,7 +566,7 @@ export class BookAppointmentDialogComponent {
   }
 
   private _book(
-    members: { name: string; serviceId: string }[],
+    members: BookMemberRow[],
     note?: { body: string; image: File | null },
     receiptVerificationId?: string,
   ): void {
@@ -538,7 +585,7 @@ export class BookAppointmentDialogComponent {
       undefined,
       () => {
         this.closed.emit();
-        this._router.navigate(RoutePath.queues());
+        this._router.navigate(this.isGuest() ? RoutePath.guestQueues() : RoutePath.queues());
       },
       note,
       receiptVerificationId,

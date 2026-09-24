@@ -73,7 +73,16 @@
       </p>
       <!-- } -->
 
-      <!-- FIXME: When restoring the other frozen checks, use the shared frozen() guard here too. -->
+      
+
+      <!-- Book ahead — walk-in fallback, only while the salon is closed -->
+      @if (showBookAhead()) {
+        <button type="button" (click)="openBookDialog()"
+          class="mt-3 w-full min-h-12 rounded-full border-2 border-primary text-primary text-sm font-semibold flex items-center justify-center gap-2 hover:bg-secondary-light transition-colors">
+          <app-icon name="clock" class="w-4 h-4" />
+          Book Appointment
+        </button>
+        <!-- FIXME: When restoring the other frozen checks, use the shared frozen() guard here too. -->
       @if (s.phone && !visit.salonData()?.isFrozen) {
         <a [href]="'tel:' + s.phone"
           class="mt-5 w-full  min-h-12 rounded-full bg-primary text-white text-sm font-normal flex items-center justify-center gap-2 hover:bg-surface-hover transition-colors">
@@ -81,14 +90,6 @@
           Call
         </a>
       }
-
-      <!-- Book ahead — walk-in fallback, only while the salon is closed -->
-      @if (showBookAhead()) {
-        <button type="button" (click)="openBookDialog()"
-          class="mt-3 w-full min-h-12 rounded-full border-2 border-primary text-primary text-sm font-semibold flex items-center justify-center gap-2 hover:bg-secondary-light transition-colors">
-          <app-icon name="clock" class="w-4 h-4" />
-          Book ahead
-        </button>
       }
 
       <!-- Get-notified nudge. Not gated on having an active entry here: see

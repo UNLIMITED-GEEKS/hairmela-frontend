@@ -21,6 +21,7 @@ function member(over: Partial<TimelineMemberDto> = {}): TimelineMemberDto {
     memberId: 'm1',
     memberName: 'Client',
     phone: null,
+    email: null,
     servedAt: null,
     serviceDuration: 30,
     serviceId: 's1',
