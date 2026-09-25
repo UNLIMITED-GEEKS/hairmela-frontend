@@ -53,15 +53,12 @@
                       >
                         <div class="space-y-2">
                           @for (s of group.items; track s.id) {
-                            <button
-                              type="button"
-                              (click)="pickPickerService(s.id)"
-                              class="w-full flex items-center gap-3 rounded-xl border border-border px-3 py-2.5 text-left hover:bg-secondary-light transition-colors"
-                            >
-                              <span class="text-sm font-medium text-text-primary">{{
-                                s.name
-                              }}</span>
-                            </button>
+                            <app-service-list-item
+                              [service]="s"
+                              [showPrice]="visit.showPrice()"
+                              [currency]="visit.salon()?.currency ?? 'NGN'"
+                              (select)="pickPickerService(s.id)"
+                            />
                           }
                         </div>
                       </app-accordion>

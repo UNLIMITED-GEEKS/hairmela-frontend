@@ -132,7 +132,7 @@
       @if (selectedTier() === plan.tier) {
         <div class="mt-5 border-t border-border-subtle pt-4">
           <p class="text-sm font-semibold text-text-body">Choose duration</p>
-          <div class="mt-3 grid grid-cols-2 gap-2">
+          <div class="mt-3 grid grid-cols-1 gap-2">
             @for (duration of durations; track duration) {
               <button
                 type="button"
@@ -142,13 +142,14 @@
                 [class.bg-primary]="selectedDuration() === duration"
                 [class.text-white]="selectedDuration() === duration"
                 [class.border-border-strong]="selectedDuration() !== duration"
-                class="rounded-lg border px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                class="inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-center text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap"
               >
-               @if (acting()) {
-    <app-inline-spinner sizeClass="w-4 h-4" label="Starting bank transfer" /> Opening bank transfer…
-  } @else {
-    {{ duration }} {{ duration === 1 ? 'month' : 'months' }}
-  }
+                @if (acting() && selectedDuration() === duration) {
+                  <app-inline-spinner sizeClass="w-4 h-4" label="Starting bank transfer" />
+                  Opening bank transfer…
+                } @else {
+                  {{ duration }} {{ duration === 1 ? 'month' : 'months' }}
+                }
               </button>
             }
           </div>

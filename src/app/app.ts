@@ -8,10 +8,11 @@ import { CookieConsentComponent } from './shared/components/cookie-consent/cooki
 import { QueueSoundService } from './core/queue/queue-sound.service';
 import { QueueSoundWatcherService } from './core/queue/queue-sound-watcher.service';
 import { SalonContextService } from './core/salon-context/salon-context.service';
+import { OfflineBannerComponent } from './shared/components/offline-banner/offline-banner.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, ToastComponent, ConfirmDialogComponent, RenameDialogComponent, CookieConsentComponent, UpdateRequiredOverlayComponent],
+  imports: [RouterOutlet, ToastComponent, ConfirmDialogComponent, RenameDialogComponent, CookieConsentComponent, UpdateRequiredOverlayComponent, OfflineBannerComponent],
   templateUrl: './app.html',
   // Warms up the queue-sound Audio element on the very first tap/click
   // anywhere in the app — not scoped to the queue console page, since a

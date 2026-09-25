@@ -34,6 +34,7 @@ import { scrollToNewRow } from '../../../core/utils/scroll-to-new-row';
 import { PhoneInputComponent } from '../../../shared/components/phone-input/phone-input.component';
 import { normalizePhoneNumber } from '../../../core/phone/phone-number';
 import { BookMemberRow } from '../salon-visit.service';
+import { ServiceListItemComponent } from '../../../shared/components/service-list-item/service-list-item.component';
 
 // Matches core/media/media-upload.ts's uploadAdHocImage(): JPEG/PNG/WebP/AVIF
 // upload straight to R2, HEIC/HEIF go through the backend's conversion
@@ -81,6 +82,7 @@ const MAX_NOTE_IMAGE_BYTES = 5 * 1024 * 1024;
     IconComponent,
     BookingFeeStepComponent,
     PhoneInputComponent,
+    ServiceListItemComponent,
   ],
 })
 export class BookAppointmentDialogComponent {
