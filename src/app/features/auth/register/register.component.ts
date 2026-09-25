@@ -9,7 +9,6 @@ import {
 } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
-import { switchMap } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import { GuestStore } from '../../../core/guest/guest-store';
 import { ErrorCodes } from '../../../core/errors/error-codes';
@@ -95,26 +94,23 @@ export class RegisterComponent {
       ...(guestToken ? { guestToken } : {}),
     };
 
-    this._auth
-      .register(dto)
-      .pipe(switchMap(() => this._auth.login({ email, password })))
-      .subscribe({
-        next: () => {
-          this._guestStore.clear();
-          const returnUrl = new URLSearchParams(window.location.search).get(
-            RouteQueryParam.RETURN_URL,
-          );
-          this._router.navigateByUrl(returnUrl ?? RoutePath.dashboard()[0]);
-        },
-        error: (err) => {
-          this.loading.set(false);
-          const body = err?.error;
-          if (isApiError(body) && body.code === ErrorCodes.EMAIL_ALREADY_REGISTERED) {
-            this.errorMessage.set('An account with this email already exists.');
-          } else {
-            this.errorMessage.set('Something went wrong. Please try again.');
-          }
-        },
-      });
+    this._auth.register(dto).subscribe({
+      next: () => {
+        this._guestStore.clear();
+        const returnUrl = new URLSearchParams(window.location.search).get(
+          RouteQueryParam.RETURN_URL,
+        );
+        this._router.navigateByUrl(returnUrl ?? RoutePath.dashboard()[0]);
+      },
+      error: (err) => {
+        this.loading.set(false);
+        const body = err?.error;
+        if (isApiError(body) && body.code === ErrorCodes.EMAIL_ALREADY_REGISTERED) {
+          this.errorMessage.set('An account with this email already exists.');
+        } else {
+          this.errorMessage.set('Something went wrong. Please try again.');
+        }
+      },
+    });
   }
 }

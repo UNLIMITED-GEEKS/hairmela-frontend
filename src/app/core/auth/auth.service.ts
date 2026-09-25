@@ -45,30 +45,36 @@ export class AuthService {
 
   login(dto: LoginDto): Observable<UserResponseDto> {
     return authControllerLogin(this._http, this._apiConfig.rootUrl, { body: dto }).pipe(
-      tap((res) => {
-        // New identity — drop the guest token and any prior entries so the
-        // signed-in user never inherits a guest's (or stale) queue list.
-        this._guestStore.clear();
-        this._activeEntryStore.clear();
-        this._tokenStore.setTokens(res.body.accessToken, res.body.refreshToken);
-      }),
-      switchMap(() => this._fetchAndStoreUser()),
-      tap(() => {
-        this._socketService.connect();
-        // If the user already granted push permission on this device, silently
-        // re-assert the subscription (it's per-user server-side) — no prompt.
-        if (this._pushService.permission === 'granted') {
-          void this._pushService.enable();
-        }
-      }),
+      switchMap((res) =>
+        this._establishAuthenticatedSession(res.body.accessToken, res.body.refreshToken),
+      ),
     );
   }
 
-  register(dto: RegisterDto): Observable<void> {
+  register(dto: RegisterDto): Observable<UserResponseDto> {
     return authControllerRegister(this._http, this._apiConfig.rootUrl, { body: dto }).pipe(
-      map(() => {
-        this._guestStore.clear();
-        this._activeEntryStore.clear();
+      switchMap((res) =>
+        this._establishAuthenticatedSession(res.body.accessToken, res.body.refreshToken),
+      ),
+    );
+  }
+
+  private _establishAuthenticatedSession(
+    accessToken: string,
+    refreshToken: string,
+  ): Observable<UserResponseDto> {
+    // New identity — drop guest state before loading account-owned data.
+    this._guestStore.clear();
+    this._activeEntryStore.clear();
+    this._tokenStore.setTokens(accessToken, refreshToken);
+
+    return this._fetchAndStoreUser().pipe(
+      tap(() => {
+        this._socketService.connect();
+        // If permission already exists, re-assert this user's push subscription.
+        if (this._pushService.permission === 'granted') {
+          void this._pushService.enable();
+        }
       }),
     );
   }

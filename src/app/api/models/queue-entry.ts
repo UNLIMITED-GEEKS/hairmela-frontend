@@ -23,6 +23,8 @@ export interface QueueEntry {
   notifiedWait5At: string | null;
   queue: Queue;
   queueId: string;
+  reminderDayClaimedAt: string | null;
+  reminderDaySentAt: string | null;
   rescheduledAt: string | null;
   scheduledAt: string | null;
   scheduledEndAt: string | null;

@@ -1,11 +1,11 @@
 export const environment = {
   production: false,
-  // apiBaseUrl: 'http://localhost:3000',
-  // socketUrl: 'http://localhost:3000',
-  // appBaseUrl: 'http://localhost:4200',
-  apiBaseUrl: 'https://hairmela-backend-development.up.railway.app',
-  socketUrl: 'https://hairmela-backend-development.up.railway.app',
-  appBaseUrl: 'https://hairmela.com',
+  apiBaseUrl: 'http://localhost:3000',
+  socketUrl: 'http://localhost:3000',
+  appBaseUrl: 'http://localhost:4200',
+  // apiBaseUrl: 'https://hairmela-backend-development.up.railway.app',
+  // socketUrl: 'https://hairmela-backend-development.up.railway.app',
+  // appBaseUrl: 'https://hairmela.com',
   cloudinaryCloudName: 'dievyx0ia',
   // Unsigned upload preset — create in Cloudinary: Settings → Upload →
   // Upload presets → Add, signing mode "Unsigned". Restrict it there
