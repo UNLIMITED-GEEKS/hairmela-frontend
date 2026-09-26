@@ -1110,9 +1110,28 @@ textarea::placeholder {
   animation: overlay-modal-leave 0.2s ease-in forwards;
 }
 
-/* Safe-area padding for iPhone notch / home indicator */
+/* Safe-area padding for iPhone status bar / notch and home indicator.
+   `viewport-fit=cover` in index.html makes these env() values available in
+   iOS Safari and Capacitor; they resolve to zero on Android and desktop. */
+.mobile-top-bar-safe-area {
+  padding-top: calc(0.75rem + env(safe-area-inset-top));
+}
+
+/* The mobile top bar is fixed, so the shell's independent scroll container
+   must reserve the same top inset or its first content row remains underneath
+   the taller iOS header. The base 2rem preserves the existing spacing. */
+.mobile-shell-content-top {
+  padding-top: calc(2rem + env(safe-area-inset-top));
+}
+
 .safe-area-bottom {
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+  .mobile-shell-content-top {
+    padding-top: 0;
+  }
 }
 
 /* ── dvh fallbacks ────────────────────────────────────────────────────────────
