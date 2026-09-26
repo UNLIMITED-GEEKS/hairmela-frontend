@@ -4,9 +4,11 @@ import { retry } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { QueueEntry } from '../../../api/models/queue-entry';
 import { guestEntriesControllerGetGuestEntries } from '../../../api/fn/queues/guest-entries-controller-get-guest-entries';
+import { bookingControllerCancelAppointment } from '../../../api/fn/queues/booking-controller-cancel-appointment';
 import { SocketInvalidatedTtl } from '../../../core/caching/ttl/socket-invalidated-ttl';
 import { QueueSocketService } from '../../../core/socket/queue-socket.service';
 import { GuestStore } from '../../../core/guest/guest-store';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Injectable({ providedIn: 'root' })
 export class GuestQueuesService {
@@ -14,10 +16,12 @@ export class GuestQueuesService {
   private readonly _guestStore = inject(GuestStore);
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _socket = inject(QueueSocketService);
+  private readonly _toast = inject(ToastService);
 
   private readonly _entries = signal<QueueEntry[]>([]);
   private readonly _loading = signal(false);
   private readonly _error = signal(false);
+  private readonly _cancelling = signal<string | null>(null);
   private _inflight = false;
 
   // TTL is a fallback, not the primary staleness signal — see
@@ -28,6 +32,7 @@ export class GuestQueuesService {
   readonly entries = this._entries.asReadonly();
   readonly loading = this._loading.asReadonly();
   readonly error = this._error.asReadonly();
+  readonly cancelling = this._cancelling.asReadonly();
 
   load(): void {
     // A visitor who has never joined a queue has no guest token, and this
@@ -66,5 +71,26 @@ export class GuestQueuesService {
   refresh(): void {
     this._watch.invalidate();
     this.load();
+  }
+
+  cancelAppointment(entry: QueueEntry): void {
+    const salonId = entry.queue?.salon?.id;
+    if (!salonId || this._cancelling()) return;
+    this._cancelling.set(entry.id);
+    bookingControllerCancelAppointment(this._http, this._apiConfig.rootUrl, {
+      salonId,
+      queueId: entry.queueId,
+      entryId: entry.id,
+    }).subscribe({
+      next: () => {
+        this._cancelling.set(null);
+        this._entries.update((list) => list.filter((item) => item.id !== entry.id));
+        this._toast.success('Appointment cancelled.');
+      },
+      error: () => {
+        this._cancelling.set(null);
+        this._toast.error('Failed to cancel — the cancellation window may have passed.');
+      },
+    });
   }
 }

@@ -77,6 +77,20 @@
   }
 }
 
+// Installed app shells already read as one continuous piece of app chrome,
+// and their safe-area inset is part of --bottom-nav-height. Leaving the web
+// presentation gap above that full height creates a visible empty strip
+// between this sheet and the nav on Capacitor and iOS home-screen apps.
+:host-context(.capacitor-native) .sheet-links,
+:host-context(.hm-ios-standalone) .sheet-links {
+  bottom: var(--bottom-nav-height);
+  max-height: calc(100vh - 4.125rem - var(--bottom-nav-height) - 0.5rem);
+
+  @supports (max-height: 100dvh) {
+    max-height: calc(100dvh - 4.125rem - var(--bottom-nav-height) - 0.5rem);
+  }
+}
+
 // Dimmed backdrop. Tapping it closes the sheet — the affordance people expect
 // from a bottom sheet, and the only close path other than the tab itself.
 .sheet-backdrop {

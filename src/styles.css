@@ -962,12 +962,14 @@ textarea::placeholder {
   animation: route-enter 250ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 /* iOS reads the same duration as quicker than Android or an installed PWA, so
-   it gets a slightly longer one to land at the same perceived speed.
-   Both classes are on <html> together, so this is deliberately written with
-   MORE specificity rather than relying on source order to win. */
-:root.hm-installed.hm-ios-standalone .route-enter {
+   it gets a slightly longer one to land at the same perceived speed. This
+   covers both iOS home-screen PWAs and the Capacitor iOS shell. The selectors
+   deliberately have more specificity than the base rule instead of relying
+   on source order to win. */
+:root.hm-installed.hm-ios-standalone .route-enter,
+:root.hm-installed.capacitor-native.hm-ios .route-enter {
   animation-name: route-enter-ios;
-  animation-duration: 360ms;
+  animation-duration: 420ms;
   /* Restated rather than inherited from the base rule above: the shorthand
      there sets it, and relying on that leaves this rule silently coupled to a
      value it does not name. */
@@ -978,7 +980,8 @@ textarea::placeholder {
      single-class selector here would have lost to it and left iOS animating at
      320ms for someone who asked for reduced motion. */
   :root.hm-installed .route-enter,
-  :root.hm-installed.hm-ios-standalone .route-enter {
+  :root.hm-installed.hm-ios-standalone .route-enter,
+  :root.hm-installed.capacitor-native.hm-ios .route-enter {
     animation-duration: 1ms;
   }
 }

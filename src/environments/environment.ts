@@ -26,5 +26,5 @@ export const environment = {
   // required
   // optional
   // off
-  payloadEncryptionMode: 'required' as const,
+  payloadEncryptionMode: 'off' as const,
 };
