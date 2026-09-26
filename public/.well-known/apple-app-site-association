@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "YX33SDQLDJ.com.hairmela.app"
+        ],
+        "components": [
+          {
+            "/": "/*",
+            "comment": "Open HairMela web links in the iOS app."
+          }
+        ]
+      }
+    ]
+  }
+}

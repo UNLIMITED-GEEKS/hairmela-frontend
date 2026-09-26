@@ -28,13 +28,12 @@ export interface NativePushData {
 // Every Capacitor import is a dynamic import() behind an environment.native
 // guard (see AppPlatformService) so none of it can reach a web bundle.
 //
-// WHY LOCAL NOTIFICATIONS: the backend sends DATA-ONLY messages (no
-// `notification` block) so tap handling stays under our control. The trade-off
-// is that Android shows nothing by itself — a data-only message that arrives
-// while the app is backgrounded or killed is silent unless we post a
-// notification ourselves. That is what @capacitor/local-notifications does
-// here. Without it, notifications would only ever appear while the app was
-// already open, which is useless for a queue.
+// WHY LOCAL NOTIFICATIONS: Android does not automatically display an FCM
+// notification while the app is in the foreground, so this service posts the
+// visible notification in that state. When the app is backgrounded or
+// terminated, the backend must include an FCM `notification` block so Android
+// can display it without relying on this WebView JavaScript to be running. The
+// accompanying FCM `data` values preserve the deep link for tap handling.
 @Injectable({ providedIn: 'root' })
 export class NativePushService {
   private readonly _http = inject(HttpClient);
@@ -83,9 +82,9 @@ export class NativePushService {
       this._tokenResolve = null;
     });
 
-    // Data-only message received while the app is in the foreground. Android
-    // does not display these, so post a local notification to match what the
-    // user sees when the app is backgrounded.
+    // Message received while the app is in the foreground. Android does not
+    // display it automatically in this state, so post a local notification to
+    // match what the OS displays while the app is backgrounded.
     await PushNotifications.addListener('pushNotificationReceived', (notification) => {
       const data = (notification.data ?? {}) as NativePushData;
       void this._present(LocalNotifications, data);
