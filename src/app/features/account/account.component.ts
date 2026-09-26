@@ -13,6 +13,7 @@ import { CreateSalonCardComponent } from '../../shared/components/create-salon-c
 import { RoutePath } from '../../core/routing/route-paths';
 import { ThemeService } from '../../core/theme/theme.service';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
+import { InlineSpinnerComponent } from '../../shared/components/inline-spinner/inline-spinner.component';
 
 @Component({
   selector: 'app-account',
@@ -27,11 +28,13 @@ import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.com
     VerifyEmailBannerComponent,
     PageHeaderComponent,
     CreateSalonCardComponent,
+    InlineSpinnerComponent,
   ],
 })
 export class AccountComponent {
   protected readonly _currentUser = inject(CurrentUserStore);
   protected readonly _auth = inject(AuthService);
+  protected readonly loggingOut = this._auth.loggingOut;
   private readonly _salonContext = inject(SalonContextService);
 
   protected readonly dashboardLink = RoutePath.dashboard();

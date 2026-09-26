@@ -88,6 +88,7 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly _queueConsole = inject(QueueConsoleService);
   private readonly _staffAppointmentModal = inject(StaffAppointmentModalService);
   protected readonly _currentUser = inject(CurrentUserStore);
+  protected readonly loggingOut = this._auth.loggingOut;
 
   // This shell's scroll region is the inner <main>, not the window (see
   // PullToRefreshService's class doc for why that distinction matters).

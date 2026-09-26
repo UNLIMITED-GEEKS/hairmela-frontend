@@ -190,13 +190,19 @@
   @if (showLogout()) {
     <div class="shrink-0 border-t border-border px-2 py-2">
       <button
+        type="button"
         (click)="onLogout()"
-        class="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors min-h-11"
-        [title]="collapsed() ? 'Logout' : ''"
+        [disabled]="loggingOut()"
+        class="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors min-h-11 disabled:opacity-60 disabled:cursor-not-allowed"
+        [title]="collapsed() ? (loggingOut() ? 'Logging out' : 'Logout') : ''"
       >
-        <app-nav-icon icon="login" />
+        @if (loggingOut()) {
+          <app-inline-spinner sizeClass="w-5 h-5" label="Logging out" />
+        } @else {
+          <app-nav-icon icon="login" />
+        }
         @if (!collapsed()) {
-          <span class="truncate">Logout</span>
+          <span class="truncate">{{ loggingOut() ? 'Logging out…' : 'Logout' }}</span>
         }
       </button>
     </div>

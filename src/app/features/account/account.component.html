@@ -111,9 +111,16 @@
       </a>
 
       <button
+        type="button"
         (click)="_auth.logout()"
-        class="w-full min-h-11 rounded-xl border border-red-500/25 bg-red-500/5 px-4 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10">
-        Log out
+        [disabled]="loggingOut()"
+        class="w-full min-h-11 rounded-xl border border-red-500/25 bg-red-500/5 px-4 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+        @if (loggingOut()) {
+          <app-inline-spinner sizeClass="w-4 h-4" label="Logging out" />
+          <span>Logging out…</span>
+        } @else {
+          <span>Log out</span>
+        }
       </button>
 
       <!-- Deliberately understated and placed after Log out: destructive, and

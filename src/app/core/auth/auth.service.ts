@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap, switchMap, map, firstValueFrom } from 'rxjs';
@@ -43,6 +43,9 @@ export class AuthService {
   private readonly _pushService = inject(PushService);
   private readonly _payloadEncryption = inject(PayloadEncryptionService);
 
+  private readonly _loggingOut = signal(false);
+  readonly loggingOut = this._loggingOut.asReadonly();
+
   login(dto: LoginDto): Observable<UserResponseDto> {
     return authControllerLogin(this._http, this._apiConfig.rootUrl, { body: dto }).pipe(
       switchMap((res) =>
@@ -80,6 +83,9 @@ export class AuthService {
   }
 
   logout(): void {
+    if (this._loggingOut()) return;
+    this._loggingOut.set(true);
+
     // Both remote cleanup calls need the still-valid Bearer token. Push must
     // go first because /auth/logout revokes that token; local teardown always
     // runs even when either best-effort request fails.
@@ -100,7 +106,10 @@ export class AuthService {
           // expired server session.
         }
       })
-      .finally(() => this._teardownSession());
+      .finally(() => {
+        this._teardownSession();
+        this._loggingOut.set(false);
+      });
   }
 
   private _teardownSession(): void {

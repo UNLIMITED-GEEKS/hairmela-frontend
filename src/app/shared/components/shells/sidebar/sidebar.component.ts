@@ -8,6 +8,7 @@ import { RouteSegment, RoutePath } from '../../../../core/routing/route-paths';
 import { OrgContextService } from '../../../../core/salon-context/org-context.service';
 import { AppPlatformService } from '../../../../core/native/app-platform.service';
 import { StaffAppointmentModalService } from '../../../../features/queue/staff-appointment-modal/staff-appointment-modal.service';
+import { InlineSpinnerComponent } from '../../inline-spinner/inline-spinner.component';
 
 export interface ControlItem {
   readonly label: string;
@@ -80,7 +81,7 @@ export interface VisibleControl extends ControlItem {
 @Component({
   selector: 'app-sidebar',
   templateUrl: './sidebar.component.html',
-  imports: [RouterLink, RouterLinkActive, NavIconComponent],
+  imports: [RouterLink, RouterLinkActive, NavIconComponent, InlineSpinnerComponent],
 })
 export class SidebarComponent implements OnInit {
   protected readonly RouteSegment = RouteSegment;
@@ -102,6 +103,7 @@ export class SidebarComponent implements OnInit {
   readonly activeSalonId = input<string | null>(null);
   readonly membership = input<Membership | null>(null);
   readonly showLogout = input<boolean>(true);
+  readonly loggingOut = input(false);
   readonly logoutClick = output<void>();
 
   readonly collapsed = signal(false);
@@ -191,6 +193,7 @@ export class SidebarComponent implements OnInit {
   }
 
   onLogout(): void {
+    if (this.loggingOut()) return;
     this.logoutClick.emit();
   }
 
