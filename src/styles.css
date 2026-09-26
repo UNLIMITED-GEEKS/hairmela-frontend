@@ -1124,6 +1124,15 @@ textarea::placeholder {
   padding-top: calc(2rem + env(safe-area-inset-top));
 }
 
+/* Viewport-anchored controls in full-screen overlays must clear both the
+   status-bar/notch edge and the landscape side inset. Card-header close
+   buttons are deliberately excluded: their modal card already provides the
+   required inset, so applying this there would double the spacing. */
+.safe-area-overlay-close {
+  top: calc(1rem + env(safe-area-inset-top));
+  right: calc(1rem + env(safe-area-inset-right));
+}
+
 .safe-area-bottom {
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
