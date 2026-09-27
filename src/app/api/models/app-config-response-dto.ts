@@ -3,4 +3,5 @@
 
 export interface AppConfigResponseDto {
   minAndroidVersionCode: number;
+  minIosBuildNumber: number;
 }

@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { AppUpdateService } from '../../../core/native/app-update.service';
 
-// "Please update" screen for the Play build.
+// "Please update" screen for the native Android and iOS builds.
 //
 // DISMISSABLE, BUT IT COMES BACK. The close button hides it for this run only
 // — AppUpdateService.dismiss() keeps nothing, so the next launch re-runs the
@@ -10,11 +10,8 @@ import { AppUpdateService } from '../../../core/native/app-update.service';
 // still asking every time they reopen the app.
 //
 // Only the close button dismisses it: no backdrop click and no escape
-// handler, so it cannot be waved away by accident.
-//
-// Google's own update sheet is launched immediately and covers this; the
-// overlay is what remains if the user dismisses that sheet, and its button
-// starts the flow again.
+// handler, so it cannot be waved away by accident. On Android the button
+// starts Play's update flow; on iOS it opens HairMela in the App Store.
 @Component({
   selector: 'app-update-required-overlay',
   template: `

@@ -5,24 +5,16 @@ import { AppPlatformService } from './app-platform.service';
 import { ApiConfiguration } from '../../api/api-configuration';
 import { appConfigControllerGetConfig } from '../../api/fn/app-config/app-config-controller-get-config';
 
-// Update prompt for the Play Store build.
+// Native update prompt for the Play Store and App Store builds.
 //
-// WHY GOOGLE'S FLOW RATHER THAN OUR OWN VERSION CHECK: Play already knows what
-// is published and what this device has installed, so there is nothing to keep
-// in sync — no min-version endpoint to remember to bump, and no way for the
-// two to disagree. The IMMEDIATE flow is Google's own full-screen updater: it
-// downloads and installs in place, and the user never has to find the store
-// listing.
+// THE SERVER OWNS THE MINIMUM SUPPORTED BUILD for both platforms. Android
+// compares versionCode with minAndroidVersionCode; iOS compares CFBundleVersion
+// with minIosBuildNumber. Both values are exposed as `build` by Capacitor, so a
+// backend environment change can gate an already-installed build immediately.
 //
-// PRIORITY DECIDES WHETHER IT BLOCKS. updatePriority is set per-release in the
-// Play Developer API (0-5, default 0). Only a release published at
-// FORCE_UPDATE_MIN_PRIORITY or above blocks;
-// an ordinary release does not interrupt anyone. Set the priority when you
-// publish the release that actually needs it.
-//
-// ANDROID ONLY IN PRACTICE. The plugin exposes getAppUpdateInfo on iOS too, but
-// there is no equivalent in-place update flow there — App Store policy owns
-// that — so this service does nothing outside the Capacitor Android build.
+// Android additionally respects Google Play update priority. A high-priority
+// release launches Google's in-place immediate-update flow. iOS has no equivalent
+// flow, so its update action opens HairMela's App Store listing.
 //
 // WEB PAYS NOTHING. The plugin is behind a dynamic import() inside an isNative
 // guard, so the bundler splits it into a lazy chunk a web build never requests
@@ -40,6 +32,9 @@ const FORCE_UPDATE_MIN_PRIORITY = 3;
 
 /** Play's own enum value for "an update is available". */
 const UPDATE_AVAILABLE = 2;
+
+/** HairMela's numeric Apple App Store ID. */
+const IOS_APP_STORE_ID = '6816222315';
 
 @Injectable({ providedIn: 'root' })
 export class AppUpdateService {
@@ -87,7 +82,7 @@ export class AppUpdateService {
    * feature exists to prevent.
    */
   init(): void {
-    if (!this._isAndroidApp()) return;
+    if (!this._platform.isNative) return;
     void this._check();
   }
 
@@ -105,6 +100,10 @@ export class AppUpdateService {
     if (await this._isBelowServerMinimum()) {
       this._updateRequired.set(true);
     }
+
+    // iOS has no Play-style priority or in-place update. The server minimum is
+    // its complete policy, and the overlay button opens the App Store.
+    if (this._isIosApp()) return;
 
     const { AppUpdate } = await import('@capawesome/capacitor-app-update');
 
@@ -128,7 +127,7 @@ export class AppUpdateService {
   }
 
   /**
-   * True when this build's versionCode is below the server's minimum.
+   * True when this native build number is below its platform minimum.
    *
    * FAILS OPEN. An unreachable or malformed config must never lock anyone out
    * of the app — a config outage is not a reason to stop someone running a
@@ -138,14 +137,14 @@ export class AppUpdateService {
   private async _isBelowServerMinimum(): Promise<boolean> {
     try {
       const { App } = await import('@capacitor/app');
-      // `build` is Android's versionCode, but typed as a string by the plugin.
+      // Capacitor maps this to Android versionCode and iOS CFBundleVersion.
       const current = Number.parseInt((await App.getInfo()).build, 10);
       if (!Number.isFinite(current)) return false;
 
       const res = await firstValueFrom(
         appConfigControllerGetConfig(this._http, this._apiConfig.rootUrl),
       );
-      const min = res.body?.minAndroidVersionCode;
+      const min = this._isIosApp() ? res.body?.minIosBuildNumber : res.body?.minAndroidVersionCode;
       if (typeof min !== 'number' || !Number.isFinite(min)) return false;
 
       return current < min;
@@ -155,12 +154,22 @@ export class AppUpdateService {
   }
 
   /**
-   * Runs Google's blocking update flow. Also called by the overlay's button,
-   * for the case where the user dismissed the sheet the first time.
+   * Starts the platform update path. Android first attempts Play's in-place
+   * flow; iOS opens HairMela's App Store listing.
    */
   async startUpdate(): Promise<void> {
-    if (!this._isAndroidApp()) return;
+    if (!this._platform.isNative) return;
     const { AppUpdate } = await import('@capawesome/capacitor-app-update');
+
+    if (this._isIosApp()) {
+      try {
+        await AppUpdate.openAppStore({ appId: IOS_APP_STORE_ID });
+      } catch {
+        // Keep the overlay visible so the user can retry.
+      }
+      return;
+    }
+
     try {
       // In-place first: Google's own full-screen updater installs without
       // leaving the app, so the user never has to find the store listing.
@@ -183,7 +192,7 @@ export class AppUpdateService {
     }
   }
 
-  private _isAndroidApp(): boolean {
-    return this._platform.isNative && this._platform.nativePlatform === 'android';
+  private _isIosApp(): boolean {
+    return this._platform.isNative && this._platform.nativePlatform === 'ios';
   }
 }
