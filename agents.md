@@ -81,7 +81,7 @@ about the codebase that isn't reflected there, update that file, not this one.
 
 ## Android release build
 
-Use this sequence to build both the release APK and Android App Bundle (AAB):
+Use this sequence to build both the release APK and Android App Bundle (AAB)::
 
 ```bash
 cd /home/ikwuh-jeffery/UG/HairMela/frontend
