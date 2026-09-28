@@ -30,6 +30,7 @@ export class MobileSheetComponent {
     if (!m || !this.activeSalonId()) return [];
     return CONTROL_ITEMS.filter((c) => c.roles.includes(m.role)).map((c) => ({
       ...c,
+      label: m.role === SalonRole.STAFF && c.staffLabel ? c.staffLabel : c.label,
       unlocked: c.requiresTier === undefined || m.tier >= c.requiresTier,
     }));
   });

@@ -12,6 +12,7 @@ import { InlineSpinnerComponent } from '../../inline-spinner/inline-spinner.comp
 
 export interface ControlItem {
   readonly label: string;
+  readonly staffLabel?: string;
   readonly url: string;
   readonly roles: SalonRole[];
   /** Minimum tier to use this feature; below it the link renders locked. */
@@ -41,7 +42,8 @@ export const CONTROL_ITEMS: ControlItem[] = [
     roles: [SalonRole.OWNER, SalonRole.ADMIN],
   },
   {
-    label: 'Photos',
+    label: 'Salon photos',
+    staffLabel: 'My staff photos',
     url: RouteSegment.MEDIA,
     roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF],
     staffScopedLink: RoutePath.salonStaffMedia,
@@ -133,6 +135,7 @@ export class SidebarComponent implements OnInit {
     if (!m || !this.activeSalonId()) return [];
     return CONTROL_ITEMS.filter((c) => c.roles.includes(m.role)).map((c) => ({
       ...c,
+      label: m.role === SalonRole.STAFF && c.staffLabel ? c.staffLabel : c.label,
       unlocked: c.requiresTier === undefined || m.tier >= c.requiresTier,
     }));
   });

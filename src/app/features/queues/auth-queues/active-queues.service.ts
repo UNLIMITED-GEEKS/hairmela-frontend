@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { retry } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { QueueEntry } from '../../../api/models/queue-entry';
-import { myEntriesControllerGetMyEntries } from '../../../api/fn/queues/my-entries-controller-get-my-entries';
+import { myEntriesControllerGetMyEntryHistory } from '../../../api/fn/queues/my-entries-controller-get-my-entry-history';
 import { bookingControllerCancelAppointment } from '../../../api/fn/queues/booking-controller-cancel-appointment';
 import { SocketInvalidatedTtl } from '../../../core/caching/ttl/socket-invalidated-ttl';
 import { QueueSocketService } from '../../../core/socket/queue-socket.service';
@@ -57,15 +57,20 @@ export class ActiveQueuesService {
     this._inflight = true;
     this._loading.set(true);
     this._error.set(false);
-    myEntriesControllerGetMyEntries(this._http, this._apiConfig.rootUrl)
+    myEntriesControllerGetMyEntryHistory(this._http, this._apiConfig.rootUrl, { limit: 200 })
       .pipe(retry(1))
       .subscribe({
         next: (res) => {
           this._inflight = false;
-          this._entries.set(res.body);
+          const entries = res.body.data ?? [];
+          this._entries.set(entries);
           this._loading.set(false);
           this._watch.markFetched();
-          this._watch.sync(res.body.map((e) => e.queueId));
+          this._watch.sync(
+            entries
+              .filter((entry) => entry.status === 'WAITING' || entry.status === 'SERVING')
+              .map((entry) => entry.queueId),
+          );
           if (this._refreshPending) {
             this._refreshPending = false;
             this.refresh();
@@ -104,7 +109,9 @@ export class ActiveQueuesService {
     }).subscribe({
       next: () => {
         this._cancelling.set(null);
-        this._entries.update((list) => list.filter((e) => e.id !== entry.id));
+        this._entries.update((list) =>
+          list.map((e) => (e.id === entry.id ? { ...e, status: 'CANCELLED' } : e)),
+        );
         this._toast.success('Appointment cancelled.');
       },
       error: () => {

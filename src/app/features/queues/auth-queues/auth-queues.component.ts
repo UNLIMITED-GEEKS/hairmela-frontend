@@ -9,6 +9,12 @@ import { AddToCalendarComponent } from '../../../shared/components/add-to-calend
 import { canReschedule, withinChangeWindow } from '../../../core/appointments/reschedule-policy';
 import { RoutePath } from '../../../core/routing/route-paths';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
+import {
+  countVisitHistory,
+  filterVisitHistory,
+  VisitHistoryTab,
+  VISIT_HISTORY_TABS,
+} from '../visit-history-tabs';
 
 @Component({
   selector: 'app-auth-queues',
@@ -30,12 +36,22 @@ export class AuthQueuesComponent implements OnInit {
   protected readonly error = this._service.error;
   protected readonly cancelling = this._service.cancelling;
 
+  protected readonly historyTabs = VISIT_HISTORY_TABS;
+  protected readonly selectedTab = signal<VisitHistoryTab>('upcoming');
+  protected readonly tabCounts = computed(() => countVisitHistory(this.entries()));
+  protected readonly filteredEntries = computed(() =>
+    filterVisitHistory(this.entries(), this.selectedTab()),
+  );
   protected readonly walkInEntries = computed(() =>
-    this.entries().filter((e) => e.type === 'WALK_IN'),
+    this.filteredEntries().filter((e) => e.type === 'WALK_IN'),
   );
   protected readonly appointmentEntries = computed(() =>
-    this.entries().filter((e) => e.type === 'APPOINTMENT'),
+    this.filteredEntries().filter((e) => e.type === 'APPOINTMENT'),
   );
+
+  protected selectTab(tab: VisitHistoryTab): void {
+    this.selectedTab.set(tab);
+  }
 
   /** The appointment being rescheduled, or null when the dialog is closed. */
   protected readonly rescheduleEntry = signal<QueueEntry | null>(null);
@@ -48,7 +64,12 @@ export class AuthQueuesComponent implements OnInit {
     this._service.refresh();
   }
 
+  protected canOpenEntry(entry: QueueEntry): boolean {
+    return entry.status === 'WAITING' || entry.status === 'SERVING';
+  }
+
   protected goToPosition(entry: QueueEntry): void {
+    if (!this.canOpenEntry(entry)) return;
     const slug = entry.queue?.salon?.slug;
     if (!slug) return;
     this._router.navigate(RoutePath.visitPosition('', slug, entry.queueId, entry.id));
@@ -63,14 +84,6 @@ export class AuthQueuesComponent implements OnInit {
 
   protected salonName(entry: QueueEntry): string {
     return entry.queue?.salon?.name ?? '';
-  }
-
-  protected leaderName(entry: QueueEntry): string {
-    return entry.members.find((m) => m.isLeader)?.memberName ?? 'You';
-  }
-
-  protected partyCount(entry: QueueEntry): number {
-    return entry.members.length;
   }
 
   protected staffName(entry: QueueEntry): string {
