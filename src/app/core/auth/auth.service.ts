@@ -16,6 +16,10 @@ import { LoginDto } from '../../api/models/login-dto';
 import { RegisterDto } from '../../api/models/register-dto';
 import { ForgotPasswordDto } from '../../api/models/forgot-password-dto';
 import { ResetPasswordDto } from '../../api/models/reset-password-dto';
+import { GoogleAuthDto } from '../../api/models/google-auth-dto';
+import { GoogleLinkDto } from '../../api/models/google-link-dto';
+import { GoogleSetPasswordDto } from '../../api/models/google-set-password-dto';
+import { GoogleLinkStatusDto } from '../../api/models/google-link-status-dto';
 import { UserResponseDto } from '../../api/models/user-response-dto';
 import { authControllerLogin } from '../../api/fn/auth/auth-controller-login';
 import { authControllerRegister } from '../../api/fn/auth/auth-controller-register';
@@ -24,6 +28,10 @@ import { authControllerForgotPassword } from '../../api/fn/auth/auth-controller-
 import { authControllerResetPassword } from '../../api/fn/auth/auth-controller-reset-password';
 import { authenticatedAuthControllerResendVerification } from '../../api/fn/auth/authenticated-auth-controller-resend-verification';
 import { authenticatedAuthControllerLogout } from '../../api/fn/auth/authenticated-auth-controller-logout';
+import { googleAuthControllerSignIn } from '../../api/fn/auth/google-auth-controller-sign-in';
+import { googleAuthControllerLink } from '../../api/fn/auth/google-auth-controller-link';
+import { googleAuthControllerGetStatus } from '../../api/fn/auth/google-auth-controller-get-status';
+import { googleAuthControllerSetPassword } from '../../api/fn/auth/google-auth-controller-set-password';
 import { RoutePath } from '../routing/route-paths';
 import { PayloadEncryptionService } from '../payload-encryption/payload-encryption.service';
 
@@ -59,6 +67,32 @@ export class AuthService {
       switchMap((res) =>
         this._establishAuthenticatedSession(res.body.accessToken, res.body.refreshToken),
       ),
+    );
+  }
+
+  googleSignIn(dto: GoogleAuthDto): Observable<UserResponseDto> {
+    return googleAuthControllerSignIn(this._http, this._apiConfig.rootUrl, { body: dto }).pipe(
+      switchMap((res) =>
+        this._establishAuthenticatedSession(res.body.accessToken, res.body.refreshToken),
+      ),
+    );
+  }
+
+  googleLink(dto: GoogleLinkDto): Observable<void> {
+    return googleAuthControllerLink(this._http, this._apiConfig.rootUrl, { body: dto }).pipe(
+      map(() => undefined),
+    );
+  }
+
+  googleLinkStatus(): Observable<GoogleLinkStatusDto> {
+    return googleAuthControllerGetStatus(this._http, this._apiConfig.rootUrl).pipe(
+      map((res) => res.body),
+    );
+  }
+
+  googleSetPassword(dto: GoogleSetPasswordDto): Observable<void> {
+    return googleAuthControllerSetPassword(this._http, this._apiConfig.rootUrl, { body: dto }).pipe(
+      map(() => undefined),
     );
   }
 

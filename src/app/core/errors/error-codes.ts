@@ -4,6 +4,11 @@ export const ErrorCodes = {
   EMAIL_NOT_VERIFIED: 'EMAIL_NOT_VERIFIED',
   TOKEN_EXPIRED: 'TOKEN_EXPIRED',
   TOKEN_INVALID: 'TOKEN_INVALID',
+  GOOGLE_TOKEN_INVALID: 'GOOGLE_TOKEN_INVALID',
+  GOOGLE_LINK_REQUIRED: 'GOOGLE_LINK_REQUIRED',
+  GOOGLE_PROFILE_INCOMPLETE: 'GOOGLE_PROFILE_INCOMPLETE',
+  GOOGLE_AUTH_DISABLED: 'GOOGLE_AUTH_DISABLED',
+  IDENTITY_CONFLICT: 'IDENTITY_CONFLICT',
   // No Authorization header at all — distinct from TOKEN_INVALID (a bad one).
   // Recoverable: usually a request that raced session restore before the
   // in-memory access token was set, so refresh-and-retry rather than log out.

@@ -1,5 +1,14 @@
-import { Component, inject, viewChild, ElementRef, OnInit, AfterViewInit, OnDestroy, DestroyRef } from '@angular/core';
-import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
+import {
+  Component,
+  inject,
+  viewChild,
+  ElementRef,
+  OnInit,
+  AfterViewInit,
+  OnDestroy,
+  DestroyRef,
+} from '@angular/core';
+import { RouterOutlet, Router, NavigationEnd, NavigationStart } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import { GuestStore } from '../../../../core/guest/guest-store';
@@ -29,6 +38,7 @@ import { RouteScrollRestorationService } from '../../../../core/scroll/route-scr
 export class GuestShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly _guestStore = inject(GuestStore);
   private readonly _routeWrapper = viewChild<ElementRef<HTMLElement>>('routeWrapper');
+  private _animateNextRoute = true;
 
   /**
    * Restarts the route-entry fade, driven by RouterOutlet's (activate).
@@ -43,6 +53,12 @@ export class GuestShellComponent implements OnInit, AfterViewInit, OnDestroy {
   protected onRouteActivate(): void {
     const el = this._routeWrapper()?.nativeElement;
     if (!el) return;
+    if (!this._animateNextRoute) {
+      // WKWebView already animates an interactive edge-swipe. Replaying the
+      // route-entry animation here causes the destination page to flicker.
+      el.classList.remove('route-enter');
+      return;
+    }
     el.classList.remove('route-enter');
     // Reading offsetWidth flushes the pending style change, so re-adding the
     // class below counts as a fresh application and the animation replays.
@@ -94,6 +110,15 @@ export class GuestShellComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     this._validator.validate();
+
+    this._router.events
+      .pipe(
+        filter((event): event is NavigationStart => event instanceof NavigationStart),
+        takeUntilDestroyed(this._destroyRef),
+      )
+      .subscribe((event) => {
+        this._animateNextRoute = event.navigationTrigger !== 'popstate';
+      });
 
     this._router.events
       .pipe(

@@ -21,6 +21,7 @@ import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first
 import { AppPlatformService } from '../../../core/native/app-platform.service';
 import { PhoneInputComponent } from '../../../shared/components/phone-input/phone-input.component';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
+import { GoogleAuthButtonComponent } from '../../../shared/components/google-auth-button/google-auth-button.component';
 
 @Component({
   selector: 'app-register',
@@ -32,6 +33,7 @@ import { InlineSpinnerComponent } from '../../../shared/components/inline-spinne
     AuthBrandComponent,
     PhoneInputComponent,
     InlineSpinnerComponent,
+    GoogleAuthButtonComponent,
   ],
   templateUrl: './register.component.html',
 })
@@ -67,6 +69,32 @@ export class RegisterComponent {
 
   protected readonly loading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
+
+  protected googleSignIn(idToken: string): void {
+    if (this.loading()) return;
+    this.errorMessage.set(null);
+    this.loading.set(true);
+    const guestToken = this._guestStore.getToken() ?? undefined;
+    const firstName = this.form.controls.firstName.value.trim() || undefined;
+    const lastName = this.form.controls.lastName.value.trim() || undefined;
+    const dto = {
+      idToken,
+      ...(guestToken ? { guestToken } : {}),
+      ...(firstName ? { firstName } : {}),
+      ...(lastName ? { lastName } : {}),
+    };
+    this._auth.googleSignIn(dto).subscribe({
+      next: () => {
+        this._guestStore.clear();
+        void this._router.navigateByUrl(this.returnUrl ?? RoutePath.dashboard()[0]);
+      },
+      error: (err) => this._handleGoogleError(err),
+    });
+  }
+
+  protected googleUnavailable(): void {
+    this.errorMessage.set('Google sign-up could not be opened. Please try again.');
+  }
 
   protected submit(): void {
     if (this.loading()) return;
@@ -112,5 +140,37 @@ export class RegisterComponent {
         }
       },
     });
+  }
+
+  private _handleGoogleError(err: unknown): void {
+    this.loading.set(false);
+    const body = (err as { error?: unknown })?.error;
+    if (isApiError(body)) {
+      if (body.code === ErrorCodes.GOOGLE_LINK_REQUIRED) {
+        this.errorMessage.set(
+          'This email already has a HairMela account. Sign in with your password, then link Google from Account settings.',
+        );
+        return;
+      }
+      if (body.code === ErrorCodes.GOOGLE_PROFILE_INCOMPLETE) {
+        this.errorMessage.set(
+          'Enter your first and last name above, then continue with Google again.',
+        );
+        return;
+      }
+      if (body.code === ErrorCodes.GOOGLE_AUTH_DISABLED) {
+        this.errorMessage.set('Google sign-up is temporarily unavailable.');
+        return;
+      }
+      if (body.code === ErrorCodes.GOOGLE_TOKEN_INVALID) {
+        this.errorMessage.set('Google could not verify this sign-up. Please try again.');
+        return;
+      }
+      if (body.code === ErrorCodes.IDENTITY_CONFLICT) {
+        this.errorMessage.set('This Google identity is already connected to another account.');
+        return;
+      }
+    }
+    this.errorMessage.set('Google sign-up failed. Please try again.');
   }
 }

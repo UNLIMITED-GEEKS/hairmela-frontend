@@ -22,6 +22,8 @@ import { RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 import { scrollToFirstInvalidControl } from '../../../core/utils/scroll-to-first-invalid';
 import { AppPlatformService } from '../../../core/native/app-platform.service';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
+import { GoogleAuthButtonComponent } from '../../../shared/components/google-auth-button/google-auth-button.component';
+import { GuestStore } from '../../../core/guest/guest-store';
 
 @Component({
   selector: 'app-login',
@@ -32,6 +34,7 @@ import { InlineSpinnerComponent } from '../../../shared/components/inline-spinne
     FieldErrorComponent,
     AuthBrandComponent,
     InlineSpinnerComponent,
+    GoogleAuthButtonComponent,
   ],
   templateUrl: './login.component.html',
 })
@@ -49,6 +52,7 @@ export class LoginComponent {
   private readonly _fb = inject(FormBuilder);
   private readonly _salonsStore = inject(SalonsStore);
   private readonly _persistentStore = inject(PersistentStore);
+  private readonly _guestStore = inject(GuestStore);
 
   protected readonly justRegistered = signal(
     this._route.snapshot.queryParamMap.get(RouteQueryParam.REGISTERED) === '1',
@@ -75,6 +79,21 @@ export class LoginComponent {
   protected readonly loading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
 
+  protected googleSignIn(idToken: string): void {
+    if (this.loading()) return;
+    this.errorMessage.set(null);
+    this.loading.set(true);
+    const guestToken = this._guestStore.getToken() ?? undefined;
+    this._auth.googleSignIn({ idToken, ...(guestToken ? { guestToken } : {}) }).subscribe({
+      next: () => this._navigateAfterSignIn(),
+      error: (err) => this._handleGoogleError(err),
+    });
+  }
+
+  protected googleUnavailable(): void {
+    this.errorMessage.set('Google sign-in could not be opened. Please try again.');
+  }
+
   protected submit(): void {
     if (this.loading()) return;
     if (this.form.invalid) {
@@ -91,34 +110,7 @@ export class LoginComponent {
     this.loading.set(true);
 
     this._auth.login(this.form.getRawValue()).subscribe({
-      next: () => {
-        const returnUrl = new URLSearchParams(window.location.search).get(
-          RouteQueryParam.RETURN_URL,
-        );
-        if (returnUrl) {
-          this._router.navigateByUrl(returnUrl);
-          return;
-        }
-
-        // Returning user: a salon id is already persisted — land there
-        // directly, no fetch. salonRoleGuard validates it downstream; a
-        // stale/no-longer-valid id just bounces to /dashboard.
-        const lastId = this._persistentStore.get<string>(LAST_SALON_KEY);
-        if (lastId) {
-          this._router.navigate(RoutePath.salon(lastId));
-          return;
-        }
-
-        // Nothing persisted (first login on this browser) — fetch once,
-        // then land on the first salon, or /dashboard if there are none.
-        this._salonsStore.ensureLoaded().subscribe({
-          next: (salons) =>
-            this._router.navigate(
-              salons.length > 0 ? RoutePath.salon(salons[0].salon.id) : RoutePath.dashboard(),
-            ),
-          error: () => this._router.navigate(RoutePath.dashboard()),
-        });
-      },
+      next: () => this._navigateAfterSignIn(),
       error: (err) => {
         this.loading.set(false);
         const body = err?.error;
@@ -129,5 +121,53 @@ export class LoginComponent {
         }
       },
     });
+  }
+
+  private _navigateAfterSignIn(): void {
+    const returnUrl = new URLSearchParams(window.location.search).get(RouteQueryParam.RETURN_URL);
+    if (returnUrl) {
+      void this._router.navigateByUrl(returnUrl);
+      return;
+    }
+
+    const lastId = this._persistentStore.get<string>(LAST_SALON_KEY);
+    if (lastId) {
+      void this._router.navigate(RoutePath.salon(lastId));
+      return;
+    }
+
+    this._salonsStore.ensureLoaded().subscribe({
+      next: (salons) =>
+        void this._router.navigate(
+          salons.length > 0 ? RoutePath.salon(salons[0].salon.id) : RoutePath.dashboard(),
+        ),
+      error: () => void this._router.navigate(RoutePath.dashboard()),
+    });
+  }
+
+  private _handleGoogleError(err: unknown): void {
+    this.loading.set(false);
+    const body = (err as { error?: unknown })?.error;
+    if (isApiError(body)) {
+      if (body.code === ErrorCodes.GOOGLE_LINK_REQUIRED) {
+        this.errorMessage.set(
+          'This email already has a HairMela account. Sign in with your password, then link Google from Account settings.',
+        );
+        return;
+      }
+      if (body.code === ErrorCodes.GOOGLE_AUTH_DISABLED) {
+        this.errorMessage.set('Google sign-in is temporarily unavailable.');
+        return;
+      }
+      if (body.code === ErrorCodes.GOOGLE_TOKEN_INVALID) {
+        this.errorMessage.set('Google could not verify this sign-in. Please try again.');
+        return;
+      }
+      if (body.code === ErrorCodes.IDENTITY_CONFLICT) {
+        this.errorMessage.set('This Google identity is already connected to another account.');
+        return;
+      }
+    }
+    this.errorMessage.set('Google sign-in failed. Please try again.');
   }
 }

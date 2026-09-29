@@ -47,6 +47,7 @@ export const environment = {
   apiBaseUrl: NG_APP_API_BASE_URL,
   socketUrl: NG_APP_SOCKET_URL,
   appBaseUrl: NG_APP_APP_BASE_URL,
+  googleWebClientId: '78026531104-h6bf90jbplv3mu8ci8fg05q9agna7fp8.apps.googleusercontent.com',
   cloudinaryCloudName: 'dievyx0ia',
   // Unsigned upload preset — see environment.ts. Hardcoded like the cloud
   // name (both are public values, not secrets), so it needs no --define.

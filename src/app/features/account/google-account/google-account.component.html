@@ -1,0 +1,74 @@
+@if (platform.shell !== 'ios') {
+  <div class="bg-surface-card rounded-2xl shadow-sm border border-border-subtle p-6">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h2 class="text-sm font-semibold text-text-primary">Google account</h2>
+        @if (loading()) {
+          <p class="mt-1 flex items-center gap-2 text-sm text-text-secondary">
+            <app-inline-spinner sizeClass="w-4 h-4" label="Checking Google account" />
+            Checking connection…
+          </p>
+        } @else if (!linked()) {
+          <p class="mt-1 text-sm text-text-secondary">
+            Confirm your HairMela password, then choose the Google account to link.
+          </p>
+        } @else if (!hasPassword()) {
+          <p class="mt-1 text-sm text-text-secondary">
+            Add a HairMela password so you can also sign in with your email address.
+          </p>
+        } @else {
+          <p class="mt-1 text-sm text-text-secondary">Google is linked to your account.</p>
+        }
+      </div>
+      @if (!loading() && linked()) {
+        <span
+          class="shrink-0 text-xs font-medium text-green-600 bg-green-50 px-2.5 py-1 rounded-full"
+        >
+          Linked
+        </span>
+      }
+    </div>
+
+    @if (!loading() && !linked()) {
+      <div class="mt-4 space-y-3">
+        <input
+          [(ngModel)]="currentPassword"
+          type="password"
+          autocomplete="current-password"
+          placeholder="HairMela password"
+          class="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+        />
+        <app-google-auth-button
+          [disabled]="!currentPassword || submitting()"
+          (idToken)="submitGoogleToken($event)"
+          (failed)="googleUnavailable()"
+        />
+      </div>
+    } @else if (!loading() && linked() && !hasPassword()) {
+      <div class="mt-4 space-y-3">
+        <input
+          [(ngModel)]="newPassword"
+          type="password"
+          autocomplete="new-password"
+          placeholder="New password — at least 8 characters"
+          class="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+        />
+        <app-google-auth-button
+          [disabled]="newPassword.length < 8 || submitting()"
+          (idToken)="submitGoogleToken($event)"
+          (failed)="googleUnavailable()"
+        />
+        <p class="text-xs text-text-muted">
+          Google will confirm it is you before HairMela saves the password.
+        </p>
+      </div>
+    }
+
+    @if (message()) {
+      <p class="mt-3 text-sm text-green-600" role="status">{{ message() }}</p>
+    }
+    @if (errorMessage()) {
+      <p class="mt-3 text-sm text-red-600" role="alert">{{ errorMessage() }}</p>
+    }
+  </div>
+}

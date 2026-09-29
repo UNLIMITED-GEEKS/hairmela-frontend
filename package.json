@@ -34,6 +34,7 @@
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/push-notifications": "^8.1.2",
     "@capawesome/capacitor-app-update": "^8.0.5",
+    "@capawesome/capacitor-google-sign-in": "^0.1.4",
     "chart.js": "^4.5.1",
     "express": "^5.1.0",
     "html5-qrcode": "^2.3.8",

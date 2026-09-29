@@ -2,6 +2,7 @@ import {
   AfterViewInit,
   Component,
   computed,
+  DestroyRef,
   effect,
   ElementRef,
   inject,
@@ -11,7 +12,9 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { NavigationStart, Router, RouterOutlet } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
 import { CurrentUserStore } from '../../../../core/auth/current-user.store';
 import { SalonContextService } from '../../../../core/salon-context/salon-context.service';
 import { SalonsStore } from '../../../../core/salon-context/salons.store';
@@ -50,6 +53,9 @@ import { StaffAppointmentModalService } from '../../../../features/queue/staff-a
 export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly _invites = inject(InvitesService);
   private readonly _routeWrapper = viewChild<ElementRef<HTMLElement>>('routeWrapper');
+  private readonly _router = inject(Router);
+  private readonly _destroyRef = inject(DestroyRef);
+  private _animateNextRoute = true;
 
   /**
    * Restarts the route-entry fade, driven by RouterOutlet's (activate).
@@ -73,6 +79,12 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const el = this._routeWrapper()?.nativeElement;
     if (!el) return;
+    if (!this._animateNextRoute) {
+      // WKWebView already animates an interactive edge-swipe. Replaying the
+      // route-entry animation here causes the destination page to flicker.
+      el.classList.remove('route-enter');
+      return;
+    }
     el.classList.remove('route-enter');
     // Reading offsetWidth flushes the pending style change, so re-adding the
     // class below counts as a fresh application and the animation replays.
@@ -98,6 +110,15 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly appointmentRequest = this._staffAppointmentModal.request;
 
   constructor() {
+    this._router.events
+      .pipe(
+        filter((event): event is NavigationStart => event instanceof NavigationStart),
+        takeUntilDestroyed(this._destroyRef),
+      )
+      .subscribe((event) => {
+        this._animateNextRoute = event.navigationTrigger !== 'popstate';
+      });
+
     effect(() => {
       const request = this.appointmentRequest();
       if (!request) return;

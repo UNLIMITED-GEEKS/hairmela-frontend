@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { CurrentUserStore } from '../../core/auth/current-user.store';
@@ -14,6 +14,7 @@ import { RoutePath } from '../../core/routing/route-paths';
 import { ThemeService } from '../../core/theme/theme.service';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 import { InlineSpinnerComponent } from '../../shared/components/inline-spinner/inline-spinner.component';
+import { GoogleAccountComponent } from './google-account/google-account.component';
 
 @Component({
   selector: 'app-account',
@@ -29,12 +30,14 @@ import { InlineSpinnerComponent } from '../../shared/components/inline-spinner/i
     PageHeaderComponent,
     CreateSalonCardComponent,
     InlineSpinnerComponent,
+    GoogleAccountComponent,
   ],
 })
 export class AccountComponent {
   protected readonly _currentUser = inject(CurrentUserStore);
   protected readonly _auth = inject(AuthService);
   protected readonly loggingOut = this._auth.loggingOut;
+  protected readonly hasPassword = signal<boolean | null>(null);
   private readonly _salonContext = inject(SalonContextService);
 
   protected readonly dashboardLink = RoutePath.dashboard();

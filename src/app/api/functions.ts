@@ -33,6 +33,14 @@ export type { AuthenticatedAuthControllerLogout$Params as AuthenticatedAuthContr
 export { authenticatedAuthControllerLogout as authenticatedAuthControllerLogout } from './fn/auth/authenticated-auth-controller-logout';
 export type { AuthenticatedAuthControllerResendVerification$Params as AuthenticatedAuthControllerResendVerification$Params } from './fn/auth/authenticated-auth-controller-resend-verification';
 export { authenticatedAuthControllerResendVerification as authenticatedAuthControllerResendVerification } from './fn/auth/authenticated-auth-controller-resend-verification';
+export type { GoogleAuthControllerSignIn$Params as GoogleAuthControllerSignIn$Params } from './fn/auth/google-auth-controller-sign-in';
+export { googleAuthControllerSignIn as googleAuthControllerSignIn } from './fn/auth/google-auth-controller-sign-in';
+export type { GoogleAuthControllerLink$Params as GoogleAuthControllerLink$Params } from './fn/auth/google-auth-controller-link';
+export { googleAuthControllerLink as googleAuthControllerLink } from './fn/auth/google-auth-controller-link';
+export type { GoogleAuthControllerSetPassword$Params as GoogleAuthControllerSetPassword$Params } from './fn/auth/google-auth-controller-set-password';
+export { googleAuthControllerSetPassword as googleAuthControllerSetPassword } from './fn/auth/google-auth-controller-set-password';
+export type { GoogleAuthControllerGetStatus$Params as GoogleAuthControllerGetStatus$Params } from './fn/auth/google-auth-controller-get-status';
+export { googleAuthControllerGetStatus as googleAuthControllerGetStatus } from './fn/auth/google-auth-controller-get-status';
 export type { OrganizationsControllerFindMine$Params as OrganizationsControllerFindMine$Params } from './fn/organizations/organizations-controller-find-mine';
 export { organizationsControllerFindMine as organizationsControllerFindMine } from './fn/organizations/organizations-controller-find-mine';
 export type { OrganizationsControllerFindOne$Params as OrganizationsControllerFindOne$Params } from './fn/organizations/organizations-controller-find-one';

@@ -23,6 +23,7 @@ export class JoinBannerComponent {
   protected readonly queueGroups = computed<QueueEntry[]>(() => {
     const byQueue = new Map<string, QueueEntry>();
     for (const entry of this.entries()) {
+      if (entry.status !== 'WAITING' && entry.status !== 'SERVING') continue;
       if (!byQueue.has(entry.queueId)) byQueue.set(entry.queueId, entry);
     }
     return [...byQueue.values()];

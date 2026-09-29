@@ -11,10 +11,10 @@ import { PaginatedMetaDto } from '../../models/paginated-meta-dto';
 import { QueueEntry } from '../../models/queue-entry';
 
 export interface MyEntriesControllerGetMyEntryHistory$Params {
-  type?: 'WALK_IN' | 'APPOINTMENT';
-  status?: 'WAITING' | 'SERVING' | 'SERVED' | 'NO_SHOW' | 'CANCELLED';
   page?: number;
   limit?: number;
+  type?: 'WALK_IN' | 'APPOINTMENT';
+  status?: 'WAITING' | 'SERVING' | 'SERVED' | 'NO_SHOW' | 'CANCELLED';
 }
 
 export function myEntriesControllerGetMyEntryHistory(http: HttpClient, rootUrl: string, params?: MyEntriesControllerGetMyEntryHistory$Params, context?: HttpContext): Observable<StrictHttpResponse<{
@@ -23,10 +23,10 @@ export function myEntriesControllerGetMyEntryHistory(http: HttpClient, rootUrl: 
 }>> {
   const rb = new RequestBuilder(rootUrl, myEntriesControllerGetMyEntryHistory.PATH, 'get');
   if (params) {
-    rb.query('type', params.type, {});
-    rb.query('status', params.status, {});
     rb.query('page', params.page, {});
     rb.query('limit', params.limit, {});
+    rb.query('type', params.type, {});
+    rb.query('status', params.status, {});
   }
 
   return http.request(

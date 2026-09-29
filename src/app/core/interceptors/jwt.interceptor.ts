@@ -12,6 +12,8 @@ const SKIP_AUTH_PATHS = [
   '/v1/media/ad-hoc-upload',
 ];
 
+const SKIP_AUTH_EXACT_PATHS = ['/v1/auth/google'];
+
 // Routes where an anonymous caller is identified by a stored guest token (the
 // backend's FlexAuthGuard accepts it). Scoped narrowly so a guest token is
 // never sent to genuinely-protected endpoints.
@@ -31,7 +33,10 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   const guestStore = inject(GuestStore);
 
   const isApiRequest = req.url.startsWith(environment.apiBaseUrl);
-  const isSkipped = SKIP_AUTH_PATHS.some((path) => req.url.includes(path));
+  const pathname = new URL(req.url, window.location.origin).pathname;
+  const isSkipped =
+    SKIP_AUTH_EXACT_PATHS.includes(pathname) ||
+    SKIP_AUTH_PATHS.some((path) => req.url.includes(path));
 
   if (!isApiRequest || isSkipped) {
     return next(req);

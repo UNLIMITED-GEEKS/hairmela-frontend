@@ -1,56 +1,96 @@
 <div class="">
-
-  <div class="md:max-w-127 md:mx-auto">  <app-page-header title="Account" backVariant="glass" [fallbackRoute]="dashboardLink" />
-</div>
+  <div class="md:max-w-127 md:mx-auto">
+    <app-page-header title="Account" backVariant="glass" [fallbackRoute]="dashboardLink" />
+  </div>
   <div class="max-w-lg mx-auto space-y-6 px-3 pb-6">
-
     <app-verify-email-banner />
 
     @if (_currentUser.user(); as user) {
-      <a [routerLink]="editProfileLink"
-        class="bg-surface-card rounded-2xl shadow-sm border border-border-subtle p-6 flex items-center gap-4 hover:bg-surface-sunken transition-colors">
-        <div class="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-white text-lg font-bold shrink-0">
+      <a
+        [routerLink]="editProfileLink"
+        class="bg-surface-card rounded-2xl shadow-sm border border-border-subtle p-6 flex items-center gap-4 hover:bg-surface-sunken transition-colors"
+      >
+        <div
+          class="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-white text-lg font-bold shrink-0"
+        >
           {{ initials }}
         </div>
         <div class="min-w-0 flex-1">
-          <p class="text-base font-semibold text-text-primary truncate">{{ user.firstName }} {{ user.lastName }}</p>
+          <p class="text-base font-semibold text-text-primary truncate">
+            {{ user.firstName }} {{ user.lastName }}
+          </p>
           <p class="text-sm text-text-secondary truncate">{{ user.email }}</p>
           @if (user.phone) {
             <p class="text-sm text-text-disabled truncate">{{ user.phone }}</p>
           }
         </div>
-        <svg class="w-4 h-4 text-text-disabled shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        <svg
+          class="w-4 h-4 text-text-disabled shrink-0"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+          />
         </svg>
       </a>
 
       @if (myPhotosLink(); as photosLink) {
-        <a [routerLink]="photosLink"
-          class="flex items-center justify-center gap-2 min-h-11 rounded-xl border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/5 transition-colors">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        <a
+          [routerLink]="photosLink"
+          class="flex items-center justify-center gap-2 min-h-11 rounded-xl border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/5 transition-colors"
+        >
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
           </svg>
-               Manage my staff photos        </a>
+          Manage my staff photos
+        </a>
       }
 
-      <div class="bg-surface-card rounded-2xl shadow-sm border border-border-subtle divide-y divide-border-subtle">
+      <div
+        class="bg-surface-card rounded-2xl shadow-sm border border-border-subtle divide-y divide-border-subtle"
+      >
         <div class="px-6 py-4 flex justify-between items-center">
           <span class="text-sm text-text-secondary">Email verified</span>
           @if (user.emailVerified) {
-            <span class="text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Verified</span>
+            <span class="text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full"
+              >Verified</span
+            >
           } @else {
-            <span class="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pending</span>
+            <span class="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full"
+              >Pending</span
+            >
           }
         </div>
         <div class="px-6 py-4 flex justify-between items-center">
           <span class="text-sm text-text-secondary">Member since</span>
-          <span class="text-sm text-text-body">{{ user.createdAt | date:'mediumDate' }}</span>
+          <span class="text-sm text-text-body">{{ user.createdAt | date: 'mediumDate' }}</span>
         </div>
       </div>
 
+      @if (hasPassword() === true) {
+        <div class="mb-3">
+          <app-reset-password />
+        </div>
+      }
       <div class="mb-3">
-        <app-reset-password />
+        <app-google-account (passwordStatus)="hasPassword.set($event)" />
       </div>
       <div class="mb-3">
         <app-notifications-toggle />
@@ -71,30 +111,36 @@
               type="checkbox"
               class="sr-only peer"
               [checked]="theme.mode() === 'dark'"
-              (change)="theme.toggle()" />
+              (change)="theme.toggle()"
+            />
             <!-- The knob translates via the track's own checked state: peer-*
                  only reaches SIBLINGS of the input, so a nested knob cannot use
                  peer-checked itself. Binding the class directly is simpler than
                  restructuring the markup for a variant to reach it. -->
             <span
-              class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-surface-strong transition-colors
-                     peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30">
-              <span class="h-5 w-5 rounded-full bg-surface-card shadow transition-transform"
-                [class]="theme.mode() === 'dark' ? 'translate-x-5.5' : 'translate-x-0.5'"></span>
+              class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-surface-strong transition-colors peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30"
+            >
+              <span
+                class="h-5 w-5 rounded-full bg-surface-card shadow transition-transform"
+                [class]="theme.mode() === 'dark' ? 'translate-x-5.5' : 'translate-x-0.5'"
+              ></span>
             </span>
           </label>
 
           <!-- Only offered once a choice has been made: until then the app is
                already following the device, so the link would do nothing. -->
           @if (theme.preference() !== 'system') {
-            <button type="button" (click)="theme.set('system')"
-              class="mt-2 text-xs font-semibold text-primary hover:underline">
+            <button
+              type="button"
+              (click)="theme.set('system')"
+              class="mt-2 text-xs font-semibold text-primary hover:underline"
+            >
               Use device setting
             </button>
           }
         </div>
       </div>
-        <app-queue-sound-toggle />
+      <app-queue-sound-toggle />
 
       <!-- Create salon -->
       <div class="mt-4">
@@ -104,8 +150,10 @@
       <!-- Above Log out: getting help shouldn't sit below the destructive
            actions, and the footer that normally carries it is hidden inside
            the installed app. -->
-      <a [routerLink]="contactLink"
-        class="flex items-center justify-center w-full min-h-11 rounded-xl border border-border bg-surface-card text-sm font-medium text-text-body transition-colors hover:bg-surface-sunken">
+      <a
+        [routerLink]="contactLink"
+        class="flex items-center justify-center w-full min-h-11 rounded-xl border border-border bg-surface-card text-sm font-medium text-text-body transition-colors hover:bg-surface-sunken"
+      >
         Contact us
       </a>
 
@@ -113,7 +161,8 @@
         type="button"
         (click)="_auth.logout()"
         [disabled]="loggingOut()"
-        class="w-full min-h-11 rounded-xl border border-red-500/25 bg-red-500/5 px-4 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+        class="w-full min-h-11 rounded-xl border border-red-500/25 bg-red-500/5 px-4 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+      >
         @if (loggingOut()) {
           <app-inline-spinner sizeClass="w-4 h-4" label="Logging out" />
           <span>Logging out…</span>
@@ -124,8 +173,10 @@
 
       <!-- Deliberately understated and placed after Log out: destructive, and
            nobody should reach it by accident. -->
-      <a [routerLink]="deleteAccountLink"
-        class="block w-full text-center text-xs text-text-disabled hover:text-red-600 transition-colors py-2">
+      <a
+        [routerLink]="deleteAccountLink"
+        class="block w-full text-center text-xs text-text-disabled hover:text-red-600 transition-colors py-2"
+      >
         Delete my account
       </a>
     } @else {
@@ -134,7 +185,9 @@
       <div class="space-y-4">
         <!-- Profile header -->
         <div class="flex items-center gap-4">
-          <div class="shrink-0"><app-skeleton variant="block" height="4rem" width="4rem" rounded="rounded-full" /></div>
+          <div class="shrink-0">
+            <app-skeleton variant="block" height="4rem" width="4rem" rounded="rounded-full" />
+          </div>
           <div class="min-w-0 flex-1 space-y-2">
             <app-skeleton variant="block" height="1.25rem" width="9rem" rounded="rounded" />
             <app-skeleton variant="block" height="0.875rem" width="12rem" rounded="rounded" />
@@ -149,7 +202,14 @@
                 <app-skeleton variant="block" height="1rem" width="6rem" rounded="rounded" />
                 <app-skeleton variant="block" height="0.75rem" width="10rem" rounded="rounded" />
               </div>
-              <div class="shrink-0"><app-skeleton variant="block" height="1.5rem" width="2.75rem" rounded="rounded-full" /></div>
+              <div class="shrink-0">
+                <app-skeleton
+                  variant="block"
+                  height="1.5rem"
+                  width="2.75rem"
+                  rounded="rounded-full"
+                />
+              </div>
             </div>
           </div>
         }
