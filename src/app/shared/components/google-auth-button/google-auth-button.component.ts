@@ -2,7 +2,7 @@ import {
   Component,
   ElementRef,
   NgZone,
-  afterNextRender,
+  effect,
   inject,
   input,
   output,
@@ -10,6 +10,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { GoogleIdentityService } from '../../../core/auth/google-identity.service';
+import { ThemeService } from '../../../core/theme/theme.service';
 import { InlineSpinnerComponent } from '../inline-spinner/inline-spinner.component';
 
 @Component({
@@ -19,6 +20,7 @@ import { InlineSpinnerComponent } from '../inline-spinner/inline-spinner.compone
 })
 export class GoogleAuthButtonComponent {
   private readonly _google = inject(GoogleIdentityService);
+  private readonly _theme = inject(ThemeService);
   private readonly _zone = inject(NgZone);
   private readonly _webButton = viewChild<ElementRef<HTMLElement>>('webButton');
 
@@ -32,11 +34,12 @@ export class GoogleAuthButtonComponent {
   protected readonly loading = signal(false);
 
   constructor() {
-    afterNextRender(() => {
+    effect(() => {
       const element = this._webButton()?.nativeElement;
+      const theme = this._theme.mode() === 'dark' ? 'filled_black' : 'outline';
       if (!element) return;
       void this._google
-        .renderWebButton(element, this.text(), (token) =>
+        .renderWebButton(element, this.text(), theme, (token) =>
           this._zone.run(() => this.idToken.emit(token)),
         )
         .catch(() => this._zone.run(() => this.failed.emit()));

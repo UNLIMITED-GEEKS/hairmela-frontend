@@ -6,6 +6,7 @@ const GOOGLE_SCRIPT_ID = 'google-identity-services';
 const GOOGLE_SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
 
 type GoogleButtonText = 'continue_with' | 'signin_with' | 'signup_with';
+type GoogleButtonTheme = 'outline' | 'filled_black';
 
 interface GoogleCredentialResponse {
   credential?: string;
@@ -20,9 +21,9 @@ interface GoogleAccountsId {
     element: HTMLElement,
     options: {
       type: 'standard';
-      theme: 'outline';
+      theme: 'outline' | 'filled_black';
       size: 'large';
-      shape: 'rectangular';
+      shape: 'pill';
       text: GoogleButtonText;
       width: number;
     },
@@ -47,6 +48,7 @@ export class GoogleIdentityService {
   async renderWebButton(
     element: HTMLElement,
     text: GoogleButtonText,
+    theme: GoogleButtonTheme,
     onCredential: (idToken: string) => void,
   ): Promise<void> {
     if (!this.available || !this._platform.isWeb) return;
@@ -63,9 +65,9 @@ export class GoogleIdentityService {
     element.replaceChildren();
     google.accounts.id.renderButton(element, {
       type: 'standard',
-      theme: 'outline',
+      theme,
       size: 'large',
-      shape: 'rectangular',
+      shape: 'pill',
       text,
       width: Math.min(320, Math.max(240, element.clientWidth)),
     });

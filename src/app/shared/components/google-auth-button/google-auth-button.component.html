@@ -4,7 +4,9 @@
       type="button"
       (click)="signInNative()"
       [disabled]="disabled() || loading()"
-      class="w-full min-h-11 inline-flex items-center justify-center gap-3 rounded-lg border border-border-strong bg-white px-4 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      aria-label="Continue with Google"
+      title="Continue with Google"
+      class="w-full min-h-11 inline-flex items-center justify-center gap-3 rounded-full border border-border-strong bg-surface-card px-4 py-2.5 text-sm font-semibold text-text-primary hover:bg-surface-card/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
     >
       @if (loading()) {
         <app-inline-spinner sizeClass="w-4 h-4" label="Opening Google sign-in" />
@@ -31,6 +33,6 @@
       Continue with Google
     </button>
   } @else {
-    <div #webButton class="flex min-h-11 w-full justify-center"></div>
+    <div #webButton class="flex min-h-11 w-full justify-center" aria-label="Continue with Google"></div>
   }
 }
