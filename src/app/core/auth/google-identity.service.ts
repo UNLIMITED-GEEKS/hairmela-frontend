@@ -6,7 +6,7 @@ const GOOGLE_SCRIPT_ID = 'google-identity-services';
 const GOOGLE_SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
 
 type GoogleButtonText = 'continue_with' | 'signin_with' | 'signup_with';
-type GoogleButtonTheme = 'outline' | 'filled_black';
+type GoogleButtonTheme = 'outline' | 'outline_dark';
 
 interface GoogleCredentialResponse {
   credential?: string;
@@ -21,7 +21,7 @@ interface GoogleAccountsId {
     element: HTMLElement,
     options: {
       type: 'standard';
-      theme: 'outline' | 'filled_black';
+      theme: GoogleButtonTheme;
       size: 'large';
       shape: 'pill';
       text: GoogleButtonText;

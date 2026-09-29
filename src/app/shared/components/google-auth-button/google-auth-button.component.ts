@@ -36,7 +36,7 @@ export class GoogleAuthButtonComponent {
   constructor() {
     effect(() => {
       const element = this._webButton()?.nativeElement;
-      const theme = this._theme.mode() === 'dark' ? 'filled_black' : 'outline';
+      const theme = this._theme.mode() === 'dark' ? 'outline_dark' : 'outline';
       if (!element) return;
       void this._google
         .renderWebButton(element, this.text(), theme, (token) =>
