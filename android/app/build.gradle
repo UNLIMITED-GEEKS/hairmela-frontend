@@ -22,7 +22,7 @@ android {
         // rolled back. Bump this before each release; nothing auto-increments it,
         // deliberately, so a version is never consumed by an accidental build.
         //
-        // versionName: the string users see. Independent of versionCode — it can
+        // versionName:the string users see. Independent of versionCode — it can
         // repeat or move backwards without Play caring.
         versionCode 58
         versionName "1.0.0"
