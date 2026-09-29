@@ -71,6 +71,11 @@ export class GoogleIdentityService {
       text,
       width: Math.min(320, Math.max(240, element.clientWidth)),
     });
+
+    const googleWrapper = element.firstElementChild as HTMLElement | null;
+    const googleFrame = element.querySelector<HTMLIFrameElement>('iframe');
+    googleWrapper?.style.setProperty('background-color', 'var(--color-surface-card)');
+    googleFrame?.style.setProperty('background-color', 'var(--color-surface-card)');
   }
 
   async getAndroidIdToken(): Promise<string> {
