@@ -6,7 +6,7 @@
   <!-- Salons with no uploaded photo fall back to /salon-placeholder.jpg
        (drop the file in public/ — see salon-card.component.ts). -->
   <img [src]="salon().photoUrl ? (salon().photoUrl | mediaUrl:'grid') : placeholderImage"
-    [alt]="salon().name" loading="lazy"
+    [alt]="salon().name" [attr.loading]="imageLoading" [attr.decoding]="imageDecoding"
     class="h-full w-full object-cover" />
 
   <!-- Open/closed + locations badges — separate glassmorphic pills. A

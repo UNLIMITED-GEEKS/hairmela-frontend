@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { SalonListingItemDto } from '../../../api/models/salon-listing-item-dto';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { FavoritesService } from '../../../core/favorites/favorites.service';
+import { AppPlatformService } from '../../../core/native/app-platform.service';
 import { MediaUrlPipe } from '../../pipes/media-url.pipe';
 import { IconComponent } from '../icon/icon.component';
 import { RoutePath, RouteSegment, RouteQueryParam } from '../../../core/routing/route-paths';
@@ -23,6 +24,8 @@ import { RoutePath, RouteSegment, RouteQueryParam } from '../../../core/routing/
   host: { class: 'block h-full' },
 })
 export class SalonCardComponent {
+  private readonly _platform = inject(AppPlatformService);
+
   readonly salon = input.required<SalonListingItemDto>();
   // Adds the street line to the address. Off by default (city/state is enough
   // in a mixed listing); on where several same-named or nearby salons sit
@@ -66,6 +69,8 @@ export class SalonCardComponent {
   // Fallback photo for salons with no uploaded image — drop the file at
   // public/salon-placeholder.jpg (served at the site root, no import needed).
   protected readonly placeholderImage = '/salon-placeholder.jpg';
+  protected readonly imageLoading = this._platform.shell === 'ios' ? 'eager' : 'lazy';
+  protected readonly imageDecoding = this._platform.shell === 'ios' ? 'sync' : 'async';
 
   protected readonly isLoggedIn = computed(() => !!this._currentUser.user());
 
