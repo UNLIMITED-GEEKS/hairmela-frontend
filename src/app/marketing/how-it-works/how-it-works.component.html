@@ -1,4 +1,13 @@
-<div [class]="platform.isAppContext ? '' : 'pt-14 md:pt-16'" class="md:max-w-3xl md:mx-auto">
+<div
+  [class]="
+    !platform.isAppContext
+      ? 'pt-14 md:pt-16'
+      : platform.shell === 'ios'
+        ? 'public-app-page-header-safe-area'
+        : ''
+  "
+  class="md:max-w-3xl md:mx-auto"
+>
   <app-page-header title="How it works" backVariant="glass" [fallbackRoute]="dashboardLink" />
 </div>
 

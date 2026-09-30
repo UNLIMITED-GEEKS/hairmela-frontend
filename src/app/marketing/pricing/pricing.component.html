@@ -3,7 +3,10 @@
      same page-header how-it-works already uses fills that role, and the
      nav's pt-28 below is dropped with it. -->
 @if (platform.isAppContext) {
-  <div class="md:max-w-3xl md:mx-auto">
+  <div
+    [class.public-app-page-header-safe-area]="platform.shell === 'ios'"
+    class="md:max-w-3xl md:mx-auto"
+  >
     <app-page-header title="Pricing" backVariant="glass" [fallbackRoute]="homeLink" />
   </div>
 }

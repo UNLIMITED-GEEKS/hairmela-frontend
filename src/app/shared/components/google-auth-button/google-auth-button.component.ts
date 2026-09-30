@@ -16,6 +16,7 @@ import { InlineSpinnerComponent } from '../inline-spinner/inline-spinner.compone
   selector: 'app-google-auth-button',
   imports: [InlineSpinnerComponent],
   templateUrl: './google-auth-button.component.html',
+  host: { class: 'block w-full min-w-0 overflow-hidden' },
 })
 export class GoogleAuthButtonComponent {
   private readonly _google = inject(GoogleIdentityService);

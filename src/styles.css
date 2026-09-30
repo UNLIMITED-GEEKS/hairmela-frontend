@@ -1127,6 +1127,12 @@ textarea::placeholder {
   padding-top: calc(2rem + env(safe-area-inset-top));
 }
 
+/* Public pages scroll the window rather than the Auth/Guest inner scroller.
+   Their app-only page header therefore needs its own iOS top inset. */
+.public-app-page-header-safe-area {
+  padding-top: env(safe-area-inset-top);
+}
+
 /* Viewport-anchored controls in full-screen overlays must clear both the
    status-bar/notch edge and the landscape side inset. Card-header close
    buttons are deliberately excluded: their modal card already provides the
