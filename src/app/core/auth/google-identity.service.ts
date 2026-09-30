@@ -71,8 +71,10 @@ export class GoogleIdentityService {
     });
 
     const googleWrapper = element.firstElementChild as HTMLElement | null;
+    const googleFrame = element.querySelector<HTMLIFrameElement>('iframe');
     googleWrapper?.style.setProperty('overflow', 'hidden');
     googleWrapper?.style.setProperty('background-color', 'var(--color-surface-card)');
+    googleFrame?.style.setProperty('clip-path', 'inset(2px 10px round 9999px)');
   }
 
   async getAndroidIdToken(): Promise<string> {
