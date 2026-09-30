@@ -54,6 +54,8 @@ export class GoogleIdentityService {
     const google = window.google;
     if (!google) throw new Error('Google Identity Services did not load.');
 
+    const buttonWidth = Math.min(320, Math.max(240, element.clientWidth));
+
     google.accounts.id.initialize({
       client_id: environment.googleWebClientId,
       callback: (response) => {
@@ -67,14 +69,16 @@ export class GoogleIdentityService {
       size: 'medium',
       shape: 'pill',
       text: 'signin_with',
-      width: Math.min(320, Math.max(240, element.clientWidth)),
+      width: buttonWidth,
     });
 
     const googleWrapper = element.firstElementChild as HTMLElement | null;
     const googleFrame = element.querySelector<HTMLIFrameElement>('iframe');
+    googleWrapper?.style.setProperty('width', buttonWidth + 'px');
+    googleWrapper?.style.setProperty('height', '32px');
     googleWrapper?.style.setProperty('overflow', 'hidden');
     googleWrapper?.style.setProperty('background-color', 'var(--color-surface-card)');
-    googleFrame?.style.setProperty('clip-path', 'inset(2px 10px round 9999px)');
+    googleFrame?.style.setProperty('clip-path', 'inset(3px 10px 6px round 9999px)');
   }
 
   async getAndroidIdToken(): Promise<string> {
