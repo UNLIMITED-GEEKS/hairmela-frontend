@@ -1380,31 +1380,16 @@ html.hm-inner-scroll body {
   overscroll-behavior-y: none;
 }
 
-/* iOS document lock — kills the rubber-band drag that let the whole page be
-   pulled up to expose blank space under the bottom nav.
-   overscroll-behavior alone is NOT enough on WebKit: it stops scroll CHAINING,
-   but the document still bounces when the body has nothing to scroll. Pinning
-   html/body to the viewport removes the thing there is to bounce.
-
-   SCOPED BY SCROLL MODEL, NOT BY PLATFORM — .hm-inner-scroll is set by
-   PullToRefreshService.init() for the auth and guest shells, whose scrolling
-   is trapped in an inner <main class="overflow-y-auto">. It is NOT set for the
-   public shell (marketing/login/register), which scrolls the DOCUMENT itself
-   via <main class="min-h-screen">.
-   That distinction is load-bearing: an earlier version keyed this off iOS
-   alone and froze every public-shell page outright in Safari and Chrome —
-   nothing scrolled at all, because the lock removed the only scroller those
-   pages had. The auth shell was unaffected precisely because its <main> keeps
-   its own scroll, which is why the dashboard still worked.
-
-   COST, ACCEPTED: in an iOS browser TAB this also removes the browser's own
-   pull-to-refresh on auth/guest-shell pages, since on iOS the bounce and the
-   refresh gesture are the same thing. Public-shell pages keep both. */
-html.hm-ios.hm-inner-scroll,
-html.hm-ios.hm-inner-scroll body {
+/* Auth and Guest shells own scrolling inside <main class="overflow-y-auto">.
+   Lock the document in that scroll model so it cannot become a second vertical
+   scroller beside the shell's intended one. Public pages are excluded because
+   they scroll the document and never set .hm-inner-scroll. */
+html.hm-inner-scroll,
+html.hm-inner-scroll body {
   height: 100%;
   overflow: hidden;
 }
+
 /* position:fixed is what actually defeats the bounce on older iOS, where
    overflow:hidden on the body alone is still bounced. Kept on body only, so
    the fixed bottom nav and any fixed overlays position against the viewport

@@ -1,19 +1,31 @@
 <div class="">
   <app-page-header title="Favourites" backVariant="glass" />
-  <div class=" pb-6 px-4">
-
-
+  <div class="pb-6 px-4">
     @if (favorites.listLoading() && favorites.list().length === 0) {
-      <div class="pb-2">
-        <app-skeleton variant="card" [count]="6" />
+      <div class="grid grid-cols-1 gap-4 pb-2 sm:grid-cols-4">
+        @for (card of [1, 2, 3, 4]; track card) {
+          <app-skeleton variant="block" height="16rem" rounded="rounded-xl" />
+        }
       </div>
     } @else if (favorites.list().length === 0) {
       <div class="py-16 text-center">
-        <svg class="mx-auto w-10 h-10 text-text-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-            d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 21.036l-7.682-8.354a4.5 4.5 0 010-6.364z" />
+        <svg
+          class="mx-auto w-10 h-10 text-text-faint"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.5"
+            d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 21.036l-7.682-8.354a4.5 4.5 0 010-6.364z"
+          />
         </svg>
-        <p class="mt-3 text-sm text-text-disabled">No favourites yet, tap the heart on a salon to save it here.</p>
+        <p class="mt-3 text-sm text-text-disabled">
+          No favourites yet, tap the heart on a salon to save it here.
+        </p>
       </div>
     } @else {
       <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -28,6 +40,5 @@
         <app-pagination [meta]="favorites.meta()" (pageChange)="goToPage($event)" />
       </div>
     }
-
   </div>
 </div>
