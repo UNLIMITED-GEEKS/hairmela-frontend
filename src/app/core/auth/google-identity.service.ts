@@ -5,8 +5,6 @@ import { environment } from '../../../environments/environment';
 const GOOGLE_SCRIPT_ID = 'google-identity-services';
 const GOOGLE_SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
 
-type GoogleButtonTheme = 'outline' | 'outline_dark';
-
 interface GoogleCredentialResponse {
   credential?: string;
 }
@@ -20,7 +18,7 @@ interface GoogleAccountsId {
     element: HTMLElement,
     options: {
       type: 'standard';
-      theme: GoogleButtonTheme;
+      theme: 'outline';
       size: 'medium';
       shape: 'pill';
       text: 'signin_with';
@@ -46,7 +44,6 @@ export class GoogleIdentityService {
 
   async renderWebButton(
     element: HTMLElement,
-    theme: GoogleButtonTheme,
     onCredential: (idToken: string) => void,
   ): Promise<void> {
     if (!this.available || !this._platform.isWeb) return;
@@ -65,7 +62,7 @@ export class GoogleIdentityService {
     element.replaceChildren();
     google.accounts.id.renderButton(element, {
       type: 'standard',
-      theme,
+      theme: 'outline',
       size: 'medium',
       shape: 'pill',
       text: 'signin_with',
@@ -78,7 +75,7 @@ export class GoogleIdentityService {
     googleWrapper?.style.setProperty('height', '32px');
     googleWrapper?.style.setProperty('overflow', 'hidden');
     googleWrapper?.style.setProperty('background-color', 'var(--color-surface-card)');
-    googleFrame?.style.setProperty('clip-path', 'inset(4px 11px 7px round 9999px)');
+    googleFrame?.style.setProperty('clip-path', 'inset(5px 11px 7px round 9999px)');
   }
 
   async getAndroidIdToken(): Promise<string> {
