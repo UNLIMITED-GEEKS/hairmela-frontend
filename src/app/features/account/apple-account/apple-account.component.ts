@@ -5,17 +5,11 @@ import { AppleIdentityCredential } from '../../../core/auth/apple-identity.servi
 import { ErrorCodes } from '../../../core/errors/error-codes';
 import { isApiError } from '../../../core/errors/api-error.types';
 import { AppleAuthButtonComponent } from '../../../shared/components/apple-auth-button/apple-auth-button.component';
-import { GoogleAuthButtonComponent } from '../../../shared/components/google-auth-button/google-auth-button.component';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 
 @Component({
   selector: 'app-apple-account',
-  imports: [
-    FormsModule,
-    AppleAuthButtonComponent,
-    GoogleAuthButtonComponent,
-    InlineSpinnerComponent,
-  ],
+  imports: [FormsModule, AppleAuthButtonComponent, InlineSpinnerComponent],
   templateUrl: './apple-account.component.html',
 })
 export class AppleAccountComponent implements OnInit {
@@ -28,12 +22,10 @@ export class AppleAccountComponent implements OnInit {
   protected readonly submitting = signal(false);
   protected readonly linked = signal(false);
   protected readonly hasPassword = signal(false);
-  protected readonly googleConfirmed = signal(false);
   protected readonly message = signal<string | null>(null);
   protected readonly errorMessage = signal<string | null>(null);
   protected currentPassword = '';
   protected newPassword = '';
-  private _googleIdToken: string | null = null;
 
   constructor() {
     effect(() => {
@@ -56,13 +48,6 @@ export class AppleAccountComponent implements OnInit {
     });
   }
 
-  protected confirmGoogle(idToken: string): void {
-    this._googleIdToken = idToken;
-    this.googleConfirmed.set(true);
-    this.errorMessage.set(null);
-    this.message.set('Google confirmed. Now continue with Apple.');
-  }
-
   protected submitApple(credential: AppleIdentityCredential): void {
     if (this.submitting()) return;
     if (!this.linked()) {
@@ -72,27 +57,22 @@ export class AppleAccountComponent implements OnInit {
     if (!this.hasPassword()) this._setPassword(credential.idToken);
   }
 
-  protected identityUnavailable(provider: 'Apple' | 'Google'): void {
-    this.errorMessage.set(`${provider} sign-in could not be opened. Please try again.`);
+  protected identityUnavailable(): void {
+    this.errorMessage.set('Apple sign-in could not be opened. Please try again.');
   }
 
   private _link(idToken: string): void {
-    if (this.hasPassword() && !this.currentPassword) return;
-    if (!this.hasPassword() && !this._googleIdToken) return;
+    if (!this.hasPassword() || !this.currentPassword) return;
 
     this._beginSubmit();
     this._auth
       .appleLink({
         idToken,
-        ...(this.hasPassword()
-          ? { password: this.currentPassword }
-          : { googleIdToken: this._googleIdToken! }),
+        password: this.currentPassword,
       })
       .subscribe({
         next: () => {
           this.currentPassword = '';
-          this._googleIdToken = null;
-          this.googleConfirmed.set(false);
           this.linked.set(true);
           this.submitting.set(false);
           this.message.set('Apple is now linked to your HairMela account.');
@@ -135,12 +115,6 @@ export class AppleAccountComponent implements OnInit {
     }
     if (isApiError(body) && body.code === ErrorCodes.APPLE_TOKEN_INVALID) {
       this.errorMessage.set('Apple could not verify this sign-in. Please try again.');
-      return;
-    }
-    if (isApiError(body) && body.code === ErrorCodes.GOOGLE_TOKEN_INVALID) {
-      this._googleIdToken = null;
-      this.googleConfirmed.set(false);
-      this.errorMessage.set('Google confirmation expired. Confirm with Google again.');
       return;
     }
     this.errorMessage.set(fallback);

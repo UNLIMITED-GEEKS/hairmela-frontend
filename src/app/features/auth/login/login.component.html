@@ -118,6 +118,7 @@
       />
       @if (platform.shell === 'ios') {
         <app-apple-auth-button
+          class="mt-3 block"
           [disabled]="loading()"
           (credential)="appleSignIn($event)"
           (failed)="appleUnavailable()"

@@ -13,7 +13,7 @@
         </p>
       } @else if (!linked()) {
         <p class="mt-1 text-sm text-text-secondary">
-          Confirm your Google identity, then continue with Apple to link it.
+          Add a HairMela password in the Google account section before linking Apple.
         </p>
       } @else if (!hasPassword()) {
         <p class="mt-1 text-sm text-text-secondary">
@@ -32,27 +32,19 @@
     }
   </div>
 
-  @if (!loading() && !linked()) {
+  @if (!loading() && !linked() && hasPassword()) {
     <div class="mt-4 space-y-3">
-      @if (hasPassword()) {
-        <input
-          [(ngModel)]="currentPassword"
-          type="password"
-          autocomplete="current-password"
-          placeholder="HairMela password"
-          class="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-        />
-      } @else if (!googleConfirmed()) {
-        <app-google-auth-button
-          [disabled]="submitting()"
-          (idToken)="confirmGoogle($event)"
-          (failed)="identityUnavailable('Google')"
-        />
-      }
+      <input
+        [(ngModel)]="currentPassword"
+        type="password"
+        autocomplete="current-password"
+        placeholder="HairMela password"
+        class="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+      />
       <app-apple-auth-button
-        [disabled]="submitting() || (hasPassword() ? !currentPassword : !googleConfirmed())"
+        [disabled]="submitting() || !currentPassword"
         (credential)="submitApple($event)"
-        (failed)="identityUnavailable('Apple')"
+        (failed)="identityUnavailable()"
       />
     </div>
   } @else if (!loading() && linked() && !hasPassword()) {
@@ -67,7 +59,7 @@
       <app-apple-auth-button
         [disabled]="newPassword.length < 8 || submitting()"
         (credential)="submitApple($event)"
-        (failed)="identityUnavailable('Apple')"
+        (failed)="identityUnavailable()"
       />
       <p class="text-xs text-text-muted">
         Apple will confirm it is you before HairMela saves the password.
