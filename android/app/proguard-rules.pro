@@ -43,6 +43,17 @@
 -keep class com.google.firebase.** { *; }
 -dontwarn com.google.firebase.**
 
+# Firebase Authentication ships optional Facebook handlers compiled against
+# the Facebook SDK. HairMela does not enable Facebook sign-in, so that SDK is
+# deliberately absent; suppress only those unused optional references.
+-dontwarn com.facebook.AccessToken
+-dontwarn com.facebook.CallbackManager$Factory
+-dontwarn com.facebook.CallbackManager
+-dontwarn com.facebook.FacebookCallback
+-dontwarn com.facebook.FacebookException
+-dontwarn com.facebook.login.LoginManager
+-dontwarn com.facebook.login.LoginResult
+
 # ── ML Kit barcode scanning ────────────────────────────────────────────────
 # Google Play Services loads the scanner module dynamically at runtime.
 -keep class com.google.mlkit.** { *; }
