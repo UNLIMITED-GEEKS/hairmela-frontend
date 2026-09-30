@@ -5,7 +5,6 @@ import { environment } from '../../../environments/environment';
 const GOOGLE_SCRIPT_ID = 'google-identity-services';
 const GOOGLE_SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
 
-type GoogleButtonText = 'continue_with' | 'signin_with' | 'signup_with';
 type GoogleButtonTheme = 'outline' | 'outline_dark';
 
 interface GoogleCredentialResponse {
@@ -22,9 +21,9 @@ interface GoogleAccountsId {
     options: {
       type: 'standard';
       theme: GoogleButtonTheme;
-      size: 'large';
+      size: 'medium';
       shape: 'pill';
-      text: GoogleButtonText;
+      text: 'signin_with';
       width: number;
     },
   ): void;
@@ -47,7 +46,6 @@ export class GoogleIdentityService {
 
   async renderWebButton(
     element: HTMLElement,
-    text: GoogleButtonText,
     theme: GoogleButtonTheme,
     onCredential: (idToken: string) => void,
   ): Promise<void> {
@@ -66,9 +64,9 @@ export class GoogleIdentityService {
     google.accounts.id.renderButton(element, {
       type: 'standard',
       theme,
-      size: 'large',
+      size: 'medium',
       shape: 'pill',
-      text,
+      text: 'signin_with',
       width: Math.min(320, Math.max(240, element.clientWidth)),
     });
 

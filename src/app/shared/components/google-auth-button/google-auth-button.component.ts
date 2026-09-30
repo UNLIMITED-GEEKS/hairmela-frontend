@@ -24,7 +24,6 @@ export class GoogleAuthButtonComponent {
   private readonly _zone = inject(NgZone);
   private readonly _webButton = viewChild<ElementRef<HTMLElement>>('webButton');
 
-  readonly text = input<'continue_with' | 'signin_with' | 'signup_with'>('continue_with');
   readonly disabled = input(false);
   readonly idToken = output<string>();
   readonly failed = output<void>();
@@ -39,9 +38,7 @@ export class GoogleAuthButtonComponent {
       const theme = this._theme.mode() === 'dark' ? 'outline_dark' : 'outline';
       if (!element) return;
       void this._google
-        .renderWebButton(element, this.text(), theme, (token) =>
-          this._zone.run(() => this.idToken.emit(token)),
-        )
+        .renderWebButton(element, theme, (token) => this._zone.run(() => this.idToken.emit(token)))
         .catch(() => this._zone.run(() => this.failed.emit()));
     });
   }
