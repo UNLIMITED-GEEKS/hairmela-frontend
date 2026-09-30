@@ -44,7 +44,7 @@ export class GoogleAuthButtonComponent {
     if (this.disabled() || this.loading()) return;
     this.loading.set(true);
     try {
-      this.idToken.emit(await this._google.getAndroidIdToken());
+      this.idToken.emit(await this._google.getNativeIdToken());
     } catch {
       this.failed.emit();
     } finally {

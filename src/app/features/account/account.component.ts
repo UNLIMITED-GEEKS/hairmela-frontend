@@ -15,6 +15,8 @@ import { ThemeService } from '../../core/theme/theme.service';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 import { InlineSpinnerComponent } from '../../shared/components/inline-spinner/inline-spinner.component';
 import { GoogleAccountComponent } from './google-account/google-account.component';
+import { AppleAccountComponent } from './apple-account/apple-account.component';
+import { AppPlatformService } from '../../core/native/app-platform.service';
 
 @Component({
   selector: 'app-account',
@@ -31,6 +33,7 @@ import { GoogleAccountComponent } from './google-account/google-account.componen
     CreateSalonCardComponent,
     InlineSpinnerComponent,
     GoogleAccountComponent,
+    AppleAccountComponent,
   ],
 })
 export class AccountComponent {
@@ -38,6 +41,7 @@ export class AccountComponent {
   protected readonly _auth = inject(AuthService);
   protected readonly loggingOut = this._auth.loggingOut;
   protected readonly hasPassword = signal<boolean | null>(null);
+  protected readonly platform = inject(AppPlatformService);
   private readonly _salonContext = inject(SalonContextService);
 
   protected readonly dashboardLink = RoutePath.dashboard();

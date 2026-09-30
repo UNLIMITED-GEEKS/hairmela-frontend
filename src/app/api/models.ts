@@ -7,6 +7,10 @@ export type { AdHocUploadResponseDto } from './models/ad-hoc-upload-response-dto
 export type { ApnsSubscribeDto } from './models/apns-subscribe-dto';
 export type { ApnsUnsubscribeDto } from './models/apns-unsubscribe-dto';
 export type { AppConfigResponseDto } from './models/app-config-response-dto';
+export type { AppleAuthDto } from './models/apple-auth-dto';
+export type { AppleLinkDto } from './models/apple-link-dto';
+export type { AppleLinkStatusDto } from './models/apple-link-status-dto';
+export type { AppleSetPasswordDto } from './models/apple-set-password-dto';
 export type { AttachMediaDto } from './models/attach-media-dto';
 export type { AuthTokensDto } from './models/auth-tokens-dto';
 export type { AvailableSlotDto } from './models/available-slot-dto';

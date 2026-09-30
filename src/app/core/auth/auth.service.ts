@@ -20,6 +20,10 @@ import { GoogleAuthDto } from '../../api/models/google-auth-dto';
 import { GoogleLinkDto } from '../../api/models/google-link-dto';
 import { GoogleSetPasswordDto } from '../../api/models/google-set-password-dto';
 import { GoogleLinkStatusDto } from '../../api/models/google-link-status-dto';
+import { AppleAuthDto } from '../../api/models/apple-auth-dto';
+import { AppleLinkDto } from '../../api/models/apple-link-dto';
+import { AppleLinkStatusDto } from '../../api/models/apple-link-status-dto';
+import { AppleSetPasswordDto } from '../../api/models/apple-set-password-dto';
 import { UserResponseDto } from '../../api/models/user-response-dto';
 import { authControllerLogin } from '../../api/fn/auth/auth-controller-login';
 import { authControllerRegister } from '../../api/fn/auth/auth-controller-register';
@@ -32,6 +36,10 @@ import { googleAuthControllerSignIn } from '../../api/fn/auth/google-auth-contro
 import { googleAuthControllerLink } from '../../api/fn/auth/google-auth-controller-link';
 import { googleAuthControllerGetStatus } from '../../api/fn/auth/google-auth-controller-get-status';
 import { googleAuthControllerSetPassword } from '../../api/fn/auth/google-auth-controller-set-password';
+import { appleAuthControllerSignIn } from '../../api/fn/auth/apple-auth-controller-sign-in';
+import { appleAuthControllerLink } from '../../api/fn/auth/apple-auth-controller-link';
+import { appleAuthControllerGetStatus } from '../../api/fn/auth/apple-auth-controller-get-status';
+import { appleAuthControllerSetPassword } from '../../api/fn/auth/apple-auth-controller-set-password';
 import { RoutePath } from '../routing/route-paths';
 import { PayloadEncryptionService } from '../payload-encryption/payload-encryption.service';
 
@@ -94,6 +102,32 @@ export class AuthService {
     return googleAuthControllerSetPassword(this._http, this._apiConfig.rootUrl, { body: dto }).pipe(
       map(() => undefined),
     );
+  }
+
+  appleSignIn(dto: AppleAuthDto): Observable<UserResponseDto> {
+    return appleAuthControllerSignIn(this._http, this._apiConfig.rootUrl, { body: dto }).pipe(
+      switchMap((res) =>
+        this._establishAuthenticatedSession(res.body.accessToken, res.body.refreshToken),
+      ),
+    );
+  }
+
+  appleLink(dto: AppleLinkDto): Observable<void> {
+    return appleAuthControllerLink(this._http, this._apiConfig.rootUrl, { body: dto }).pipe(
+      map(() => undefined),
+    );
+  }
+
+  appleLinkStatus(): Observable<AppleLinkStatusDto> {
+    return appleAuthControllerGetStatus(this._http, this._apiConfig.rootUrl).pipe(
+      map((res) => res.body),
+    );
+  }
+
+  appleSetPassword(dto: AppleSetPasswordDto): Observable<void> {
+    return appleAuthControllerSetPassword(this._http, this._apiConfig.rootUrl, {
+      body: dto,
+    }).pipe(map(() => undefined));
   }
 
   private _establishAuthenticatedSession(

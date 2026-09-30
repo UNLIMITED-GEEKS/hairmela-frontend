@@ -1,9 +1,8 @@
-import { Component, OnInit, inject, output, signal } from '@angular/core';
+import { Component, OnInit, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ErrorCodes } from '../../../core/errors/error-codes';
 import { isApiError } from '../../../core/errors/api-error.types';
-import { AppPlatformService } from '../../../core/native/app-platform.service';
 import { GoogleAuthButtonComponent } from '../../../shared/components/google-auth-button/google-auth-button.component';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 
@@ -14,9 +13,9 @@ import { InlineSpinnerComponent } from '../../../shared/components/inline-spinne
 })
 export class GoogleAccountComponent implements OnInit {
   private readonly _auth = inject(AuthService);
-  protected readonly platform = inject(AppPlatformService);
 
   readonly passwordStatus = output<boolean>();
+  readonly knownHasPassword = input<boolean | null>(null);
 
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
@@ -26,6 +25,12 @@ export class GoogleAccountComponent implements OnInit {
   protected readonly errorMessage = signal<string | null>(null);
   protected currentPassword = '';
   protected newPassword = '';
+
+  constructor() {
+    effect(() => {
+      if (this.knownHasPassword() === true) this.hasPassword.set(true);
+    });
+  }
 
   ngOnInit(): void {
     this._auth.googleLinkStatus().subscribe({

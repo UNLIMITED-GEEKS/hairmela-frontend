@@ -90,8 +90,19 @@
         </div>
       }
       <div class="mb-3">
-        <app-google-account (passwordStatus)="hasPassword.set($event)" />
+        <app-google-account
+          [knownHasPassword]="hasPassword()"
+          (passwordStatus)="hasPassword.set($event)"
+        />
       </div>
+      @if (platform.shell === 'ios') {
+        <div class="mb-3">
+          <app-apple-account
+            [knownHasPassword]="hasPassword()"
+            (passwordStatus)="hasPassword.set($event)"
+          />
+        </div>
+      }
       <div class="mb-3">
         <app-notifications-toggle />
       </div>

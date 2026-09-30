@@ -9,5 +9,9 @@
 		<string>applinks:hairmela.com</string>
 		<string>applinks:dev-hairmela.vercel.app</string>
 	</array>
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
 </dict>
 </plist>

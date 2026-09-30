@@ -22,6 +22,8 @@ import { AppPlatformService } from '../../../core/native/app-platform.service';
 import { PhoneInputComponent } from '../../../shared/components/phone-input/phone-input.component';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 import { GoogleAuthButtonComponent } from '../../../shared/components/google-auth-button/google-auth-button.component';
+import { AppleAuthButtonComponent } from '../../../shared/components/apple-auth-button/apple-auth-button.component';
+import { AppleIdentityCredential } from '../../../core/auth/apple-identity.service';
 
 @Component({
   selector: 'app-register',
@@ -34,6 +36,7 @@ import { GoogleAuthButtonComponent } from '../../../shared/components/google-aut
     PhoneInputComponent,
     InlineSpinnerComponent,
     GoogleAuthButtonComponent,
+    AppleAuthButtonComponent,
   ],
   templateUrl: './register.component.html',
 })
@@ -79,6 +82,7 @@ export class RegisterComponent {
     const lastName = this.form.controls.lastName.value.trim() || undefined;
     const dto = {
       idToken,
+      createOrganization: true,
       ...(guestToken ? { guestToken } : {}),
       ...(firstName ? { firstName } : {}),
       ...(lastName ? { lastName } : {}),
@@ -94,6 +98,34 @@ export class RegisterComponent {
 
   protected googleUnavailable(): void {
     this.errorMessage.set('Google sign-up could not be opened. Please try again.');
+  }
+
+  protected appleSignIn(credential: AppleIdentityCredential): void {
+    if (this.loading()) return;
+    this.errorMessage.set(null);
+    this.loading.set(true);
+    const guestToken = this._guestStore.getToken() ?? undefined;
+    const firstName = this.form.controls.firstName.value.trim() || credential.firstName;
+    const lastName = this.form.controls.lastName.value.trim() || credential.lastName;
+    this._auth
+      .appleSignIn({
+        idToken: credential.idToken,
+        createOrganization: true,
+        ...(guestToken ? { guestToken } : {}),
+        ...(firstName ? { firstName } : {}),
+        ...(lastName ? { lastName } : {}),
+      })
+      .subscribe({
+        next: () => {
+          this._guestStore.clear();
+          void this._router.navigateByUrl(this.returnUrl ?? RoutePath.dashboard()[0]);
+        },
+        error: (err) => this._handleAppleError(err),
+      });
+  }
+
+  protected appleUnavailable(): void {
+    this.errorMessage.set('Apple sign-up could not be opened. Please try again.');
   }
 
   protected submit(): void {
@@ -172,5 +204,37 @@ export class RegisterComponent {
       }
     }
     this.errorMessage.set('Google sign-up failed. Please try again.');
+  }
+
+  private _handleAppleError(err: unknown): void {
+    this.loading.set(false);
+    const body = (err as { error?: unknown })?.error;
+    if (isApiError(body)) {
+      if (body.code === ErrorCodes.APPLE_LINK_REQUIRED) {
+        this.errorMessage.set(
+          'This email already has a HairMela account. Sign in with your password, then link Apple from Account settings.',
+        );
+        return;
+      }
+      if (body.code === ErrorCodes.APPLE_PROFILE_INCOMPLETE) {
+        this.errorMessage.set(
+          'Enter your first and last name above, then continue with Apple again.',
+        );
+        return;
+      }
+      if (body.code === ErrorCodes.APPLE_AUTH_DISABLED) {
+        this.errorMessage.set('Apple sign-up is temporarily unavailable.');
+        return;
+      }
+      if (body.code === ErrorCodes.APPLE_TOKEN_INVALID) {
+        this.errorMessage.set('Apple could not verify this sign-up. Please try again.');
+        return;
+      }
+      if (body.code === ErrorCodes.IDENTITY_CONFLICT) {
+        this.errorMessage.set('This Apple identity is already connected to another account.');
+        return;
+      }
+    }
+    this.errorMessage.set('Apple sign-up failed. Please try again.');
   }
 }

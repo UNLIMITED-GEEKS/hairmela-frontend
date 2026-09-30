@@ -39,8 +39,8 @@ export class GoogleIdentityService {
   private _scriptPromise: Promise<void> | null = null;
   private _nativeInitialized = false;
 
-  readonly available = this._platform.shell !== 'ios';
-  readonly usesNativeButton = this._platform.shell === 'android';
+  readonly available = true;
+  readonly usesNativeButton = this._platform.isNative;
 
   async renderWebButton(
     element: HTMLElement,
@@ -78,7 +78,7 @@ export class GoogleIdentityService {
     googleFrame?.style.setProperty('clip-path', 'inset(5px 11px 7px round 9999px)');
   }
 
-  async getAndroidIdToken(): Promise<string> {
+  async getNativeIdToken(): Promise<string> {
     if (!this.usesNativeButton) throw new Error('Google sign-in is unavailable on this platform.');
     const { GoogleSignIn } = await import('@capawesome/capacitor-google-sign-in');
     if (!this._nativeInitialized) {

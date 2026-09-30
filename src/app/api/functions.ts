@@ -41,6 +41,14 @@ export type { GoogleAuthControllerSetPassword$Params as GoogleAuthControllerSetP
 export { googleAuthControllerSetPassword as googleAuthControllerSetPassword } from './fn/auth/google-auth-controller-set-password';
 export type { GoogleAuthControllerGetStatus$Params as GoogleAuthControllerGetStatus$Params } from './fn/auth/google-auth-controller-get-status';
 export { googleAuthControllerGetStatus as googleAuthControllerGetStatus } from './fn/auth/google-auth-controller-get-status';
+export type { AppleAuthControllerSignIn$Params as AppleAuthControllerSignIn$Params } from './fn/auth/apple-auth-controller-sign-in';
+export { appleAuthControllerSignIn as appleAuthControllerSignIn } from './fn/auth/apple-auth-controller-sign-in';
+export type { AppleAuthControllerLink$Params as AppleAuthControllerLink$Params } from './fn/auth/apple-auth-controller-link';
+export { appleAuthControllerLink as appleAuthControllerLink } from './fn/auth/apple-auth-controller-link';
+export type { AppleAuthControllerSetPassword$Params as AppleAuthControllerSetPassword$Params } from './fn/auth/apple-auth-controller-set-password';
+export { appleAuthControllerSetPassword as appleAuthControllerSetPassword } from './fn/auth/apple-auth-controller-set-password';
+export type { AppleAuthControllerGetStatus$Params as AppleAuthControllerGetStatus$Params } from './fn/auth/apple-auth-controller-get-status';
+export { appleAuthControllerGetStatus as appleAuthControllerGetStatus } from './fn/auth/apple-auth-controller-get-status';
 export type { OrganizationsControllerFindMine$Params as OrganizationsControllerFindMine$Params } from './fn/organizations/organizations-controller-find-mine';
 export { organizationsControllerFindMine as organizationsControllerFindMine } from './fn/organizations/organizations-controller-find-mine';
 export type { OrganizationsControllerFindOne$Params as OrganizationsControllerFindOne$Params } from './fn/organizations/organizations-controller-find-one';
