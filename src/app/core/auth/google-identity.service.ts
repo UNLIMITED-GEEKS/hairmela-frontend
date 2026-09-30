@@ -78,7 +78,7 @@ export class GoogleIdentityService {
     googleWrapper?.style.setProperty('height', '32px');
     googleWrapper?.style.setProperty('overflow', 'hidden');
     googleWrapper?.style.setProperty('background-color', 'var(--color-surface-card)');
-    googleFrame?.style.setProperty('clip-path', 'inset(3px 10px 6px round 9999px)');
+    googleFrame?.style.setProperty('clip-path', 'inset(4px 11px 7px round 9999px)');
   }
 
   async getAndroidIdToken(): Promise<string> {
