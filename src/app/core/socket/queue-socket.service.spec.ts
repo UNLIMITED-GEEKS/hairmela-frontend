@@ -20,6 +20,7 @@ const fakeEncryption = {
   sessionChanged$: new Subject<void>(),
   socketSessionIsCurrent: () => true,
   ensureSession: async () => null,
+  invalidate: vi.fn(),
   encryptSocket: async () => null,
   decryptSocket: async <T>(_event: string, payload: T) => payload,
 };
@@ -52,6 +53,7 @@ describe('QueueSocketService — staff-watch refcounting', () => {
   beforeEach(async () => {
     fakeSocket.emit.mockClear();
     fakeSocket.on.mockClear();
+    fakeEncryption.invalidate.mockClear();
     TestBed.configureTestingModule({
       providers: [
         QueueSocketService,
@@ -61,6 +63,28 @@ describe('QueueSocketService — staff-watch refcounting', () => {
     service = TestBed.inject(QueueSocketService);
     service.connect();
     await vi.waitFor(() => expect(fakeSocket.on).toHaveBeenCalled());
+  });
+
+  it('renews the encryption session after a server disconnect', async () => {
+    const disconnectHandler = fakeSocket.on.mock.calls.find(
+      ([event]) => event === 'disconnect',
+    )?.[1] as ((reason: string) => void) | undefined;
+
+    expect(disconnectHandler).toBeDefined();
+    disconnectHandler?.('io server disconnect');
+
+    expect(fakeEncryption.invalidate).toHaveBeenCalledOnce();
+    await vi.waitFor(() => expect(fakeSocket.on).toHaveBeenCalledTimes(10));
+  });
+
+  it('leaves transport-close reconnection to Socket.IO', () => {
+    const disconnectHandler = fakeSocket.on.mock.calls.find(
+      ([event]) => event === 'disconnect',
+    )?.[1] as ((reason: string) => void) | undefined;
+
+    disconnectHandler?.('transport close');
+
+    expect(fakeEncryption.invalidate).not.toHaveBeenCalled();
   });
 
   it('joins the staff room on first watch', async () => {

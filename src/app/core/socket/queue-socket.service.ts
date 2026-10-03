@@ -124,8 +124,19 @@ export class QueueSocketService implements OnDestroy {
       this._rejoinAll();
     });
 
-    this._socket.on('disconnect', () => {
+    this._socket.on('disconnect', (reason) => {
       this._connectionState$.next('reconnecting');
+
+      // A server-initiated disconnect disables Socket.IO's automatic
+      // reconnection. The backend uses exactly that path when the short-lived
+      // payload-encryption ticket expires, so keeping the old socket here left
+      // the app permanently "reconnecting". Establish a fresh encryption
+      // session and socket; _rejoinAll() restores every active queue watch.
+      if (reason === 'io server disconnect') {
+        this._encryption.invalidate();
+        this._socket = null;
+        queueMicrotask(() => this.connect());
+      }
     });
 
     this._socket.on('connect_error', () => {
