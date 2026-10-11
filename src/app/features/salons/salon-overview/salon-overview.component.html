@@ -4,7 +4,7 @@
        generic list items. A skeleton shaped like what replaces it reads as the
        page arriving; a mismatched one reads as a different screen flashing
        past. Same approach as the dashboard. -->
-  <div class="p-6 space-y-4">
+  <div class="px-4 py-5 space-y-6">
     <!-- Trial / status banner -->
     <app-skeleton variant="block" height="3.5rem" rounded="rounded-xl" />
 
@@ -20,16 +20,25 @@
       </div>
     </div>
 
-    <!-- Shortcuts grid. The first tile spans both columns in the real layout
-         (the primary "My Queue" bar), so the skeleton does too rather than
-         showing four equal squares the page never has. -->
-    <div class="grid grid-cols-2 gap-3 pt-2">
-      <div class="col-span-2">
-        <app-skeleton variant="block" height="4rem" rounded="rounded-2xl" />
+    <!-- Quick access row and secondary actions -->
+    <div class="space-y-3 pt-2">
+      <app-skeleton variant="block" height="1.5rem" width="8rem" rounded="rounded" />
+      <div class="flex gap-3 overflow-hidden">
+        @for (tile of [1, 2, 3, 4, 5]; track tile) {
+          <app-skeleton
+            variant="block"
+            height="8rem"
+            width="7rem"
+            rounded="rounded-2xl"
+          />
+        }
       </div>
-      @for (tile of [1, 2, 3, 4]; track tile) {
-        <app-skeleton variant="block" height="5rem" rounded="rounded-2xl" />
-      }
+      <app-skeleton variant="block" height="1.5rem" width="8rem" rounded="rounded" />
+      <div class="grid grid-cols-2 gap-3">
+        @for (action of [1, 2, 3, 4]; track action) {
+          <app-skeleton variant="block" height="5rem" rounded="rounded-2xl" />
+        }
+      </div>
     </div>
 
     <!-- Toggle row and pending invites -->
@@ -49,7 +58,7 @@
     </button>
   </div>
 } @else if (salon(); as salon) {
-  <div class="p-6 space-y-4">
+  <div class="px-4 py-5 space-y-6">
     <app-tier-banner />
     <app-frozen-banner />
     <app-no-photo-banner />
@@ -65,280 +74,517 @@
     </div>
 
     <!-- Header -->
-    <div class="flex items-start gap-4">
-      <div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-        <span class="text-2xl font-extrabold text-primary">
-          {{ salon.name.charAt(0).toUpperCase() }}
-        </span>
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex min-w-0 items-center gap-3">
+        <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10">
+          @if (staffProfilePhoto(); as profilePhoto) {
+            <img
+              [src]="profilePhoto.url | mediaUrl: 'thumb'"
+              alt="Your profile photo"
+              class="h-full w-full rounded-full object-cover"
+            />
+          } @else {
+            <span class="text-2xl font-extrabold text-primary">
+              {{ user()?.firstName?.charAt(0)?.toUpperCase() ?? salon.name.charAt(0).toUpperCase() }}
+            </span>
+          }
+        </div>
+        <div class="min-w-0">
+          <h1 class="truncate text-xl font-semibold font-family-lora text-text-primary">
+            {{ greeting }}, {{ user()?.firstName }}
+          </h1>
+          <p class="truncate text-sm text-text-secondary">
+            {{ salon.name }} · {{ myStaff()?.role }}
+          </p>
+          @if (isStaff() && queueStatus(); as status) {
+            <p class="mt-1 text-xs font-medium" [class]="status === 'OPEN' ? 'text-green-500' : 'text-text-secondary'">
+              {{ status === 'OPEN' ? '● Open' : status === 'PAUSED' ? '● Paused' : '● Closed' }}
+            </p>
+          }
+        </div>
       </div>
-      <div class="min-w-0">
-        <h2 class="text-xl font-bold text-text-primary leading-tight truncate">{{ salon.name }}</h2>
-        <p class="text-sm text-text-secondary mt-0.5">
-          {{ salon.address.city }}, {{ salon.address.country }}
-        </p>
-        @if (myStaff(); as staff) {
-          <span
-            [class]="
-              'inline-block mt-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full ' +
-              (isOwnerOrAdmin()
-                ? 'bg-primary/10 text-primary'
-                : 'bg-surface-overlay text-text-muted')
-            "
-          >
-            {{ staff.role }}
-          </span>
-        }
-      </div>
+      <a
+        [routerLink]="notificationsLink"
+        aria-label="Notifications"
+        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-card text-text-secondary"
+      >
+        <app-icon name="bell" class="h-5 w-5" />
+      </a>
     </div>
 
-    <!-- Shortcuts grid -->
-    @if (isOwnerOrAdmin()) {
-      <div class="grid grid-cols-2 gap-3">
-        @if (myStaff()?.queueId; as queueId) {
+    @if (isOwnerOrAdmin() && !onlyOneActiveStaff()) {
+      <a
+        [routerLink]="appointmentsHistoryLink(salon.id)"
+        class="relative isolate flex min-h-44 flex-col justify-between overflow-hidden rounded-3xl bg-primary px-5 py-5 text-white transition-colors hover:bg-primary/90"
+      >
+        @if (salonProfilePhoto(); as profilePhoto) {
+          <img
+            [src]="profilePhoto.url | mediaUrl: 'hero'"
+            alt=""
+            class="absolute inset-0 h-full w-full object-cover"
+          />
+        }
+        <div class="absolute inset-0 bg-linear-to-r from-black/95 via-black/80 to-black/55"></div>
+        <div class="relative z-10 flex items-center gap-2 text-sm font-medium">
+          <span class="h-2.5 w-2.5 rounded-full border-2 border-pink-400"></span>
+          All Live Queue Status
+        </div>
+        <div class="relative z-10">
+          @if (monthlySummary(); as summary) {
+            <p class="text-2xl font-bold">{{ summary.currentlyWaiting }} waiting now</p>
+          } @else {
+            <p class="text-2xl font-bold">{{ monthlySummaryLoading() ? 'Loading queue status…' : 'Queue status unavailable' }}</p>
+          }
+          <span class="mt-3 inline-flex items-center gap-1 text-sm font-semibold">
+            View queues <span aria-hidden="true">›</span>
+          </span>
+        </div>
+      </a>
+    }
+
+    @if (liveQueueId(); as queueId) {
+      <a
+        [routerLink]="queueConsoleLink(salon.id, queueId)"
+        class="flex min-h-32 items-center gap-4 rounded-3xl bg-surface-card px-4 py-5 transition-colors hover:bg-surface-overlay"
+      >
+        <span class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary-light text-primary">
+          @if (salonProfilePhoto(); as profilePhoto) {
+            <img [src]="profilePhoto.url | mediaUrl: 'thumb'" alt="" class="h-full w-full object-cover" />
+          } @else {
+            <app-icon name="queue" class="h-7 w-7" />
+          }
+        </span>
+        <span class="min-w-0 flex-1">
+          <span class="flex items-center gap-2 text-xs text-text-secondary">
+            <span class="h-2 w-2 rounded-full bg-pink-500"></span>
+            Your Live Queue
+          </span>
+          <span class="mt-1 block text-lg font-bold text-text-primary">
+            {{ queueLoading() ? 'Loading queue…' : queueError() ? 'Queue unavailable' : activeQueueEntries().length + ' in your queue' }}
+          </span>
+          <span class="block text-xs text-text-secondary">View and manage your queue</span>
+        </span>
+        <span class="shrink-0 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white">View</span>
+      </a>
+    }
+    @if (isStaff()) {
+      <a
+        [routerLink]="shareLink(salon.id)"
+        class="flex items-center gap-4 rounded-2xl bg-surface-card px-4 py-4 transition-colors hover:bg-surface-overlay"
+      >
+        <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-secondary-light text-primary">
+          <app-icon name="qr-scan" class="h-6 w-6" />
+        </span>
+        <span class="min-w-0">
+          <span class="block text-sm font-semibold text-text-primary">Share QR code</span>
+          <span class="block text-xs text-text-secondary">Let customers join your queue</span>
+        </span>
+      </a>
+
+      <section aria-labelledby="upcoming-schedule-title">
+        <div class="mb-3 flex items-center justify-between gap-3">
+          <h2 id="upcoming-schedule-title" class="text-lg font-semibold text-text-primary">Upcoming Schedule</h2>
+          @if (myStaff(); as staff) {
+            <a [routerLink]="staffAppointmentsLink(salon.id, staff.id)" class="text-sm font-semibold text-primary">See all</a>
+          }
+        </div>
+        @if (upcomingLoading()) {
+          <app-skeleton variant="block" height="7rem" rounded="rounded-2xl" />
+        } @else if (upcomingError()) {
+          <p class="rounded-2xl bg-surface-card px-4 py-5 text-sm text-text-secondary">Could not load upcoming appointments.</p>
+        } @else if (upcomingAppointments().length) {
+          <div class="space-y-2">
+            @for (entry of upcomingAppointments(); track entry.id) {
+              <a
+                [routerLink]="staffAppointmentsLink(salon.id, entry.staffId)"
+                class="block rounded-2xl bg-surface-card px-4 py-4 transition-colors hover:bg-surface-overlay"
+              >
+                <p class="truncate text-base font-semibold text-text-primary">{{ entry.members[0]?.memberName }}</p>
+                <p class="mt-1 truncate text-sm text-text-secondary">
+                  {{ entry.members[0]?.service?.name ?? 'Appointment' }}
+                </p>
+                <p class="mt-3 rounded-xl bg-surface-overlay px-3 py-2 text-sm font-medium text-text-primary">
+                  {{ entry.scheduledAt | date: 'EEE, MMM d · h:mm a' }}
+                </p>
+              </a>
+            }
+          </div>
+        } @else {
+          <p class="rounded-2xl bg-surface-card px-4 py-5 text-sm text-text-secondary">No upcoming appointments in the next 30 days.</p>
+        }
+      </section>
+
+      <section aria-labelledby="staff-today-title">
+        <div class="mb-3 flex items-center justify-between gap-3">
+          <h2 id="staff-today-title" class="text-lg font-semibold text-text-primary">Today's Overview</h2>
+          <a [routerLink]="myAnalyticsLink(salon.id)" class="text-sm font-semibold text-primary">See all</a>
+        </div>
+        <p class="mb-3 text-xs text-text-secondary">Queue entries added today.</p>
+        @if (myAnalytics.loading()) {
+          <app-skeleton variant="block" height="8rem" rounded="rounded-2xl" />
+        } @else if (myAnalytics.data(); as data) {
+          <div class="grid grid-cols-2 gap-3">
+            <div class="flex min-w-0 items-center rounded-2xl border border-border bg-surface-card p-3 sm:p-4">
+              <div class="flex min-w-0 items-center gap-2 sm:gap-3">
+                <span class="flex  h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary sm:h-12 sm:w-12">
+                  <app-icon name="calendar" class="h-7 w-7 sm:h-8 sm:w-8" />
+                </span>
+                <div class="min-w-0">
+                  <p class="text-xs leading-tight text-text-secondary sm:text-sm">Total bookings</p>
+                  <p class="mt-1 text-xl font-bold leading-tight text-text-primary sm:text-2xl">{{ data.summary.appointments }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="flex min-w-0 items-center rounded-2xl border border-border bg-surface-card p-3 sm:p-4">
+              <div class="flex min-w-0 items-center gap-2 sm:gap-3">
+                <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary sm:h-12 sm:w-12">
+                  <app-icon name="users" class="h-7 w-7 sm:h-8 sm:w-8" />
+                </span>
+                <div class="min-w-0">
+                  <p class="text-xs leading-tight text-text-secondary sm:text-sm">Walk-ins</p>
+                  <p class="mt-1 text-xl font-bold leading-tight text-text-primary sm:text-2xl">{{ data.summary.walkIns }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="flex min-w-0 items-center rounded-2xl border border-border bg-surface-card p-3 sm:p-4">
+              <div class="flex min-w-0 items-center gap-2 sm:gap-3">
+                <span class="flex  h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-2xl font-semibold text-primary sm:h-12 sm:w-12 sm:text-3xl">
+                  {{ currencySymbol(salon.currency) }}
+                </span>
+                <div class="min-w-0">
+                  <p class="text-xs leading-tight text-text-secondary sm:text-sm">Revenue</p>
+                  <p class="mt-1 break-all text-lg font-bold leading-tight text-text-primary sm:text-2xl">
+                    {{ data.summary.totalRevenue | currencyNgn: salon.currency }}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="flex min-w-0 items-center rounded-2xl border border-border bg-surface-card p-3 sm:p-4">
+              <div class="flex min-w-0 items-center gap-2 sm:gap-3">
+                <span class="flex  h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary sm:h-12 sm:w-12">
+                  <app-icon name="users" class="h-7 w-7 sm:h-8 sm:w-8" />
+                </span>
+                <div class="min-w-0">
+                  <p class="text-xs leading-tight text-text-secondary sm:text-sm">Total served</p>
+                  <p class="mt-1 text-xl font-bold leading-tight text-text-primary sm:text-2xl">{{ data.summary.totalServed }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        } @else {
+          <p class="rounded-2xl bg-surface-card px-4 py-5 text-sm text-text-secondary">Could not load today's overview.</p>
+        }
+      </section>
+
+      @if (myStaff()?.queueId; as queueId) {
+        <section aria-labelledby="staff-queue-list-title">
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <h2 id="staff-queue-list-title" class="text-lg font-semibold text-text-primary">Queue List</h2>
+            <a [routerLink]="queueCustomersLink(salon.id, queueId)" class="text-sm font-semibold text-primary">See all</a>
+          </div>
+          @if (queueLoading()) {
+            <app-skeleton variant="list-item" [count]="2" />
+          } @else if (queueError()) {
+            <p class="rounded-2xl bg-surface-card px-4 py-5 text-sm text-text-secondary">Could not load your queue.</p>
+          } @else if (queueList().length) {
+            <div class="space-y-2">
+              @for (entry of queueList(); track entry.entryId) {
+                <a
+                  [routerLink]="queueCustomersLink(salon.id, queueId)"
+                  class="flex items-center gap-3 rounded-2xl bg-surface-card px-4 py-3 transition-colors hover:bg-surface-overlay"
+                >
+                  <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-light text-sm font-semibold text-primary">
+                    {{ entry.members[0]?.memberName?.charAt(0)?.toUpperCase() ?? '•' }}
+                  </span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-sm font-semibold text-text-primary">{{ entry.members[0]?.memberName }}</span>
+                    <span class="block truncate text-xs text-text-secondary">
+                      {{ entry.members[0]?.serviceName ?? 'Service' }} ·
+                      {{ entry.position === 0 ? 'Serving now' : entry.estimatedWaitMinutes + ' min wait' }}
+                    </span>
+                  </span>
+                  <span aria-hidden="true" class="text-xl text-primary">›</span>
+                </a>
+              }
+            </div>
+          } @else {
+            <p class="rounded-2xl bg-surface-card px-4 py-5 text-sm text-text-secondary">No customers waiting right now.</p>
+          }
+        </section>
+      }
+    }
+
+    @if (isOwnerOrAdmin() && monthlySummary(); as summary) {
+      <section aria-labelledby="activity-overview-title">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 id="activity-overview-title" class="text-lg font-semibold text-text-primary">
+            Activity Overview
+          </h2>
+          <span class="inline-flex items-center gap-2 rounded-xl bg-surface-card px-2.5 py-2 text-xs text-text-primary">
+            <app-icon name="overview-calendar" class="h-4 w-4 text-text-secondary" />
+            {{ summary.from | date: 'MMMM y' }}
+          </span>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <div class="flex min-h-30 min-w-0 flex-col rounded-2xl bg-surface-card p-3">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <app-icon name="users" class="h-6 w-6" />
+            </span>
+            <p class="mt-3 text-[clamp(1rem,5vw,1.5rem)] font-bold leading-tight text-text-primary">{{ summary.totalServed }}</p>
+            <p class="mt-1 text-xs text-text-secondary">Total served</p>
+          </div>
+          <div class="flex min-h-30 min-w-0 flex-col rounded-2xl bg-surface-card p-3">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary-light text-primary">
+              <app-icon name="overview-calendar" class="h-6 w-6" />
+            </span>
+            <p class="mt-3 text-[clamp(1rem,5vw,1.5rem)] font-bold leading-tight text-text-primary">{{ summary.appointments }}</p>
+            <p class="mt-1 text-xs text-text-secondary">Appointments</p>
+          </div>
+          <div class="flex min-h-30 min-w-0 flex-col rounded-2xl bg-surface-card p-3">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-success-light text-success-text">
+              <app-icon name="overview-cash" class="h-6 w-6" />
+            </span>
+            <p class="mt-3 break-all text-[clamp(1rem,5vw,1.5rem)] font-bold leading-tight text-text-primary">
+              {{ summary.totalRevenue | currencyNgn: salon.currency }}
+            </p>
+            <p class="mt-1 text-xs text-text-secondary">Revenue</p>
+          </div>
+        </div>
+      </section>
+    }
+
+    <section aria-labelledby="quick-access-title">
+      <h2 id="quick-access-title" class="mb-3 text-lg font-semibold text-text-primary">
+        Quick Access
+      </h2>
+      <div [class]="isStaff() ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-5 gap-2'">
+        @if (isOwnerOrAdmin()) {
+          <a
+            [routerLink]="shareLink(salon.id)"
+            class="flex h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-xl bg-primary px-1 text-center text-white transition-colors hover:bg-primary/90"
+          >
+            <app-icon name="share" class="h-5 w-5" />
+            <span class="text-[10px] font-medium leading-tight">Share</span>
+          </a>
+        } @else if (myStaff()?.queueId; as queueId) {
           <a
             [routerLink]="queueConsoleLink(salon.id, queueId)"
-            class="col-span-2 flex items-center gap-3 bg-primary text-white rounded-2xl px-4 py-4 hover:bg-primary/90 transition-colors"
+            class="flex h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-xl bg-primary px-1 text-center text-white transition-colors hover:bg-primary/90"
           >
-            <svg
-              class="w-5 h-5 shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.48-.634-2.07M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.768.231-1.48.634-2.07m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
-            <div>
-              <span class="text-sm font-semibold">My Queue</span>
-              <span class="block text-xs text-white/70">Open your queue console</span>
-            </div>
-          </a>
-          <button
-            type="button"
-            (click)="openCreateAppointment(queueId)"
-            class="col-span-2 flex items-center gap-3 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors"
-          >
-            <app-icon name="clock" class="w-5 h-5 shrink-0 text-primary" />
-            <div>
-              <span class="text-sm font-semibold text-text-primary"
-                >Create appointment for customer</span
-              >
-              <span class="block text-xs text-start text-text-secondary"
-                >Choose their service, date, and time</span
-              >
-            </div>
-          </button>
-          <button
-            type="button"
-            (click)="copyMyQueueLink(salon.slug, queueId)"
-            class="col-span-2 flex items-center gap-3 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors text-left"
-          >
-            <svg
-              class="w-5 h-5 shrink-0 text-primary"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-              />
-            </svg>
-            <div>
-              <span class="text-sm font-semibold text-text-primary">Copy my queue link</span>
-              <span class="block text-xs text-text-secondary">Share it with a client directly</span>
-            </div>
-          </button>
-          <a
-            [routerLink]="howItWorksLink"
-            class="col-span-2 flex items-center gap-3 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors"
-          >
-            <app-icon name="help-circle" class="w-5 h-5 shrink-0 text-primary" />
-            <div>
-              <span class="text-sm font-semibold text-text-primary">Need help?</span>
-              <span class="block text-xs text-text-secondary"
-                >See a quick guide for customers, salon owners, and staff to understand how hairmela
-                works</span
-              >
-            </div>
+            <app-icon name="queue" class="h-5 w-5" />
+            <span class="text-[10px] font-medium leading-tight">Queue</span>
           </a>
         }
-        <a
-          [routerLink]="staffLink(salon.id)"
-          class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors"
-        >
-          <span class="text-sm font-semibold text-text-primary">Staff</span>
-          <span class="text-xs text-text-secondary">Manage your team</span>
-        </a>
-        <a
-          [routerLink]="servicesLink(salon.id)"
-          class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors"
-        >
-          <span class="text-sm font-semibold text-text-primary">Services</span>
-          <span class="text-xs text-text-secondary">Manage services</span>
-        </a>
-        <a
-          [routerLink]="settingsLink(salon.id)"
-          class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors"
-        >
-          <span class="text-sm font-semibold text-text-primary">Settings</span>
-          <span class="text-xs text-text-secondary">Hours & preferences</span>
-        </a>
-        <a
-          [routerLink]="analyticsLink(salon.id)"
-          class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors"
-        >
-          <span class="text-sm font-semibold text-text-primary">Analytics</span>
-          <span class="text-xs text-text-secondary">Queue insights</span>
-        </a>
-        @if (myStaff(); as staff) {
-          <a
-            [routerLink]="staffAppointmentsLink(salon.id, staff.id)"
-            class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors"
-          >
-            <span class="text-sm font-semibold text-text-primary">My Appointments</span>
-            <span class="text-xs text-text-secondary">View your bookings</span>
-          </a>
-        }
-        @if (!salon.parentId) {
-          <a
-            [routerLink]="newBranchLink()"
-            [queryParams]="newBranchQueryParams(salon.id, salon.name)"
-            class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors"
-          >
-            <span class="text-sm font-semibold text-text-primary">Create a new branch</span>
-            <span class="text-xs text-text-secondary">Open another location</span>
-          </a>
-        }
-        <a
-          [routerLink]="shareLink(salon.id)"
-          class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors"
-        >
-          <span class="text-sm font-semibold text-text-primary">Share</span>
-          <span class="text-xs text-text-secondary">QR code & link</span>
-        </a>
-      </div>
-    } @else if (isStaff()) {
-      <div class="grid grid-cols-2 gap-3">
-        @if (myStaff()?.queueId; as queueId) {
-          <a
-            [routerLink]="queueConsoleLink(salon.id, queueId)"
-            class="col-span-2 flex items-center gap-3 bg-primary text-white rounded-2xl px-4 py-4 hover:bg-primary/90 transition-colors"
-          >
-            <svg
-              class="w-5 h-5 shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.48-.634-2.07M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.768.231-1.48.634-2.07m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
-            <div>
-              <span class="text-sm font-semibold">My Queue</span>
-              <span class="block text-xs text-white/70">Open your queue console</span>
-            </div>
-          </a>
-          <button
-            type="button"
-            (click)="openCreateAppointment(queueId)"
-            class="col-span-2 flex items-center gap-3 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors"
-          >
-            <app-icon name="clock" class="w-5 h-5 shrink-0 text-primary" />
-            <div>
-              <span class="text-sm font-semibold text-text-primary"
-                >Create appointment for customer</span
-              >
-              <span class="block text-xs text-text-secondary"
-                >Choose their service, date, and time</span
-              >
-            </div>
-          </button>
-          <button
-            type="button"
-            (click)="copyMyQueueLink(salon.slug, queueId)"
-            class="col-span-2 flex items-center gap-3 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors text-left"
-          >
-            <svg
-              class="w-5 h-5 shrink-0 text-primary"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-              />
-            </svg>
-            <div>
-              <span class="text-sm font-semibold text-text-primary">Copy my queue link</span>
-              <span class="block text-xs text-text-secondary">Share it with a client directly</span>
-            </div>
-          </button>
-          <a
-            [routerLink]="howItWorksLink"
-            class="col-span-2 flex items-center gap-3 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors"
-          >
-            <app-icon name="help-circle" class="w-5 h-5 shrink-0 text-primary" />
-            <div>
-              <span class="text-sm font-semibold text-text-primary">Need help?</span>
-              <span class="block text-xs text-text-secondary"
-                >See a quick guide for customers, salon owners, and staff to understand how hairmela
-                works</span
-              >
-            </div>
-          </a>
-        }
-        @if (myStaff(); as staff) {
-          <a
-            [routerLink]="myServicesLink(salon.id, staff.id)"
-            class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors"
-          >
-            <span class="text-sm font-semibold text-text-primary">My Services</span>
-            <span class="text-xs text-text-secondary">View assigned services</span>
-          </a>
-          <a
-            [routerLink]="staffAppointmentsLink(salon.id, staff.id)"
-            class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors"
-          >
-            <span class="text-sm font-semibold text-text-primary">My Appointments</span>
-            <span class="text-xs text-text-secondary">View your bookings</span>
-          </a>
-        }
-        <a
-          [routerLink]="shareLink(salon.id)"
-          class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors"
-        >
-          <span class="text-sm font-semibold text-text-primary">Share</span>
-          <span class="text-xs text-text-secondary">QR code & link</span>
-        </a>
-        @if (myStaff(); as staff) {
+        @if (isStaff() && myStaff(); as staff) {
           <a
             [routerLink]="myPhotosLink(salon.id, staff.id)"
-            class="flex flex-col gap-1 bg-surface-card border border-border rounded-2xl px-4 py-4 hover:bg-surface-overlay transition-colors"
+            class="flex h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-xl bg-primary px-1 text-center text-white transition-colors hover:bg-primary/90"
+          >
+            <app-icon name="photos" class="h-5 w-5" />
+            <span class="text-[10px] font-medium leading-tight">Photos</span>
+          </a>
+        } @else {
+          <a
+            [routerLink]="staffLink(salon.id)"
+            class="flex h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-xl bg-primary px-1 text-center text-white transition-colors hover:bg-primary/90"
+          >
+            <app-icon name="person" class="h-5 w-5" />
+            <span class="text-[10px] font-medium leading-tight">Staff</span>
+          </a>
+        }
+        @if (isStaff() && myStaff(); as staff) {
+          <a
+            [routerLink]="myServicesLink(salon.id, staff.id)"
+            class="flex h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-xl bg-primary px-1 text-center text-white transition-colors hover:bg-primary/90"
+          >
+            <app-icon name="scissors" class="h-5 w-5" />
+            <span class="text-[10px] font-medium leading-tight">Services</span>
+          </a>
+        } @else {
+          <a
+            [routerLink]="servicesLink(salon.id)"
+            class="flex h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-xl bg-primary px-1 text-center text-white transition-colors hover:bg-primary/90"
+          >
+            <app-icon name="scissors" class="h-5 w-5" />
+            <span class="text-[10px] font-medium leading-tight">Services</span>
+          </a>
+        }
+        @if (isStaff() && myStaff()?.queueId; as queueId) {
+          <a
+            [routerLink]="queueCustomersLink(salon.id, queueId)"
+            class="flex h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-xl bg-primary px-1 text-center text-white transition-colors hover:bg-primary/90"
+          >
+            <app-icon name="person-add" class="h-5 w-5" />
+            <span class="text-[10px] font-medium leading-tight">Customers</span>
+          </a>
+        } @else if (isOwnerOrAdmin()) {
+          <a
+            [routerLink]="settingsLink(salon.id)"
+            class="flex h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-xl bg-primary px-1 text-center text-white transition-colors hover:bg-primary/90"
+          >
+            <app-icon name="settings-gear" class="h-5 w-5" />
+            <span class="text-[10px] font-medium leading-tight">Settings</span>
+          </a>
+        }
+        @if (isOwnerOrAdmin()) {
+          <a
+            [routerLink]="analyticsLink(salon.id)"
+            class="flex h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-xl bg-primary px-1 text-center text-white transition-colors hover:bg-primary/90"
+          >
+            <app-icon name="analytics" class="h-5 w-5" />
+            <span class="text-[10px] font-medium leading-tight">Analytics</span>
+          </a>
+        } @else if (myStaff(); as staff) {
+          <a
+            [routerLink]="staffAppointmentsLink(salon.id, staff.id)"
+            class="flex h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-xl bg-primary px-1 text-center text-white transition-colors hover:bg-primary/90"
+          >
+            <app-icon name="clock" class="h-5 w-5" />
+            <span class="text-[10px] font-medium leading-tight">Appointments</span>
+          </a>
+        }
+        @if (isStaff()) {
+          <a
+            [routerLink]="myAnalyticsLink(salon.id)"
+            class="flex h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-xl bg-primary px-1 text-center text-white transition-colors hover:bg-primary/90"
+          >
+            <app-icon name="analytics" class="h-5 w-5" />
+            <span class="text-[10px] font-medium leading-tight">My analytics</span>
+          </a>
+        }
+      </div>
+    </section>
+
+    <section aria-labelledby="more-actions-title">
+      <h2 id="more-actions-title" class="mb-3 text-lg font-semibold text-text-primary">
+        More actions
+      </h2>
+      <div class="grid grid-cols-2 gap-3">
+        @if (myStaff()?.queueId; as queueId) {
+          <button
+            type="button"
+            (click)="openCreateAppointment(queueId)"
+            class="flex min-h-20 items-center gap-3 rounded-2xl bg-surface-card px-4 py-3 text-left transition-colors hover:bg-surface-overlay"
+          >
+            <app-icon name="clock" class="h-5 w-5 shrink-0 text-primary" />
+            <span class="text-sm font-semibold text-text-primary">Create appointment</span>
+          </button>
+          <button
+            type="button"
+            (click)="copyMyQueueLink(salon.slug, queueId)"
+            class="flex min-h-20 items-center gap-3 rounded-2xl bg-surface-card px-4 py-3 text-left transition-colors hover:bg-surface-overlay"
+          >
+            <app-icon name="share" class="h-5 w-5 shrink-0 text-primary" />
+            <span class="text-sm font-semibold text-text-primary">Copy queue link</span>
+          </button>
+          <a
+            [routerLink]="howItWorksLink"
+            class="col-span-2 flex min-h-16 items-center gap-3 rounded-2xl bg-surface-card px-4 py-3 transition-colors hover:bg-surface-overlay"
+          >
+            <app-icon name="help-circle" class="h-5 w-5 shrink-0 text-primary" />
+            <span class="text-sm font-semibold text-text-primary">Need help?</span>
+          </a>
+        }
+        @if (isOwnerOrAdmin()) {
+          @if (myStaff(); as staff) {
+            <a
+              [routerLink]="staffAppointmentsLink(salon.id, staff.id)"
+              class="flex min-h-20 flex-col justify-center gap-1 rounded-2xl bg-surface-card px-4 py-3 transition-colors hover:bg-surface-overlay"
+            >
+              <span class="text-sm font-semibold text-text-primary">My Appointments</span>
+              <span class="text-xs text-text-secondary">View your bookings</span>
+            </a>
+          }
+          @if (!salon.parentId) {
+            <a
+              [routerLink]="newBranchLink()"
+              [queryParams]="newBranchQueryParams(salon.id, salon.name)"
+              class="flex min-h-20 flex-col justify-center gap-1 rounded-2xl bg-surface-card px-4 py-3 transition-colors hover:bg-surface-overlay"
+            >
+              <span class="text-sm font-semibold text-text-primary">Create a new branch</span>
+              <span class="text-xs text-text-secondary">Open another location</span>
+            </a>
+          }
+        }
+        @if (isStaff()) {
+          <a
+            [routerLink]="shareLink(salon.id)"
+            class="flex min-h-20 flex-col justify-center gap-1 rounded-2xl bg-surface-card px-4 py-3 transition-colors hover:bg-surface-overlay"
+          >
+            <span class="text-sm font-semibold text-text-primary">Share</span>
+            <span class="text-xs text-text-secondary">QR code & link</span>
+          </a>
+        }
+        @if (isStaff() && myStaff(); as staff) {
+          <a
+            [routerLink]="myPhotosLink(salon.id, staff.id)"
+            class="flex min-h-20 flex-col justify-center gap-1 rounded-2xl bg-surface-card px-4 py-3 transition-colors hover:bg-surface-overlay"
           >
             <span class="text-sm font-semibold text-text-primary">Update my photos</span>
             <span class="text-xs text-text-secondary">Profile & gallery</span>
           </a>
         }
       </div>
-    }
+    </section>
+
+    <section aria-labelledby="recent-activity-title">
+      <div class="mb-3 flex items-center justify-between gap-3">
+        <h2 id="recent-activity-title" class="text-lg font-semibold text-text-primary">
+          Recent Activity
+        </h2>
+        <a
+          [routerLink]="appointmentsHistoryLink(salon.id)"
+          class="shrink-0 text-sm font-semibold text-primary"
+        >
+          See all
+        </a>
+      </div>
+
+      @if (appointmentHistory.loading()) {
+        <div class="space-y-2">
+          @for (row of [1, 2, 3]; track row) {
+            <app-skeleton variant="list-item" />
+          }
+        </div>
+      } @else if (recentActivity().length > 0) {
+        <div class="space-y-2">
+          @for (entry of recentActivity(); track entry.id) {
+            <div class="flex items-center gap-3 rounded-2xl bg-surface-card px-4 py-3">
+              <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary-light text-primary">
+                <app-icon
+                  [name]="entry.type === 'APPOINTMENT' ? 'clock' : 'queue'"
+                  class="h-5 w-5"
+                />
+              </span>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-semibold text-text-primary">
+                  {{ entry.members[0]?.memberName }}
+                </p>
+                <p class="truncate text-xs text-text-secondary">
+                  @if (entry.members[0]?.service?.name; as serviceName) {
+                    {{ serviceName }}
+                  } @else {
+                    {{ entry.type === 'APPOINTMENT' ? 'Appointment' : 'Walk-in' }}
+                  }
+                </p>
+              </div>
+              <div class="shrink-0 text-right">
+                <p class="text-xs font-medium text-text-primary">
+                  {{ entry.type === 'APPOINTMENT' ? 'Appointment' : 'Queue' }}
+                </p>
+                <p class="text-[10px] text-text-secondary">
+                  {{ (entry.type === 'APPOINTMENT' ? entry.scheduledAt : entry.createdAt) | date: 'MMM d, h:mm a' }}
+                </p>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="rounded-2xl bg-surface-card px-4 py-6 text-center text-sm text-text-secondary">
+          No queue activity this month.
+        </div>
+      }
+    </section>
 
     <!-- Accepting clients toggle -->
     @if (myStaff(); as staff) {

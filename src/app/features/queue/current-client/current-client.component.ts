@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { QueueConsoleService } from '../queue-console/queue-console.service';
@@ -6,19 +6,60 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { FieldErrorComponent } from '../../../shared/components/field-error/field-error.component';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
+import { SalonMediaService } from '../../salons/salon-media/salon-media.service';
+import { StaffMediaService } from '../../staff/staff-media/staff-media.service';
+import { StaffService } from '../../staff/staff.service';
+import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 @Component({
   selector: 'app-current-client',
   templateUrl: './current-client.component.html',
-  imports: [RouterLink, ReactiveFormsModule, FieldErrorComponent, InlineSpinnerComponent],
+  imports: [RouterLink, ReactiveFormsModule, FieldErrorComponent, InlineSpinnerComponent, MediaUrlPipe, IconComponent],
 })
-export class CurrentClientComponent {
+export class CurrentClientComponent implements OnInit {
   protected readonly console = inject(QueueConsoleService);
   private readonly _route = inject(ActivatedRoute);
   private readonly _fb = inject(FormBuilder);
   private readonly _toast = inject(ToastService);
+  private readonly _salonMedia = inject(SalonMediaService);
+  private readonly _staffMedia = inject(StaffMediaService);
+  private readonly _staffService = inject(StaffService);
 
   protected readonly staffServices = this.console.staffServices;
+  protected readonly barber = computed(() => {
+    const staffId = this.console.queue()?.staffId;
+    const staff = this.console.queue()?.staff;
+    return this._staffService.staffList().find((item) => item.staff.id === staffId)?.staff
+      ?? (staff?.id === staffId ? staff : null)
+      ?? this.console.staffServices().find((item) => item.staffId === staffId)?.staff
+      ?? null;
+  });
+  protected readonly barberName = computed(() => {
+    const staff = this.barber();
+    const name = [staff?.user?.firstName, staff?.user?.lastName].filter(Boolean).join(' ');
+    return name || staff?.email || 'Staff member';
+  });
+  protected readonly barberPhoto = computed(() =>
+    this._staffMedia.media().find((media) => media.entityId === this.console.queue()?.staffId && media.type === 'PROFILE'),
+  );
+  protected readonly salonPhoto = computed(() =>
+    this._salonMedia.media().find((media) => media.entityId === this._salonId && media.type === 'PROFILE'),
+  );
+  protected readonly heroPhoto = computed(() => this.salonPhoto() ?? this.barberPhoto());
+  protected readonly remainingSeconds = computed(() => {
+    const member = this.console.displayServingMember();
+    if (!member) return 0;
+    const [minutes, seconds] = this.console.timerFromServedAt().split(':').map(Number);
+    return Math.max(0, member.serviceDuration * 60 - (minutes ?? 0) * 60 - (seconds ?? 0));
+  });
+  protected readonly minutesLeft = computed(() => Math.ceil(this.remainingSeconds() / 60));
+  protected readonly remainingTime = computed(() => {
+    const remaining = this.remainingSeconds();
+    return [Math.floor(remaining / 3600), Math.floor((remaining % 3600) / 60), remaining % 60]
+      .map((part) => String(part).padStart(2, '0'))
+      .join(':');
+  });
   protected readonly showEndPartyModal = signal(false);
   protected readonly showExtendModal = signal(false);
   protected readonly showAddQueueModal = signal(false);
@@ -29,6 +70,22 @@ export class CurrentClientComponent {
   protected readonly addQueueForm = this._fb.group({
     members: this._fb.array([this._buildMemberRow()]),
   });
+
+  constructor() {
+    effect(() => {
+      const staffId = this.console.queue()?.staffId;
+      if (staffId) untracked(() => this._staffMedia.load(staffId));
+    });
+  }
+
+  ngOnInit(): void {
+    this._salonMedia.load(this._salonId);
+    this._staffService.load(this._salonId);
+  }
+
+  protected initials(name: string): string {
+    return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('');
+  }
 
   protected get addQueueMembers(): FormArray {
     return this.addQueueForm.get('members') as FormArray;

@@ -31,5 +31,6 @@ export type NavIcon =
   | 'info'
   | 'mail'
   | 'heart'
+  | 'bookmark'
   | 'search'
   | 'profile';

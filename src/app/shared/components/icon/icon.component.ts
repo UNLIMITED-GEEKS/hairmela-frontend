@@ -37,14 +37,16 @@ export class IconComponent {
     let cached = IconComponent._cache.get(name);
     if (!cached) {
       cached = this._http.get(`/svgs/${name}.svg`, { responseType: 'text' }).pipe(
-        // Strip the file's own width/height, then force width/height="100%"
-        // on the <svg> tag so it fills whatever box the host element's
+        // Strip only the root SVG's width/height, then force them to "100%"
+        // so it fills whatever box the host element's
         // Tailwind size classes (w-5 h-5, etc.) establish. Without an
         // explicit 100%, an <svg> with no intrinsic size renders at 0x0.
         map((raw) =>
-          raw
-            .replace(/\s(width|height)="[^"]*"/g, '')
-            .replace('<svg ', '<svg width="100%" height="100%" '),
+          raw.replace(/<svg\b[^>]*>/, (tag) =>
+            tag
+              .replace(/\s(width|height)="[^"]*"/g, '')
+              .replace('<svg', '<svg width="100%" height="100%"'),
+          ),
         ),
         catchError(() => of('')),
         shareReplay({ bufferSize: 1, refCount: false }),

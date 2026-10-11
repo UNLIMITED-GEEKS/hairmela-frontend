@@ -19,12 +19,15 @@ export interface QueueEntry {
   notifiedWait10At: string | null;
   notifiedWait15At: string | null;
   notifiedWait20At: string | null;
+  notifiedWait20SmsAt: string | null;
   notifiedWait25At: string | null;
   notifiedWait5At: string | null;
   queue: Queue;
   queueId: string;
   reminderDayClaimedAt: string | null;
   reminderDaySentAt: string | null;
+  reminderDaySmsClaimedAt: string | null;
+  reminderDaySmsSentAt: string | null;
   rescheduledAt: string | null;
   scheduledAt: string | null;
   scheduledEndAt: string | null;

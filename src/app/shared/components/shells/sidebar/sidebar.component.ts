@@ -64,7 +64,7 @@ export const CONTROL_ITEMS: ControlItem[] = [
     // item is OWNER/ADMIN-only, so nobody who sees it also sees a personal
     // appointments entry to confuse it with. The longer "Salon appointments"
     // overflowed the mobile sheet's two-column grid.
-    label: 'Appointments',
+    label: 'All Appointments',
     url: RouteSegment.APPOINTMENTS,
     roles: [SalonRole.OWNER, SalonRole.ADMIN],
   },

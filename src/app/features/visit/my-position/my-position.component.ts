@@ -25,6 +25,8 @@ import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
 import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 import { ordinalSuffix } from '../../../core/utils/queue-format';
 import { AddToCalendarComponent } from '../../../shared/components/add-to-calendar/add-to-calendar.component';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { ThemeService } from '../../../core/theme/theme.service';
 
 // Ring geometry — must match the r="125" circle in the template's SVG. Kept
 // smaller than the tick-marks' inner edge (~143, per queue-ticks.svg's major
@@ -48,10 +50,12 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
     MediaUrlPipe,
     DatePipe,
     AddToCalendarComponent,
+    IconComponent,
   ],
 })
 export class MyPositionComponent {
   protected readonly visit = inject(SalonVisitService);
+  protected readonly theme = inject(ThemeService);
   protected readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
@@ -217,9 +221,13 @@ export class MyPositionComponent {
     }
   });
 
-  // Can't leave once already being served — matches the "Leave queue"
-  // button's disabled state.
-  protected readonly isBeingServed = computed(() => this.entryStatus()?.status === 'SERVING');
+  // Prefer the socket-fed timeline so this flips immediately when the barber
+  // starts serving the entry. The fetched status remains the fallback for
+  // appointments that aren't currently present in the live timeline.
+  protected readonly isBeingServed = computed(() =>
+    this.partyMembers().some((member) => member.status === 'SERVING') ||
+    this.entryStatus()?.status === 'SERVING',
+  );
 
   // Party members, preferring the live timeline (ticks with each frame) and
   // falling back to the per-entry fetch. The fallback isn't an edge case: an
@@ -245,6 +253,8 @@ export class MyPositionComponent {
   protected readonly queuePosition = computed(
     () => this.visit.myEntry(this._entryId())?.position ?? this.entryStatus()?.position ?? null,
   );
+
+  protected readonly aheadCount = computed(() => Math.max(0, (this.queuePosition() ?? 1) - 1));
 
   // Date included only when the appointment isn't today — "Today at 9:00 PM"
   // is noise on the page you land on right after booking, but a bare time is

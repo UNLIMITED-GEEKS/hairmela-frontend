@@ -8,12 +8,25 @@ import { RoutePath } from '../../../../core/routing/route-paths';
 @Component({
   selector: 'app-bottom-nav',
   templateUrl: './bottom-nav.component.html',
+  styles: [
+    `
+      .center-action-cutout {
+        -webkit-mask-image: radial-gradient(circle 34px at 50% 14px, transparent 33px, black 34px);
+        mask-image: radial-gradient(circle 34px at 50% 14px, transparent 33px, black 34px);
+      }
+
+    `,
+  ],
   imports: [RouterLink, RouterLinkActive, NavIconComponent, NgTemplateOutlet],
 })
 export class BottomNavComponent {
   protected readonly RoutePath = RoutePath;
 
   readonly navItems = input<NavItem[]>([]);
+  readonly showCenterAction = input(false);
+  readonly centerActionLabel = input('Add a client');
+  readonly centerActionIcon = input<'plus' | 'search'>('plus');
+  readonly centerAction = output<void>();
 
   /**
    * Adds a trailing tab that opens the mobile sheet instead of navigating.
@@ -53,6 +66,14 @@ export class BottomNavComponent {
   // bar — appending the sheet tab after it left the CTA stranded mid-row.
   protected plainItems(): NavItem[] {
     return this.bottomItems().filter((i) => !i.cta);
+  }
+
+  protected leadingItems(): NavItem[] {
+    return this.plainItems().slice(0, 2);
+  }
+
+  protected trailingItems(): NavItem[] {
+    return this.plainItems().slice(2);
   }
 
   protected ctaItems(): NavItem[] {

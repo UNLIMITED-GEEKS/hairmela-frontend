@@ -23,6 +23,8 @@ interface MyStaff {
 interface SalonOverviewCache {
   salon: Salon;
   myStaff: MyStaff | null;
+  soleStaffQueueId: string | null;
+  onlyOneActiveStaff: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -41,12 +43,16 @@ export class SalonOverviewService {
   private readonly _cache = new Map<string, SalonOverviewCache>();
   private readonly _salon = signal<Salon | null>(null);
   private readonly _myStaff = signal<MyStaff | null>(null);
+  private readonly _soleStaffQueueId = signal<string | null>(null);
+  private readonly _onlyOneActiveStaff = signal(false);
   private readonly _loading = signal(false);
   private readonly _error = signal(false);
   private _inflight = new Set<string>();
 
   readonly salon = this._salon.asReadonly();
   readonly myStaff = this._myStaff.asReadonly();
+  readonly soleStaffQueueId = this._soleStaffQueueId.asReadonly();
+  readonly onlyOneActiveStaff = this._onlyOneActiveStaff.asReadonly();
   readonly loading = this._loading.asReadonly();
   readonly error = this._error.asReadonly();
 
@@ -55,6 +61,8 @@ export class SalonOverviewService {
     const cached = this._cache.get(salonId);
     if (cached) {
       this._salon.set(cached.salon);
+      this._soleStaffQueueId.set(cached.soleStaffQueueId);
+      this._onlyOneActiveStaff.set(cached.onlyOneActiveStaff);
       this._optimistic.commitRead(this._myStaff, cached.myStaff, token, (v) => {
         const entry = this._cache.get(salonId);
         if (entry) this._cache.set(salonId, { ...entry, myStaff: v });
@@ -99,6 +107,8 @@ export class SalonOverviewService {
   clear(): void {
     this._cache.clear();
     this._salon.set(null);
+    this._soleStaffQueueId.set(null);
+    this._onlyOneActiveStaff.set(false);
     this._optimistic.reset(this._myStaff, null);
   }
 
@@ -123,9 +133,14 @@ export class SalonOverviewService {
                 role: mine.staff.role,
               }
             : null;
-          const entry: SalonOverviewCache = { salon: salon.body, myStaff };
+          const activeStaff = staff.body.filter((s) => s.staff.status === 'ACTIVE');
+          const onlyOneActiveStaff = activeStaff.length === 1;
+          const soleStaffQueueId = onlyOneActiveStaff ? activeStaff[0].queueId : null;
+          const entry: SalonOverviewCache = { salon: salon.body, myStaff, soleStaffQueueId, onlyOneActiveStaff };
           this._cache.set(salonId, entry);
           this._salon.set(salon.body);
+          this._soleStaffQueueId.set(soleStaffQueueId);
+          this._onlyOneActiveStaff.set(onlyOneActiveStaff);
           // Commit through the engine so a concurrent toggle win doesn't get stomped
           this._optimistic.commitRead(this._myStaff, myStaff, token, (v) => {
             const cached = this._cache.get(salonId);

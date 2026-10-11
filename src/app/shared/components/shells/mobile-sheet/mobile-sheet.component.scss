@@ -91,6 +91,17 @@
   }
 }
 
+// The center action rises above the nav. Keep the sheet clear of that button
+// and reduce its height by the same amount so the top still fits on screen.
+:host(.has-center-action) .sheet-links {
+  bottom: calc(var(--bottom-nav-height) + 2.25rem);
+  max-height: calc(100vh - 4.125rem - var(--bottom-nav-height) - 2.75rem);
+
+  @supports (max-height: 100dvh) {
+    max-height: calc(100dvh - 4.125rem - var(--bottom-nav-height) - 2.75rem);
+  }
+}
+
 // Dimmed backdrop. Tapping it closes the sheet — the affordance people expect
 // from a bottom sheet, and the only close path other than the tab itself.
 .sheet-backdrop {

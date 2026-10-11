@@ -108,6 +108,7 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
 
   protected readonly sheetOpen = signal(false);
   protected readonly appointmentRequest = this._staffAppointmentModal.request;
+  protected readonly quickAddRequest = signal<{ salonId: string; queueId: string; staffId: string } | null>(null);
 
   constructor() {
     this._router.events
@@ -127,20 +128,26 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected readonly salons = this._dashboardService.salons;
-  // Display only (top bar / sidebar dropdown) — persists across pages with no
-  // salon in their URL (Dashboard, Favourites, Search, Account) instead of
-  // appearing to "forget" the selection. Role-gated nav (membership below)
-  // intentionally does NOT use this — it stays tied to the strict,
-  // route-derived activeSalonId so permissions never apply outside an actual
-  // salon-scoped route.
+  // The selected salon persists across pages with no salon in their URL
+  // (Dashboard, Favourites, Search, Account), so shell actions can keep
+  // targeting that salon while page-level permissions remain route-scoped.
   protected readonly displaySalonId = this._salonContext.displaySalonId;
   protected readonly membership = this._salonContext.membership;
-  // Membership for displaySalonId — feeds the sidebar/mobile-sheet "Controls"
-  // nav section so Staff/Services/Settings links stay visible for the
-  // last-visited salon on pages with no salon in the URL. Page-level
-  // components (tier banners, role checks) keep using the strict
-  // `membership` above, untouched.
   protected readonly displayMembership = this._salonContext.displayMembership;
+  private readonly quickAddMembership = computed(() =>
+    this._salonContext.activeSalonId() ? this.membership() : this.displayMembership(),
+  );
+  protected readonly canQuickAdd = computed(() => {
+    const membership = this.quickAddMembership();
+    return !!membership &&
+      ['OWNER', 'ADMIN', 'STAFF'].includes(membership.role) &&
+      !!membership.queueId &&
+      !!membership.staffId;
+  });
+  protected readonly isCustomer = computed(() => !this.quickAddMembership()?.isStaff);
+  // Membership for displaySalonId — feeds shell-level navigation on pages
+  // without a salon route. Page-level tier and role guards still use the
+  // strict route-derived membership.
 
   // Drives the initials avatar in the mobile top bar. Same composition the
   // desktop top bar already uses for its own avatar.
@@ -149,35 +156,61 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
     return user ? `${user.firstName} ${user.lastName}` : '';
   });
 
-  protected readonly navItems: NavItem[] = [
-    { label: 'Home', icon: 'home', url: RoutePath.dashboard()[0], bottomNav: true, sidebar: true },
-    { label: 'Search', icon: 'search', url: RoutePath.search()[0], bottomNav: true, sidebar: true },
-    {
-      label: 'My History',
-      icon: 'queue',
-      url: RoutePath.queues()[0],
-      bottomNav: true,
-      sidebar: true,
-    },
-    {
-      label: 'Favourites',
-      icon: 'heart',
-      url: RoutePath.favorites()[0],
-      bottomNav: false,
-      sidebar: true,
-    },
-    {
-      // Bottom nav dropped this in favour of the My Salon tab; on mobile the
-      // account page is reached from the initials avatar in the top bar
-      // instead. Still in the sidebar, which has the room.
-      label: 'My Profile',
-      icon: 'profile',
-      url: RoutePath.account()[0],
-      bottomNav: false,
-      sidebar: true,
-    },
-    { label: 'Logout', icon: 'login', action: () => this._auth.logout(), sidebar: true },
-  ];
+  protected readonly navItems = computed<NavItem[]>(() => {
+    const savedItem: NavItem[] = !this.isCustomer()
+      ? []
+      : [
+          {
+            label: 'Saved',
+            icon: 'heart',
+            url: RoutePath.favorites()[0],
+            bottomNav: true,
+          },
+        ];
+
+    return [
+      {
+        label: 'Home',
+        icon: 'home',
+        url: RoutePath.dashboard()[0],
+        bottomNav: true,
+        sidebar: true,
+      },
+      {
+        label: 'Search',
+        icon: 'search',
+        url: RoutePath.search()[0],
+        bottomNav: !this.isCustomer(),
+        sidebar: true,
+      },
+      ...savedItem,
+      {
+        label: 'My History',
+        icon: 'queue',
+        url: RoutePath.queues()[0],
+        bottomNav: true,
+        sidebar: true,
+      },
+      {
+        label: 'Favourites',
+        icon: 'heart',
+        url: RoutePath.favorites()[0],
+        bottomNav: false,
+        sidebar: true,
+      },
+      {
+        // Bottom nav dropped this in favour of the My Salon tab; on mobile the
+        // account page is reached from the initials avatar in the top bar
+        // instead. Still in the sidebar, which has the room.
+        label: 'Profile',
+        icon: 'profile',
+        url: RoutePath.account()[0],
+        bottomNav: this.isCustomer(),
+        sidebar: true,
+      },
+      { label: 'Logout', icon: 'login', action: () => this._auth.logout(), sidebar: true },
+    ];
+  });
 
   logout(): void {
     this._auth.logout();
@@ -208,5 +241,30 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
     const request = this.appointmentRequest();
     if (request) this._queueConsole.destroy(request.queueId);
     this._staffAppointmentModal.close();
+  }
+
+  protected openQuickAdd(): void {
+    const membership = this.quickAddMembership();
+    if (!membership?.queueId || !membership.staffId || !this.canQuickAdd()) return;
+    this._queueConsole.init(membership.salonId, membership.queueId);
+    this.quickAddRequest.set({
+      salonId: membership.salonId,
+      queueId: membership.queueId,
+      staffId: membership.staffId,
+    });
+  }
+
+  protected onCenterAction(): void {
+    if (this.canQuickAdd()) {
+      this.openQuickAdd();
+      return;
+    }
+    void this._router.navigate(RoutePath.search());
+  }
+
+  protected closeQuickAdd(): void {
+    const request = this.quickAddRequest();
+    if (request) this._queueConsole.destroy(request.queueId);
+    this.quickAddRequest.set(null);
   }
 }

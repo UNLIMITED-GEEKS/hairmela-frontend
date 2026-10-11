@@ -1,0 +1,124 @@
+<app-page-header title="My analytics" backVariant="glass" />
+
+<div class="mx-3 space-y-6 pb-8">
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <p class="text-base text-text-body">Your performance at {{ salon()?.id === salonId ? salon()?.name : 'this salon' }}.</p>
+
+    <div class="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center">
+      <div class="flex w-full items-center gap-2 rounded-xl border border-border bg-surface-card p-1 md:w-auto">
+        @for (days of ranges; track days) {
+          <button type="button" (click)="setRange(days)"
+            class="min-h-8 flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors md:flex-none"
+            [class]="!selectedDay() && rangeDays() === days
+              ? 'bg-primary text-white'
+              : 'text-text-secondary hover:bg-surface-overlay hover:text-text-primary'">
+            {{ days }} days
+          </button>
+        }
+      </div>
+
+      <button type="button" (click)="toggleCalendar()"
+        class="flex min-h-8 w-full items-center justify-between rounded-xl border px-3 py-1.5 text-sm font-medium transition-colors md:w-auto"
+        [class]="selectedDay()
+          ? 'border-primary bg-primary text-white'
+          : 'border-border bg-surface-card text-text-secondary hover:bg-surface-overlay'">
+        <span class="flex items-center gap-1.5">
+          <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          {{ selectedDay() ?? 'Pick a day' }}
+        </span>
+      </button>
+    </div>
+  </div>
+
+  @if (calendarOpen()) {
+    <div class="w-full max-w-sm rounded-2xl border border-border bg-surface-card p-4 md:w-fit">
+      <app-mini-month-calendar
+        [viewedMonth]="viewedMonth()"
+        [selectedDate]="selectedDay()"
+        (monthChange)="onMonthChange($event)"
+        (daySelect)="onDaySelect($event)" />
+    </div>
+  }
+
+  @if ((salon()?.id !== salonId && !overviewError()) || analytics.loading() || (!analytics.data() && !analytics.error() && !overviewError())) {
+    <div class="flex justify-center py-16">
+      <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+    </div>
+  } @else if (overviewError() || analytics.error()) {
+    <div class="rounded-2xl border border-border bg-surface-card p-6 text-center">
+      <p class="text-sm text-text-secondary">Could not load your analytics.</p>
+      <button type="button" (click)="retry()" class="mt-3 text-sm font-semibold text-primary">Try again</button>
+    </div>
+  } @else if (analytics.data(); as data) {
+    <section aria-labelledby="my-analytics-summary" class="space-y-3">
+      <h2 id="my-analytics-summary" class="text-sm font-semibold text-text-primary">Overview</h2>
+      <div class="grid grid-cols-2 gap-4 md:grid-cols-3">
+        <div class="flex min-w-0 flex-col gap-1 rounded-2xl border border-border bg-surface-card p-4">
+          <span class="text-xs font-semibold uppercase tracking-wide text-text-secondary">Revenue</span>
+          <span class="break-all text-2xl font-bold text-text-primary">{{ data.summary.totalRevenue | currencyNgn: salonContext.currency() }}</span>
+          <span class="text-xs text-text-secondary">{{ data.summary.from === data.summary.to ? data.summary.from : data.summary.from + ' – ' + data.summary.to }}</span>
+        </div>
+        <div class="flex min-w-0 flex-col gap-1 rounded-2xl border border-border bg-surface-card p-4">
+          <span class="text-xs font-semibold uppercase tracking-wide text-text-secondary">Total Served</span>
+          <span class="text-2xl font-bold text-text-primary">{{ data.summary.totalServed }}</span>
+          <span class="text-xs text-text-secondary">In range</span>
+        </div>
+        <div class="flex min-w-0 flex-col gap-1 rounded-2xl border border-border bg-surface-card p-4">
+          <span class="text-xs font-semibold uppercase tracking-wide text-text-secondary">No-shows</span>
+          <span class="text-2xl font-bold text-text-primary">{{ data.summary.totalNoShows }}</span>
+          <span class="text-xs text-text-secondary">In range</span>
+        </div>
+        <div class="flex min-w-0 flex-col gap-1 rounded-2xl border border-border bg-surface-card p-4">
+          <span class="text-xs font-semibold uppercase tracking-wide text-text-secondary">Waiting Now</span>
+          <span class="text-2xl font-bold text-text-primary">{{ data.summary.currentlyWaiting }}</span>
+          <span class="text-xs text-text-secondary">In queue</span>
+        </div>
+        <div class="flex min-w-0 flex-col gap-1 rounded-2xl border border-border bg-surface-card p-4">
+          <span class="text-xs font-semibold uppercase tracking-wide text-text-secondary">Cancelled</span>
+          <span class="text-2xl font-bold text-text-primary">{{ data.summary.totalCancelled }}</span>
+          <span class="text-xs text-text-secondary">In range</span>
+        </div>
+      </div>
+    </section>
+
+    @if (data.trends.length) {
+      <section aria-labelledby="my-analytics-trends" class="overflow-hidden rounded-2xl border border-border bg-surface-card p-6">
+        <h2 id="my-analytics-trends" class="mb-1 text-sm font-semibold text-text-primary">Daily Queue Volume</h2>
+        <p class="mb-4 text-xs text-text-secondary">{{ data.summary.from }} – {{ data.summary.to }}</p>
+        <div class="relative h-56">
+          <canvas baseChart type="bar" [data]="barChartData()" [options]="barChartOptions()"></canvas>
+        </div>
+      </section>
+    }
+
+    @if (data.serviceBreakdown.length) {
+      <section aria-labelledby="my-analytics-services" class="overflow-hidden rounded-2xl border border-border bg-surface-card p-6">
+        <h2 id="my-analytics-services" class="mb-4 text-sm font-semibold text-text-primary">Service Breakdown</h2>
+        <div class="flex flex-col items-center gap-6 md:flex-row">
+          <div class="relative h-48 w-48 shrink-0">
+            <canvas baseChart type="pie" [data]="pieChartData()" [options]="pieChartOptions()"></canvas>
+          </div>
+          <div class="w-full min-w-0 flex-1 space-y-3">
+            @for (service of data.serviceBreakdown; track service.serviceId) {
+              <div class="min-w-0">
+                <div class="mb-1 flex items-center justify-between gap-2">
+                  <span class="min-w-0 truncate text-sm text-text-primary">{{ service.serviceName }}</span>
+                  <span class="shrink-0 text-xs font-medium text-text-primary">{{ service.totalRevenue | currencyNgn: salonContext.currency() }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-raised">
+                    <div class="h-full rounded-full bg-primary" [style.width.%]="service.totalMembers / maxBreakdown() * 100"></div>
+                  </div>
+                  <span class="shrink-0 whitespace-nowrap text-xs text-text-secondary">{{ service.totalMembers }} · {{ service.totalMinutes }}m</span>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </section>
+    }
+  }
+</div>

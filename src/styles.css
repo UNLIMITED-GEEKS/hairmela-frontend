@@ -211,7 +211,7 @@ body {
 :root, :root[data-theme='light'] {
   /* Page and card surfaces. `surface` is the app background; `card` is what
      sits on it (was bg-white); `sunken` is a recessed panel (was bg-gray-50). */
-  --color-surface:           #FDFAF7;
+  --color-surface:           #F5F5F4;
   --color-surface-card:      #FFFFFF;
   --color-surface-sunken:    oklch(98.5% 0.002 247.839);   /* gray-50  */
   --color-surface-raised:    oklch(98.5% 0.002 247.839);   /* gray-50  */

@@ -1,8 +1,7 @@
-import { Component, inject, signal, viewChildren } from '@angular/core';
-import { DatePipe } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Component, OnInit, computed, inject, signal, viewChildren } from '@angular/core';
+import { DatePipe, Location, NgTemplateOutlet } from '@angular/common';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { QueueConsoleService } from '../queue-console/queue-console.service';
-import { AddClientModalComponent } from '../add-client-modal/add-client-modal.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { QueueSoundPreferenceService } from '../../../core/queue/queue-sound-preference.service';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
@@ -12,27 +11,55 @@ import { CommentsThreadComponent } from '../../comments/comments-thread/comments
 import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 import { hasChatCounterparty } from '../../../core/appointments/reschedule-policy';
 import { TimelineEntryDto } from '../../../core/socket/socket.types';
+import { StaffService } from '../../staff/staff.service';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 @Component({
   selector: 'app-queue-list',
   templateUrl: './queue-list.component.html',
   imports: [
     InlineSpinnerComponent,
-    AddClientModalComponent,
     AccordionComponent,
     CommentsThreadComponent,
     DatePipe,
+    NgTemplateOutlet,
     RouterLink,
     PushPromptComponent,
+    IconComponent,
   ],
 })
-export class QueueListComponent {
+export class QueueListComponent implements OnInit {
   protected readonly console = inject(QueueConsoleService);
   private readonly _route = inject(ActivatedRoute);
+  private readonly _router = inject(Router);
+  private readonly _location = inject(Location);
   private readonly _toast = inject(ToastService);
+  private readonly _staffService = inject(StaffService);
   protected readonly soundPreference = inject(QueueSoundPreferenceService);
 
-  protected readonly showAddQueueModal = signal(false);
+  protected readonly barber = computed(() =>
+    this._staffService.staffList().find((item) => item.staff.id === this._staffId)?.staff,
+  );
+  protected readonly activeClients = computed(() =>
+    this.console.queueListEntries().filter((entry) => !entry.isUpcoming).length,
+  );
+  protected readonly remainingSeconds = computed(() => {
+    const member = this.console.displayServingMember();
+    if (!member) return 0;
+    const [minutes, seconds] = this.console.timerFromServedAt().split(':').map(Number);
+    return Math.max(0, member.serviceDuration * 60 - (minutes ?? 0) * 60 - (seconds ?? 0));
+  });
+  protected readonly minutesLeft = computed(() => Math.ceil(this.remainingSeconds() / 60));
+  protected readonly remainingTime = computed(() => {
+    const remaining = this.remainingSeconds();
+    return [Math.floor(remaining / 3600), Math.floor((remaining % 3600) / 60), remaining % 60]
+      .map((part) => String(part).padStart(2, '0'))
+      .join(':');
+  });
+
+  ngOnInit(): void {
+    this._staffService.load(this._salonId);
+  }
 
   // Only one row's Notes accordion open at a time — opening one collapses
   // any other. Tracks the open entry's id rather than a per-row boolean, so
@@ -46,6 +73,7 @@ export class QueueListComponent {
   // QueueSoundPreferenceService's own comment for why (waiting on a backend
   // change to distinguish who caused a queue update).
   protected readonly soundOffBannerDismissed = signal(false);
+  protected readonly openEntryIds = signal<ReadonlySet<string>>(new Set<string>());
   protected readonly accountLink = RoutePath.account();
 
   protected get _salonId(): string {
@@ -60,11 +88,40 @@ export class QueueListComponent {
     return this.console.queue()?.staffId ?? '';
   }
 
-  // Hardcoded, not Location.back(): this page can be reached from several
-  // places, and "Back" should always mean "back to the current client",
-  // this shell's home — same reasoning as the shell's own back chevron.
   protected get currentClientLink(): string[] {
     return RoutePath.salonQueueConsole(this._salonId, this._queueId);
+  }
+
+  protected goBack(): void {
+    if (window.history.length > 1) {
+      this._location.back();
+    } else {
+      void this._router.navigate(this.currentClientLink);
+    }
+  }
+
+  protected clientInitials(name: string): string {
+    return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('');
+  }
+
+  protected toggleEntry(entryId: string): void {
+    this.openEntryIds.update((openIds) => {
+      const next = new Set(openIds);
+      if (next.has(entryId)) next.delete(entryId);
+      else next.add(entryId);
+      return next;
+    });
+  }
+
+  protected completeCurrent(): void {
+    const entry = this.console.servingEntry();
+    if (!entry || this.console.isLocked(entry.entryId)) return;
+    const unfinished = entry.members.filter((member) => member.status === 'WAITING' || member.status === 'SERVING');
+    if (unfinished.length > 1) {
+      void this._router.navigate(this.currentClientLink);
+      return;
+    }
+    this.console.endSession(this._salonId, this._queueId);
   }
 
   // Expand = refetch, same as My Position. Only one row open at a time:
@@ -97,13 +154,5 @@ export class QueueListComponent {
 
   protected copyPhone(phone: string): void {
     navigator.clipboard.writeText(phone).then(() => this._toast.success('Phone copied.'));
-  }
-
-  protected openAddQueueModal(): void {
-    this.showAddQueueModal.set(true);
-  }
-
-  protected closeAddQueueModal(): void {
-    this.showAddQueueModal.set(false);
   }
 }

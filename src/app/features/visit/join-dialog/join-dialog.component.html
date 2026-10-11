@@ -2,21 +2,30 @@
   <div
     animate.enter="modal-backdrop-enter"
     animate.leave="modal-backdrop-leave"
-    class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-4 pb-4 sm:pb-0" role="dialog" aria-modal="true" aria-label="Join queue">
+    class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 px-4 pb-4 sm:items-center sm:pb-0" role="dialog" aria-modal="true" aria-label="Join queue">
     <div
       animate.enter="modal-card-enter"
       animate.leave="modal-card-leave"
-      class="w-full max-w-sm bg-surface rounded-3xl p-6 space-y-5 shadow-xl max-h-85dvh flex flex-col">
+      class="flex max-h-85dvh w-full max-w-sm flex-col gap-4 rounded-3xl bg-surface p-4 shadow-xl sm:p-5">
+
+      <div class="relative flex min-h-10 shrink-0 items-center justify-center">
+        <button type="button" (click)="step() === 'fee' ? backToForm() : cancel()"
+          class="absolute left-0 flex h-9 w-9 items-center justify-center rounded-full bg-surface-overlay text-text-primary"
+          [attr.aria-label]="step() === 'fee' ? 'Back to details' : 'Close join dialog'">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+        <h2 class="text-sm font-bold text-text-primary">{{ step() === 'fee' ? 'Part payment' : 'Live Queue' }}</h2>
+      </div>
 
       <div class="shrink-0">
         @if (step() === 'fee') {
-          <h2 class="text-lg font-bold text-text-primary">Part payment</h2>
-          <p class="text-sm text-text-secondary mt-1">This salon requires a part payment</p>
+          <p class="text-sm text-text-secondary">This salon requires a part payment</p>
         } @else if (isGuest) {
-          <h2 class="text-lg font-bold text-text-primary">Your details</h2>
-          <p class="text-sm text-text-secondary mt-1">We need your name to add you to the queue.</p>
+          <p class="text-sm text-text-secondary">We need your name to add you to the queue.</p>
         } @else {
-          <h2 class="text-lg font-bold text-text-primary">Joining as {{ guestName() }}</h2>
+          <p class="text-sm text-text-secondary">Joining as {{ guestName() }}</p>
         }
       </div>
 
@@ -43,6 +52,28 @@
         </div>
       } @else {
       <div #fieldsEl class="flex-1 overflow-y-auto themed-scrollbar scroll-fade space-y-3">
+        @if (isGuest) {
+          <div>
+            <label class="block text-xs font-semibold text-text-primary mb-1.5">Client name</label>
+            <input
+              type="text"
+              [attr.data-invalid]="guestNameTouched() && !guestName().trim() ? 'true' : null"
+              [value]="guestName()"
+              (input)="guestName.set($any($event.target).value)"
+              (blur)="guestNameTouched.set(true)"
+              placeholder="e.g. John"
+              class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-xl bg-surface-card focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors" />
+            @if (guestNameTouched() && !guestName().trim()) {
+              <p class="mt-1.5 text-xs text-red-600">This field is required.</p>
+            }
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-text-primary mb-1.5">Phone number</label>
+            <app-phone-input [formControl]="guestPhone" />
+            <app-field-error [control]="guestPhone" />
+          </div>
+        }
+
         <div>
           <label class="block text-sm font-medium text-text-body mb-1.5">
             {{ leaderServiceIds().length > 1 ? 'Services' : 'Service' }}
@@ -95,28 +126,6 @@
           }
         </div>
 
-        @if (isGuest) {
-          <div>
-            <label class="block text-sm font-medium text-text-body mb-1.5">Name</label>
-            <input
-              type="text"
-              [attr.data-invalid]="guestNameTouched() && !guestName().trim() ? 'true' : null"
-              [value]="guestName()"
-              (input)="guestName.set($any($event.target).value)"
-              (blur)="guestNameTouched.set(true)"
-              placeholder="e.g. John"
-              class="w-full min-h-11 px-3 py-2.5 text-sm border border-border-strong rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors" />
-            @if (guestNameTouched() && !guestName().trim()) {
-              <p class="mt-1.5 text-xs text-red-600">This field is required.</p>
-            }
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-text-body mb-1.5">Phone</label>
-            <app-phone-input [formControl]="guestPhone" />
-            <app-field-error [control]="guestPhone" />
-          </div>
-        }
-
         <!-- Optional kids -->
         <div [formGroup]="kidsForm">
           <div #kidRows formArrayName="members" class="space-y-2">
@@ -124,7 +133,7 @@
               <div [formGroupName]="i" class="bg-surface-card border border-border rounded-2xl px-3 py-4 flex gap-2 items-start">
                 <div class="flex-1 space-y-2">
                   <input formControlName="name" type="text" [placeholder]="'Person ' + (i + 1) + ' name'"
-                    class="w-full border border-primary/10 rounded-xl px-3 py-2 text-sm min-h-11 focus:outline-none focus:ring-2 focus:ring-primary/30">
+                    class="w-full border border-primary/10 rounded-xl bg-surface-card px-3 py-2 text-sm min-h-11 focus:outline-none focus:ring-2 focus:ring-primary/30">
                   <app-field-error [control]="ctrl.get('name')" [messages]="{ required: 'Enter a name.' }" />
                   <div formArrayName="serviceIds" class="space-y-2">
                     @for (svcCtrl of kidServiceIds(i).controls; track $index; let si = $index) {
@@ -168,7 +177,7 @@
           </div>
           <button (click)="addKid()" type="button" [disabled]="atMaxPartySize"
             [title]="atMaxPartySize ? 'Party limit reached (' + visit.maxPartySize() + ' services)' : ''"
-            class="mt-2 w-full min-h-11 rounded-2xl border-2 border-dashed border-primary/30 text-primary text-sm font-medium hover:bg-secondary-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+            class="mt-2 w-full min-h-11 rounded-2xl border border-primary/30 text-primary text-sm font-medium hover:bg-secondary-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
             + Add another person
           </button>
         </div>
@@ -183,7 +192,7 @@
             (input)="noteBody.set($any($event.target).value)"
             placeholder="Anything the salon should know?"
             rows="2"
-            class="w-full resize-none px-3 py-2.5 text-sm border border-border-strong rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+            class="w-full resize-none px-3 py-2.5 text-sm border border-border-strong rounded-xl bg-surface-card focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
           ></textarea>
 
           @if (noteImageError()) {
@@ -214,21 +223,21 @@
         </div>
       </div>
 
-      <div class="shrink-0 flex gap-3">
-        <button
-          (click)="cancel()"
-          class="flex-1 min-h-12 rounded-2xl border-2 border-border bg-surface-card text-text-muted font-semibold text-sm hover:bg-surface-sunken transition-colors">
-          Cancel
-        </button>
+      <div class="shrink-0 flex flex-col gap-2 pt-2">
         <!-- "Next" only when a payment step actually follows; a salon with no
              part payment submits straight from here as it always did. -->
         <button
           (click)="confirmJoin()"
           [disabled]="!leaderServiceIds()[0] || (isGuest && (!guestName().trim() || !guestPhoneValid)) || visit.joining()"
-          class="flex-1 min-h-12 rounded-2xl bg-primary text-white font-semibold text-sm disabled:opacity-50 hover:bg-secondary-light hover:text-primary transition-colors">
+          class="w-full min-h-12 rounded-2xl bg-primary text-white font-semibold text-sm disabled:opacity-50 hover:bg-primary-hover transition-colors">
           {{ visit.joining()
               ? 'Joining...'
               : visit.enforcesBookingFee() ? 'Next' : 'Join queue' }}
+        </button>
+        <button
+          (click)="cancel()"
+          class="w-full min-h-11 rounded-2xl bg-surface-overlay text-text-primary font-medium text-sm hover:bg-surface-strong transition-colors">
+          Cancel
         </button>
       </div>
       }

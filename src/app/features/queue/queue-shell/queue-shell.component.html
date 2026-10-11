@@ -70,7 +70,7 @@
       </p>
       <button
         type="button"
-        (click)="_location.back()"
+        (click)="goBack()"
         class="inline-block rounded-lg border border-border-strong px-5 py-2.5 text-sm font-semibold text-text-body hover:bg-surface transition-colors"
       >
         Go back
@@ -79,47 +79,38 @@
   </div>
 } @else {
   <div class="h-screen-minus-topbar bg-surface flex flex-col">
-    <!-- The shell header has three distinct jobs: navigation, queue status,
-         and the primary serving action. Keeping each in its own visual group
-         prevents the controls from reading as one crowded toolbar. -->
-    <header class="shrink-0 border-b border-border-subtle bg-surface px-4 py-4">
-      <div class="mx-auto max-w-lg space-y-2">
+    <!-- Queue controls stay available from the menu on both console views. -->
+    <header class="relative shrink-0 bg-surface px-4 pt-6 pb-3">
+      <div class="mx-auto max-w-lg">
         <div class="flex items-center gap-2.5">
-          @if (onQueueListRoute()) {
-            <a
-              [routerLink]="currentClientLink"
-              aria-label="Back to current client"
-              class="flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-card text-text-secondary transition-colors hover:border-primary hover:text-primary"
-            >
-              <app-icon name="chevron-left" class="w-2 h-3.5" />
-            </a>
-          } @else {
-            <button
-              type="button"
-              (click)="_location.back()"
-              aria-label="Go back"
-              class="flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-card text-text-secondary transition-colors hover:border-primary hover:text-primary"
-            >
-              <app-icon name="chevron-left" class="w-2 h-3.5" />
-            </button>
-          }
-          <div class="min-w-0 flex-1">
-            <h1 class="truncate text-base font-bold text-text-primary">Queue console</h1>
-            <p class="truncate text-xs text-text-secondary">
-              {{ onQueueListRoute() ? 'Manage waiting clients' : 'Manage the current client' }}
-            </p>
-          </div>
-
           <button
             type="button"
-            (click)="copyQueueLink()"
-            aria-label="Copy queue link"
-            class="flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-card text-text-secondary transition-colors hover:border-primary hover:text-primary"
+            (click)="goBack()"
+            aria-label="Go back"
+            class="flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-full bg-surface-card text-text-secondary transition-colors hover:text-primary"
           >
-            <app-icon name="share" class="h-4 w-4" />
+            <app-icon name="chevron-left" class="w-2 h-3.5" />
+          </button>
+          <div class="min-w-0 flex-1 text-center">
+            <h1 class="truncate text-base font-bold text-text-primary">{{ onQueueListRoute() ? 'Live Queue' : 'Current Client' }}</h1>
+          </div>
+          <button
+            type="button"
+            (click)="queueOptionsOpen.update((open) => !open)"
+            [attr.aria-expanded]="queueOptionsOpen()"
+            aria-label="Queue options"
+            class="flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-full bg-surface-card text-xl text-text-secondary"
+          >
+            <span aria-hidden="true">⋮</span>
           </button>
         </div>
 
+        <div class="grid transition-[grid-template-rows,margin-top] duration-200 ease-out motion-reduce:transition-none"
+          [style.grid-template-rows]="queueOptionsOpen() ? '1fr' : '0fr'"
+          [style.margin-top]="queueOptionsOpen() ? '0.5rem' : '0'"
+          [attr.aria-hidden]="!queueOptionsOpen()"
+          [attr.inert]="queueOptionsOpen() ? null : ''">
+          <div class="overflow-hidden space-y-2">
         <section
           class="rounded-xl border border-border bg-surface-card p-2"
           aria-label="Queue status"
@@ -163,19 +154,7 @@
             }
           </div>
         </section>
-
         <div class="flex gap-2">
-          <button
-            (click)="callNext()"
-            [disabled]="
-              console.queueStatus() !== 'OPEN' ||
-              console.waitingEntries().length === 0 ||
-              console.hasServingEntry() ||
-              console.nextIsLocked()
-            "
-            class="min-h-11 flex-1 rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary-hover disabled:opacity-40"
-          >
-          Click To Serve Next Client          </button>
           <button
             type="button"
             (click)="showAutoCallNextSettings.set(true)"
@@ -203,8 +182,33 @@
               />
             </svg>
           </button>
+          <button
+            type="button"
+            (click)="copyQueueLink()"
+            class="min-h-10 flex-1 rounded-xl border border-border-strong bg-surface-card px-4 text-sm font-semibold text-text-primary"
+          >
+            Copy queue link
+          </button>
         </div>
+          </div>
+        </div>
+
+        @if (onQueueListRoute() || !console.hasServingEntry()) {
+          <button
+            (click)="callNext()"
+            [disabled]="
+              console.queueStatus() !== 'OPEN' ||
+              console.waitingEntries().length === 0 ||
+              console.hasServingEntry() ||
+              console.nextIsLocked()
+            "
+            class="mt-2 min-h-11 w-full rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary-hover disabled:opacity-40"
+          >
+            Click To Serve Next Client
+          </button>
+        }
       </div>
+      <div aria-hidden="true" class="absolute bottom-0 left-1/2 w-[90%] mx-auto  -translate-x-1/2 border-b border-border-subtle" [class.opacity-20]="onQueueListRoute()"></div>
     </header>
 
     <!-- Page content — overflow-hidden hre previously clipped the routed

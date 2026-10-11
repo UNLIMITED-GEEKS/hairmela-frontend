@@ -186,8 +186,16 @@ export const routes: Routes = [
       },
       {
         path: RouteSegment.ACCOUNT,
+        pathMatch: 'full',
         loadComponent: () =>
           import('./features/account/account.component').then((m) => m.AccountComponent),
+      },
+      {
+        path: `${RouteSegment.ACCOUNT}/${RouteSegment.SETTINGS}`,
+        loadComponent: () =>
+          import('./features/account/account-settings/account-settings.component').then(
+            (m) => m.AccountSettingsComponent,
+          ),
       },
       {
         path: `${RouteSegment.ACCOUNT}/${RouteSegment.EDIT_PROFILE}`,

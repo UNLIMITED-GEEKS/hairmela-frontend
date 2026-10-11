@@ -1,4 +1,4 @@
-<div class="h-full min-h-0 flex flex-col px-5 py-5">
+<div class="h-full min-h-0 flex flex-col px-5 md:px-0 mx-auto max-w-lg">
   <!-- Push permission nudge — barber-facing copy (queue activity, not "your
        turn"), self-gates via PushPromptComponent same as the customer one. -->
   <div class="shrink-0 mb-4">
@@ -67,220 +67,166 @@
     </div>
   }
 
-  <!-- "Total Count" pill -->
-  <div class="shrink-0 mb-4">
-    <div class="inline-flex flex-col items-center rounded-2xl bg-secondary-light px-6 py-2.5">
-      <span class="text-xs font-semibold text-primary uppercase tracking-wide">Total Count</span>
-      <span class="text-2xl font-bold text-primary leading-tight">{{
-        console.waitingEntries().length
-      }}</span>
-    </div>
-  </div>
+  <div class="min-h-0 flex-1 overflow-y-auto space-y-6 pb-44 md:pb-28">
+    <section class="flex items-center justify-between gap-2 rounded-2xl bg-surface-card px-3 py-[10px]">
+      <div class="flex min-w-0 flex-1 items-center gap-1.5">
+        <p class="min-w-0 truncate text-xs font-semibold leading-tight text-text-primary">
+          @if (barber()?.user; as user) {
+            {{ user.firstName }} {{ user.lastName }}
+          } @else {
+            {{ barber()?.email ?? 'Staff member' }}
+          }
+        </p>
+        <span class="shrink-0 rounded-full bg-primary px-2 py-1  text-[9px] font-semibold leading-none text-white">
+          {{ console.queueStatus() === 'OPEN' ? 'ON DUTY' : console.queueStatus() === 'PAUSED' ? 'PAUSED' : console.queueStatus() === 'CLOSED' ? 'CLOSED' : 'LOADING' }}
+        </span>
+      </div>
+      <p class="shrink-0 text-right text-[10px] leading-tight text-primary">
+        {{ barber()?.role === 'OWNER' ? 'Owner' : barber()?.role === 'ADMIN' ? 'Admin' : 'Barber' }}
+        · {{ activeClients() }} active {{ activeClients() === 1 ? 'client' : 'clients' }}
+      </p>
+    </section>
 
-  <!-- Column headers -->
-  <div class="shrink-0 flex gap-2 mb-3">
-    <div class="flex-1 rounded-xl bg-secondary-light px-3 py-2 text-xs font-bold text-primary">
-      Clients on queue
-    </div>
-    <div
-      class="w-20 rounded-xl whitespace-nowrap bg-secondary-light px-3 py-2 text-xs font-bold text-primary text-center"
-    >
-      Wait time
-    </div>
-  </div>
-
-  <!-- Scrollable queue rows -->
-  <div class="flex-1 min-h-0 overflow-y-auto space-y-2 pr-0.5 pb-24">
-    @for (entry of console.queueListEntries(); track entry.entryId) {
-      @let isServing = entry.members.some((m) => m.status === 'SERVING');
-      <div class="bg-surface-card border border-primary/20 rounded-2xl px-3 py-3">
-        <div class="flex items-center justify-between min-h-[52px]">
-          <div class="flex-1 min-w-0">
-            <span class="text-sm font-medium text-text-strong block truncate">
-              {{ entry.members[0].memberName }}
-              @if (entry.members.length > 1) {
-                <span class="text-xs text-text-secondary">
-                  + {{ entry.members.length - 1 }}
-                  {{ entry.members.length - 1 === 1 ? 'more person' : 'more persons' }}</span
-                >
-              }
-            </span>
-            @if (entry.members[0].serviceName) {
-              <span class="text-xs text-text-secondary block truncate">{{
-                entry.members[0].serviceName
-              }}</span>
-            }
-            @if (entry.members[0].phone) {
-              <span class="flex items-center gap-1 mt-0.5">
-                <a
-                  [href]="'tel:' + entry.members[0].phone"
-                  class="text-xs text-primary hover:underline truncate"
-                >
-                  {{ entry.members[0].phone }}
-                </a>
-                <button
-                  (click)="copyPhone(entry.members[0].phone!)"
-                  aria-label="Copy phone number"
-                  class="shrink-0 text-text-disabled hover:text-primary transition-colors"
-                >
-                  <svg
-                    class="w-3.5 h-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                    />
-                  </svg>
-                </button>
-              </span>
-            }
-            @if (entry.type === 'APPOINTMENT') {
-              <span class="flex items-center gap-1 mt-0.5">
-                <span
-                  class="text-xs font-semibold text-primary bg-secondary-light px-1.5 py-0.5 rounded"
-                  >Booking</span
-                >
-                @if (entry.scheduledAt) {
-                  <span class="text-xs text-text-secondary">{{
-                    entry.scheduledAt | date: 'shortTime'
-                  }}</span>
-                }
-              </span>
-            }
-            @if (isServing) {
-              <span class="text-xs font-bold text-success" aria-live="polite">Serving</span>
-            } @else if (!console.isLocked(entry.entryId)) {
-              <span class="text-xs text-primary font-medium" aria-live="polite">{{
-                console.liveWait(entry.entryId)
-              }}</span>
-            }
-          </div>
-          <div class="flex items-center gap-1.5 shrink-0">
-            @if (console.isLocked(entry.entryId)) {
-              <app-inline-spinner class="text-warning" />
-            }
-            <button
-              (click)="noShow(entry.entryId)"
-              [disabled]="console.isLocked(entry.entryId) || isServing"
-              class="min-h-8 px-2.5 rounded-xl text-xs font-semibold border border-primary/40 text-primary bg-surface hover:bg-warning/20 disabled:opacity-40 transition-colors"
-            >
-              No-show
-            </button>
-            <button
-              (click)="cancelEntry(entry.entryId)"
-              [disabled]="console.isLocked(entry.entryId) || isServing"
-              class="min-h-8 px-2.5 rounded-xl text-xs font-semibold border border-primary/30 text-white bg-primary hover:bg-primary-hover disabled:opacity-40 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
+    @if (console.callNextWaiting()) {
+      <div class="flex items-center gap-3 rounded-3xl bg-surface-card px-4 py-5 text-sm text-primary">
+        <app-inline-spinner /> Calling next person…
+      </div>
+    } @else if (console.servingEntry(); as serving) {
+      <section aria-labelledby="serving-title" class="rounded-3xl bg-surface-card px-4 py-4">
+        <div class="mb-3 flex items-center justify-between gap-2">
+          <h2 id="serving-title" class="text-base font-semibold text-text-primary">Currently Serving</h2>
+          <span class="rounded-full bg-secondary-light px-3 py-1 text-xs font-semibold text-primary">
+            {{ minutesLeft() > 0 ? minutesLeft() + ' min left' : 'Time up' }}
+          </span>
         </div>
+        <ng-container [ngTemplateOutlet]="entryCard" [ngTemplateOutletContext]="{ $implicit: serving }" />
+      </section>
+    }
 
-        <!-- Party breakdown — who's booked for what. Collapsed by default so
-             a multi-person party doesn't bloat the row; no open-state
-             plumbing needed (unlike Notes, several may be open at once). -->
-        <div class="mt-2">
-          <app-accordion
-            [title]="
-              entry.members.length === 1 ? 'Service' : 'Party (' + entry.members.length + ')'
-            "
-          >
-            <!-- Stacked on mobile, side-by-side only from sm up — see the
-                 appointments list's copy of this for the reasoning. -->
-            <ul class="space-y-2">
-              @for (member of entry.members; track member.memberId) {
-                <li
-                  class="flex flex-col gap-0.5 text-xs sm:flex-row sm:items-baseline sm:justify-between sm:gap-3"
-                >
-                  <span class="min-w-0 font-medium text-text-body wrap-break-word">{{
-                    member.memberName
-                  }}</span>
-                  <span class="min-w-0 text-text-secondary wrap-break-word sm:text-right">
-                    @if (member.serviceName) {
-                      {{ member.serviceName }} · {{ member.serviceDuration }} mins
-                    } @else {
-                      {{ member.serviceDuration }} mins
-                    }
-                  </span>
-                </li>
-              }
-            </ul>
-          </app-accordion>
-        </div>
-
-        <!-- Notes — self-contained, only one row's open at a time. Hidden for
-             entries the barber added themselves: no account or guest session
-             behind them, so there is nobody on the other end to message. -->
-        @if (showChat(entry)) {
-          <div class="mt-2">
-            <app-accordion
-              title="View chat"
-              [open]="openNotesEntryId() === entry.entryId"
-              (openChange)="onRowNotesOpenChange(entry.entryId, $event)"
-            >
-              <app-comments-thread
-                [queueId]="_queueId"
-                [entryId]="entry.entryId"
-                [callPhone]="entry.members[0].phone"
-                composerPlaceholder="Write a message to the client…"
-                emptyLabel="No chat yet."
-              />
-            </app-accordion>
-          </div>
+    <section aria-labelledby="upcoming-title">
+      <div class="mb-3 flex items-center justify-between gap-2">
+        <h2 id="upcoming-title" class="text-base font-semibold text-text-primary">Upcoming</h2>
+        <span class="text-xs text-text-secondary">
+          {{ console.waitingEntries().length }} {{ console.waitingEntries().length === 1 ? 'client' : 'clients' }}
+        </span>
+      </div>
+      <div class="space-y-2">
+        @for (entry of console.waitingEntries(); track entry.entryId) {
+          <ng-container [ngTemplateOutlet]="entryCard" [ngTemplateOutletContext]="{ $implicit: entry }" />
+        } @empty {
+          <p class="rounded-2xl bg-surface-card px-4 py-6 text-center text-sm text-text-secondary">No clients waiting right now.</p>
         }
       </div>
-    }
-    @if (console.queueListEntries().length === 0) {
-      <div class="flex flex-col items-center justify-center py-16 text-text-faint">
-        <svg
-          class="w-12 h-12 mb-3"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="1.5"
-            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.48-.634-2.07M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.768.231-1.48.634-2.07M15 7a3 3 0 11-6 0 3 3 0 016 0z"
-          />
-        </svg>
-        <p class="text-sm font-medium">Queue is empty</p>
-      </div>
-    }
+    </section>
   </div>
 
-  <!-- Bottom action buttons — always fixed; see current-client's version of
-       this comment for the sidebar-avoidance rationale. -->
-  <div
-    class="fixed left-0 right-0 above-bottom-nav z-30 bg-surface px-7 md:px-16 pt-3 pb-4 flex gap-3 md:left-(--sidebar-width) transition-[left] duration-250 ease-in-out"
-  >
-    <button
-      (click)="openAddQueueModal()"
-      class="flex-1 min-h-[45px] rounded-2xl bg-primary border text-white font-bold text-sm transition-colors hover:bg-primary-hover"
-    >
-      Add a client
+  <ng-template #entryCard let-entry>
+    @let isServing = entry.members.some((member) => member.status === 'SERVING');
+    @let client = isServing ? (console.displayServingMember() ?? entry.members[0]) : entry.members[0];
+    @let isExpanded = openEntryIds().has(entry.entryId);
+    <div class="overflow-hidden rounded-2xl bg-surface-card">
+      <button type="button" (click)="toggleEntry(entry.entryId)"
+        [attr.aria-expanded]="isExpanded"
+        [attr.aria-controls]="'queue-entry-details-' + entry.entryId"
+        class="flex min-h-18 w-full cursor-pointer items-center gap-3 px-4 py-3 text-left">
+        <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary-light text-sm font-semibold text-primary">
+          {{ clientInitials(client.memberName) }}
+        </span>
+        <span class="min-w-0 flex-1">
+          <span class="block truncate text-sm font-semibold text-text-primary">
+            {{ client.memberName }}
+            @if (entry.members.length > 1) {
+              <span class="text-xs font-normal text-text-secondary">+ {{ entry.members.length - 1 }} {{ entry.members.length === 2 ? 'more person' : 'more persons' }}</span>
+            }
+          </span>
+          <span class="block truncate text-xs text-text-secondary">
+            {{ client.serviceName ? client.serviceName + ' · ' : '' }}{{ client.serviceDuration }} mins
+          </span>
+          @if (!isServing && !console.isLocked(entry.entryId)) {
+            <span class="block text-xs font-medium text-primary">{{ console.liveWait(entry.entryId) }}</span>
+          }
+        </span>
+        @if (isServing) {
+          <span class="shrink-0 text-right text-xs text-primary">
+            <app-icon name="clock" class="ml-auto mb-1 h-5 w-5" />
+            <span class="block" aria-live="polite">{{ remainingTime() }}</span>
+          </span>
+        } @else {
+          <app-icon name="chevron-left" class="h-3 w-3 shrink-0 text-primary transition-transform duration-200 ease-out motion-reduce:transition-none"
+            [class.rotate-180]="!isExpanded" [class.rotate-270]="isExpanded" />
+        }
+      </button>
+      <div class="grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none"
+        [style.grid-template-rows]="isExpanded ? '1fr' : '0fr'"
+        [attr.aria-hidden]="!isExpanded"
+        [attr.inert]="isExpanded ? null : ''"
+        [id]="'queue-entry-details-' + entry.entryId">
+        <div class="overflow-hidden">
+          <div class="space-y-3 border-t border-border-subtle px-4 py-3">
+        @if (entry.members[0].phone; as phone) {
+          <span class="flex items-center gap-2">
+            <a [href]="'tel:' + phone" class="min-w-0 truncate text-xs text-primary hover:underline">{{ phone }}</a>
+            <button type="button" (click)="copyPhone(phone)" aria-label="Copy phone number" class="text-xs font-semibold text-primary">Copy</button>
+          </span>
+        }
+        @if (entry.type === 'APPOINTMENT') {
+          <span class="flex items-center gap-2 text-xs text-text-secondary">
+            <span class="rounded bg-secondary-light px-1.5 py-0.5 font-semibold text-primary">Booking</span>
+            @if (entry.scheduledAt) { {{ entry.scheduledAt | date: 'shortTime' }} }
+          </span>
+        }
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs font-semibold" [class]="isServing ? 'text-success' : 'text-primary'">
+            {{ isServing ? 'Serving' : console.liveWait(entry.entryId) }}
+          </span>
+          <span class="flex items-center gap-2">
+            @if (console.isLocked(entry.entryId)) { <app-inline-spinner class="text-warning" /> }
+            <button type="button" (click)="noShow(entry.entryId)" [disabled]="console.isLocked(entry.entryId) || isServing"
+              class="min-h-8 rounded-xl border border-primary/40 px-2.5 text-xs font-semibold text-primary disabled:opacity-40">No-show</button>
+            <button type="button" (click)="cancelEntry(entry.entryId)" [disabled]="console.isLocked(entry.entryId) || isServing"
+              class="min-h-8 rounded-xl bg-primary px-2.5 text-xs font-semibold text-white disabled:opacity-40">Cancel</button>
+          </span>
+        </div>
+        <app-accordion [title]="entry.members.length === 1 ? 'Service' : 'Party (' + entry.members.length + ')'"><ul class="space-y-2">
+          @for (member of entry.members; track member.memberId) {
+            <li class="flex flex-col gap-0.5 text-xs sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
+              <span class="min-w-0 font-medium text-text-body wrap-break-word">{{ member.memberName }}</span>
+              <span class="min-w-0 text-text-secondary wrap-break-word sm:text-right">
+                {{ member.serviceName ? member.serviceName + ' · ' : '' }}{{ member.serviceDuration }} mins
+              </span>
+            </li>
+          }
+        </ul></app-accordion>
+        @if (isServing) {
+          <a [routerLink]="currentClientLink" class="inline-flex min-h-9 items-center rounded-xl border border-primary px-3 text-xs font-semibold text-primary">Manage current client</a>
+        }
+        @if (showChat(entry)) {
+          <app-accordion title="View chat" [open]="openNotesEntryId() === entry.entryId"
+            (openChange)="onRowNotesOpenChange(entry.entryId, $event)">
+            <app-comments-thread [queueId]="_queueId" [entryId]="entry.entryId"
+              [callPhone]="entry.members[0].phone" composerPlaceholder="Write a message to the client…"
+              emptyLabel="No chat yet." />
+          </app-accordion>
+        }
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-template>
+
+  <div class="fixed mb-2 left-0 right-0 above-bottom-nav z-30 grid grid-cols-2 gap-2 bg-surface px-5 py-2 md:left-(--sidebar-width) md:px-12 transition-[left] duration-250 ease-in-out">
+    <button type="button" (click)="goBack()"
+      class="flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-border bg-surface-card text-primary">
+      <app-icon name="chevron-left" class="h-4 w-3" />
+      <span class="whitespace-nowrap text-sm font-semibold text-text-primary">Back</span>
     </button>
-    <a
-      [routerLink]="currentClientLink"
-      class="flex-1 min-h-[45px] rounded-2xl border-2 border-primary text-primary font-bold text-sm transition-colors hover:bg-surface flex items-center justify-center"
-    >
-      Back
-    </a>
+    <button type="button" (click)="completeCurrent()"
+      [disabled]="!console.servingEntry() || console.callNextWaiting() || console.isLocked(console.servingEntry()!.entryId)"
+      class="flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-border bg-surface-card text-primary disabled:opacity-40">
+      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" /><path d="m8 12 2.5 2.5L16 9" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span class="whitespace-nowrap text-sm font-semibold text-text-primary">End Session</span>
+    </button>
   </div>
 </div>
-
-<app-add-client-modal
-  [open]="showAddQueueModal()"
-  [salonId]="_salonId"
-  [queueId]="_queueId"
-  [staffId]="_staffId"
-  (closed)="closeAddQueueModal()"
-/>

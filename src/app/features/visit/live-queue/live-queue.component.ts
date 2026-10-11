@@ -15,6 +15,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 import { environment } from '../../../../environments/environment';
 import { staffAvailability } from '../../../core/utils/staff-availability';
+import { TimelineEntryDto } from '../../../core/socket/socket.types';
 
 @Component({
   selector: 'app-live-queue',
@@ -87,12 +88,16 @@ export class LiveQueueComponent {
     return this.visit.waitingEntries().some((e) => this.visit.isMine(e.entryId));
   }
 
-  // Estimated Wait Time hero card — always shown. If the caller already has
-  // an entry in this queue, it's their own live wait; otherwise it's the
-  // wait a fresh joiner would face (back of the line).
+  // The status card shows a live wait for walk-ins, or the scheduled time for
+  // an appointment. Without an entry, it shows a fresh joiner's wait.
   protected readonly myWaitingEntry = computed(
     () => this.visit.waitingEntries().find((e) => this.visit.isMine(e.entryId)) ?? null,
   );
+
+  protected readonly myAppointment = computed(() => {
+    const entry = this.myWaitingEntry();
+    return entry?.type === 'APPOINTMENT' ? entry : null;
+  });
 
   protected readonly estimatedWait = computed(() => {
     const entry = this.myWaitingEntry();
@@ -110,6 +115,18 @@ export class LiveQueueComponent {
     const myIndex = entries.findIndex((e) => this.visit.isMine(e.entryId));
     return myIndex >= 0 ? myIndex : entries.length;
   });
+
+  protected readonly servingEntry = computed(
+    () => this.visit.waitingEntries().find((entry) => entry.members.some((member) => member.status === 'SERVING')) ?? null,
+  );
+
+  protected readonly upcomingCount = computed(
+    () => this.visit.waitingEntries().filter((entry) => !entry.members.some((member) => member.status === 'SERVING')).length,
+  );
+
+  protected servingLabel(entry: TimelineEntryDto): string {
+    return entry.position !== null ? `Client ${entry.position}` : 'Booked client';
+  }
 
   // Real availability from the barber's own openState (backend-computed,
   // precedence-ordered) — see core/utils/staff-availability.ts. Same source

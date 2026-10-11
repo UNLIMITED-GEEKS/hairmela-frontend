@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { forkJoin } from 'rxjs';
+import { forkJoin, map, Observable, of, tap } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { CacheRegistry } from '../../../core/caching/cache-registry/cache-registry.service';
 import { QueueSummaryDto } from '../../../api/models/queue-summary-dto';
@@ -19,6 +19,7 @@ import { analyticsControllerGetStaffPerformance } from '../../../api/fn/analytic
 // between "7 days" and "30 days" and back, or re-opening the page, gets an
 // instant repaint from cache instead of a redundant round-trip.
 const CACHE_TTL_MS = 30 * 60 * 1000;
+const OVERVIEW_SUMMARY_TTL_MS = 60 * 1000;
 
 interface AnalyticsSnapshot {
   summary: QueueSummaryDto;
@@ -112,9 +113,30 @@ export class AnalyticsService {
   // core/caching/) rather than copy-pasted again. Revisit then; not worth
   // building the shared abstraction for a single caller right now.
   private readonly _cache = new Map<string, AnalyticsSnapshot>();
+  private readonly _overviewSummaryCache = new Map<string, { summary: QueueSummaryDto; fetchedAt: number }>();
 
   private _cacheKey(salonId: string, f: AnalyticsFilters): string {
     return `${salonId}|${f.from}|${f.to}|${f.staffId ?? ''}|${f.serviceId ?? ''}`;
+  }
+
+  // The overview always needs an unfiltered salon summary. Keep it separate
+  // from the analytics page's mutable staff/service/range filters, and use a
+  // shorter TTL because the same response includes "waiting now".
+  overviewSummary(salonId: string, from: string, to: string, timezone: string): Observable<QueueSummaryDto> {
+    const key = `${salonId}|${from}|${to}|${timezone}`;
+    const cached = this._overviewSummaryCache.get(key);
+    if (cached && Date.now() - cached.fetchedAt < OVERVIEW_SUMMARY_TTL_MS) {
+      return of(cached.summary);
+    }
+    return analyticsControllerGetSummary(this._http, this._apiConfig.rootUrl, {
+      salonId,
+      from,
+      to,
+      timezone,
+    }).pipe(
+      map((response) => response.body),
+      tap((summary) => this._overviewSummaryCache.set(key, { summary, fetchedAt: Date.now() })),
+    );
   }
 
   load(salonId: string): void {
@@ -193,6 +215,7 @@ export class AnalyticsService {
 
   clear(): void {
     this._cache.clear();
+    this._overviewSummaryCache.clear();
   }
 
   // Pill ranges (7d/30d/90d) — mutually exclusive with a picked day, so this

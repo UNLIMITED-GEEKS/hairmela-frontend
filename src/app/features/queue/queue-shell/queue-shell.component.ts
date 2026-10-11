@@ -27,7 +27,7 @@ import { environment } from '../../../../environments/environment';
 })
 export class QueueShellComponent implements OnInit, OnDestroy {
   protected readonly console = inject(QueueConsoleService);
-  protected readonly _location = inject(Location);
+  private readonly _location = inject(Location);
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
   private readonly _salonContext = inject(SalonContextService);
@@ -35,11 +35,7 @@ export class QueueShellComponent implements OnInit, OnDestroy {
   private readonly _toast = inject(ToastService);
 
   // True while the active child route is queue-list (.../console/queue), not
-  // current-client (the shell's default child, .../console). The back
-  // chevron above is shared by both — on queue-list it should always return
-  // to current-client (hardcoded, not browser-history-based, since arriving
-  // at queue-list can happen from several different places); on
-  // current-client itself it keeps its normal history-based behavior.
+  // current-client (the shell's default child, .../console).
   protected readonly onQueueListRoute = toSignal(
     this._router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd),
@@ -51,6 +47,16 @@ export class QueueShellComponent implements OnInit, OnDestroy {
 
   protected get currentClientLink(): string[] {
     return RoutePath.salonQueueConsole(this.salonId, this.queueId);
+  }
+
+  protected goBack(): void {
+    if (window.history.length > 1) {
+      this._location.back();
+    } else {
+      void this._router.navigate(
+        this.onQueueListRoute() ? this.currentClientLink : RoutePath.salon(this.salonId),
+      );
+    }
   }
 
   // Straight to the STAFF tab: this console is a staff surface, and the
@@ -69,6 +75,7 @@ export class QueueShellComponent implements OnInit, OnDestroy {
     'CLOSED',
   ];
   protected readonly showAutoCallNextSettings = signal(false);
+  protected readonly queueOptionsOpen = signal(false);
 
   protected get salonId(): string {
     return this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? '';
@@ -95,8 +102,7 @@ export class QueueShellComponent implements OnInit, OnDestroy {
     // Both paths land on current-client: on success because that's where the
     // just-called client now shows, and on the conflict error (someone is
     // already SERVING) because that's the entry the barber has to resolve.
-    // Hardcoded rather than _location.back() for the same reason the back
-    // chevron above is — queue-list can be reached from several places.
+    // This action opens current-client regardless of how queue-list was reached.
     this.console.callNext(this.salonId, this.queueId, () => this._goToCurrentClient());
     if (this.onQueueListRoute()) this._goToCurrentClient();
   }

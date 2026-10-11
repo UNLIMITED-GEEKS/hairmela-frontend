@@ -57,6 +57,14 @@ export const salonRoutes: Routes = [
       import('./analytics/analytics.component').then((m) => m.AnalyticsComponent),
   },
   {
+    path: RouteSegment.MY_ANALYTICS,
+    canActivate: [salonRoleGuard],
+    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
+    providers: [provideCharts(withDefaultRegisterables())],
+    loadComponent: () =>
+      import('./analytics/my-analytics.component').then((m) => m.MyAnalyticsComponent),
+  },
+  {
     path: RouteSegment.MEDIA,
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },

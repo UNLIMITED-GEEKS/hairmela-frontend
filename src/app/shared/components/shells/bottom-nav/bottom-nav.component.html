@@ -1,11 +1,20 @@
 <nav
-  class="flex md:hidden fixed pt-2 bottom-0 inset-x-0 z-40 bg-surface border-t border-border safe-area-bottom pb-0"
+  class="fixed bottom-0 inset-x-0 z-40 flex bg-transparent md:hidden rounded-t-md"
   aria-label="Bottom navigation">
-  <div class="flex w-full">
+  <div class="relative w-full">
+    <div
+      class="flex w-full border-t pt-2 border-border/30 bg-surface-card safe-area-bottom rounded-t-lg"
+      [class.center-action-cutout]="showCenterAction()">
     <!-- Ordinary tabs, then the sheet tab, then any CTA. The CTA (the guest
          shell's Sign Up) is a filled button that reads as the end of the bar,
          so it stays last — see plainItems/ctaItems. -->
-    <ng-container [ngTemplateOutlet]="tabs" [ngTemplateOutletContext]="{ $implicit: plainItems() }" />
+    @if (showCenterAction()) {
+      <ng-container [ngTemplateOutlet]="tabs" [ngTemplateOutletContext]="{ $implicit: leadingItems() }" />
+      <div class="flex-1 min-h-14" aria-hidden="true"></div>
+      <ng-container [ngTemplateOutlet]="tabs" [ngTemplateOutletContext]="{ $implicit: trailingItems() }" />
+    } @else {
+      <ng-container [ngTemplateOutlet]="tabs" [ngTemplateOutletContext]="{ $implicit: plainItems() }" />
+    }
 
     <!-- Sheet tab: opens the mobile sheet rather than navigating, so it is a
          button, not a routerLink — there is no URL to be active on, and its
@@ -35,6 +44,28 @@
     }
 
     <ng-container [ngTemplateOutlet]="tabs" [ngTemplateOutletContext]="{ $implicit: ctaItems() }" />
+    </div>
+
+    @if (showCenterAction()) {
+      <span class="pointer-events-none absolute left-1/2 -top-5 z-10 h-[68px] w-[68px] -translate-x-1/2 rounded-full bg-surface"
+        style="clip-path: inset(29.4% 0 0 0)" aria-hidden="true"></span>
+      <button type="button" (click)="centerAction.emit()"
+        class="absolute left-1/2 -top-3 z-20 flex h-13 w-13 -translate-x-1/2 items-center justify-center rounded-full bg-primary text-white shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
+        [attr.aria-label]="centerActionLabel()">
+        <span class="flex h-8 w-8 shrink-0 items-center justify-center">
+          @if (centerActionIcon() === 'search') {
+            <app-nav-icon
+              icon="search"
+              size="w-6 h-6"
+              class="flex h-6 w-6 items-center justify-center" />
+          } @else {
+            <svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" stroke-width="1.3" stroke-linecap="round" />
+            </svg>
+          }
+        </span>
+      </button>
+    }
   </div>
 </nav>
 

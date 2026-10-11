@@ -4,7 +4,7 @@
   <!-- Desktop sidebar -->
   <div class="print:hidden contents">
     <app-sidebar
-      [navItems]="navItems"
+      [navItems]="navItems()"
       [activeSalonId]="displaySalonId()"
       [membership]="displayMembership()"
       [loggingOut]="loggingOut()"
@@ -36,7 +36,8 @@
     <div class="print:hidden">
       <app-mobile-sheet
         #sheet
-        [navItems]="navItems"
+        [class.has-center-action]="canQuickAdd() || isCustomer()"
+        [navItems]="navItems()"
         [open]="sheetOpen()"
         [activeSalonId]="displaySalonId()"
         [membership]="displayMembership()"
@@ -68,12 +69,16 @@
          the whole template. -->
     <div class="print:hidden">
       <app-bottom-nav
-        [navItems]="navItems"
+        [navItems]="navItems()"
+        [showCenterAction]="canQuickAdd() || isCustomer()"
+        [centerActionLabel]="canQuickAdd() ? 'Add a client' : 'Search salons'"
+        [centerActionIcon]="isCustomer() ? 'search' : 'plus'"
         [showSheetTab]="!sheet.isEmpty()"
         [sheetOpen]="sheetOpen()"
         sheetTabLabel="My Salon"
         sheetTabIcon="scissors"
         (sheetToggle)="sheetOpen.update((v) => !v)"
+        (centerAction)="onCenterAction()"
         (navigate)="sheetOpen.set(false)"
       />
     </div>
@@ -86,6 +91,16 @@
         [staffId]="request.staffId"
         [initialMode]="'appointment'"
         (closed)="closeCreateAppointment()"
+      />
+    }
+
+    @if (quickAddRequest(); as request) {
+      <app-add-client-modal
+        [open]="true"
+        [salonId]="request.salonId"
+        [queueId]="request.queueId"
+        [staffId]="request.staffId"
+        (closed)="closeQuickAdd()"
       />
     }
   </div>
