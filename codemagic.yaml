@@ -13,7 +13,7 @@ workflows:
         XCODE_WORKSPACE: ios/App/App.xcworkspace
         XCODE_SCHEME: App
       node: 24
-      xcode: '26.5'
+      xcode: '26.4'
       cocoapods: default
     scripts:
       - name: Install JavaScript dependencies
