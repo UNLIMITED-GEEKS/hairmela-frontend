@@ -75,8 +75,6 @@ export class DashboardComponent implements OnInit {
 
   protected readonly showScanner = signal(false);
 
-  protected readonly notificationsLink = RoutePath.notifications();
-  protected readonly favoritesLink = RoutePath.favorites();
   protected readonly searchLink = RoutePath.search();
   protected readonly howToInstallLink = RoutePath.download();
   protected readonly howItWorksLink = RoutePath.howItWorks();

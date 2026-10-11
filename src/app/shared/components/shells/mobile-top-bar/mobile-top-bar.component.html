@@ -10,7 +10,7 @@
       }
 
       @if (header.state().isHome) {
-        <div></div>
+        <h1 class="min-w-0 truncate text-base font-semibold text-text-primary">HairMela</h1>
       } @else {
         <h1 class="min-w-0 truncate text-center text-base font-semibold text-text-primary">{{ header.state().title }}</h1>
       }
@@ -77,6 +77,14 @@
                 <a [routerLink]="accountLink" (click)="closeMenu()"
                   class="flex min-h-11 items-center rounded-lg px-3 text-sm text-text-primary hover:bg-surface-overlay">
                   My Profile
+                </a>
+                <a [routerLink]="favoritesLink" (click)="closeMenu()"
+                  class="flex min-h-11 items-center rounded-lg px-3 text-sm text-text-primary hover:bg-surface-overlay">
+                  Favourites
+                </a>
+                <a [routerLink]="notificationsLink" (click)="closeMenu()"
+                  class="flex min-h-11 items-center rounded-lg px-3 text-sm text-text-primary hover:bg-surface-overlay">
+                  Notifications
                 </a>
                 <a [routerLink]="settingsLink" (click)="closeMenu()"
                   class="flex min-h-11 items-center rounded-lg px-3 text-sm text-text-primary hover:bg-surface-overlay">

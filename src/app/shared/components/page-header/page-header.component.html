@@ -16,6 +16,14 @@
             class="flex min-h-11 items-center rounded-lg px-3 text-sm text-text-primary hover:bg-surface-overlay">
             My Profile
           </a>
+          <a [routerLink]="favoritesLink" (click)="menuOpen.set(false)"
+            class="flex min-h-11 items-center rounded-lg px-3 text-sm text-text-primary hover:bg-surface-overlay">
+            Favourites
+          </a>
+          <a [routerLink]="notificationsLink" (click)="menuOpen.set(false)"
+            class="flex min-h-11 items-center rounded-lg px-3 text-sm text-text-primary hover:bg-surface-overlay">
+            Notifications
+          </a>
           <a [routerLink]="settingsLink" (click)="menuOpen.set(false)"
             class="flex min-h-11 items-center rounded-lg px-3 text-sm text-text-primary hover:bg-surface-overlay">
             Settings

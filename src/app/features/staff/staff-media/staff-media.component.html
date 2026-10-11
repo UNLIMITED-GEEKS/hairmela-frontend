@@ -1,19 +1,27 @@
 @if (loading()) {
-  <!-- Mirrors the two cards this page renders — the profile photo card and
-       the gallery grid — rather than avatar rows, which it never shows. -->
+  <!-- Mirrors the profile media panel and gallery grid. -->
   <div class="py-6 px-4 space-y-4">
 
-    <!-- Profile photo card: heading, round photo, action -->
-    <div class="bg-surface-card rounded-xl border border-border p-5 space-y-4">
-      <app-skeleton variant="block" height="1rem" width="8rem" rounded="rounded" />
-      <div class="flex items-center gap-4">
-        <div class="shrink-0"><app-skeleton variant="block" height="5rem" width="5rem" rounded="rounded-full" /></div>
-        <app-skeleton variant="block" height="2.25rem" width="7rem" />
+    <!-- Profile media panel -->
+    <div class="rounded-3xl border border-border-subtle bg-surface-card p-5">
+      <div class="flex items-center gap-3">
+        <app-skeleton variant="block" height="2.5rem" width="2.5rem" rounded="rounded-xl" />
+        <div class="space-y-2">
+          <app-skeleton variant="block" height="1rem" width="8rem" rounded="rounded" />
+          <app-skeleton variant="block" height="0.75rem" width="9rem" rounded="rounded" />
+        </div>
+      </div>
+      <div class="mt-5 flex flex-col items-center gap-3 rounded-2xl bg-surface-sunken p-5 md:flex-row">
+        <app-skeleton variant="block" height="6rem" width="6rem" rounded="rounded-full" />
+        <div class="space-y-3">
+          <app-skeleton variant="block" height="0.75rem" width="9rem" rounded="rounded" />
+          <app-skeleton variant="block" height="2.25rem" width="7rem" />
+        </div>
       </div>
     </div>
 
     <!-- Gallery card: heading, count, then the preview grid -->
-    <div class="bg-surface-card rounded-xl border border-border p-5 space-y-4">
+    <div class="rounded-3xl border border-border-subtle bg-surface-card p-5 space-y-4">
       <div class="flex items-center justify-between">
         <app-skeleton variant="block" height="1rem" width="5rem" rounded="rounded" />
         <app-skeleton variant="block" height="0.875rem" width="6rem" rounded="rounded" />
@@ -36,27 +44,42 @@
     <div class="space-y-6">
 
 
-      <!-- Profile photo -->
-      <div class="bg-surface-card rounded-xl border border-border p-5 space-y-4">
-        <h2 class="text-sm font-semibold text-text-body">Profile photo</h2>
-        <div class="flex items-start md:items-center gap-4">
-          <button type="button" (click)="openProfilePreview()" [disabled]="!profilePhoto() || profilePhotoPending()"
-            class="rounded-full disabled:cursor-default" aria-label="View profile photo">
-            <app-avatar [src]="profilePhoto()?.url" size="xl" [pending]="profilePhotoPending()" />
-          </button>
-          @if (canEdit()) {
-            <app-image-uploader
-              label="Change photo"
-              (filesSelected)="onProfileFilesSelected($event)" />
-          }
+      <!-- Profile media -->
+      <section class="rounded-3xl border border-border-subtle bg-surface-card p-5">
+        <div class="flex items-start gap-3">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary" aria-hidden="true">
+            <app-icon name="photos" class="h-5 w-5" />
+          </span>
+          <div class="min-w-0">
+            <h2 class="text-base font-semibold text-text-primary">Profile photo</h2>
+            <p class="mt-1 text-xs leading-5 text-text-secondary">The image customers see when choosing a staff member.</p>
+          </div>
         </div>
-      </div>
+        <div class="mt-5 flex flex-col items-center gap-4 rounded-2xl bg-surface-sunken px-4 py-5 text-center md:flex-row md:text-left">
+          <button type="button" (click)="openProfilePreview()" [disabled]="!profilePhoto() || profilePhotoPending()"
+            class="rounded-full border-4 border-surface-card shadow-md disabled:cursor-default" aria-label="View profile photo">
+            <app-avatar [src]="profilePhoto()?.url" name="Staff" size="xl" [pending]="profilePhotoPending()" />
+          </button>
+          <div class="flex flex-col items-center gap-3 md:items-start">
+            <p class="text-xs text-text-secondary">
+              @if (profilePhotoPending()) { Uploading photo… }
+              @else if (profilePhoto()) { Tap the photo to preview }
+              @else { No profile photo yet }
+            </p>
+            @if (canEdit()) {
+              <app-image-uploader
+                [label]="profilePhoto() ? 'Change photo' : 'Add photo'"
+                (filesSelected)="onProfileFilesSelected($event)" />
+            }
+          </div>
+        </div>
+      </section>
 
       <!-- Gallery — Recent Work style preview grid (matches the salon-landing
            About tab). Tap a photo to preview in the read-only lightbox; the
            pen icon opens the drag/delete modal, which persists reorder via
            PATCH /v1/staff/{staffId}/media/reorder. -->
-      <div class="bg-surface-card rounded-xl border border-border p-5 space-y-4">
+      <div class="rounded-3xl border border-border-subtle bg-surface-card p-5 space-y-4">
         <div class="flex items-center justify-between">
           <h2 class="text-sm font-semibold text-text-body">Gallery</h2>
           <div class="flex items-center gap-3">

@@ -30,6 +30,8 @@ export class PageHeaderComponent {
   protected readonly header = inject(AppHeaderService);
   protected readonly currentUser = inject(CurrentUserStore);
   protected readonly profileLink = RoutePath.account();
+  protected readonly favoritesLink = RoutePath.favorites();
+  protected readonly notificationsLink = RoutePath.notifications();
   protected readonly settingsLink = RoutePath.accountSettings();
   protected readonly signInLink = RoutePath.login();
 

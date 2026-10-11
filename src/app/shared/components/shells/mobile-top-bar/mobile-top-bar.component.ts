@@ -26,6 +26,8 @@ export class MobileTopBarComponent {
   readonly activeSalonId = input<string | null>(null);
 
   protected readonly accountLink = RoutePath.account();
+  protected readonly favoritesLink = RoutePath.favorites();
+  protected readonly notificationsLink = RoutePath.notifications();
   protected readonly settingsLink = RoutePath.accountSettings();
   protected readonly signInLink = RoutePath.login();
 
