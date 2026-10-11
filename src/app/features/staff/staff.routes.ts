@@ -11,6 +11,7 @@ export const staffRoutes: Routes = [
     // (e.g. dashboard "My Services" -> /staff/:myStaffId/services) before relying
     // on this. The :staffId/services route still allows STAFF — only the link is gone.
     path: '',
+    title: 'Staff',
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
     loadComponent: () =>
@@ -18,6 +19,7 @@ export const staffRoutes: Routes = [
   },
   {
     path: RouteSegment.INVITE,
+    title: 'Add Staff',
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
     loadComponent: () =>
@@ -25,6 +27,7 @@ export const staffRoutes: Routes = [
   },
   {
     path: RouteSegment.TRANSFER_OWNERSHIP,
+    title: 'Transfer ownership',
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER] },
     loadComponent: () =>
@@ -34,6 +37,7 @@ export const staffRoutes: Routes = [
   },
   {
     path: `:${RouteParam.STAFF_ID}`,
+    title: 'Staff',
     loadComponent: () =>
       import('./staff-detail/staff-detail.component').then((m) => m.StaffDetailComponent),
   },
@@ -45,6 +49,7 @@ export const staffRoutes: Routes = [
     // comment). Until that lands, a STAFF role can view any staff member's
     // media page here, upload only disabled for non-owner/admin regardless.
     path: `:${RouteParam.STAFF_ID}/${RouteSegment.MEDIA}`,
+    title: 'Staff photos',
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     loadComponent: () =>
@@ -52,6 +57,7 @@ export const staffRoutes: Routes = [
   },
   {
     path: `:${RouteParam.STAFF_ID}/${RouteSegment.SERVICES}`,
+    title: 'Services offered',
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     loadComponent: () =>
@@ -61,6 +67,7 @@ export const staffRoutes: Routes = [
   },
   {
     path: `:${RouteParam.STAFF_ID}/${RouteSegment.SCHEDULES}`,
+    title: 'Working hours',
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
     loadComponent: () =>
@@ -70,6 +77,7 @@ export const staffRoutes: Routes = [
   },
   {
     path: `:${RouteParam.STAFF_ID}/${RouteSegment.CLOSURES}`,
+    title: 'Closures',
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
     loadComponent: () =>
@@ -79,6 +87,7 @@ export const staffRoutes: Routes = [
     // A staff member can view their own appointment history here too — same
     // role set as :staffId/services (staff manage their own booked schedule).
     path: `:${RouteParam.STAFF_ID}/${RouteSegment.APPOINTMENTS}`,
+    title: 'Appointments',
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     loadComponent: () =>

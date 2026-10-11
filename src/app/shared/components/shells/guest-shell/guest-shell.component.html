@@ -8,17 +8,17 @@
     <!-- Desktop top bar -->
     <app-top-bar [showUserAvatar]="false" />
 
-    <!-- Mobile top bar -->
+    <!-- Mobile app header -->
     <app-mobile-top-bar [isGuest]="true" />
 
     <!-- Content -->
-    <main #mainScroll class="mobile-shell-content-top flex-1 overflow-y-auto pb-bottom-nav">
+    <main #mainScroll class="min-h-0 flex-1 overflow-y-auto pb-bottom-nav">
       <app-pull-to-refresh-indicator />
       <!-- RouterOutlet's own (activate) fires when a route component is
            created, which is exactly when the page should fade. Replacing
            the class on that event restarts the CSS animation without
            tearing the wrapper down. -->
-      <div #routeWrapper class="w-[95%] mx-auto py-6 md:py-2 route-enter">
+      <div #routeWrapper class="flex min-h-full flex-col md:block md:min-h-0 w-[95%] mx-auto py-2 route-enter">
         <router-outlet (activate)="onRouteActivate()" />
       </div>
     </main>

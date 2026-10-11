@@ -7,6 +7,7 @@ import { Routes } from '@angular/router';
 export const branchesRoutes: Routes = [
   {
     path: '',
+    title: 'Locations',
     loadComponent: () =>
       import('./branch-picker/branch-picker.component').then((m) => m.BranchPickerComponent),
   },

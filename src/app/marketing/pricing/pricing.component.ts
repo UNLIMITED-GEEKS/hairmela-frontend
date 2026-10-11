@@ -16,7 +16,6 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
 })
 export class PricingComponent {
   protected readonly platform = inject(AppPlatformService);
-  protected readonly homeLink = RoutePath.root();
 
   protected readonly RoutePath = RoutePath;
 

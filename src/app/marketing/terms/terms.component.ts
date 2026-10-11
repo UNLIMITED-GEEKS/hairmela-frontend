@@ -19,7 +19,6 @@ interface LegalSection {
 })
 export class TermsComponent {
   protected readonly platform = inject(AppPlatformService);
-  protected readonly homeLink = RoutePath.root();
 
   protected readonly lastUpdated = '30 June 2026';
   protected readonly termsLink = RoutePath.terms();

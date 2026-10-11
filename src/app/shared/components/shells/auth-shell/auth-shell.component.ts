@@ -15,7 +15,6 @@ import {
 import { NavigationStart, Router, RouterOutlet } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
-import { CurrentUserStore } from '../../../../core/auth/current-user.store';
 import { SalonContextService } from '../../../../core/salon-context/salon-context.service';
 import { SalonsStore } from '../../../../core/salon-context/salons.store';
 import { InvitesService } from '../../../../features/dashboard/invites.service';
@@ -99,7 +98,6 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly _scrollRestoration = inject(RouteScrollRestorationService);
   private readonly _queueConsole = inject(QueueConsoleService);
   private readonly _staffAppointmentModal = inject(StaffAppointmentModalService);
-  protected readonly _currentUser = inject(CurrentUserStore);
   protected readonly loggingOut = this._auth.loggingOut;
 
   // This shell's scroll region is the inner <main>, not the window (see
@@ -148,13 +146,6 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   // Membership for displaySalonId — feeds shell-level navigation on pages
   // without a salon route. Page-level tier and role guards still use the
   // strict route-derived membership.
-
-  // Drives the initials avatar in the mobile top bar. Same composition the
-  // desktop top bar already uses for its own avatar.
-  protected readonly userFullName = computed(() => {
-    const user = this._currentUser.user();
-    return user ? `${user.firstName} ${user.lastName}` : '';
-  });
 
   protected readonly navItems = computed<NavItem[]>(() => {
     const savedItem: NavItem[] = !this.isCustomer()

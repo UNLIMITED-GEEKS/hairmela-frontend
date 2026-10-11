@@ -7,7 +7,7 @@
       <!-- Salon header and live queue summary -->
       <div class="w-full shrink-0 px-3 pt-2">
         @if (visit.salon(); as salon) {
-          <div class="flex items-center gap-3 mb-3">
+          <div class="hidden md:flex items-center gap-3 mb-3">
             <app-back-button [variant]="theme.mode() === 'dark' ? 'glass' : 'plain'" />
             <h1 class="min-w-0 flex-1 truncate text-lg font-bold text-text-primary">{{ salon.name }}</h1>
           </div>
@@ -62,14 +62,14 @@
           <img [src]="salonPhoto | mediaUrl:'hero'" alt="" class="absolute inset-0 h-full w-full object-cover" />
         }
         <div class="absolute inset-0 bg-black/60"></div>
-        <div class="relative z-10 flex w-full items-center justify-between pt-5 text-white">
-          <span class="flex items-center gap-2 text-sm font-semibold">
+        <div class="relative z-10 flex w-full items-center justify-center pt-5 text-white">
+          <span class=" gap-2 text-sm font-semibold">
             <span class="h-3 w-3 rounded-full bg-secondary"></span>
             {{ isAppointment() ? 'Appointment' : 'Live queue' }}
           </span>
           @if (!serviceComplete() && !isBeingServed() && !isAppointment() && visit.myEntry(_entryId())) {
             <span class="flex items-center gap-2 text-xs" aria-live="polite">
-              <app-icon name="clock" class="h-5 w-5 text-secondary" />{{ visit.liveWait(_entryId()) }}
+              <!-- <app-icon name="clock" class="h-5 w-5 text-secondary" />{{ visit.liveWait(_entryId()) }} -->
             </span>
           }
         </div>
@@ -273,7 +273,7 @@
     </div>
 
     <!-- Fixed bottom bar -->
-    <div class="shrink-0  border-t border-border-subtle px-5 pt-3 safe-area-bottom">
+    <div class="shrink-0   px-5 pt-3 safe-area-bottom">
       @if (serviceComplete()) {
         <a [routerLink]="salonUrl"
           class="flex w-full min-h-[45px] rounded-xl bg-primary text-white font-bold text-sm items-center justify-center hover:bg-primary/90 transition-colors">

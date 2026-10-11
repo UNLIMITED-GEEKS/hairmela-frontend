@@ -1,5 +1,5 @@
 <div class="h-mobile-content bg-surface flex flex-col">
-  <div class="max-w-md mx-auto w-full flex flex-col h-full pt-4">
+  <div class="max-w-md mx-auto w-full flex flex-col h-full md:pt-4">
 
     <!-- Refreshing notice — shown whenever the timeline isn't confirmed
          current yet: both a cold first load (nothing rendered, fetch in
@@ -152,7 +152,7 @@
     </div>
 
     <!-- Scrollable queue list -->
-    <div class="flex-1 overflow-y-auto px-3 pb-2 space-y-2 themed-scrollbar" aria-live="polite">
+    <div class="flex-1 overflow-y-auto px-3 pb-20 md:pb-2 space-y-2 themed-scrollbar" aria-live="polite">
       @for (entry of visit.waitingEntries(); track entry.entryId) {
         @let isServing = entry.members.some(m => m.status === 'SERVING');
         @let isMe = visit.isMine(entry.entryId);
@@ -208,7 +208,7 @@
     </div>
 
     <!-- Fixed bottom bar -->
-    <div class="shrink-0 bg-surface border-t border-border-subtle px-3 pt-3 safe-area-bottom">
+    <div class="fixed left-1/2 w-[95%] max-w-md -translate-x-1/2 above-bottom-nav z-30 shrink-0 bg-surface border-t border-border-subtle px-3 pt-3 pb-3 md:static md:w-full md:translate-x-0 md:pb-0">
       <div class="flex gap-3">
         @if (!hasMyEntries()) {
           <!-- Appointments-only salons (allowWalkIns off) have no walk-in queue

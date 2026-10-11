@@ -19,7 +19,6 @@ interface LegalSection {
 })
 export class PrivacyComponent {
   protected readonly platform = inject(AppPlatformService);
-  protected readonly homeLink = RoutePath.root();
 
   protected readonly lastUpdated = '10 September 2026';
   protected readonly privacyLink = RoutePath.privacy();

@@ -1046,6 +1046,28 @@ textarea::placeholder {
   animation: nav-glow-leave 0.15s ease-in forwards;
 }
 
+/* Three-dot header menus fade in and finish fading out before removal. */
+@keyframes header-menu-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes header-menu-leave {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+.header-menu-enter {
+  animation: header-menu-enter 0.2s ease-out;
+}
+.header-menu-leave {
+  animation: header-menu-leave 0.15s ease-in forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .header-menu-enter,
+  .header-menu-leave {
+    animation-duration: 1ms;
+  }
+}
+
 /* Gallery modal open/close fade (Angular animate.enter/animate.leave). */
 @keyframes gallery-modal-enter {
   from { opacity: 0; }
@@ -1120,11 +1142,24 @@ textarea::placeholder {
   padding-top: calc(0.75rem + env(safe-area-inset-top));
 }
 
-/* The mobile top bar is fixed, so the shell's independent scroll container
-   must reserve the same top inset or its first content row remains underneath
-   the taller iOS header. The base 2rem preserves the existing spacing. */
-.mobile-shell-content-top {
-  padding-top: calc(2rem + env(safe-area-inset-top));
+/* The shell renders one mobile header. Page headers remain on desktop, where
+   the shell uses the desktop top bar and their back button is still needed. */
+@media screen and (max-width: 767px) {
+  app-auth-shell app-page-header,
+  app-guest-shell app-page-header {
+    display: none;
+  }
+
+  /* Full-screen routed panels fill the shell wrapper's minimum height, while
+     ordinary pages can make that wrapper grow beyond the viewport. */
+  app-salon-shell,
+  app-live-queue,
+  app-my-position,
+  app-queue-shell {
+    display: block;
+    flex: 1;
+    height: 100%;
+  }
 }
 
 /* Public pages scroll the window rather than the Auth/Guest inner scroller.
@@ -1146,12 +1181,6 @@ textarea::placeholder {
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
-@media (min-width: 768px) {
-  .mobile-shell-content-top {
-    padding-top: 0;
-  }
-}
-
 /* ── dvh fallbacks ────────────────────────────────────────────────────────────
    dvh (dynamic viewport height) requires Chrome 108+, Firefox 101+, and even
    within supporting browsers there are known dvh miscalculation bugs on
@@ -1169,11 +1198,18 @@ textarea::placeholder {
   }
 }
 
-/* h-screen-minus-topbar: full viewport minus the 3rem top bar (queue console) */
+/* Full height of the shell's scroll area after its in-flow mobile header. */
 @utility h-screen-minus-topbar {
-  height: calc(100vh - 3rem);
+  height: 100%;
+}
+@media (min-width: 768px) {
+  .h-screen-minus-topbar {
+    height: calc(100vh - 3rem);
+  }
   @supports (height: 100dvh) {
-    height: calc(100dvh - 3rem);
+    .h-screen-minus-topbar {
+      height: calc(100dvh - 3rem);
+    }
   }
 }
 
@@ -1193,11 +1229,10 @@ textarea::placeholder {
 }
 
 /* ── Mobile chrome (single source of truth) ──────────────────────────────────
-   The mobile bottom nav's total height: its content (min-h-56px) plus the
-   home-indicator safe area. Shells reserve exactly this so page content is
-   never occluded by the nav. Defined once here; do not hardcode elsewhere. */
+   The nav includes a 56px tab, 8px top padding, bottom safe-area padding,
+   and a 1px border. Shells reserve the full rendered height. */
 :root {
-  --bottom-nav-height: calc(3.5rem + env(safe-area-inset-bottom));
+  --bottom-nav-height: calc(3.5rem + 0.5rem + max(0.75rem, env(safe-area-inset-bottom)) + 1px);
   /* Default when SidebarComponent isn't mounted (e.g. customer-facing
      shells). SidebarComponent overwrites this on <html> with its live
      collapsed/expanded width whenever it IS mounted (auth-shell). */
@@ -1222,7 +1257,7 @@ textarea::placeholder {
    its bottom edge is still pinned at the base offset regardless of its own
    padding. */
 .above-bottom-nav {
-  bottom: calc(var(--bottom-nav-height) + 0.75rem);
+  bottom: calc(var(--bottom-nav-height) + 0rem);
 }
 @media (min-width: 768px) {
   .above-bottom-nav {
@@ -1230,17 +1265,10 @@ textarea::placeholder {
   }
 }
 
-/* Full content height for self-sized full-screen visit panels. These live
-   inside <main>, which already reserves the bottom-nav space via .pb-bottom-nav,
-   so here we only subtract the floating top bar (3rem) plus a small gap so the
-   panel's footer doesn't butt against the nav. md+ has no bottom nav. */
+/* Full content height for visit panels inside the shell's scroll area. The
+   route wrapper fills that area, which already clears the header and nav. */
 .h-mobile-content {
-  height: calc(100vh - 3rem - var(--bottom-nav-height) - 2rem);
-}
-@supports (height: 100dvh) {
-  .h-mobile-content {
-    height: calc(100dvh - 3rem - var(--bottom-nav-height) - 2rem);
-  }
+  height: 100%;
 }
 @media (min-width: 768px) {
   .h-mobile-content {

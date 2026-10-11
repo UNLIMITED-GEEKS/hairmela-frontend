@@ -18,6 +18,7 @@ import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.
 import { ToastService } from '../../../core/toast/toast.service';
 import { SalonSettingsService } from '../../salons/salon-settings/salon-settings.service';
 import { environment } from '../../../../environments/environment';
+import { AppHeaderService } from '../../../core/routing/app-header.service';
 
 @Component({
   selector: 'app-queue-shell',
@@ -33,6 +34,7 @@ export class QueueShellComponent implements OnInit, OnDestroy {
   private readonly _salonContext = inject(SalonContextService);
   private readonly _salonSettings = inject(SalonSettingsService);
   private readonly _toast = inject(ToastService);
+  protected readonly header = inject(AppHeaderService);
 
   // True while the active child route is queue-list (.../console/queue), not
   // current-client (the shell's default child, .../console).
@@ -62,6 +64,8 @@ export class QueueShellComponent implements OnInit, OnDestroy {
   // Straight to the STAFF tab: this console is a staff surface, and the
   // customer/owner tabs answer questions nobody here is asking.
   protected readonly howItWorksLink = RoutePath.howItWorks();
+  protected readonly profileLink = RoutePath.account();
+  protected readonly settingsLink = RoutePath.accountSettings();
   protected readonly howItWorksStaffParams = { [RouteQueryParam.TAB]: HowItWorksTab.STAFF };
 
   // staffFrozen (handoff §5): this non-owner staff member is over the plan's

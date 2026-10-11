@@ -7,11 +7,13 @@ import { RouteSegment } from '../../core/routing/route-paths';
 export const salonRoutes: Routes = [
   {
     path: '',
+    title: 'Salon Overview',
     loadComponent: () =>
       import('./salon-overview/salon-overview.component').then((m) => m.SalonOverviewComponent),
   },
   {
     path: RouteSegment.SETTINGS,
+    title: 'Salon Settings',
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
     loadComponent: () =>
@@ -19,6 +21,7 @@ export const salonRoutes: Routes = [
   },
   {
     path: RouteSegment.SLUG_EDIT,
+    title: 'Salon URL',
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER] },
     loadComponent: () =>
@@ -26,6 +29,7 @@ export const salonRoutes: Routes = [
   },
   {
     path: RouteSegment.SHARE,
+    title: 'Share your salon',
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     loadComponent: () =>
@@ -33,6 +37,7 @@ export const salonRoutes: Routes = [
   },
   {
     path: RouteSegment.DELETE,
+    title: 'Delete Salon',
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER] },
     loadComponent: () =>
@@ -40,6 +45,7 @@ export const salonRoutes: Routes = [
   },
   {
     path: RouteSegment.LEAVE,
+    title: 'Leave Salon',
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     loadComponent: () =>
@@ -48,6 +54,7 @@ export const salonRoutes: Routes = [
   {
     // Analytics is available on every tier — role-gated only.
     path: RouteSegment.ANALYTICS,
+    title: 'Analytics',
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
     // Chart.js (via ng2-charts) is only ever used here — registering it at the
@@ -58,6 +65,7 @@ export const salonRoutes: Routes = [
   },
   {
     path: RouteSegment.MY_ANALYTICS,
+    title: 'My analytics',
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     providers: [provideCharts(withDefaultRegisterables())],
@@ -66,6 +74,7 @@ export const salonRoutes: Routes = [
   },
   {
     path: RouteSegment.MEDIA,
+    title: 'Salon Photos',
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     loadComponent: () =>
@@ -96,11 +105,10 @@ export const salonRoutes: Routes = [
     // backend guard on GET /salons/:salonId/appointments (staff only see
     // their own via the :staffId/appointments route under staffRoutes).
     path: RouteSegment.APPOINTMENTS,
+    title: 'All Appointments',
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
     loadComponent: () =>
-      import('./appointments/appointments-list.component').then(
-        (m) => m.AppointmentsListComponent,
-      ),
+      import('./appointments/appointments-list.component').then((m) => m.AppointmentsListComponent),
   },
 ];

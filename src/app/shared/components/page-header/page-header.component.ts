@@ -3,31 +3,37 @@ import { BackButtonComponent } from '../back-button/back-button.component';
 import { AppPlatformService } from '../../../core/native/app-platform.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { environment } from '../../../../environments/environment';
+import { AppHeaderService } from '../../../core/routing/app-header.service';
+import { RouterLink } from '@angular/router';
+import { CurrentUserStore } from '../../../core/auth/current-user.store';
+import { RoutePath } from '../../../core/routing/route-paths';
 
 /**
- * Reusable page header: back button + title, for use across list/detail
- * pages that currently hand-roll a bare `<h1>` (staff list, salon settings,
- * etc.). Project trailing content (e.g. an action button) via the `actions`
- * slot.
+ * Desktop/public page header. Its title and back destination come from the
+ * active route, shared with the auth/guest shell's mobile header. Project
+ * trailing content (e.g. an action button) via the `actions` slot.
  *
  * Usage:
- *   <app-page-header title="Staff">
+ *   <app-page-header>
  *     <a slot="actions" ...>Add Staff</a>
  *   </app-page-header>
  */
 @Component({
   selector: 'app-page-header',
   templateUrl: './page-header.component.html',
-  imports: [BackButtonComponent],
+  imports: [BackButtonComponent, RouterLink],
 })
 export class PageHeaderComponent {
   private readonly _element = inject(ElementRef<HTMLElement>);
   private readonly _platform = inject(AppPlatformService);
   private readonly _toast = inject(ToastService);
+  protected readonly header = inject(AppHeaderService);
+  protected readonly currentUser = inject(CurrentUserStore);
+  protected readonly profileLink = RoutePath.account();
+  protected readonly settingsLink = RoutePath.accountSettings();
+  protected readonly signInLink = RoutePath.login();
 
-  readonly title = input.required<string>();
   readonly backVariant = input<'plain' | 'glass'>('plain');
-  readonly fallbackRoute = input<string[] | undefined>(undefined);
   protected readonly menuOpen = signal(false);
 
   @HostListener('document:click', ['$event'])

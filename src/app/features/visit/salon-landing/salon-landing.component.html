@@ -1,4 +1,4 @@
-<div class="pt-3 px-2 md:max-w-4xl  md:mx-auto">
+<div class="pt-1 px-2 md:max-w-4xl md:mx-auto">
 
   @if (visit.salon(); as s) {
     <!-- Header — full-bleed salon photo, glass back/heart buttons overlaid.
@@ -16,7 +16,7 @@
           class="absolute inset-0 h-full w-full object-cover object-top rounded-t-2xl" />
       }
 
-      <div class="absolute top-3 left-3">
+      <div class="absolute top-3 left-3 hidden md:block">
         <app-back-button variant="glass" />
       </div>
 
@@ -33,11 +33,9 @@
           <button type="button" (click)="toggleFavorite()"
             [attr.aria-label]="isFavorited() ? 'Remove from favourites' : 'Add to favourites'"
             [attr.aria-pressed]="isFavorited()"
-            class="flex h-10 w-10 items-center justify-center rounded-full bg-surface-card/20 backdrop-blur-md border border-white/20 hover:scale-105 transition-transform">
+            class="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:scale-105 transition-transform">
             <app-icon [name]="isFavorited() ? 'heart-filled' : 'heart'"
-              class="h-5 w-5 transition-colors"
-              [class.text-primary]="isFavorited()"
-              [class.text-white]="!isFavorited()" />
+              class="h-5 w-5 text-primary-500 transition-colors" />
           </button>
         }
       </div>

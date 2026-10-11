@@ -19,7 +19,6 @@ interface CoreValue {
 })
 export class AboutComponent {
   protected readonly platform = inject(AppPlatformService);
-  protected readonly homeLink = RoutePath.root();
 
   protected readonly registerLink = RoutePath.register();
   protected readonly contactLink = RoutePath.contact();

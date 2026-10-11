@@ -1,5 +1,5 @@
 @if (loading()) {
-  <app-page-header title="Staff" backVariant="glass" />
+  <app-page-header backVariant="glass" />
   <!-- Mirrors the loaded page: the profile card with its avatar, name and role
        badges, then the stack of navigation rows below it. -->
   <div class="px-4 space-y-4">
@@ -21,7 +21,7 @@
     }
   </div>
 } @else if (staff(); as s) {
-  <app-page-header title="Staff" backVariant="glass" />
+  <app-page-header backVariant="glass" />
  <div class=" pb-6 px-4">
 
 

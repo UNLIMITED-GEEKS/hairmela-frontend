@@ -1,6 +1,6 @@
 <div class="relative grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-2 mb-6 mt-6 mx-3">
-  <app-back-button [variant]="backVariant() === 'plain' ? 'plain' : 'surface'" [fallbackRoute]="fallbackRoute()" />
-  <h1 class="truncate text-center text-base font-semibold text-text-primary">{{ title() }}</h1>
+  <app-back-button [variant]="backVariant() === 'plain' ? 'plain' : 'surface'" [fallbackRoute]="header.state().backFallback" />
+  <h1 class="truncate text-center text-base font-semibold text-text-primary">{{ header.state().title }}</h1>
   <div class="relative flex justify-end">
     <ng-content select="[slot=actions]" />
     <button type="button" (click)="menuOpen.update(open => !open)"
@@ -9,7 +9,23 @@
       <span class="text-xl leading-none" aria-hidden="true">⋮</span>
     </button>
     @if (menuOpen()) {
-      <div class="absolute right-0 top-full z-30 mt-2 min-w-36 rounded-xl border border-border bg-surface-card p-1 shadow-lg">
+      <div animate.enter="header-menu-enter" animate.leave="header-menu-leave"
+        class="absolute right-0 top-full z-30 mt-2 min-w-36 rounded-xl border border-border bg-surface-card p-1 shadow-lg">
+        @if (currentUser.user()) {
+          <a [routerLink]="profileLink" (click)="menuOpen.set(false)"
+            class="flex min-h-11 items-center rounded-lg px-3 text-sm text-text-primary hover:bg-surface-overlay">
+            My Profile
+          </a>
+          <a [routerLink]="settingsLink" (click)="menuOpen.set(false)"
+            class="flex min-h-11 items-center rounded-lg px-3 text-sm text-text-primary hover:bg-surface-overlay">
+            Settings
+          </a>
+        } @else {
+          <a [routerLink]="signInLink" (click)="menuOpen.set(false)"
+            class="flex min-h-11 items-center rounded-lg px-3 text-sm text-text-primary hover:bg-surface-overlay">
+            Sign in
+          </a>
+        }
         <button type="button" (click)="shareLink()"
           class="flex min-h-11 w-full items-center rounded-lg px-3 text-left text-sm text-text-primary hover:bg-surface-overlay">
           Share HairMela

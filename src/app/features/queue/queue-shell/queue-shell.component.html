@@ -80,7 +80,7 @@
 } @else {
   <div class="h-screen-minus-topbar bg-surface flex flex-col">
     <!-- Queue controls stay available from the menu on both console views. -->
-    <header class="relative shrink-0 bg-surface px-4 pt-6 pb-3">
+    <header class="relative shrink-0 bg-surface px-4  pb-3">
       <div class="mx-auto max-w-lg">
         <div class="flex items-center gap-2.5">
           <button
@@ -92,7 +92,7 @@
             <app-icon name="chevron-left" class="w-2 h-3.5" />
           </button>
           <div class="min-w-0 flex-1 text-center">
-            <h1 class="truncate text-base font-bold text-text-primary">{{ onQueueListRoute() ? 'Live Queue' : 'Current Client' }}</h1>
+            <h1 class="truncate text-base font-bold text-text-primary">{{ header.state().title }}</h1>
           </div>
           <button
             type="button"
@@ -110,7 +110,9 @@
           [style.margin-top]="queueOptionsOpen() ? '0.5rem' : '0'"
           [attr.aria-hidden]="!queueOptionsOpen()"
           [attr.inert]="queueOptionsOpen() ? null : ''">
-          <div class="overflow-hidden space-y-2">
+          <div class="overflow-hidden space-y-2 transition-opacity duration-200 ease-out motion-reduce:transition-none"
+            [class.opacity-0]="!queueOptionsOpen()"
+            [class.opacity-100]="queueOptionsOpen()">
         <section
           class="rounded-xl border border-border bg-surface-card p-2"
           aria-label="Queue status"
@@ -190,6 +192,14 @@
             Copy queue link
           </button>
         </div>
+        <a [routerLink]="profileLink"
+          class="flex min-h-10 items-center justify-center rounded-xl border border-border-strong bg-surface-card px-4 text-sm font-semibold text-text-primary">
+          My Profile
+        </a>
+        <a [routerLink]="settingsLink"
+          class="flex min-h-10 items-center justify-center rounded-xl border border-border-strong bg-surface-card px-4 text-sm font-semibold text-text-primary">
+          Settings
+        </a>
           </div>
         </div>
 

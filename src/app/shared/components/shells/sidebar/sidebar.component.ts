@@ -48,7 +48,11 @@ export const CONTROL_ITEMS: ControlItem[] = [
     roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF],
     staffScopedLink: RoutePath.salonStaffMedia,
   },
-  { label: 'Settings', url: RouteSegment.SETTINGS, roles: [SalonRole.OWNER, SalonRole.ADMIN] },
+  {
+    label: 'Salon Settings',
+    url: RouteSegment.SETTINGS,
+    roles: [SalonRole.OWNER, SalonRole.ADMIN],
+  },
   {
     label: 'Analytics',
     url: RouteSegment.ANALYTICS,

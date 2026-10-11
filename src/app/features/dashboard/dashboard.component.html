@@ -20,8 +20,9 @@
     </div>
 
     <!-- Search bar -->
-    <div class="mt-6">
-      <app-skeleton variant="line" [count]="1" />
+    <div class="mt-6 flex gap-2.5">
+      <div class="min-w-0 flex-1"><app-skeleton variant="block" height="3rem" rounded="rounded-full" /></div>
+      <div class="shrink-0"><app-skeleton variant="block" height="3rem" width="3rem" rounded="rounded-full" /></div>
     </div>
 
      <div class="mt-8">
@@ -59,7 +60,7 @@
     </button>
   </div>
 } @else {
-  <div class="pt-8 md:py-0 md:pt-3 px-2 space-y-4">
+  <div class="pt-1 md:py-0 md:pt-3 px-2 space-y-4">
 
     <!-- Greeting -->
     <div class="flex items-center justify-between gap-3">
@@ -87,12 +88,25 @@
     <!-- Search hands off to the search page rather than filtering here: name,
          location and "near me" all live there, and typing in two places that
          drive the same listing service was the confusing part. -->
-    <a [routerLink]="searchLink"
-      class="flex items-center gap-2 w-full min-h-12 px-3.5 rounded-full  bg-surface-card
-             text-sm text-text-secondary hover:border-primary hover:text-primary transition-colors">
-      <app-icon name="search" class="w-4.5 h-4.5 shrink-0" />
-      <span>Search for a salon</span>
-    </a>
+    <div class="flex items-center gap-2.5">
+      <a [routerLink]="searchLink"
+        class="flex min-w-0 flex-1 items-center gap-2 min-h-12 px-3.5 rounded-full bg-surface-card
+               text-sm text-text-secondary hover:text-primary transition-colors">
+        <app-icon name="search" class="w-4.5 h-4.5 shrink-0" />
+        <span>Search for a salon</span>
+      </a>
+      <a [routerLink]="searchLink" aria-label="Search and filter salons"
+        class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface-card text-text-secondary hover:text-primary transition-colors">
+        <svg width="22" height="16" viewBox="0 0 22 16" fill="none" aria-hidden="true">
+          <path d="M8.25 10C9.90685 10 11.25 11.3431 11.25 13C11.25 14.6569 9.90685 16 8.25 16C6.59315 16 5.25 14.6569 5.25 13C5.25 11.3431 6.59315 10 8.25 10Z" fill="currentColor" />
+          <path d="M13.25 0C11.5931 -7.24234e-08 10.25 1.34315 10.25 3C10.25 4.65685 11.5931 6 13.25 6C14.9069 6 16.25 4.65685 16.25 3C16.25 1.34315 14.9069 7.24234e-08 13.25 0Z" fill="currentColor" />
+          <path d="M7.75 2.20852C8.16421 2.20852 8.5 2.54431 8.5 2.95852C8.5 3.37273 8.16421 3.70852 7.75 3.70852L0.749999 3.70852C0.335786 3.70852 0 3.37273 0 2.95852C0 2.54431 0.335786 2.20852 0.75 2.20852H7.75Z" fill="currentColor" />
+          <path d="M13.75 12.2085C13.3358 12.2085 13 12.5443 13 12.9585C13 13.3727 13.3358 13.7085 13.75 13.7085H20.75C21.1642 13.7085 21.5 13.3727 21.5 12.9585C21.5 12.5443 21.1642 12.2085 20.75 12.2085H13.75Z" fill="currentColor" />
+          <path d="M0 12.9585C0 12.5443 0.335786 12.2085 0.75 12.2085H2.75C3.16421 12.2085 3.5 12.5443 3.5 12.9585C3.5 13.3727 3.16421 13.7085 2.75 13.7085H0.75C0.335786 13.7085 0 13.3727 0 12.9585Z" fill="currentColor" />
+          <path d="M20.75 2.20852C21.1642 2.20852 21.5 2.54431 21.5 2.95852C21.5 3.37273 21.1642 3.70852 20.75 3.70852L18.75 3.70852C18.3358 3.70852 18 3.37273 18 2.95852C18 2.54431 18.3358 2.20852 18.75 2.20852H20.75Z" fill="currentColor" />
+        </svg>
+      </a>
+    </div>
 
     <app-join-banner [entries]="activeEntries()" [searchLink]="searchLink" (scanQrCode)="showScanner.set(true)" />
 

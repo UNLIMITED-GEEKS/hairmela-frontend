@@ -1,82 +1,101 @@
-<div class="mobile-top-bar-safe-area flex md:hidden fixed top-0 inset-x-0 z-50 pb-1.5 justify-center bg-surface-card/15 backdrop-blur-xs pointer-events-none">
-  <div class="flex flex-col w-full overflow-visible pointer-events-auto">
-
-    <!-- Bar row -->
-    <div class="flex items-center justify-between h-12 px-5 gap-2">
-
-      <!-- Logo (always visible) -->
-      <a [routerLink]="rootLink()" class="flex items-center gap-2  shrink-0 mr-auto">
-        <img src="/icons/icon-192x192.png" alt="HairMela" class="w-7 h-7 object-contain shrink-0" />
-        <span class="text-base font-bold text-primary">HairMela</span>
-      </a>
-
-      <!-- Salon switcher (shown when salons are available) -->
-      @if (activeSalon(); as salon) {
-        <div class="relative flex justify-end">
-          <button
-            (click)="toggleDropdown()"
-            [attr.aria-expanded]="dropdownOpen()"
-            class="flex items-center gap-1.5 min-h-10 rounded-xl px-2 hover:bg-surface-overlay transition-colors text-left overflow-hidden max-w-40">
-            <div class="flex flex-col min-w-0">
-              <span class="text-[10px] text-text-secondary leading-none">Switch Salon</span>
-              <span class="text-sm font-bold text-text-primary truncate leading-tight">{{ salon.salon.name }}</span>
-            </div>
-            <svg class="w-4 h-4 text-text-secondary shrink-0 transition-transform duration-200"
-              [class.rotate-180]="dropdownOpen()"
-              fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-            </svg>
-          </button>
-
-          <!-- Dropdown -->
-          @if (dropdownOpen()) {
-            <div class="fixed inset-0 z-10" (click)="closeDropdown()" aria-hidden="true"></div>
-            <ul class="absolute right-0 top-full mt-1 z-20 min-w-45 bg-surface-card border border-border rounded-2xl shadow-lg py-1 overflow-hidden">
-              @for (item of salons(); track item.salon.id) {
-                <li>
-                  <button
-                    (click)="switchSalon(item.salon.id)"
-                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-surface-overlay transition-colors min-h-11"
-                    [class.text-primary]="item.salon.id === activeSalonId()"
-                    [class.font-semibold]="item.salon.id === activeSalonId()"
-                    [class.text-text-primary]="item.salon.id !== activeSalonId()">
-                    <span class="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
-                      {{ item.salon.name.charAt(0).toUpperCase() }}
-                    </span>
-                    <span class="min-w-0 flex-1">
-                      <span class="block truncate">{{ item.salon.name }}</span>
-                      @if (isAmbiguous(item.salon.name)) {
-                        <span class="block text-xs text-text-secondary font-normal truncate">{{ item.salon.slug }}</span>
-                      }
-                    </span>
-                    @if (item.salon.id === activeSalonId()) {
-                      <svg class="w-4 h-4 ml-auto shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                      </svg>
-                    }
-                  </button>
-                </li>
-              }
-            </ul>
-          }
-        </div>
-      }
-
-      <!-- Account. Replaces the hamburger, whose sheet now opens from the My
-           Salon tab in the bottom nav instead — within thumb reach, where a
-           top-right target on a phone is not.
-           Only for a signed-in user: the guest shell renders this same bar and
-           has no account to link to. -->
-      @if (userName(); as name) {
-        <a
-          [routerLink]="accountLink"
-          aria-label="Your account"
-          class="min-w-10 min-h-10 flex items-center justify-center shrink-0 rounded-full hover:opacity-80 transition-opacity">
-          <app-avatar [name]="name" size="sm" />
+<header class="relative z-50 shrink-0 bg-surface mobile-top-bar-safe-area pb-[2px] md:hidden">
+  @if (header.state().mobileHeader) {
+    <div class="grid h-12 grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-2 px-4">
+      @if (!header.state().isHome) {
+        <app-back-button variant="surface" [fallbackRoute]="header.state().backFallback" />
+      } @else {
+        <a [routerLink]="rootLink()" aria-label="Home" class="flex h-10 w-10 items-center justify-center">
+          <img src="/icons/icon-192x192.png" alt="" class="h-7 w-7 object-contain" />
         </a>
       }
 
-    </div>
+      @if (header.state().isHome) {
+        <div></div>
+      } @else {
+        <h1 class="min-w-0 truncate text-center text-base font-semibold text-text-primary">{{ header.state().title }}</h1>
+      }
 
-  </div>
-</div>
+      <div class="flex min-w-0 items-center justify-end gap-1">
+        @if (header.state().isHome) {
+          @if (activeSalon(); as salon) {
+            <div class="relative min-w-0 max-w-32">
+              <button type="button" (click)="toggleDropdown()" [attr.aria-expanded]="dropdownOpen()"
+                aria-label="Switch salon"
+                class="flex min-h-10 max-w-full items-center gap-1 rounded-xl px-2 text-left text-text-primary hover:bg-surface-overlay transition-colors">
+                <span class="flex min-w-0 flex-col">
+                  <span class="text-[10px] leading-none text-text-secondary">Switch Salon</span>
+                  <span class="truncate text-sm font-semibold leading-tight">{{ salon.salon.name }}</span>
+                </span>
+                <svg class="h-4 w-4 shrink-0 text-text-secondary transition-transform duration-200"
+                  [class.rotate-180]="dropdownOpen()" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              @if (dropdownOpen()) {
+                <div class="fixed inset-0 z-10" (click)="closeDropdown()" aria-hidden="true"></div>
+                <ul class="absolute right-0 top-full z-20 mt-1 min-w-45 overflow-hidden rounded-2xl border border-border bg-surface-card py-1 shadow-lg">
+                  @for (item of salons(); track item.salon.id) {
+                    <li>
+                      <button type="button" (click)="switchSalon(item.salon.id)"
+                        class="flex min-h-11 w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-surface-overlay transition-colors"
+                        [class.text-primary]="item.salon.id === activeSalonId()"
+                        [class.font-semibold]="item.salon.id === activeSalonId()"
+                        [class.text-text-primary]="item.salon.id !== activeSalonId()">
+                        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                          {{ item.salon.name.charAt(0).toUpperCase() }}
+                        </span>
+                        <span class="min-w-0 flex-1 truncate">
+                          {{ item.salon.name }}
+                          @if (isAmbiguous(item.salon.name)) {
+                            <span class="block truncate text-xs font-normal text-text-secondary">{{ item.salon.slug }}</span>
+                          }
+                        </span>
+                        @if (item.salon.id === activeSalonId()) {
+                          <svg class="ml-auto h-4 w-4 shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                          </svg>
+                        }
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+        }
+        <div class="relative shrink-0">
+          <button type="button" (click)="toggleMenu()"
+            [attr.aria-expanded]="menuOpen()" aria-label="More options"
+            class="page-header-action flex h-10 w-10 items-center justify-center rounded-full bg-surface-overlay/50 text-text-primary hover:bg-surface-strong transition-colors">
+            <span class="text-xl leading-none" aria-hidden="true">⋮</span>
+          </button>
+          @if (menuOpen()) {
+            <div animate.enter="header-menu-enter" animate.leave="header-menu-leave"
+              class="absolute right-0 top-full z-30 mt-2 min-w-40 rounded-xl border border-border bg-surface-card p-1 shadow-lg">
+              @if (!isGuest()) {
+                <a [routerLink]="accountLink" (click)="closeMenu()"
+                  class="flex min-h-11 items-center rounded-lg px-3 text-sm text-text-primary hover:bg-surface-overlay">
+                  My Profile
+                </a>
+                <a [routerLink]="settingsLink" (click)="closeMenu()"
+                  class="flex min-h-11 items-center rounded-lg px-3 text-sm text-text-primary hover:bg-surface-overlay">
+                  Settings
+                </a>
+              } @else {
+                <a [routerLink]="signInLink" (click)="closeMenu()"
+                  class="flex min-h-11 items-center rounded-lg px-3 text-sm text-text-primary hover:bg-surface-overlay">
+                  Sign in
+                </a>
+              }
+              <button type="button" (click)="shareLink()"
+                class="flex min-h-11 w-full items-center rounded-lg px-3 text-left text-sm text-text-primary hover:bg-surface-overlay">
+                Share HairMela
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</header>

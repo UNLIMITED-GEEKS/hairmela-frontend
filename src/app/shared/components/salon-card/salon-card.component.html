@@ -47,11 +47,9 @@
     <button type="button" (click)="toggleFavorite($event)"
       [attr.aria-label]="isFavorited() ? 'Remove from favourites' : 'Add to favourites'"
       [attr.aria-pressed]="isFavorited()"
-      class="absolute top-3 right-3 flex h-10 w-10 items-center justify-center rounded-full bg-glass backdrop-blur-md border border-white/20 hover:scale-105 transition-transform">
+      class="absolute top-3 right-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:scale-105 transition-transform">
       <app-icon [name]="isFavorited() ? 'heart-filled' : 'heart'"
-        class="h-5 w-5 transition-colors"
-        [class.text-primary]="isFavorited()"
-        [class.text-white]="!isFavorited()" />
+        class="h-5 w-5 text-primary-500 transition-colors" />
     </button>
   }
 

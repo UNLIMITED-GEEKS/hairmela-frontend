@@ -4,7 +4,7 @@
        generic list items. A skeleton shaped like what replaces it reads as the
        page arriving; a mismatched one reads as a different screen flashing
        past. Same approach as the dashboard. -->
-  <div class="px-4 py-5 space-y-6">
+  <div class="px-4 pb-5 space-y-6">
     <!-- Trial / status banner -->
     <app-skeleton variant="block" height="3.5rem" rounded="rounded-xl" />
 
@@ -58,7 +58,7 @@
     </button>
   </div>
 } @else if (salon(); as salon) {
-  <div class="px-4 py-5 space-y-6">
+  <div class="px-2 pb-5 space-y-6">
     <app-tier-banner />
     <app-frozen-banner />
     <app-no-photo-banner />

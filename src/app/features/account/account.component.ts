@@ -26,7 +26,6 @@ export class AccountComponent {
   protected readonly loggingOut = this._auth.loggingOut;
   private readonly _salonContext = inject(SalonContextService);
 
-  protected readonly dashboardLink = RoutePath.dashboard();
   protected readonly accountSettingsLink = RoutePath.accountSettings();
   protected readonly editProfileLink = RoutePath.editProfile();
   protected readonly favoritesLink = RoutePath.favorites();

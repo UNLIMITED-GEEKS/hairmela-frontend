@@ -118,7 +118,7 @@ The visit routes (`/s/:slug` and children) are mounted **inside both the auth sh
 |---|---|---|
 | `SidebarComponent` | `navItems`, `activeSalonId`, `membership`, `showLogout` (default true) | Desktop only (`hidden md:flex`). Collapsible — state persisted to `localStorage` key `hm_sidebar_collapsed`. Shows salon controls section when `activeSalonId` + `membership` provided. Emits `logoutClick` |
 | `TopBarComponent` | `showUserAvatar` (default true), `salons`, `activeSalonId` | Desktop only. Salon switcher dropdown. Guest shell passes `showUserAvatar=false` and no salons |
-| `MobileTopBarComponent` | `sheetOpen`, `salons`, `activeSalonId`, emits `sheetToggle` | Mobile only. Shows salon switcher when `activeSalon` present; else shows logo + "HairMela" text. `<ng-content>` slot holds the `MobileSheetComponent` |
+| `MobileTopBarComponent` | `salons`, `activeSalonId`, `isGuest`, `showAppHeader` | Mobile app header. Reads the active route title and back fallback through `AppHeaderService`; shows the salon switcher below the title when available. The menu links to Profile (or Sign in for guests) and shares HairMela. The queue console keeps its own controls header while retaining the salon switcher row. |
 | `MobileSheetComponent` | `navItems`, `open`, `activeSalonId`, `membership`, emits `closed` | Slide-up drawer. Shows salon controls when membership provided. Guest shell passes no `activeSalonId`/`membership` |
 | `BottomNavComponent` | `navItems` | Mobile only (`flex md:hidden`). Filters items where `bottomNav: true`. Active tab: `routerLinkActive` template variable drives `text-primary` + bold label + dot indicator |
 | `PublicNavComponent` | `navItems`, `sheetOpen`, emits `sheetToggle` | Desktop pill + mobile expandable. Logo + "HairMela" text link to `/` in both desktop left and mobile top row |
@@ -149,6 +149,7 @@ Public shell `navItems`: `[Sign In /login (auth), Sign Up /register (cta)]` — 
 - Reads `DashboardService.salons` + `SalonContextService.activeSalonId` → passes to `TopBarComponent` and `MobileTopBarComponent` for the salon switcher
 - Reads `SalonContextService.membership` → passes to `SidebarComponent` and `MobileSheetComponent` for the salon controls section
 - Logout: `SidebarComponent` emits `(logoutClick)` → `AuthShellComponent.logout()` → `AuthService.logout()`
+- Route `title` and `data.backFallback` are the single source for app header text and back destinations. `AppHeaderService` derives them with a linked signal for both the mobile shell header and desktop/public `PageHeaderComponent`. The mobile header sits in the shell's normal flow, so its scroll area needs no hard-coded top inset; standard page headers are hidden on mobile inside auth/guest shells.
 
 ---
 
@@ -293,7 +294,7 @@ src/app/
 │       │   ├── guest-shell/         ← GuestShellComponent: same layout as auth shell; showLogout=false, showUserAvatar=false; validates guest entries on init; tracks lastPath
 │       │   ├── sidebar/             ← desktop only (hidden md:flex); collapsible (hm_sidebar_collapsed in localStorage); salon controls section driven by membership input; showLogout input
 │       │   ├── top-bar/             ← desktop only; salon switcher dropdown; showUserAvatar input
-│       │   ├── mobile-top-bar/      ← mobile only; salon switcher when activeSalon present, else logo+text link; ng-content slot for MobileSheet
+│       │   ├── mobile-top-bar/      ← mobile app header with route title, back, menu, and salon switcher
 │       │   ├── mobile-sheet/        ← slide-up drawer; salon controls section driven by membership input; closed output
 │       │   ├── bottom-nav/          ← mobile only (flex md:hidden); bottomNav:true items only; active tab via routerLinkActive template var → text-primary + bold label + dot
 │       │   ├── public-nav/          ← desktop pill nav + mobile expandable; logo+"HairMela" links to / in both viewports; Pricing/About/Contact + Sign In/Sign Up

@@ -33,7 +33,6 @@ export class AccountSettingsComponent {
   protected readonly hasPassword = signal<boolean | null>(null);
   protected readonly platform = inject(AppPlatformService);
   protected readonly theme = inject(ThemeService);
-  protected readonly accountLink = RoutePath.account();
   protected readonly contactLink = RoutePath.contact();
   protected readonly deleteAccountLink = RoutePath.deleteAccount();
 }

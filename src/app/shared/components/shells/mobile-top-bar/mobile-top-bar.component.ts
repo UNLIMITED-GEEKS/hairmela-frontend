@@ -1,35 +1,39 @@
-import { Component, input, computed, signal, inject } from '@angular/core';
+import { Component, input, computed, signal, linkedSignal, inject, ElementRef, HostListener } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MembershipStore } from '../../../../core/salon-context/membership.store';
 import { MySalonDto } from '../../../../api/models/my-salon-dto';
 import { RoutePath, RouteQueryParam, RouteSegment } from '../../../../core/routing/route-paths';
-import { AvatarComponent } from '../../avatar/avatar.component';
+import { BackButtonComponent } from '../../back-button/back-button.component';
+import { AppPlatformService } from '../../../../core/native/app-platform.service';
+import { ToastService } from '../../../../core/toast/toast.service';
+import { environment } from '../../../../../environments/environment';
+import { AppHeaderService } from '../../../../core/routing/app-header.service';
 
 @Component({
   selector: 'app-mobile-top-bar',
   templateUrl: './mobile-top-bar.component.html',
-  imports: [RouterLink, AvatarComponent],
+  imports: [RouterLink, BackButtonComponent],
 })
 export class MobileTopBarComponent {
   private readonly _router = inject(Router);
   private readonly _membershipStore = inject(MembershipStore);
+  private readonly _element = inject(ElementRef<HTMLElement>);
+  private readonly _platform = inject(AppPlatformService);
+  private readonly _toast = inject(ToastService);
+  protected readonly header = inject(AppHeaderService);
 
-  /**
-   * Full name of the signed-in user, or empty for a guest. Drives the initials
-   * avatar that links to the account page.
-   *
-   * An INPUT rather than injecting CurrentUserStore, because the guest shell
-   * renders this same bar and has no user — keeping it passed in leaves this
-   * component agnostic about which shell it is in, as salons/activeSalonId
-   * already are.
-   */
-  readonly userName = input('');
   readonly salons = input<MySalonDto[]>([]);
   readonly activeSalonId = input<string | null>(null);
 
   protected readonly accountLink = RoutePath.account();
+  protected readonly settingsLink = RoutePath.accountSettings();
+  protected readonly signInLink = RoutePath.login();
 
-  protected readonly dropdownOpen = signal(false);
+  protected readonly dropdownOpen = linkedSignal({
+    source: () => this.header.state().isHome,
+    computation: (): boolean => false,
+  });
+  protected readonly menuOpen = signal(false);
   /**
    * Set by the guest shell — a guest has no session, so the dashboard would
    * only bounce them to login. Defaults false, keeping the auth shell on the
@@ -64,11 +68,57 @@ export class MobileTopBarComponent {
   }
 
   protected toggleDropdown(): void {
+    this.menuOpen.set(false);
     this.dropdownOpen.update((v) => !v);
   }
 
   protected closeDropdown(): void {
     this.dropdownOpen.set(false);
+  }
+
+  protected toggleMenu(): void {
+    this.dropdownOpen.set(false);
+    this.menuOpen.update((open) => !open);
+  }
+
+  protected closeMenu(): void {
+    this.menuOpen.set(false);
+  }
+
+  @HostListener('document:click', ['$event'])
+  protected onDocumentClick(event: MouseEvent): void {
+    if (!this._element.nativeElement.contains(event.target as Node)) this.closeMenu();
+  }
+
+  @HostListener('document:keydown.escape')
+  protected onEscape(): void {
+    this.closeMenu();
+    this.closeDropdown();
+  }
+
+  protected async shareLink(): Promise<void> {
+    this.closeMenu();
+    const url = this._platform.isNative
+      ? this._platform.nativePlatform === 'ios'
+        ? 'https://apps.apple.com/app/id6816222315'
+        : 'https://play.google.com/store/apps/details?id=com.hairmela.app'
+      : environment.appBaseUrl;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'HairMela', text: 'Check out HairMela', url });
+        return;
+      } catch (error) {
+        if ((error as { name?: string })?.name === 'AbortError') return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      this._toast.success('Link copied');
+    } catch {
+      this._toast.error('Could not share link');
+    }
   }
 
   protected switchSalon(salonId: string): void {

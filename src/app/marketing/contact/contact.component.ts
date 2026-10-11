@@ -8,7 +8,6 @@ import { contactControllerSubmit } from '../../api/fn/contact/contact-controller
 import { scrollToFirstInvalidControl } from '../../core/utils/scroll-to-first-invalid';
 import { AppPlatformService } from '../../core/native/app-platform.service';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
-import { RoutePath } from '../../core/routing/route-paths';
 import { PhoneInputComponent } from '../../shared/components/phone-input/phone-input.component';
 
 // Public contact form — submits to POST /v1/contact.
@@ -19,7 +18,6 @@ import { PhoneInputComponent } from '../../shared/components/phone-input/phone-i
 })
 export class ContactComponent {
   protected readonly platform = inject(AppPlatformService);
-  protected readonly homeLink = RoutePath.root();
 
   // The <form> element, so a blocked submit can scroll to the first
   // invalid field — see scrollToFirstInvalidControl.

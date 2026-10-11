@@ -37,8 +37,6 @@ export class HowItWorksComponent {
 
   protected readonly tabs = TABS;
   protected readonly registerLink = RoutePath.register();
-  // Back falls here when the page was opened directly with no history to pop.
-  protected readonly dashboardLink = RoutePath.dashboard();
 
   // Live query-param reads (not a snapshot) — the tab must update when a tab
   // button's own routerLink-driven navigation changes the URL, same reactive

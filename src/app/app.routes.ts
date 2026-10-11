@@ -6,12 +6,13 @@ import { salonRoleGuard } from './core/guards/salon-role.guard';
 import { orgOwnerGuard } from './core/guards/org-owner.guard';
 import { appHomeGuestGuard } from './core/guards/app-home-guest.guard';
 import { SalonRole } from './core/salon-context/membership.types';
-import { RouteParam, RouteSegment } from './core/routing/route-paths';
+import { RouteParam, RoutePath, RouteQueryParam, RouteSegment } from './core/routing/route-paths';
 
 export const routes: Routes = [
   // ── Public shell — landing, privacy, verify-email, login, register ───────
   {
     path: '',
+    data: { backFallback: RoutePath.root() },
     loadComponent: () =>
       import('./shared/components/shells/public-shell/public-shell.component').then(
         (m) => m.PublicShellComponent,
@@ -29,6 +30,7 @@ export const routes: Routes = [
       },
       {
         path: RouteSegment.PRIVACY,
+        title: 'Privacy policy',
         loadComponent: () =>
           import('./marketing/privacy/privacy.component').then((m) => m.PrivacyComponent),
       },
@@ -37,6 +39,7 @@ export const routes: Routes = [
         // requires a deletion URL that a reviewer — and a user who can no
         // longer sign in — can open directly.
         path: RouteSegment.DELETE_ACCOUNT,
+        title: 'Delete account',
         loadComponent: () =>
           import('./marketing/delete-account/delete-account.component').then(
             (m) => m.DeleteAccountComponent,
@@ -44,6 +47,7 @@ export const routes: Routes = [
       },
       {
         path: RouteSegment.PRICING,
+        title: 'Pricing',
         loadComponent: () =>
           import('./marketing/pricing/pricing.component').then((m) => m.PricingComponent),
       },
@@ -56,21 +60,26 @@ export const routes: Routes = [
       },
       {
         path: RouteSegment.TERMS,
+        title: 'Terms of service',
         loadComponent: () =>
           import('./marketing/terms/terms.component').then((m) => m.TermsComponent),
       },
       {
         path: RouteSegment.CONTACT,
+        title: 'Contact us',
         loadComponent: () =>
           import('./marketing/contact/contact.component').then((m) => m.ContactComponent),
       },
       {
         path: RouteSegment.ABOUT,
+        title: 'About us',
         loadComponent: () =>
           import('./marketing/about/about.component').then((m) => m.AboutComponent),
       },
       {
         path: RouteSegment.HOW_IT_WORKS,
+        title: 'How it works',
+        data: { backFallback: RoutePath.dashboard() },
         loadComponent: () =>
           import('./marketing/how-it-works/how-it-works.component').then(
             (m) => m.HowItWorksComponent,
@@ -137,6 +146,7 @@ export const routes: Routes = [
   {
     path: RouteSegment.G,
     canActivate: [guestShellGuard],
+    data: { backFallback: RoutePath.root() },
     loadComponent: () =>
       import('./shared/components/shells/guest-shell/guest-shell.component').then(
         (m) => m.GuestShellComponent,
@@ -144,6 +154,7 @@ export const routes: Routes = [
     children: [
       {
         path: RouteSegment.QUEUES,
+        title: 'My History',
         loadComponent: () =>
           import('./features/queues/guest-queues/guest-queues.component').then(
             (m) => m.GuestQueuesComponent,
@@ -154,6 +165,7 @@ export const routes: Routes = [
         // favorites load when there's no user. Duplicated per shell (like
         // queues and s/:slug above) so each audience keeps its own chrome.
         path: RouteSegment.SEARCH,
+        title: 'Search',
         loadComponent: () =>
           import('./features/search/search.component').then((m) => m.SearchComponent),
       },
@@ -174,6 +186,7 @@ export const routes: Routes = [
   {
     path: '',
     canActivate: [authGuard],
+    data: { backFallback: RoutePath.dashboard() },
     loadComponent: () =>
       import('./shared/components/shells/auth-shell/auth-shell.component').then(
         (m) => m.AuthShellComponent,
@@ -181,17 +194,22 @@ export const routes: Routes = [
     children: [
       {
         path: RouteSegment.DASHBOARD,
+        title: 'Home',
+        data: { headerHome: true },
         loadComponent: () =>
           import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
       },
       {
         path: RouteSegment.ACCOUNT,
         pathMatch: 'full',
+        title: 'My Profile',
         loadComponent: () =>
           import('./features/account/account.component').then((m) => m.AccountComponent),
       },
       {
         path: `${RouteSegment.ACCOUNT}/${RouteSegment.SETTINGS}`,
+        title: 'Settings',
+        data: { backFallback: RoutePath.account() },
         loadComponent: () =>
           import('./features/account/account-settings/account-settings.component').then(
             (m) => m.AccountSettingsComponent,
@@ -199,6 +217,7 @@ export const routes: Routes = [
       },
       {
         path: `${RouteSegment.ACCOUNT}/${RouteSegment.EDIT_PROFILE}`,
+        title: 'Edit Profile',
         loadComponent: () =>
           import('./features/account/edit-profile/edit-profile.component').then(
             (m) => m.EditProfileComponent,
@@ -206,6 +225,7 @@ export const routes: Routes = [
       },
       {
         path: RouteSegment.NOTIFICATIONS,
+        title: 'Notifications',
         loadComponent: () =>
           import('./features/notifications/notifications.component').then(
             (m) => m.NotificationsComponent,
@@ -213,6 +233,7 @@ export const routes: Routes = [
       },
       {
         path: RouteSegment.QUEUES,
+        title: 'My History',
         loadComponent: () =>
           import('./features/queues/auth-queues/auth-queues.component').then(
             (m) => m.AuthQueuesComponent,
@@ -220,6 +241,7 @@ export const routes: Routes = [
       },
       {
         path: RouteSegment.FAVORITES,
+        title: 'Favourites',
         loadComponent: () =>
           import('./features/favorites/favorites-page.component').then(
             (m) => m.FavoritesPageComponent,
@@ -227,6 +249,7 @@ export const routes: Routes = [
       },
       {
         path: RouteSegment.SEARCH,
+        title: 'Search',
         loadComponent: () =>
           import('./features/search/search.component').then((m) => m.SearchComponent),
       },
@@ -234,6 +257,7 @@ export const routes: Routes = [
         // Internal referral stats. Authenticated like every other child here,
         // and additionally gated by a shared key the backend validates.
         path: RouteSegment.REFERRALS,
+        title: 'Referrals',
         loadComponent: () =>
           import('./features/referrals/referrals.component').then((m) => m.ReferralsComponent),
       },
@@ -255,6 +279,9 @@ export const routes: Routes = [
       },
       {
         path: `${RouteSegment.SALONS}/${RouteSegment.NEW}`,
+        title: (route) => route.queryParamMap.has(RouteQueryParam.PARENT_SALON_ID)
+          ? 'Create a new branch'
+          : 'Create a salon',
         loadComponent: () =>
           import('./features/salons/create-salon/create-salon.component').then(
             (m) => m.CreateSalonComponent,
@@ -269,7 +296,8 @@ export const routes: Routes = [
       {
         path: `${RouteSegment.SALONS}/:${RouteParam.SALON_ID}/${RouteSegment.QUEUES}/:${RouteParam.QUEUE_ID}/${RouteSegment.CONSOLE}`,
         canActivate: [salonRoleGuard],
-        data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
+        title: 'Current Client',
+        data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF], mobileHeader: false },
         loadComponent: () =>
           import('./features/queue/queue-shell/queue-shell.component').then(
             (m) => m.QueueShellComponent,
@@ -284,6 +312,7 @@ export const routes: Routes = [
           },
           {
             path: RouteSegment.QUEUE,
+            title: 'Live Queue',
             loadComponent: () =>
               import('./features/queue/queue-list/queue-list.component').then(
                 (m) => m.QueueListComponent,
