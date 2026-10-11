@@ -1433,3 +1433,12 @@ html.hm-ios.hm-inner-scroll body div.h-screen {
     height: 100dvh;
   }
 }
+
+/* The overlay surface nearly matches the light page background, so the
+   page-header circles need one stronger shade there. Dark mode keeps overlay. */
+:root:not([data-theme='dark']) .page-header-action {
+  background-color: color-mix(in oklab, var(--color-surface-strong) 70%, var(--color-surface-overlay));
+}
+:root:not([data-theme='dark']) .page-header-action:hover {
+  background-color: var(--color-border-strong);
+}

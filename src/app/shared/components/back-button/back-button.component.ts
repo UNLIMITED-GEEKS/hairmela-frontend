@@ -16,7 +16,7 @@ export class BackButtonComponent {
   private readonly _location = inject(Location);
   private readonly _router = inject(Router);
 
-  readonly variant = input<'plain' | 'glass'>('glass');
+  readonly variant = input<'plain' | 'glass' | 'surface'>('glass');
   // Used only when there's no browser history to go back to (e.g. a
   // deep-linked page opened directly, not navigated to from within the app).
   readonly fallbackRoute = input<string[] | undefined>(undefined);

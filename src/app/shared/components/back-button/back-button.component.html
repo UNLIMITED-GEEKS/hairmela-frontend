@@ -4,6 +4,12 @@
     class="flex h-10 w-10 items-center justify-center rounded-full bg-surface-card/20 backdrop-blur-md border border-white/20 text-white hover:bg-surface-card/30 transition-colors">
     <app-icon name="chevron-left" class="w-2 h-3.5" />
   </button>
+} @else if (variant() === 'surface') {
+  <button type="button" (click)="goBack()"
+    aria-label="Go back"
+    class="page-header-action flex h-10 w-10 items-center justify-center rounded-full bg-surface-overlay/50 text-text-primary hover:bg-surface-strong transition-colors">
+    <app-icon name="chevron-left" class="w-2 h-3.5" />
+  </button>
 } @else {
   <button type="button" (click)="goBack()"
     aria-label="Go back"

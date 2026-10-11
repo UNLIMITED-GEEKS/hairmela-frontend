@@ -231,7 +231,7 @@
                 </span>
                 <div class="min-w-0">
                   <p class="text-xs leading-tight text-text-secondary sm:text-sm">Total bookings</p>
-                  <p class="mt-1 text-xl font-bold leading-tight text-text-primary sm:text-2xl">{{ data.summary.appointments }}</p>
+                  <p class="mt-1 whitespace-nowrap text-[clamp(0.65rem,3vw,1.5rem)] font-bold leading-tight tracking-tight text-text-primary sm:text-2xl">{{ data.summary.appointments }}</p>
                 </div>
               </div>
             </div>
@@ -242,7 +242,7 @@
                 </span>
                 <div class="min-w-0">
                   <p class="text-xs leading-tight text-text-secondary sm:text-sm">Walk-ins</p>
-                  <p class="mt-1 text-xl font-bold leading-tight text-text-primary sm:text-2xl">{{ data.summary.walkIns }}</p>
+                  <p class="mt-1 whitespace-nowrap text-[clamp(0.65rem,3vw,1.5rem)] font-bold leading-tight tracking-tight text-text-primary sm:text-2xl">{{ data.summary.walkIns }}</p>
                 </div>
               </div>
             </div>
@@ -253,8 +253,8 @@
                 </span>
                 <div class="min-w-0">
                   <p class="text-xs leading-tight text-text-secondary sm:text-sm">Revenue</p>
-                  <p class="mt-1 break-all text-lg font-bold leading-tight text-text-primary sm:text-2xl">
-                    {{ data.summary.totalRevenue | currencyNgn: salon.currency }}
+                  <p class="mt-1 whitespace-nowrap text-[clamp(0.65rem,3vw,1.5rem)] font-bold leading-tight tracking-tight text-text-primary sm:text-2xl">
+                    {{ data.summary.totalRevenue | currencyNgn: salon.currency : 0 }}
                   </p>
                 </div>
               </div>
@@ -266,7 +266,7 @@
                 </span>
                 <div class="min-w-0">
                   <p class="text-xs leading-tight text-text-secondary sm:text-sm">Total served</p>
-                  <p class="mt-1 text-xl font-bold leading-tight text-text-primary sm:text-2xl">{{ data.summary.totalServed }}</p>
+                  <p class="mt-1 whitespace-nowrap text-[clamp(0.65rem,3vw,1.5rem)] font-bold leading-tight tracking-tight text-text-primary sm:text-2xl">{{ data.summary.totalServed }}</p>
                 </div>
               </div>
             </div>
@@ -326,26 +326,26 @@
           </span>
         </div>
         <div class="grid grid-cols-3 gap-2">
-          <div class="flex min-h-30 min-w-0 flex-col rounded-2xl bg-surface-card p-3">
-            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <app-icon name="users" class="h-6 w-6" />
+          <div class="flex min-h-20 min-w-0 flex-col rounded-xl bg-surface-card p-3">
+            <span class="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <app-icon name="users" class="h-4 w-4" />
             </span>
-            <p class="mt-3 text-[clamp(1rem,5vw,1.5rem)] font-bold leading-tight text-text-primary">{{ summary.totalServed }}</p>
+            <p class="mt-3 whitespace-nowrap text-[clamp(0.65rem,3vw,1.5rem)] font-bold leading-tight tracking-tight text-text-primary sm:text-2xl">{{ summary.totalServed }}</p>
             <p class="mt-1 text-xs text-text-secondary">Total served</p>
           </div>
-          <div class="flex min-h-30 min-w-0 flex-col rounded-2xl bg-surface-card p-3">
-            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary-light text-primary">
-              <app-icon name="overview-calendar" class="h-6 w-6" />
+          <div class="flex min-h-20 min-w-0 flex-col rounded-xl bg-surface-card p-3">
+            <span class="flex h-8 w-8 items-center justify-center rounded-md bg-secondary-light text-primary">
+              <app-icon name="overview-calendar" class="h-4 w-4" />
             </span>
-            <p class="mt-3 text-[clamp(1rem,5vw,1.5rem)] font-bold leading-tight text-text-primary">{{ summary.appointments }}</p>
+            <p class="mt-3 whitespace-nowrap text-[clamp(0.65rem,3vw,1.5rem)] font-bold leading-tight tracking-tight text-text-primary sm:text-2xl">{{ summary.appointments }}</p>
             <p class="mt-1 text-xs text-text-secondary">Appointments</p>
           </div>
-          <div class="flex min-h-30 min-w-0 flex-col rounded-2xl bg-surface-card p-3">
-            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-success-light text-success-text">
-              <app-icon name="overview-cash" class="h-6 w-6" />
+          <div class="flex min-h-20 min-w-0 flex-col rounded-xl bg-surface-card p-3">
+            <span class="flex h-8 w-8 items-center justify-center rounded-md bg-success-light text-success-text">
+              <app-icon name="overview-cash" class="h-4 w-4" />
             </span>
-            <p class="mt-3 break-all text-[clamp(1rem,5vw,1.5rem)] font-bold leading-tight text-text-primary">
-              {{ summary.totalRevenue | currencyNgn: salon.currency }}
+            <p class="mt-3 whitespace-nowrap text-[clamp(0.65rem,3vw,1.5rem)] font-bold leading-tight tracking-tight text-text-primary sm:text-2xl">
+              {{ summary.totalRevenue | currencyNgn: salon.currency : 0 }}
             </p>
             <p class="mt-1 text-xs text-text-secondary">Revenue</p>
           </div>

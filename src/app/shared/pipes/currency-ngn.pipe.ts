@@ -20,13 +20,13 @@ import { currencySymbol } from '../../core/geo/currencies.data';
 // currency landed.
 @Pipe({ name: 'currencyNgn' })
 export class CurrencyNgnPipe implements PipeTransform {
-  transform(value: string | number | null | undefined, code?: string | null): string {
+  transform(value: string | number | null | undefined, code?: string | null, maximumFractionDigits = 2): string {
     const symbol = currencySymbol(code);
     if (value === null || value === undefined || value === '') return `${symbol}0`;
     const amount = typeof value === 'string' ? Number(value) : value;
     if (!Number.isFinite(amount)) return `${symbol}0`;
     // en-NG only affects separator style (1,500 vs 1 500), not the symbol —
     // which we supply ourselves so it always matches the salon's currency.
-    return `${symbol}${amount.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+    return `${symbol}${amount.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits })}`;
   }
 }

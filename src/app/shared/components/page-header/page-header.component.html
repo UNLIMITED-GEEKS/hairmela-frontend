@@ -1,7 +1,20 @@
-<div class="flex items-center justify-between gap-3 mb-6 mt-6 mx-3 px-3 py-2 bg-linear-to-r rounded-xl from-primary to-primary-hover">
-  <div class="flex items-center gap-2 min-w-0">
-    <app-back-button [variant]="backVariant()" [fallbackRoute]="fallbackRoute()" />
-    <h1 class="text-base font-semibold text-white truncate">{{ title() }}</h1>
+<div class="relative grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-2 mb-6 mt-6 mx-3">
+  <app-back-button [variant]="backVariant() === 'plain' ? 'plain' : 'surface'" [fallbackRoute]="fallbackRoute()" />
+  <h1 class="truncate text-center text-base font-semibold text-text-primary">{{ title() }}</h1>
+  <div class="relative flex justify-end">
+    <ng-content select="[slot=actions]" />
+    <button type="button" (click)="menuOpen.update(open => !open)"
+      [attr.aria-expanded]="menuOpen()" aria-label="More options"
+      class="page-header-action flex h-10 w-10 items-center justify-center rounded-full bg-surface-overlay/50 text-text-primary hover:bg-surface-strong transition-colors">
+      <span class="text-xl leading-none" aria-hidden="true">⋮</span>
+    </button>
+    @if (menuOpen()) {
+      <div class="absolute right-0 top-full z-30 mt-2 min-w-36 rounded-xl border border-border bg-surface-card p-1 shadow-lg">
+        <button type="button" (click)="shareLink()"
+          class="flex min-h-11 w-full items-center rounded-lg px-3 text-left text-sm text-text-primary hover:bg-surface-overlay">
+          Share HairMela
+        </button>
+      </div>
+    }
   </div>
-  <ng-content select="[slot=actions]" />
 </div>
