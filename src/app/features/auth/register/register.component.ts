@@ -57,6 +57,7 @@ export class RegisterComponent {
   protected readonly returnUrl = this._route.snapshot.queryParamMap.get(RouteQueryParam.RETURN_URL);
 
   protected readonly loginLink = RoutePath.login();
+  protected readonly guestSearchLink = RoutePath.guestSearch();
 
   protected get loginQueryParams(): Record<string, string> {
     return this.returnUrl ? { [RouteQueryParam.RETURN_URL]: this.returnUrl } : {};

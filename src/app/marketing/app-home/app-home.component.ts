@@ -2,6 +2,7 @@ import { Component, OnDestroy, computed, effect, inject, signal, untracked } fro
 import { RouterLink } from '@angular/router';
 import { DOCUMENT } from '@angular/common';
 import { RoutePath } from '../../core/routing/route-paths';
+import { AppPlatformService } from '../../core/native/app-platform.service';
 
 interface OnboardingSlide {
   readonly image: string;
@@ -51,9 +52,11 @@ const SWIPE_THRESHOLD = 0.3;
 })
 export class AppHomeComponent implements OnDestroy {
   private readonly _document = inject(DOCUMENT);
+  protected readonly platform = inject(AppPlatformService);
 
   protected readonly registerLink = RoutePath.register();
   protected readonly loginLink = RoutePath.login();
+  protected readonly guestSearchLink = RoutePath.guestSearch();
 
   protected readonly slides: readonly OnboardingSlide[] = [
     {
