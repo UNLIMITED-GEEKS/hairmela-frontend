@@ -11,6 +11,7 @@ export const RouteParam = {
   QUEUE_ID: 'queueId',
   ENTRY_ID: 'entryId',
   SLUG: 'slug',
+  CONVERSATION_ID: 'conversationId',
 } as const;
 
 export const RouteQueryParam = {
@@ -61,6 +62,8 @@ export const RouteSegment = {
   NOTIFICATIONS: 'notifications',
   QUEUES: 'queues',
   FAVORITES: 'favorites',
+  CHAT: 'chat',
+  CHATS: 'chats',
   SEARCH: 'search',
   REFERRALS: 'internal-referrals',
   SALONS: 'salons',
@@ -127,6 +130,8 @@ export const RoutePath = {
   notifications: () => ['/notifications'],
   queues: () => ['/queues'],
   favorites: () => ['/favorites'],
+  chat: () => ['/chat'],
+  chatThread: (conversationId: string) => ['/chat', conversationId],
   search: () => ['/search'],
   // Internal referral stats — gated by a shared key the backend validates.
   referrals: () => ['/internal-referrals'],
@@ -222,6 +227,20 @@ export const RoutePath = {
     RouteSegment.STAFF,
     staffId,
     RouteSegment.APPOINTMENTS,
+  ],
+  salonChats: (salonId: string) => ['/salons', salonId, RouteSegment.CHATS],
+  salonChatThread: (salonId: string, conversationId: string) => [
+    '/salons',
+    salonId,
+    RouteSegment.CHATS,
+    conversationId,
+  ],
+  salonStaffChats: (salonId: string, staffId: string) => [
+    '/salons',
+    salonId,
+    RouteSegment.STAFF,
+    staffId,
+    RouteSegment.CHATS,
   ],
   salonQueueConsole: (salonId: string, queueId: string) => [
     '/salons',

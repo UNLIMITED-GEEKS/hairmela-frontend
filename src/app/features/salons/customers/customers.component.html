@@ -1,5 +1,16 @@
 <div class="pb-10">
-  <app-page-header backVariant="glass" />
+  <app-page-header backVariant="glass">
+    <div slot="actions" class="flex items-center gap-2">
+      <a
+        [routerLink]="getChatRoute()"
+        class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-800 text-text-primary transition relative"
+        aria-label="Messages"
+        title="Messages"
+      >
+        <app-icon name="chat" class="w-5 h-5 text-primary" />
+      </a>
+    </div>
+  </app-page-header>
 
   <div class="px-4 pt-1">
     <!-- Header title & subtitle -->
@@ -138,8 +149,17 @@
                   </div>
                 </div>
 
-                <div class="shrink-0 text-right">
-                  <span class="text-[11px] text-text-secondary/70">
+                <div class="shrink-0 flex items-center gap-2">
+                  <button
+                    type="button"
+                    (click)="messageCustomer(customer)"
+                    class="p-2 rounded-xl text-primary bg-primary/10 hover:bg-primary hover:text-white transition active:scale-95 shadow-2xs"
+                    aria-label="Message customer"
+                    title="Message customer"
+                  >
+                    <app-icon name="chat" class="w-4 h-4" />
+                  </button>
+                  <span class="text-[11px] text-text-secondary/70 hidden sm:inline">
                     {{ customer.favoritedAt | date: 'mediumDate' }}
                   </span>
                 </div>
@@ -291,8 +311,17 @@
                                 </div>
                               </div>
 
-                              <div class="shrink-0 text-right">
-                                <span class="text-[10px] text-text-secondary/70">
+                              <div class="shrink-0 flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  (click)="messageCustomer(user)"
+                                  class="p-1.5 rounded-lg text-primary bg-primary/10 hover:bg-primary hover:text-white transition active:scale-95 shadow-2xs"
+                                  aria-label="Message customer"
+                                  title="Message customer"
+                                >
+                                  <app-icon name="chat" class="w-3.5 h-3.5" />
+                                </button>
+                                <span class="text-[10px] text-text-secondary/70 hidden sm:inline">
                                   {{ user.favoritedAt | date: 'mediumDate' }}
                                 </span>
                               </div>
@@ -395,8 +424,17 @@
                 </div>
               </div>
 
-              <div class="shrink-0 text-right">
-                <span class="text-[11px] text-text-secondary/70">
+              <div class="shrink-0 flex items-center gap-2">
+                <button
+                  type="button"
+                  (click)="messageCustomer(customer)"
+                  class="p-2 rounded-xl text-primary bg-primary/10 hover:bg-primary hover:text-white transition active:scale-95 shadow-2xs"
+                  aria-label="Message customer"
+                  title="Message customer"
+                >
+                  <app-icon name="chat" class="w-4 h-4" />
+                </button>
+                <span class="text-[11px] text-text-secondary/70 hidden sm:inline">
                   {{ customer.favoritedAt | date: 'mediumDate' }}
                 </span>
               </div>

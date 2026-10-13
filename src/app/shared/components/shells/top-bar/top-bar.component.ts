@@ -1,15 +1,17 @@
 import { Component, input, inject, signal, computed } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { CurrentUserStore } from '../../../../core/auth/current-user.store';
 import { MembershipStore } from '../../../../core/salon-context/membership.store';
 import { AvatarComponent } from '../../avatar/avatar.component';
+import { IconComponent } from '../../icon/icon.component';
+import { ChatService } from '../../../../core/chat/chat.service';
 import { MySalonDto } from '../../../../api/models/my-salon-dto';
 import { RoutePath, RouteQueryParam, RouteSegment } from '../../../../core/routing/route-paths';
 
 @Component({
   selector: 'app-top-bar',
   templateUrl: './top-bar.component.html',
-  imports: [AvatarComponent],
+  imports: [RouterLink, AvatarComponent, IconComponent],
 })
 export class TopBarComponent {
   readonly showUserAvatar = input(true);
@@ -17,6 +19,7 @@ export class TopBarComponent {
   readonly activeSalonId = input<string | null>(null);
 
   protected readonly _currentUser = inject(CurrentUserStore);
+  protected readonly chatService = inject(ChatService);
   private readonly _router = inject(Router);
   private readonly _membershipStore = inject(MembershipStore);
 
@@ -25,6 +28,20 @@ export class TopBarComponent {
   protected readonly activeSalon = computed(
     () => this.salons().find((s) => s.salon.id === this.activeSalonId()) ?? null,
   );
+
+  protected readonly chatUrl = computed(() => {
+    const sId = this.activeSalonId();
+    const active = this.activeSalon();
+    if (sId && active && (active.role === 'OWNER' || active.role === 'ADMIN' || active.role === 'STAFF')) {
+      return RoutePath.salonChats(sId);
+    }
+    const mySalons = this.salons();
+    const ownerOrAdmin = mySalons.find((s) => s.role === 'OWNER' || s.role === 'ADMIN' || s.role === 'STAFF');
+    if (ownerOrAdmin) {
+      return RoutePath.salonChats(ownerOrAdmin.salon.id);
+    }
+    return RoutePath.chat();
+  });
 
   // Branches share their root's name exactly, so a chain's salons are
   // indistinguishable in this list by name alone. Show the slug alongside the

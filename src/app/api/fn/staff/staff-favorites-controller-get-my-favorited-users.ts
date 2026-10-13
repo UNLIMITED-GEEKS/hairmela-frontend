@@ -11,9 +11,17 @@ import { PaginatedMetaDto } from '../../models/paginated-meta-dto';
 import { StaffFavoritedUserDto } from '../../models/staff-favorited-user-dto';
 
 export interface StaffFavoritesControllerGetMyFavoritedUsers$Params {
-  page?: number;
-  limit?: number;
+
+/**
+ * Search customers by name, nickname, email, or phone (case-insensitive substring match)
+ */
   search?: string;
+
+/**
+ * Number of items per page (1-100)
+ */
+  limit?: number;
+  page?: number;
 }
 
 export function staffFavoritesControllerGetMyFavoritedUsers(http: HttpClient, rootUrl: string, params?: StaffFavoritesControllerGetMyFavoritedUsers$Params, context?: HttpContext): Observable<StrictHttpResponse<{
@@ -22,9 +30,9 @@ export function staffFavoritesControllerGetMyFavoritedUsers(http: HttpClient, ro
 }>> {
   const rb = new RequestBuilder(rootUrl, staffFavoritesControllerGetMyFavoritedUsers.PATH, 'get');
   if (params) {
-    rb.query('page', params.page, {});
-    rb.query('limit', params.limit, {});
     rb.query('search', params.search, {});
+    rb.query('limit', params.limit, {});
+    rb.query('page', params.page, {});
   }
 
   return http.request(

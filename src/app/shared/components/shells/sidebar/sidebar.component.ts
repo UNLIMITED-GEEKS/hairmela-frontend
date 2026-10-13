@@ -36,6 +36,12 @@ export const CONTROL_ITEMS: ControlItem[] = [
     roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF],
   },
   {
+    label: 'Messages',
+    url: RouteSegment.CHATS,
+    roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF],
+    staffScopedLink: RoutePath.salonStaffChats,
+  },
+  {
     label: 'Services',
     url: RouteSegment.SERVICES,
     roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF],

@@ -1,10 +1,8 @@
-<div class="pt-1 px-2 md:max-w-4xl md:mx-auto">
-
-  @if (visit.salon(); as s) {
-    <!-- Header — full-bleed salon photo, glass back/heart buttons overlaid.
-         Taller on desktop — a wide, short box crops object-cover too tight,
-         zooming in past the subject instead of showing the fuller scene. -->
-    <div class="relative h-56 md:h-100 w-full overflow-hidden">
+@if (visit.salon(); as s) {
+  <!-- MOBILE VIEW (md:hidden) — Preserved exact mobile sheet experience -->
+  <div class="md:hidden pt-1 px-2">
+    <!-- Header — full-bleed salon photo, glass chat/share/favourite buttons overlaid -->
+    <div class="relative h-56 w-full overflow-hidden">
       @if (s.photoUrl) {
         <button type="button" (click)="openPhoto()" aria-label="View salon photo"
           class="absolute inset-0 h-full w-full">
@@ -16,13 +14,15 @@
           class="absolute inset-0 h-full w-full object-cover object-top rounded-t-2xl" />
       }
 
-      <div class="absolute top-3 left-3 hidden md:block">
-        <app-back-button variant="glass" />
-      </div>
-
-      <!-- Share + favourite, top-right over the photo. Share sits left of the
-           heart so the heart keeps the corner position it already had. -->
+      <!-- Chat, share + favourite, top-right over the photo. -->
       <div class="absolute top-3 right-3 flex items-center gap-2">
+        <button type="button" (click)="messageSalon()"
+          aria-label="Message salon"
+          title="Message salon"
+          class="flex h-10 w-10 items-center justify-center rounded-full bg-surface-card/20 backdrop-blur-md border border-white/20 hover:scale-105 transition-transform text-white">
+          <app-icon name="chat" class="h-5 w-5 text-white" />
+        </button>
+
         <button type="button" (click)="shareSalon()"
           aria-label="Share this salon"
           class="flex h-10 w-10 items-center justify-center rounded-full bg-surface-card/20 backdrop-blur-md border border-white/20 hover:scale-105 transition-transform">
@@ -56,7 +56,6 @@
 
     <!-- Content sheet — overlaps the header photo, rounded top corners only -->
     <div class="relative -mt-6 rounded-t-3xl bg-surface px-4 pt-5 pb-6">
-
       @if (salonStatus(); as status) {
         <span class="inline-block text-xs font-normal px-3 py-1 rounded-full border" [class]="status.badgeClasses">
           {{ status.label }}
@@ -68,15 +67,10 @@
 
       <h1 class="mt-2 text-xl font-semibold text-text-primary">{{ s.name }}</h1>
 
-      <!-- FIXME: Restore the frozen guard when the temporary bypass ends. -->
-      <!-- @if (!frozen()) { -->
       <p class="mt-1 flex items-start gap-1 text-sm text-text-muted">
         <app-icon name="location-pin" class="h-4 w-4 shrink-0 mt-0.5" />
         {{s.address.street}} {{ s.address?.city }}{{ s.address?.state ? ', ' + s.address.state : '' }}
       </p>
-      <!-- } -->
-
-      
 
       <!-- Book ahead — walk-in fallback, only while the salon is closed -->
       @if (showBookAhead()) {
@@ -85,19 +79,15 @@
           <app-icon name="clock" class="w-4 h-4" />
           Book Appointment
         </button>
-        <!-- FIXME: When restoring the other frozen checks, use the shared frozen() guard here too. -->
-      @if (s.phone && !visit.salonData()?.isFrozen) {
-        <a [href]="'tel:' + s.phone"
-          class="mt-5 w-full  min-h-12 rounded-full bg-primary text-white text-sm font-normal flex items-center justify-center gap-2 hover:bg-surface-hover transition-colors">
-          <app-icon name="phone" class="w-4 h-4" />
-          Call
-        </a>
-      }
+        @if (s.phone && !visit.salonData()?.isFrozen) {
+          <a [href]="'tel:' + s.phone"
+            class="mt-5 w-full min-h-12 rounded-full bg-primary text-white text-sm font-normal flex items-center justify-center gap-2 hover:bg-surface-hover transition-colors">
+            <app-icon name="phone" class="w-4 h-4" />
+            Call
+          </a>
+        }
       }
 
-      <!-- Get-notified nudge. Not gated on having an active entry here: see
-           live-queue.component.html for why permission is asked up front.
-           PushPromptComponent self-gates on support/permission/dismissal. -->
       <div class="mt-5">
         <app-push-prompt />
       </div>
@@ -105,93 +95,283 @@
       <!-- About / Services / Staffs tabs -->
       <app-tabs class="block mt-8 mb-4" [tabs]="landingTabs" [activeId]="activeTab()" (tabChange)="setTab($event)" />
 
-      <!-- FIXME: Restore this frozen notice and the @else before the About tab. -->
-      <!--
-      @if (frozen()) {
-        <div class="w-full rounded-2xl border border-border bg-surface-sunken px-5 py-8 text-center">
-          <p class="text-sm font-semibold text-text-body">Something went wrong</p>
-          <p class="mt-1 text-sm text-text-secondary">Please check back later.</p>
+      <!-- Shared tab panels outlet -->
+      <ng-container [ngTemplateOutlet]="tabContent" [ngTemplateOutletContext]="{ $implicit: s }" />
+    </div>
+  </div>
+
+  <!-- DESKTOP VIEW (hidden md:block) — Fresha Standard Layout -->
+  <div class="hidden md:block max-w-6xl xl:max-w-7xl mx-auto px-6 lg:px-8 py-6">
+    <!-- Back button -->
+    <div class="mb-4">
+      <app-back-button />
+    </div>
+
+    <!-- Header area: Title, details subrow, and top-right actions -->
+    <div class="flex items-start justify-between gap-6">
+      <div class="min-w-0 flex-1">
+        <h1 class="text-3xl lg:text-4xl font-bold text-text-primary tracking-tight">{{ s.name }}</h1>
+        <div class="mt-2.5 flex items-center gap-3 text-sm text-text-secondary flex-wrap">
+          @if (salonStatus(); as status) {
+            <div class="inline-flex items-center gap-2">
+              <span class="inline-block text-xs font-medium px-2.5 py-0.5 rounded-full border" [class]="status.badgeClasses">
+                {{ status.label }}
+              </span>
+              @if (nextOpenLabel(); as nextOpen) {
+                <span class="text-xs text-text-secondary">{{ nextOpen }}</span>
+              }
+            </div>
+            <span class="text-border">•</span>
+          }
+
+          <span class="inline-flex items-center gap-1 text-text-muted">
+            <app-icon name="location-pin" class="h-4 w-4 shrink-0 text-text-muted" />
+            {{ s.address.street }}{{ s.address?.city ? ', ' + s.address.city : '' }}{{ s.address?.state ? ', ' + s.address.state : '' }}
+          </span>
+
+          @if (directionsUrl !== '#') {
+            <a [href]="directionsUrl" target="_blank" rel="noopener noreferrer"
+              class="text-xs font-semibold text-primary hover:underline">
+              Get directions
+            </a>
+          }
         </div>
-      } @else if (activeTab() === 'about') {
-      -->
-      @if (activeTab() === 'about') {
-        <!-- Tab: About -->
-        <div animate.enter="tab-content-enter">
-          <div class="space-y-2 text-sm text-text-muted">
-            @if (s.about) {
-              <p>{{ s.about }}</p>
-            } @else {
-              <p class="text-text-disabled">No description yet.</p>
+      </div>
+
+      <!-- Header action buttons -->
+      <div class="flex items-center gap-2.5 shrink-0 pt-1">
+        <button type="button" (click)="messageSalon()"
+          aria-label="Message salon"
+          title="Message salon"
+          class="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface-card hover:bg-surface-sunken hover:border-primary/30 transition-all text-text-primary shadow-xs">
+          <app-icon name="chat" class="h-4.5 w-4.5 text-primary" />
+        </button>
+
+        <button type="button" (click)="shareSalon()"
+          aria-label="Share this salon"
+          title="Share this salon"
+          class="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface-card hover:bg-surface-sunken hover:border-primary/30 transition-all text-text-primary shadow-xs">
+          <app-icon name="share" class="h-4.5 w-4.5 text-text-secondary" />
+        </button>
+
+        @if (showHeart()) {
+          <button type="button" (click)="toggleFavorite()"
+            [attr.aria-label]="isFavorited() ? 'Remove from favourites' : 'Add to favourites'"
+            [attr.aria-pressed]="isFavorited()"
+            class="flex h-10 min-w-10 px-3 items-center justify-center gap-1.5 rounded-full border border-border bg-surface-card hover:bg-surface-sunken hover:border-primary/30 transition-all text-text-primary text-xs font-semibold shadow-xs">
+            <app-icon [name]="isFavorited() ? 'heart-filled' : 'heart'"
+              class="h-4.5 w-4.5 text-primary-500 transition-colors" />
+            @if (salonFavoritesCountLoading()) {
+              <app-inline-spinner sizeClass="w-3.5 h-3.5 text-primary" label="Loading favourites count" />
+            } @else if (salonFavoritesCount() !== null) {
+              <span>{{ salonFavoritesCount() }}</span>
+            }
+          </button>
+        }
+
+        @if (!platform.isAppContext && !install.installed()) {
+          <a [routerLink]="howToInstallLink"
+            class="flex items-center gap-1.5 h-10 px-3.5 rounded-full border border-border bg-surface-card hover:bg-surface-sunken text-text-primary text-xs font-semibold shadow-xs transition-colors">
+            <app-icon name="download" class="h-3.5 w-3.5 text-primary" />
+            Get the app
+          </a>
+        }
+      </div>
+    </div>
+
+    <!-- Hero gallery: side-by-side photos -->
+    <div class="mt-6">
+      @if (s.photoUrl && s.galleryUrls.length > 0) {
+        <div class="grid grid-cols-2 gap-4 h-80 lg:h-96">
+          <button type="button" (click)="openPhoto()" aria-label="View main photo"
+            class="relative h-full w-full rounded-2xl overflow-hidden group focus:outline-none focus:ring-2 focus:ring-primary/40">
+            <img [src]="s.photoUrl | mediaUrl:'hero'" alt="{{ s.name }}"
+              class="h-full w-full object-cover group-hover:scale-102 transition-transform duration-300" />
+          </button>
+
+          <button type="button" (click)="openGallery(0)" aria-label="View salon gallery"
+            class="relative h-full w-full rounded-2xl overflow-hidden group focus:outline-none focus:ring-2 focus:ring-primary/40">
+            <img [src]="s.galleryUrls[0] | mediaUrl:'hero'" alt=""
+              class="h-full w-full object-cover group-hover:scale-102 transition-transform duration-300" />
+            @if (s.galleryUrls.length > 1) {
+              <span class="absolute bottom-4 right-4 bg-surface-card/90 backdrop-blur-md text-text-primary text-xs font-semibold px-3 py-1.5 rounded-full border border-border shadow-md">
+                +{{ s.galleryUrls.length }} photos
+              </span>
+            }
+          </button>
+        </div>
+      } @else {
+        <div class="h-80 lg:h-96 w-full rounded-2xl overflow-hidden">
+          @if (s.photoUrl) {
+            <button type="button" (click)="openPhoto()" aria-label="View salon photo"
+              class="relative h-full w-full group focus:outline-none focus:ring-2 focus:ring-primary/40">
+              <img [src]="s.photoUrl | mediaUrl:'hero'" alt="{{ s.name }}"
+                class="h-full w-full object-cover group-hover:scale-102 transition-transform duration-300" />
+            </button>
+          } @else {
+            <img [src]="placeholderImage" alt=""
+              class="h-full w-full object-cover" />
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Tabs bar -->
+    <div class="mt-8 border-b border-border">
+      <app-tabs [tabs]="landingTabs" [activeId]="activeTab()" (tabChange)="setTab($event)" />
+    </div>
+
+    <!-- Two-column grid -->
+    <div class="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+      <!-- Left column: tab content -->
+      <div class="lg:col-span-8 min-w-0">
+        <ng-container [ngTemplateOutlet]="tabContent" [ngTemplateOutletContext]="{ $implicit: s }" />
+      </div>
+
+      <!-- Right column: sticky booking / salon card -->
+      <div class="lg:col-span-4 sticky top-6">
+        <div class="rounded-2xl border border-border bg-surface-card p-6 shadow-sm space-y-5">
+          <div>
+            <h2 class="text-xl font-bold text-text-primary leading-tight">{{ s.name }}</h2>
+            @if (salonStatus(); as status) {
+              <div class="mt-2.5 flex items-center gap-2 flex-wrap">
+                <span class="inline-block text-xs font-medium px-2.5 py-0.5 rounded-full border" [class]="status.badgeClasses">
+                  {{ status.label }}
+                </span>
+                @if (nextOpenLabel(); as nextOpen) {
+                  <span class="text-xs text-text-secondary">{{ nextOpen }}</span>
+                }
+              </div>
             }
           </div>
 
-          @if (s.galleryUrls.length > 0) {
-            <div class="mt-8 flex items-center justify-between">
-              <h2 class="text-base font-bold text-text-primary">Recent Work</h2>
-              <button type="button" (click)="openGallery(0)" class="text-xs font-semibold text-primary">See all</button>
-            </div>
-            <div class="grid grid-cols-4 gap-2 md:gap-8 mt-3">
-              @for (img of s.galleryUrls.slice(0, 4); track img; let i = $index) {
-                <button type="button" (click)="openGallery(i)"
-                  class="aspect-square rounded-xl overflow-hidden hover:opacity-90 transition-opacity">
-                  <img [src]="img | mediaUrl:'grid'" alt="" class="w-full h-full object-cover" />
-                </button>
-              }
-            </div>
-          }
+          <!-- CTAs -->
+          <div class="space-y-2.5 pt-1">
+            @if (showBookAhead()) {
+              <button type="button" (click)="openBookDialog()"
+                class="w-full min-h-12 rounded-xl bg-primary text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-surface-hover transition-colors shadow-sm">
+                <app-icon name="clock" class="w-4 h-4" />
+                Book Appointment
+              </button>
+            }
 
-          @if (weeklyHours().length > 0) {
-            <div class="mt-8">
-              <h2 class="text-base font-bold text-text-primary">Opening hours</h2>
-              <div class="mt-3 space-y-1.5">
-                @for (day of weeklyHours(); track day.name) {
-                  <div class="flex items-center justify-between text-sm"
-                    [class.font-semibold]="day.isToday" [class.text-text-primary]="day.isToday"
-                    [class.text-text-secondary]="!day.isToday">
-                    <span>{{ day.name }}</span>
-                    <span>{{ day.label }}</span>
-                  </div>
+            @if (s.phone && !visit.salonData()?.isFrozen) {
+              <a [href]="'tel:' + s.phone"
+                class="w-full min-h-12 rounded-xl border border-primary text-primary text-sm font-semibold flex items-center justify-center gap-2 hover:bg-secondary-light transition-colors">
+                <app-icon name="phone" class="w-4 h-4" />
+                Call {{ s.phone }}
+              </a>
+            }
+
+            <button type="button" (click)="messageSalon()"
+              class="w-full min-h-12 rounded-xl border border-border bg-surface text-text-primary text-sm font-semibold flex items-center justify-center gap-2 hover:bg-surface-sunken transition-colors">
+              <app-icon name="chat" class="w-4 h-4 text-primary" />
+              Message Salon
+            </button>
+          </div>
+
+          <!-- Address & directions -->
+          <div class="border-t border-border pt-4">
+            <div class="flex items-start gap-2.5 text-sm">
+              <app-icon name="location-pin" class="h-4 w-4 shrink-0 mt-0.5 text-text-muted" />
+              <div class="min-w-0">
+                <p class="text-text-primary font-medium text-sm">{{ s.address.street }}</p>
+                <p class="text-text-muted text-xs mt-0.5">{{ s.address?.city }}{{ s.address?.state ? ', ' + s.address.state : '' }}</p>
+                @if (directionsUrl !== '#') {
+                  <a [href]="directionsUrl" target="_blank" rel="noopener noreferrer"
+                    class="inline-block text-xs font-semibold text-primary hover:underline mt-1.5">
+                    Get directions
+                  </a>
                 }
               </div>
             </div>
+          </div>
+
+          <!-- Push notifications -->
+          <div class="border-t border-border pt-4">
+            <app-push-prompt />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shared Tab Panels Template -->
+  <ng-template #tabContent let-s>
+    @if (activeTab() === 'about') {
+      <!-- Tab: About -->
+      <div animate.enter="tab-content-enter">
+        <div class="space-y-2 text-sm text-text-muted">
+          @if (s.about) {
+            <p>{{ s.about }}</p>
+          } @else {
+            <p class="text-text-disabled">No description yet.</p>
           }
         </div>
-      } @else if (activeTab() === 'services') {
-        @if (!selectedServiceId()) {
-          <!-- Screen: services list -->
-          <div animate.enter="tab-content-enter">
-            <div class="mb-5 flex items-start justify-between gap-4">
-              <div>
-                <p class="hidden text-xs font-semibold uppercase tracking-[0.16em] text-primary sm:block">Our services</p>
-                <h2 class="text-base font-medium text-text-primary sm:mt-1 sm:text-lg">What can we do for you?</h2>
-                <p class="mt-1 text-sm leading-5 text-text-secondary">
-                  Select a service to see the staff available for it.
-                </p>
-              </div>
-              @if (!visit.servicesLoading() && visit.services().length > 0) {
-                <span class="mt-1 hidden shrink-0 rounded-full bg-secondary-light px-3 py-1 text-xs font-semibold text-primary sm:inline-flex">
-                  {{ visit.services().length }} {{ visit.services().length === 1 ? 'service' : 'services' }}
-                </span>
+
+        @if (s.galleryUrls.length > 0) {
+          <div class="mt-8 flex items-center justify-between">
+            <h2 class="text-base font-bold text-text-primary">Recent Work</h2>
+            <button type="button" (click)="openGallery(0)" class="text-xs font-semibold text-primary">See all</button>
+          </div>
+          <div class="grid grid-cols-4 gap-2 md:gap-4 mt-3">
+            @for (img of s.galleryUrls.slice(0, 4); track img; let i = $index) {
+              <button type="button" (click)="openGallery(i)"
+                class="aspect-square rounded-xl overflow-hidden hover:opacity-90 transition-opacity">
+                <img [src]="img | mediaUrl:'grid'" alt="" class="w-full h-full object-cover" />
+              </button>
+            }
+          </div>
+        }
+
+        @if (weeklyHours().length > 0) {
+          <div class="mt-8">
+            <h2 class="text-base font-bold text-text-primary">Opening hours</h2>
+            <div class="mt-3 space-y-1.5">
+              @for (day of weeklyHours(); track day.name) {
+                <div class="flex items-center justify-between text-sm"
+                  [class.font-semibold]="day.isToday" [class.text-text-primary]="day.isToday"
+                  [class.text-text-secondary]="!day.isToday">
+                  <span>{{ day.name }}</span>
+                  <span>{{ day.label }}</span>
+                </div>
               }
             </div>
-            @if (visit.servicesLoading()) {
-              <app-skeleton variant="list-item" [count]="4" />
-            } @else if (serviceCategories().length === 0) {
-              <div class="rounded-2xl border border-border bg-surface-card px-5 py-10 text-center">
-                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary-light">
-                  <app-icon name="scissors" class="h-5 w-5 text-primary" />
-                </div>
-                <p class="mt-4 text-sm font-semibold text-text-primary">No services listed yet</p>
-                <p class="mt-1 text-sm text-text-secondary">Please check back later or call the salon.</p>
+          </div>
+        }
+      </div>
+    } @else if (activeTab() === 'services') {
+      @if (!selectedServiceId()) {
+        <!-- Screen: services list -->
+        <div animate.enter="tab-content-enter">
+          <div class="mb-5 flex items-start justify-between gap-4">
+            <div>
+              <p class="hidden text-xs font-semibold uppercase tracking-[0.16em] text-primary sm:block">Our services</p>
+              <h2 class="text-base font-medium text-text-primary sm:mt-1 sm:text-lg">What can we do for you?</h2>
+              <p class="mt-1 text-sm leading-5 text-text-secondary">
+                Select a service to see the staff available for it.
+              </p>
+            </div>
+            @if (!visit.servicesLoading() && visit.services().length > 0) {
+              <span class="mt-1 hidden shrink-0 rounded-full bg-secondary-light px-3 py-1 text-xs font-semibold text-primary sm:inline-flex">
+                {{ visit.services().length }} {{ visit.services().length === 1 ? 'service' : 'services' }}
+              </span>
+            }
+          </div>
+          @if (visit.servicesLoading()) {
+            <app-skeleton variant="list-item" [count]="4" />
+          } @else if (serviceCategories().length === 0) {
+            <div class="rounded-2xl border border-border bg-surface-card px-5 py-10 text-center">
+              <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary-light">
+                <app-icon name="scissors" class="h-5 w-5 text-primary" />
               </div>
-            } @else {
-              <div class="space-y-3">
-                @for (category of serviceCategories(); track category.id) {
-                  <!-- Wrapper carries the scroll anchor rather than binding [id] on the
-                       component: that would rely on Angular falling through to the host
-                       element's native id, which silently breaks the day someone adds an
-                       `id` input to AccordionComponent. -->
-                  <div [id]="'service-category-' + category.id">
+              <p class="mt-4 text-sm font-semibold text-text-primary">No services listed yet</p>
+              <p class="mt-1 text-sm text-text-secondary">Please check back later or call the salon.</p>
+            </div>
+          } @else {
+            <div class="space-y-3">
+              @for (category of serviceCategories(); track category.id) {
+                <div [id]="'service-category-' + category.id">
                   <app-accordion [title]="category.name" [count]="category.services.length" [open]="isCategoryOpen(category.id)" [compact]="true"
                     (openChange)="setCategoryOpen(category.id, $event)">
                     <div class="space-y-2">
@@ -200,115 +380,110 @@
                       }
                     </div>
                   </app-accordion>
-                  </div>
-                }
-              </div>
-            }
-          </div>
-        } @else {
-          <!-- Screen: barbers offering the selected service -->
-          <div animate.enter="tab-content-enter">
-            <button type="button" (click)="backToServices()"
-              class="mb-3 inline-flex min-h-10 items-center gap-2 rounded-full border border-border bg-surface-card px-3.5 text-sm font-semibold text-text-primary transition-colors hover:border-primary/30 hover:bg-surface-sunken">
-              <app-icon name="chevron-left" class="h-3.5 w-2.5 text-primary" />
-              Back to services
-            </button>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      } @else {
+        <!-- Screen: barbers offering the selected service -->
+        <div animate.enter="tab-content-enter">
+          <button type="button" (click)="backToServices()"
+            class="mb-3 inline-flex min-h-10 items-center gap-2 rounded-full border border-border bg-surface-card px-3.5 text-sm font-semibold text-text-primary transition-colors hover:border-primary/30 hover:bg-surface-sunken">
+            <app-icon name="chevron-left" class="h-3.5 w-2.5 text-primary" />
+            Back to services
+          </button>
 
-            @if (selectedService(); as service) {
-              <div class="rounded-2xl border border-primary/15 bg-secondary-light/50 p-4">
-                <div class="flex items-start gap-3">
-                  <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-card text-primary shadow-sm">
-                    <app-icon name="scissors" class="h-4.5 w-4.5" />
-                  </div>
-                  <div class="min-w-0 flex-1">
-                    <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-primary">Selected service</p>
-                    <h2 class="mt-0.5 text-base font-bold text-text-primary wrap-break-word">{{ service.name }}</h2>
-                    <p class="mt-1 inline-flex items-center gap-1.5 text-xs text-text-secondary">
-                      <app-icon name="clock" class="h-3.5 w-3.5 text-primary" />
-                      {{ service.duration }} min
-                    </p>
-                  </div>
+          @if (selectedService(); as service) {
+            <div class="rounded-2xl border border-primary/15 bg-secondary-light/50 p-4">
+              <div class="flex items-start gap-3">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-card text-primary shadow-sm">
+                  <app-icon name="scissors" class="h-4.5 w-4.5" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-primary">Selected service</p>
+                  <h2 class="mt-0.5 text-base font-bold text-text-primary wrap-break-word">{{ service.name }}</h2>
+                  <p class="mt-1 inline-flex items-center gap-1.5 text-xs text-text-secondary">
+                    <app-icon name="clock" class="h-3.5 w-3.5 text-primary" />
+                    {{ service.duration }} min
+                  </p>
                 </div>
               </div>
-            }
+            </div>
+          }
 
-            @if (staffForSelectedService().length > 0) {
-              <div class="mb-3 mt-6">
-                <h2 class="text-base font-bold text-text-primary">Choose your professional</h2>
-                <p class="mt-1 text-sm text-text-secondary">
-                  {{ staffForSelectedService().length }}
-                  {{ staffForSelectedService().length === 1 ? 'staff member offers' : 'staff members offer' }} this service.
-                </p>
-              </div>
-            }
+          @if (staffForSelectedService().length > 0) {
+            <div class="mb-3 mt-6">
+              <h2 class="text-base font-bold text-text-primary">Choose your professional</h2>
+              <p class="mt-1 text-sm text-text-secondary">
+                {{ staffForSelectedService().length }}
+                {{ staffForSelectedService().length === 1 ? 'staff member offers' : 'staff members offer' }} this service.
+              </p>
+            </div>
+          }
 
-            <div animate.enter="tab-content-enter" class="grid grid-cols-2 gap-3 md:grid-cols-4">
-              @for (staff of staffForSelectedService(); track staff.staffId) {
-                <div class="h-52 md:h-60">
-                  <div class="h-full w-full">
+          <div animate.enter="tab-content-enter" class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            @for (staff of staffForSelectedService(); track staff.staffId) {
+              <div class="h-52 md:h-60">
+                <div class="h-full w-full">
                   <app-staff-card [staff]="staff" [availability]="availability(staff)"
                     (select)="openStaffQueue(staff, selectedServiceId() ?? undefined)" />
-                  </div>
                 </div>
-              }
-              @if (staffForSelectedService().length === 0) {
-                <div class="col-span-2 mt-5 rounded-2xl border border-border bg-surface-card px-5 py-9 text-center md:col-span-4">
-                  <div class="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-secondary-light">
-                    <app-icon name="person" class="h-5 w-5 text-primary" />
-                  </div>
-                  <p class="mt-3 text-sm font-semibold text-text-primary">No staff available</p>
-                  <p class="mt-1 text-sm text-text-secondary">No one currently offers this service.</p>
+              </div>
+            }
+            @if (staffForSelectedService().length === 0) {
+              <div class="col-span-2 mt-5 rounded-2xl border border-border bg-surface-card px-5 py-9 text-center sm:col-span-3">
+                <div class="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-secondary-light">
+                  <app-icon name="person" class="h-5 w-5 text-primary" />
                 </div>
-              }
-            </div>
+                <p class="mt-3 text-sm font-semibold text-text-primary">No staff available</p>
+                <p class="mt-1 text-sm text-text-secondary">No one currently offers this service.</p>
+              </div>
+            }
           </div>
-        }
-      } @else if (activeTab() === 'staffs') {
-        <!-- Tab: Staffs — flat list, tap opens that staff's live queue page (join happens there) -->
-        <div class="mb-4">
-          <h2 class="text-base font-medium text-text-primary sm:text-lg">Who would you like to attend to you?</h2>
-          <p class="mt-1 text-sm text-text-secondary">Choose one of our professionals.</p>
-        </div>
-        <div animate.enter="tab-content-enter" class="grid grid-cols-2 md:grid-cols-3 gap-3">
-          @for (staff of visit.staffList(); track staff.staffId) {
-             <div class="h-50 md:h-60">
-              <app-staff-card [staff]="staff" [availability]="availability(staff)"
-                (select)="openStaffQueue(staff)" />
-            </div>
-          }
-          @if (visit.staffList().length === 0) {
-            <p class="col-span-2 text-sm text-text-disabled text-center py-8">No staff yet.</p>
-          }
         </div>
       }
+    } @else if (activeTab() === 'staffs') {
+      <!-- Tab: Staffs — flat list, tap opens that staff's live queue page (join happens there) -->
+      <div class="mb-4">
+        <h2 class="text-base font-medium text-text-primary sm:text-lg">Who would you like to attend to you?</h2>
+        <p class="mt-1 text-sm text-text-secondary">Choose one of our professionals.</p>
+      </div>
+      <div animate.enter="tab-content-enter" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        @for (staff of visit.staffList(); track staff.staffId) {
+          <div class="h-50 md:h-60">
+            <app-staff-card [staff]="staff" [availability]="availability(staff)"
+              (select)="openStaffQueue(staff)" />
+          </div>
+        }
+        @if (visit.staffList().length === 0) {
+          <p class="col-span-2 text-sm text-text-disabled text-center py-8">No staff yet.</p>
+        }
+      </div>
+    }
+  </ng-template>
 
-    </div>
+  <!-- Modals -->
+  <app-gallery-modal
+    [images]="s.galleryUrls"
+    [open]="galleryOpen()"
+    [startIndex]="galleryStartIndex()"
+    (closed)="closeGallery()" />
 
+  @if (s.photoUrl) {
     <app-gallery-modal
-      [images]="s.galleryUrls"
-      [open]="galleryOpen()"
-      [startIndex]="galleryStartIndex()"
-      (closed)="closeGallery()" />
-
-    @if (s.photoUrl) {
-      <app-gallery-modal
-        [images]="[s.photoUrl]"
-        [open]="photoOpen()"
-        (closed)="photoOpen.set(false)" />
-    }
-
-    @if (bookDialogOpen()) {
-      <!-- initialServiceId: carries the Services-tab choice through, the same
-           way the join flow passes ?serviceId= to app-join-dialog. Without it
-           the customer picks a service, taps Book ahead, and is asked again. -->
-      <app-book-appointment-dialog
-        [open]="bookDialogOpen()"
-        [salonId]="s.id"
-        [slug]="_slug"
-        [staffList]="visit.staffList()"
-        [initialServiceId]="selectedServiceId()"
-        (closed)="closeBookDialog()" />
-    }
+      [images]="[s.photoUrl]"
+      [open]="photoOpen()"
+      (closed)="photoOpen.set(false)" />
   }
 
-</div>
+  @if (bookDialogOpen()) {
+    <app-book-appointment-dialog
+      [open]="bookDialogOpen()"
+      [salonId]="s.id"
+      [slug]="_slug"
+      [staffList]="visit.staffList()"
+      [initialServiceId]="selectedServiceId()"
+      (closed)="closeBookDialog()" />
+  }
+}

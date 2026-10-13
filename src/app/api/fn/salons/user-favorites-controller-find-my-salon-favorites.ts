@@ -11,13 +11,17 @@ import { PaginatedMetaDto } from '../../models/paginated-meta-dto';
 import { SalonListingItemDto } from '../../models/salon-listing-item-dto';
 
 export interface UserFavoritesControllerFindMySalonFavorites$Params {
+
+/**
+ * Number of items per page (1-100)
+ */
+  limit?: number;
   state?: string;
   city?: string;
   search?: string;
   location?: string;
   category?: string;
   page?: number;
-  limit?: number;
 }
 
 export function userFavoritesControllerFindMySalonFavorites(http: HttpClient, rootUrl: string, params?: UserFavoritesControllerFindMySalonFavorites$Params, context?: HttpContext): Observable<StrictHttpResponse<{
@@ -26,13 +30,13 @@ export function userFavoritesControllerFindMySalonFavorites(http: HttpClient, ro
 }>> {
   const rb = new RequestBuilder(rootUrl, userFavoritesControllerFindMySalonFavorites.PATH, 'get');
   if (params) {
+    rb.query('limit', params.limit, {});
     rb.query('state', params.state, {});
     rb.query('city', params.city, {});
     rb.query('search', params.search, {});
     rb.query('location', params.location, {});
     rb.query('category', params.category, {});
     rb.query('page', params.page, {});
-    rb.query('limit', params.limit, {});
   }
 
   return http.request(

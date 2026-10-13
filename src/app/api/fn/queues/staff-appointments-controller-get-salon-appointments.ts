@@ -16,8 +16,6 @@ export interface StaffAppointmentsControllerGetSalonAppointments$Params {
  * Salon UUID
  */
   salonId: string;
-  page?: number;
-  limit?: number;
 
 /**
  * Inclusive start of a salon-local date range (YYYY-MM-DD). Send with `to` to get every appointment in the range, unpaginated, ordered scheduledAt ASC.
@@ -28,6 +26,8 @@ export interface StaffAppointmentsControllerGetSalonAppointments$Params {
  * Inclusive end of a salon-local date range (YYYY-MM-DD). Send with `from`.
  */
   to?: string;
+  page?: number;
+  limit?: number;
 }
 
 export function staffAppointmentsControllerGetSalonAppointments(http: HttpClient, rootUrl: string, params: StaffAppointmentsControllerGetSalonAppointments$Params, context?: HttpContext): Observable<StrictHttpResponse<{
@@ -37,10 +37,10 @@ export function staffAppointmentsControllerGetSalonAppointments(http: HttpClient
   const rb = new RequestBuilder(rootUrl, staffAppointmentsControllerGetSalonAppointments.PATH, 'get');
   if (params) {
     rb.path('salonId', params.salonId, {});
-    rb.query('page', params.page, {});
-    rb.query('limit', params.limit, {});
     rb.query('from', params.from, {});
     rb.query('to', params.to, {});
+    rb.query('page', params.page, {});
+    rb.query('limit', params.limit, {});
   }
 
   return http.request(

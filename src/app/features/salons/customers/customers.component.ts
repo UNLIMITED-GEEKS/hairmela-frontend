@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal, computed, effect, DestroyRef } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -7,10 +7,12 @@ import { CustomersService } from './customers.service';
 import { SalonFavoritedUserDto } from '../../../api/models/salon-favorited-user-dto';
 import { StaffFavoritesSummaryDto } from '../../../api/models/staff-favorites-summary-dto';
 import { StaffFavoritedUserDto } from '../../../api/models/staff-favorited-user-dto';
+import { FavoritedCustomerDto } from '../../../api/models/favorited-customer-dto';
 import { PaginatedMetaDto } from '../../../api/models/paginated-meta-dto';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { SalonRole } from '../../../core/salon-context/membership.types';
-import { RouteParam } from '../../../core/routing/route-paths';
+import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
+import { ChatService } from '../../../core/chat/chat.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { TabsComponent, TabItem } from '../../../shared/components/tabs/tabs.component';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
@@ -24,6 +26,7 @@ import { copyToClipboard } from '../../../core/clipboard/copy-to-clipboard';
   selector: 'app-salon-customers',
   templateUrl: './customers.component.html',
   imports: [
+    RouterLink,
     PageHeaderComponent,
     TabsComponent,
     AvatarComponent,
@@ -36,6 +39,8 @@ import { copyToClipboard } from '../../../core/clipboard/copy-to-clipboard';
 export class CustomersComponent implements OnInit {
   private readonly _customersService = inject(CustomersService);
   private readonly _route = inject(ActivatedRoute);
+  private readonly _router = inject(Router);
+  private readonly _chatService = inject(ChatService);
   private readonly _toast = inject(ToastService);
   private readonly _destroyRef = inject(DestroyRef);
   protected readonly salonContext = inject(SalonContextService);
@@ -332,6 +337,42 @@ export class CustomersComponent implements OnInit {
     event.stopPropagation();
     event.preventDefault();
     copyToClipboard(this._toast, phone, 'Phone number');
+  }
+
+  protected getChatRoute(): string[] {
+    const salonId = this.salonId();
+    const staffId = this.salonContext.membership()?.staffId;
+    if (this.isStaffOnly() && staffId) {
+      return RoutePath.salonStaffChats(salonId, staffId);
+    }
+    return RoutePath.salonChats(salonId);
+  }
+
+  protected messageCustomer(
+    customer: StaffFavoritedUserDto | SalonFavoritedUserDto | FavoritedCustomerDto,
+  ): void {
+    const salonId = this.salonId();
+    const staffId = this.salonContext.membership()?.staffId || undefined;
+    const customerId = (customer as any).userId;
+    const customerName =
+      (customer as any).displayName ||
+      `${customer.firstName || ''} ${customer.lastName || ''}`.trim() ||
+      'Customer';
+    this._chatService.createOrOpenConversation(salonId, staffId, { customerId, customerName }).subscribe({
+      next: (conv) => {
+        this._router.navigate(RoutePath.salonChatThread(salonId, conv.id));
+      },
+      error: (err) => {
+        if (err?.status === 403) {
+          this._toast.error(
+            err?.error?.message ||
+              'Salons cannot initiate conversations with users who have not favourited or visited them.',
+          );
+        } else {
+          this._toast.error('Could not open conversation');
+        }
+      },
+    });
   }
 }
 

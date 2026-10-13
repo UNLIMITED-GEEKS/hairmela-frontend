@@ -16,10 +16,22 @@ export interface SalonsControllerGetFavorites$Params {
  * Salon UUID
  */
   salonId: string;
+
+/**
+ * Filter scope: salon, staff, or all (combined)
+ */
   scope?: 'salon' | 'staff' | 'all';
-  page?: number;
-  limit?: number;
+
+/**
+ * Search customers by name, nickname, email, or phone (case-insensitive substring match)
+ */
   search?: string;
+
+/**
+ * Number of items per page (1-100)
+ */
+  limit?: number;
+  page?: number;
 }
 
 export function salonsControllerGetFavorites(http: HttpClient, rootUrl: string, params: SalonsControllerGetFavorites$Params, context?: HttpContext): Observable<StrictHttpResponse<{
@@ -30,9 +42,9 @@ export function salonsControllerGetFavorites(http: HttpClient, rootUrl: string, 
   if (params) {
     rb.path('salonId', params.salonId, {});
     rb.query('scope', params.scope, {});
-    rb.query('page', params.page, {});
-    rb.query('limit', params.limit, {});
     rb.query('search', params.search, {});
+    rb.query('limit', params.limit, {});
+    rb.query('page', params.page, {});
   }
 
   return http.request(

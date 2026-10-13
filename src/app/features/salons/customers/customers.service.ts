@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
+import { salonsControllerGetCustomers } from '../../../api/fn/salons/salons-controller-get-customers';
 import { salonsControllerGetFavorites } from '../../../api/fn/salons/salons-controller-get-favorites';
 import { staffControllerFindStaffFavoritesSummary } from '../../../api/fn/staff/staff-controller-find-staff-favorites-summary';
 import { staffControllerGetFavorites } from '../../../api/fn/staff/staff-controller-get-favorites';
@@ -28,7 +29,7 @@ export class CustomersService {
     search?: string,
   ): Promise<PaginatedResult<SalonFavoritedUserDto>> {
     const res = await firstValueFrom(
-      salonsControllerGetFavorites(this._http, this._apiConfig.rootUrl, {
+      salonsControllerGetCustomers(this._http, this._apiConfig.rootUrl, {
         salonId,
         scope: 'salon',
         page,

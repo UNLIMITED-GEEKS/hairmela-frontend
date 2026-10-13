@@ -11,13 +11,17 @@ import { BarberFavoriteItemDto } from '../../models/barber-favorite-item-dto';
 import { PaginatedMetaDto } from '../../models/paginated-meta-dto';
 
 export interface UserFavoritesControllerFindMyBarberFavorites$Params {
+
+/**
+ * Number of items per page (1-100)
+ */
+  limit?: number;
   state?: string;
   city?: string;
   search?: string;
   location?: string;
   category?: string;
   page?: number;
-  limit?: number;
 }
 
 export function userFavoritesControllerFindMyBarberFavorites(http: HttpClient, rootUrl: string, params?: UserFavoritesControllerFindMyBarberFavorites$Params, context?: HttpContext): Observable<StrictHttpResponse<{
@@ -26,13 +30,13 @@ export function userFavoritesControllerFindMyBarberFavorites(http: HttpClient, r
 }>> {
   const rb = new RequestBuilder(rootUrl, userFavoritesControllerFindMyBarberFavorites.PATH, 'get');
   if (params) {
+    rb.query('limit', params.limit, {});
     rb.query('state', params.state, {});
     rb.query('city', params.city, {});
     rb.query('search', params.search, {});
     rb.query('location', params.location, {});
     rb.query('category', params.category, {});
     rb.query('page', params.page, {});
-    rb.query('limit', params.limit, {});
   }
 
   return http.request(

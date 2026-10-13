@@ -18,6 +18,7 @@ import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/ro
 import { environment } from '../../../../environments/environment';
 import { staffAvailability } from '../../../core/utils/staff-availability';
 import { TimelineEntryDto } from '../../../core/socket/socket.types';
+import { ChatService } from '../../../core/chat/chat.service';
 
 @Component({
   selector: 'app-live-queue',
@@ -43,6 +44,7 @@ export class LiveQueueComponent {
   private readonly _toast = inject(ToastService);
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _favorites = inject(FavoritesService);
+  private readonly _chatService = inject(ChatService);
 
   // Reactive, not snapshot-based — q/:queueId is a single route, so navigating
   // between two barbers (q/A -> q/B) reuses this component instance and never
@@ -77,6 +79,8 @@ export class LiveQueueComponent {
 
   protected readonly staffFavoritesCount = signal<number | null>(null);
   protected readonly staffFavoritesCountLoading = signal(false);
+  protected readonly canMessageBarber = signal(false);
+  protected readonly barberConversationId = signal<string | null>(null);
   private _lastFetchedStaffId: string | null = null;
 
   constructor() {
@@ -94,6 +98,59 @@ export class LiveQueueComponent {
         untracked(() => this._loadStaffFavoritesCount(staffId));
       }
     });
+    effect(() => {
+      const staff = this._currentStaff();
+      const salon = this.visit.salon();
+      const user = this._currentUser.user();
+      if (staff?.staffId && salon?.id && user) {
+        untracked(() => {
+          this._chatService.checkEligibility(salon.id, staff.staffId).subscribe({
+            next: (res) => {
+              this.canMessageBarber.set(res.canMessage);
+              if (res.conversationId) {
+                this.barberConversationId.set(res.conversationId);
+              }
+            },
+          });
+        });
+      } else {
+        this.canMessageBarber.set(false);
+        this.barberConversationId.set(null);
+      }
+    });
+  }
+
+  protected messageBarber(): void {
+    if (!this._currentUser.user()) {
+      this._toast.info('Please sign in to message this barber');
+      this._router.navigate(RoutePath.login(), {
+        queryParams: { [RouteQueryParam.RETURN_URL]: this._router.url },
+      });
+      return;
+    }
+    const staff = this._currentStaff();
+    const salon = this.visit.salon();
+    if (!staff || !salon) return;
+
+    const existingId = this.barberConversationId();
+    if (existingId) {
+      this._router.navigate(RoutePath.chatThread(existingId));
+      return;
+    }
+
+    this._chatService
+      .createOrOpenConversation(salon.id, staff.staffId, {
+        salonName: salon.name,
+        staffName: `${staff.firstName} ${staff.lastName}`.trim(),
+      })
+      .subscribe({
+        next: (conv) => {
+          this._router.navigate(RoutePath.chatThread(conv.id));
+        },
+        error: () => {
+          this._toast.error('Unable to start conversation');
+        },
+      });
   }
 
   private async _loadStaffFavoritesCount(staffId: string): Promise<void> {

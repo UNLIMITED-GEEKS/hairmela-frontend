@@ -63,18 +63,32 @@
     <div></div>
   }
 
-  <!-- Right: avatar -->
-  @if (showUserAvatar() && _currentUser.user(); as user) {
-    <app-avatar
-      [name]="user.firstName + ' ' + user.lastName"
-      size="sm" />
-  } @else {
-    <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-      <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-      </svg>
-    </div>
-  }
+  <!-- Right: chat icon + avatar -->
+  <div class="flex items-center gap-3">
+    <a
+      [routerLink]="chatUrl()"
+      class="relative p-2 rounded-full hover:bg-surface-overlay text-text-primary transition"
+      aria-label="Messages"
+      title="Messages"
+    >
+      <app-icon name="chat" class="w-5 h-5 text-text-primary" />
+      @if (chatService.unreadCount() > 0) {
+        <span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-surface animate-pulse"></span>
+      }
+    </a>
+
+    @if (showUserAvatar() && _currentUser.user(); as user) {
+      <app-avatar
+        [name]="user.firstName + ' ' + user.lastName"
+        size="sm" />
+    } @else {
+      <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+        <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+        </svg>
+      </div>
+    }
+  </div>
 
 </header>

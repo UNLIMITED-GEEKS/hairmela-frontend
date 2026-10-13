@@ -16,6 +16,7 @@ import { NavigationStart, Router, RouterOutlet } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import { SalonContextService } from '../../../../core/salon-context/salon-context.service';
+import { SalonRole } from '../../../../core/salon-context/membership.types';
 import { SalonsStore } from '../../../../core/salon-context/salons.store';
 import { InvitesService } from '../../../../features/dashboard/invites.service';
 import { AuthService } from '../../../../core/auth/auth.service';
@@ -33,6 +34,7 @@ import { RouteScrollRestorationService } from '../../../../core/scroll/route-scr
 import { AddClientModalComponent } from '../../../../features/queue/add-client-modal/add-client-modal.component';
 import { QueueConsoleService } from '../../../../features/queue/queue-console/queue-console.service';
 import { StaffAppointmentModalService } from '../../../../features/queue/staff-appointment-modal/staff-appointment-modal.service';
+import { ChatService } from '../../../../core/chat/chat.service';
 
 @Component({
   selector: 'app-auth-shell',
@@ -98,6 +100,7 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly _scrollRestoration = inject(RouteScrollRestorationService);
   private readonly _queueConsole = inject(QueueConsoleService);
   private readonly _staffAppointmentModal = inject(StaffAppointmentModalService);
+  private readonly _chatService = inject(ChatService);
   protected readonly loggingOut = this._auth.loggingOut;
 
   // This shell's scroll region is the inner <main>, not the window (see
@@ -147,6 +150,20 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   // without a salon route. Page-level tier and role guards still use the
   // strict route-derived membership.
 
+  private readonly _chatUrl = computed(() => {
+    const sId = this._salonContext.activeSalonId() || this._salonContext.displaySalonId();
+    const role = this._salonContext.membership()?.role || this._salonContext.displayMembership()?.role;
+    if (sId && (role === SalonRole.OWNER || role === SalonRole.ADMIN || role === SalonRole.STAFF)) {
+      return RoutePath.salonChats(sId).join('/');
+    }
+    const mySalons = this._dashboardService.salons();
+    const ownerOrAdmin = mySalons.find((s) => s.role === 'OWNER' || s.role === 'ADMIN' || s.role === 'STAFF');
+    if (ownerOrAdmin) {
+      return RoutePath.salonChats(ownerOrAdmin.salon.id).join('/');
+    }
+    return RoutePath.chat()[0];
+  });
+
   protected readonly navItems = computed<NavItem[]>(() => {
     const savedItem: NavItem[] = !this.isCustomer()
       ? []
@@ -180,6 +197,14 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
         icon: 'queue',
         url: RoutePath.queues()[0],
         bottomNav: true,
+        sidebar: true,
+      },
+      {
+        label: 'Messages',
+        icon: 'chat',
+        url: this._chatUrl(),
+        badge: this._chatService.unreadCount,
+        bottomNav: false,
         sidebar: true,
       },
       {

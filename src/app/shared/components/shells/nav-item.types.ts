@@ -33,4 +33,5 @@ export type NavIcon =
   | 'heart'
   | 'bookmark'
   | 'search'
+  | 'chat'
   | 'profile';

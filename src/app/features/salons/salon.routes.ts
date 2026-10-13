@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { salonRoleGuard } from '../../core/guards/salon-role.guard';
 import { SalonRole } from '../../core/salon-context/membership.types';
-import { RouteSegment } from '../../core/routing/route-paths';
+import { RouteParam, RouteSegment } from '../../core/routing/route-paths';
 
 export const salonRoutes: Routes = [
   {
@@ -118,5 +118,21 @@ export const salonRoutes: Routes = [
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
     loadComponent: () =>
       import('./customers/customers.component').then((m) => m.CustomersComponent),
+  },
+  {
+    path: RouteSegment.CHATS,
+    title: 'Salon Messages',
+    canActivate: [salonRoleGuard],
+    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
+    loadComponent: () =>
+      import('./salon-chat/salon-chat.component').then((m) => m.SalonChatComponent),
+  },
+  {
+    path: `${RouteSegment.CHATS}/:${RouteParam.CONVERSATION_ID}`,
+    title: 'Chat',
+    canActivate: [salonRoleGuard],
+    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
+    loadComponent: () =>
+      import('../chat/chat-thread/chat-thread.component').then((m) => m.ChatThreadComponent),
   },
 ];

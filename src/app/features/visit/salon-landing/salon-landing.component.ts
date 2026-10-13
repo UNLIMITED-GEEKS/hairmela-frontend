@@ -1,4 +1,4 @@
-import { DOCUMENT } from '@angular/common';
+import { DOCUMENT, NgTemplateOutlet } from '@angular/common';
 import {
   Component,
   OnInit,
@@ -40,6 +40,7 @@ import { capitalizeWords } from '../../../core/utils/capitalize-words';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 import { environment } from '../../../../environments/environment';
 import { AppPlatformService } from '../../../core/native/app-platform.service';
+import { ChatService } from '../../../core/chat/chat.service';
 
 const LANDING_TABS: TabItem[] = [
   { id: 'about', label: 'About' },
@@ -113,6 +114,7 @@ interface SalonStatusBadge {
     MediaUrlPipe,
     RouterLink,
     InlineSpinnerComponent,
+    NgTemplateOutlet,
   ],
 })
 export class SalonLandingComponent implements OnInit {
@@ -131,12 +133,38 @@ export class SalonLandingComponent implements OnInit {
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _favorites = inject(FavoritesService);
   private readonly _toast = inject(ToastService);
+  private readonly _chatService = inject(ChatService);
 
   private readonly _paramMap = toSignal(this._route.paramMap, { requireSync: true });
   protected readonly slug = computed(() => this._paramMap().get(RouteParam.SLUG) ?? '');
 
   protected readonly salonFavoritesCount = signal<number | null>(null);
   protected readonly salonFavoritesCountLoading = signal(false);
+
+  protected messageSalon(): void {
+    if (!this._currentUser.user()) {
+      this._toast.info('Please sign in to message this salon');
+      this._router.navigate(RoutePath.login(), {
+        queryParams: { [RouteQueryParam.RETURN_URL]: this._router.url },
+      });
+      return;
+    }
+    const s = this.visit.salon();
+    if (!s) return;
+
+    this._chatService
+      .createOrOpenConversation(s.id, undefined, {
+        salonName: s.name,
+      })
+      .subscribe({
+        next: (conv) => {
+          this._router.navigate(RoutePath.chatThread(conv.id));
+        },
+        error: () => {
+          this._toast.error('Unable to open conversation');
+        },
+      });
+  }
 
   // Fallback photo for salons with no uploaded image — same asset used by
   // SalonCardComponent (public/salon-placeholder.jpg).
@@ -396,6 +424,19 @@ export class SalonLandingComponent implements OnInit {
 
   protected get _shellPrefix(): string {
     return this._route.snapshot.data['shellPrefix'] ?? '';
+  }
+
+  protected get directionsUrl(): string {
+    const s = this.visit.salon();
+    if (!s) return '#';
+    const addr = s.address;
+    if (addr?.latitude && addr?.longitude) {
+      return `https://www.google.com/maps/search/?api=1&query=${addr.latitude},${addr.longitude}`;
+    }
+    const query = [s.name, addr?.street, addr?.city, addr?.state]
+      .filter(Boolean)
+      .join(', ');
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
   }
 
   // Salon open/closed badge — computed server-side in the salon's own timezone

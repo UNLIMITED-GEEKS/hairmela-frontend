@@ -248,6 +248,22 @@ export const routes: Routes = [
           ),
       },
       {
+        path: RouteSegment.CHAT,
+        title: 'Messages',
+        loadComponent: () =>
+          import('./features/chat/customer-chat/customer-chat.component').then(
+            (m) => m.CustomerChatComponent,
+          ),
+      },
+      {
+        path: `${RouteSegment.CHAT}/:${RouteParam.CONVERSATION_ID}`,
+        title: 'Chat',
+        loadComponent: () =>
+          import('./features/chat/chat-thread/chat-thread.component').then(
+            (m) => m.ChatThreadComponent,
+          ),
+      },
+      {
         path: RouteSegment.SEARCH,
         title: 'Search',
         loadComponent: () =>

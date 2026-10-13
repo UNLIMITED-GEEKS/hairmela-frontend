@@ -4,15 +4,17 @@ import { MembershipStore } from '../../../../core/salon-context/membership.store
 import { MySalonDto } from '../../../../api/models/my-salon-dto';
 import { RoutePath, RouteQueryParam, RouteSegment } from '../../../../core/routing/route-paths';
 import { BackButtonComponent } from '../../back-button/back-button.component';
+import { IconComponent } from '../../icon/icon.component';
 import { AppPlatformService } from '../../../../core/native/app-platform.service';
 import { ToastService } from '../../../../core/toast/toast.service';
 import { environment } from '../../../../../environments/environment';
 import { AppHeaderService } from '../../../../core/routing/app-header.service';
+import { ChatService } from '../../../../core/chat/chat.service';
 
 @Component({
   selector: 'app-mobile-top-bar',
   templateUrl: './mobile-top-bar.component.html',
-  imports: [RouterLink, BackButtonComponent],
+  imports: [RouterLink, BackButtonComponent, IconComponent],
 })
 export class MobileTopBarComponent {
   private readonly _router = inject(Router);
@@ -21,11 +23,25 @@ export class MobileTopBarComponent {
   private readonly _platform = inject(AppPlatformService);
   private readonly _toast = inject(ToastService);
   protected readonly header = inject(AppHeaderService);
+  protected readonly chatService = inject(ChatService);
 
   readonly salons = input<MySalonDto[]>([]);
   readonly activeSalonId = input<string | null>(null);
 
   protected readonly accountLink = RoutePath.account();
+  protected readonly chatLink = computed(() => {
+    const sId = this.activeSalonId();
+    const active = this.activeSalon();
+    if (sId && active && (active.role === 'OWNER' || active.role === 'ADMIN' || active.role === 'STAFF')) {
+      return RoutePath.salonChats(sId);
+    }
+    const mySalons = this.salons();
+    const ownerOrAdmin = mySalons.find((s) => s.role === 'OWNER' || s.role === 'ADMIN' || s.role === 'STAFF');
+    if (ownerOrAdmin) {
+      return RoutePath.salonChats(ownerOrAdmin.salon.id);
+    }
+    return RoutePath.chat();
+  });
   protected readonly favoritesLink = RoutePath.favorites();
   protected readonly notificationsLink = RoutePath.notifications();
   protected readonly settingsLink = RoutePath.accountSettings();
