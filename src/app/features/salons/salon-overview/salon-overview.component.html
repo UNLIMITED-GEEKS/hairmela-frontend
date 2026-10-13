@@ -500,7 +500,7 @@
               <span class="text-xs text-text-secondary">View your bookings</span>
             </a>
           }
-          @if (!salon.parentId) {
+          @if (!salon.parentId && canAddBranch()) {
             <a
               [routerLink]="newBranchLink()"
               [queryParams]="newBranchQueryParams(salon.id, salon.name)"

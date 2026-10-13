@@ -15,6 +15,9 @@ import { SalonOverviewService } from './salon-overview.service';
 import { InvitesService } from '../../dashboard/invites.service';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
+import { SalonsStore } from '../../../core/salon-context/salons.store';
+import { OrgContextService } from '../../../core/salon-context/org-context.service';
+import { UNLIMITED_SENTINEL } from '../../../core/tier/tier-limits';
 import { NoPhotoBannerComponent } from '../../../shared/components/no-photo-banner/no-photo-banner.component';
 import { PushPromptComponent } from '../../../shared/components/push-prompt/push-prompt.component';
 import { SalonRole } from '../../../core/salon-context/membership.types';
@@ -66,6 +69,8 @@ export class SalonOverviewComponent implements OnInit {
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _socket = inject(QueueSocketService);
   private readonly _currentUser = inject(CurrentUserStore);
+  private readonly _salonsStore = inject(SalonsStore);
+  private readonly _orgContext = inject(OrgContextService);
   private readonly _salonOverviewService = inject(SalonOverviewService);
   private readonly _invitesService = inject(InvitesService);
   private readonly _toast = inject(ToastService);
@@ -141,6 +146,12 @@ export class SalonOverviewComponent implements OnInit {
   protected readonly isOwnerOrAdmin = computed(() => {
     const role = this.myStaff()?.role;
     return role === SalonRole.OWNER || role === SalonRole.ADMIN;
+  });
+
+  protected readonly canAddBranch = computed(() => {
+    const limit = this._orgContext.access()?.salonLimit ?? UNLIMITED_SENTINEL;
+    const owned = this._salonsStore.salons().filter((s) => s.role === SalonRole.OWNER).length;
+    return owned < limit;
   });
 
   protected readonly isStaff = computed(() => this.myStaff()?.role === SalonRole.STAFF);

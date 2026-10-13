@@ -69,6 +69,7 @@ export class LoginComponent {
 
   protected readonly forgotPasswordLink = RoutePath.forgotPassword();
   protected readonly registerLink = RoutePath.register();
+  protected readonly guestSearchLink = RoutePath.guestSearch();
 
   protected get registerQueryParams(): Record<string, string> {
     return this.returnUrl ? { [RouteQueryParam.RETURN_URL]: this.returnUrl } : {};

@@ -136,6 +136,15 @@
       >
     </p>
 
+    @if (platform.shell === 'ios') {
+      <a
+        [routerLink]="guestSearchLink"
+        class="mt-4 flex min-h-11 w-full items-center justify-center rounded-xl border border-border text-sm font-medium text-text-primary transition-colors hover:bg-surface-sunken"
+      >
+        Browse salons without signing in
+      </a>
+    }
+
     <!-- Back home. Points at "/" on every platform — HomeShellComponent
          resolves that to the marketing landing on web and the app welcome
          screen when installed, so one link covers both with no platform check.
