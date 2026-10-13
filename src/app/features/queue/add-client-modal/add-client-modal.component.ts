@@ -65,6 +65,7 @@ export class AddClientModalComponent {
   readonly queueId = input.required<string>();
   readonly staffId = input.required<string>();
   readonly initialMode = input<'walk-in' | 'appointment'>('walk-in');
+  readonly staffName = input<string>();
 
   readonly closed = output<void>();
 
@@ -218,7 +219,13 @@ export class AddClientModalComponent {
     }[];
     const members = this._flatten(rows, false);
     if (members.length === 0) return;
-    this.console.staffAddToQueue(this.salonId(), this.queueId(), members, () => this.closed.emit());
+    this.console.staffAddToQueue(
+      this.salonId(),
+      this.queueId(),
+      members,
+      () => this.closed.emit(),
+      this.staffName(),
+    );
   }
 
   protected addWalkInRow(): void {
@@ -304,6 +311,7 @@ export class AddClientModalComponent {
       // On failure, stay open on the appointment step (e.g. slot was just
       // taken) so the barber can pick another — refetch to show current slots.
       () => this._fetchMonth(),
+      this.staffName(),
     );
   }
 

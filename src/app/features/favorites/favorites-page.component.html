@@ -1,44 +1,144 @@
 <div class="">
   <app-page-header backVariant="glass" />
-  <div class="pb-6 px-4">
-    @if (favorites.listLoading() && favorites.list().length === 0) {
-      <div class="grid grid-cols-1 gap-4 pb-2 sm:grid-cols-4">
-        @for (card of [1, 2, 3, 4]; track card) {
-          <app-skeleton variant="block" height="16rem" rounded="rounded-xl" />
-        }
-      </div>
-    } @else if (favorites.list().length === 0) {
-      <div class="py-16 text-center">
-        <svg
-          class="mx-auto w-10 h-10 text-text-faint"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="1.5"
-            d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 21.036l-7.682-8.354a4.5 4.5 0 010-6.364z"
-          />
-        </svg>
-        <p class="mt-3 text-sm text-text-disabled">
-          No favourites yet, tap the heart on a salon to save it here.
-        </p>
-      </div>
-    } @else {
-      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        @for (salon of favorites.list(); track salon.id) {
-          <div class="h-64">
-            <app-salon-card [salon]="salon" [showStreet]="true" />
-          </div>
-        }
-      </div>
 
-      <div class="mt-8">
-        <app-pagination [meta]="favorites.meta()" (pageChange)="goToPage($event)" />
-      </div>
+  <div class="px-4 mb-4">
+    <app-tabs [tabs]="tabs" [activeId]="activeTab()" [fitContent]="true" (tabChange)="setTab($event)" />
+  </div>
+
+  <div class="pb-6 px-4">
+    @if (activeTab() === 'salons') {
+      @if (favorites.listLoading() && favorites.list().length === 0) {
+        <div class="grid grid-cols-1 gap-4 pb-2 sm:grid-cols-4">
+          @for (card of [1, 2, 3, 4]; track card) {
+            <app-skeleton variant="block" height="16rem" rounded="rounded-xl" />
+          }
+        </div>
+      } @else if (favorites.list().length === 0) {
+        <div class="py-16 text-center">
+          <svg
+            class="mx-auto w-10 h-10 text-text-faint"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 21.036l-7.682-8.354a4.5 4.5 0 010-6.364z"
+            />
+          </svg>
+          <p class="mt-3 text-sm text-text-disabled">
+            No favourite salons yet, tap the heart on a salon to save it here.
+          </p>
+          <a
+            [routerLink]="searchLink"
+            class="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-primary-hover active:scale-95"
+          >
+            <app-icon name="search" class="h-4 w-4" />
+            <span>Explore salons</span>
+          </a>
+        </div>
+      } @else {
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          @for (salon of favorites.list(); track salon.id) {
+            <div class="h-64">
+              <app-salon-card [salon]="salon" [showStreet]="true" />
+            </div>
+          }
+        </div>
+
+        <div class="mt-8">
+          <app-pagination [meta]="favorites.meta()" (pageChange)="goToSalonPage($event)" />
+        </div>
+      }
+    } @else {
+      @if (favorites.staffListLoading() && favorites.staffList().length === 0) {
+        <div class="grid grid-cols-2 gap-3 pb-2 sm:grid-cols-4 sm:gap-4">
+          @for (card of [1, 2, 3, 4]; track card) {
+            <app-skeleton variant="block" height="16rem" rounded="rounded-xl" />
+          }
+        </div>
+      } @else if (favorites.staffList().length === 0) {
+        <div class="py-16 text-center">
+          <svg
+            class="mx-auto w-10 h-10 text-text-faint"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 21.036l-7.682-8.354a4.5 4.5 0 010-6.364z"
+            />
+          </svg>
+          <p class="mt-3 text-sm text-text-disabled">
+            No favourite staff yet, tap the heart on a staff member to save them here.
+          </p>
+          <a
+            [routerLink]="searchLink"
+            class="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-primary-hover active:scale-95"
+          >
+            <app-icon name="search" class="h-4 w-4" />
+            <span>Find staff to follow</span>
+          </a>
+        </div>
+      } @else {
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-4 sm:gap-4">
+          @for (staff of favorites.staffList(); track staff.staffId) {
+            <div class="h-60 sm:h-64">
+              <a [routerLink]="staffLink(staff)"
+                class="group relative block h-full w-full rounded-xl overflow-hidden bg-surface-overlay hover:shadow-md transition-shadow">
+
+                <!-- Full-bleed photo -->
+                <img [src]="staff.photoUrl ? (staff.photoUrl | mediaUrl:'grid') : placeholderImage"
+                  [alt]="staff.name" loading="lazy"
+                  class="h-full w-full object-cover" />
+
+                <!-- Top action badge -->
+                <div class="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 flex flex-wrap items-start gap-1">
+                  <span class="rounded-full px-2.5 py-1 text-[10px] sm:px-3 sm:py-1.5 sm:text-xs font-semibold whitespace-nowrap backdrop-blur-md bg-glass border border-white/20 text-white flex items-center gap-1.5 group-hover:bg-white/20 transition-colors">
+              
+                    View Queue
+                  </span>
+                </div>
+
+                <!-- Heart button -->
+                <button type="button" (click)="toggleStaffFavorite($event, staff)"
+                  aria-label="Remove from favourites"
+                  class="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:scale-105 active:scale-95 transition-transform">
+                  <app-icon name="heart-filled" class="h-4 w-4 sm:h-5 sm:w-5 text-primary-500 transition-colors" />
+                </button>
+
+                <!-- Bottom overlay: Name & Salon info -->
+                <div class="absolute inset-x-0 bottom-0 px-2.5 py-2 sm:px-4 sm:py-3 bg-glass-strong/40 backdrop-blur-md">
+                  <h3 class="text-sm sm:text-base font-bold text-white truncate">
+                    {{ staff.name }}
+                    @if (staff.nickname) { <span class="font-normal text-white/80 text-[10px] sm:text-xs">({{ staff.nickname }})</span> }
+                  </h3>
+                  <p class="mt-0.5 flex items-center gap-1 text-[11px] sm:text-xs text-white/90 truncate">
+                    <app-icon name="scissors" class="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
+                    <span class="min-w-0 truncate font-medium hover:underline">{{ staff.salon?.name }}</span>
+                    @if (staff.salon?.city || staff.salon?.state) {
+                      <span class="text-white/60">·</span>
+                      <span class="truncate text-white/70">{{ staff.salon?.city ?? staff.salon?.state }}</span>
+                    }
+                  </p>
+                </div>
+
+              </a>
+            </div>
+          }
+        </div>
+
+        <div class="mt-8">
+          <app-pagination [meta]="favorites.staffMeta()" (pageChange)="goToStaffPage($event)" />
+        </div>
+      }
     }
   </div>
 </div>

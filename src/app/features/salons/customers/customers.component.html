@@ -1,0 +1,418 @@
+<div class="pb-10">
+  <app-page-header backVariant="glass" />
+
+  <div class="px-4 pt-1">
+    <!-- Header title & subtitle -->
+    <div class="mb-4">
+      <h1 class="text-xl font-bold text-text-primary">Customers</h1>
+      <p class="text-xs text-text-secondary mt-0.5">
+        @if (isOwnerOrAdmin()) {
+          View customers who favourited your salon and staff members.
+        } @else {
+          Customers who have added you to their favourites.
+        }
+      </p>
+    </div>
+
+    <!-- Search Bar -->
+    @if ((isOwnerOrAdmin() && (salonCustomers().length > 0 || staffSummaries().length > 0)) || (isStaffOnly() && myCustomers().length > 0) || searchQuery()) {
+      <div class="mb-4">
+        <div class="relative">
+          <app-icon name="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted pointer-events-none" />
+          <input
+            type="text"
+            [value]="searchQuery()"
+            (input)="onSearchInput($any($event.target).value)"
+            placeholder="Search customers by name, phone or email…"
+            class="w-full pl-9 pr-9 py-2.5 rounded-xl border border-border bg-surface-card text-sm text-text-primary placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+          @if (isSearching()) {
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center text-primary" aria-label="Searching…">
+              <span class="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></span>
+            </span>
+          } @else if (searchQuery()) {
+            <button
+              type="button"
+              (click)="clearSearch()"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-0.5"
+              aria-label="Clear search"
+            >
+              <app-icon name="close" class="h-3.5 w-3.5" />
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Owner & Admin View -->
+    @if (isOwnerOrAdmin()) {
+      <div class="mb-5">
+        <app-tabs [tabs]="tabs" [activeId]="activeTab()" [fitContent]="true" (tabChange)="setTab($event)" />
+      </div>
+
+      <!-- Salon Customers Tab -->
+      @if (activeTab() === 'salon') {
+        @if (salonLoading() && salonCustomers().length === 0) {
+          <div class="space-y-3">
+            @for (i of [1, 2, 3, 4]; track i) {
+              <app-skeleton variant="block" height="4.5rem" rounded="rounded-2xl" />
+            }
+          </div>
+        } @else if (salonError()) {
+          <div class="rounded-2xl bg-surface-card p-6 text-center">
+            <p class="text-sm text-text-secondary">Failed to load salon customers.</p>
+            <button type="button" (click)="loadSalonCustomers(salonPage())"
+              class="mt-3 px-4 py-2 text-xs font-semibold text-primary border border-primary/30 rounded-xl hover:bg-secondary-light transition-colors">
+              Retry
+            </button>
+          </div>
+        } @else if (salonCustomers().length === 0 && !searchQuery()) {
+          <div class="py-16 text-center rounded-2xl bg-surface-card border border-border">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-secondary-light text-primary mb-3">
+              <app-icon name="heart" class="w-6 h-6" />
+            </div>
+            <p class="text-base font-semibold text-text-primary">No customers yet</p>
+            <p class="mt-1 text-xs text-text-secondary max-w-xs mx-auto">
+              When customers tap the heart to favourite this salon, they will appear here.
+            </p>
+          </div>
+        } @else if (isSearching()) {
+          <div class="space-y-3">
+            @for (i of [1, 2, 3, 4]; track i) {
+              <app-skeleton variant="block" height="4.5rem" rounded="rounded-2xl" />
+            }
+          </div>
+        } @else if (filteredSalonCustomers().length === 0) {
+          <div class="py-12 text-center rounded-2xl bg-surface-card border border-border">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-secondary-light text-primary mb-3">
+              <app-icon name="search" class="w-6 h-6" />
+            </div>
+            <p class="text-base font-semibold text-text-primary">No customers found</p>
+            <p class="mt-1 text-xs text-text-secondary max-w-xs mx-auto">
+              No customers match &ldquo;{{ searchQuery() }}&rdquo;.
+            </p>
+            <button
+              type="button"
+              (click)="clearSearch()"
+              class="mt-3 px-4 py-2 text-xs font-semibold text-primary border border-primary/30 rounded-xl hover:bg-secondary-light transition-colors"
+            >
+              Clear search
+            </button>
+          </div>
+        } @else {
+          <div class="space-y-2.5">
+            @for (customer of filteredSalonCustomers(); track customer.userId) {
+              <div class="flex items-center gap-3 rounded-2xl border border-border bg-surface-card px-4 py-3.5 transition-colors">
+                <app-avatar [src]="customer.photoUrl"
+                  [name]="customer.displayName || (customer.firstName + ' ' + customer.lastName)"
+                  size="md" />
+
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <p class="font-semibold text-sm text-text-primary truncate">
+                      {{ customer.displayName || (customer.firstName + ' ' + customer.lastName) }}
+                    </p>
+                    @if (customer.nickname) {
+                      <span class="text-xs text-text-secondary font-normal">({{ customer.nickname }})</span>
+                    }
+                  </div>
+
+                  <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5 text-xs text-text-secondary">
+                    @if (customer.email) {
+                      <span class="truncate">{{ customer.email }}</span>
+                    }
+                    @if (customer.phone) {
+                      <span class="inline-flex items-center gap-1 min-w-0">
+                        <span class="truncate">{{ customer.phone }}</span>
+                        <button type="button" (click)="copyPhone($event, customer.phone)"
+                          [attr.aria-label]="'Copy phone number ' + customer.phone"
+                          title="Copy phone number"
+                          class="shrink-0 inline-flex items-center justify-center p-0.5 text-text-secondary hover:text-primary transition-colors">
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                          </svg>
+                        </button>
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="shrink-0 text-right">
+                  <span class="text-[11px] text-text-secondary/70">
+                    {{ customer.favoritedAt | date: 'mediumDate' }}
+                  </span>
+                </div>
+              </div>
+            }
+          </div>
+
+          @if (salonMeta(); as meta) {
+            @if (meta.totalPages > 1) {
+              <div class="mt-6">
+                <app-pagination [meta]="meta" (pageChange)="loadSalonCustomers($event)" />
+              </div>
+            }
+          }
+        }
+      }
+
+      <!-- Staff Customers Tab (Accordion) -->
+      @if (activeTab() === 'staff') {
+        @if (staffLoading() && staffSummaries().length === 0) {
+          <div class="space-y-3">
+            @for (i of [1, 2, 3, 4]; track i) {
+              <app-skeleton variant="block" height="5rem" rounded="rounded-2xl" />
+            }
+          </div>
+        } @else if (staffError()) {
+          <div class="rounded-2xl bg-surface-card p-6 text-center">
+            <p class="text-sm text-text-secondary">Failed to load staff customers.</p>
+            <button type="button" (click)="loadStaffSummaries()"
+              class="mt-3 px-4 py-2 text-xs font-semibold text-primary border border-primary/30 rounded-xl hover:bg-secondary-light transition-colors">
+              Retry
+            </button>
+          </div>
+        } @else if (staffSummaries().length === 0) {
+          <div class="py-16 text-center rounded-2xl bg-surface-card border border-border">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-secondary-light text-primary mb-3">
+              <app-icon name="person" class="w-6 h-6" />
+            </div>
+            <p class="text-base font-semibold text-text-primary">No staff members</p>
+            <p class="mt-1 text-xs text-text-secondary max-w-xs mx-auto">
+              No staff members found for this salon.
+            </p>
+          </div>
+        } @else if (filteredStaffSummaries().length === 0) {
+          <div class="py-12 text-center rounded-2xl bg-surface-card border border-border">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-secondary-light text-primary mb-3">
+              <app-icon name="search" class="w-6 h-6" />
+            </div>
+            <p class="text-base font-semibold text-text-primary">No staff or customers found</p>
+            <p class="mt-1 text-xs text-text-secondary max-w-xs mx-auto">
+              No staff or customers match &ldquo;{{ searchQuery() }}&rdquo;.
+            </p>
+            <button
+              type="button"
+              (click)="clearSearch()"
+              class="mt-3 px-4 py-2 text-xs font-semibold text-primary border border-primary/30 rounded-xl hover:bg-secondary-light transition-colors"
+            >
+              Clear search
+            </button>
+          </div>
+        } @else {
+          <div class="space-y-3">
+            @for (staff of filteredStaffSummaries(); track staff.staffId) {
+              <div class="border border-border rounded-2xl overflow-hidden bg-surface-card transition-colors">
+                <!-- Staff Accordion Header -->
+                <button type="button" (click)="toggleStaffAccordion(staff.staffId)"
+                  [attr.aria-expanded]="isStaffExpanded(staff.staffId)"
+                  class="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors hover:bg-surface-sunken">
+                  <div class="flex items-center gap-3 min-w-0 flex-1">
+                    <app-avatar [src]="staff.photoUrl" [name]="staff.name" size="md" />
+
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-sm font-semibold text-text-primary truncate">{{ staff.name }}</span>
+                        @if (staff.nickname) {
+                          <span class="text-xs text-text-secondary font-normal">({{ staff.nickname }})</span>
+                        }
+                        <!-- Customer Count Badge next to Staff Name -->
+                        <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold bg-primary/10 text-primary">
+                          <app-icon name="heart-filled" class="w-3 h-3 text-primary" />
+                          {{ staff.favoritesCount }}
+                        </span>
+                      </div>
+
+                      <div class="flex items-center gap-2 mt-0.5">
+                        <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-surface-sunken text-text-secondary">
+                          {{ staff.role }}
+                        </span>
+                        @if (staff.isAcceptingClients) {
+                          <span class="text-[11px] text-open font-medium">Accepting clients</span>
+                        } @else {
+                          <span class="text-[11px] text-text-disabled font-medium">Not accepting clients</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+
+                  <span class="shrink-0 pl-1">
+                    <app-icon name="chevron-left" class="w-4 h-4 text-text-secondary transition-transform duration-200"
+                      [class.-rotate-90]="!isStaffExpanded(staff.staffId)"
+                      [class.rotate-90]="isStaffExpanded(staff.staffId)" />
+                  </span>
+                </button>
+
+                <!-- Accordion Body: List of Customers for this Staff Member -->
+                <div class="grid transition-[grid-template-rows] duration-200 ease-out"
+                  [style.grid-template-rows]="isStaffExpanded(staff.staffId) ? '1fr' : '0fr'">
+                  <div class="overflow-hidden">
+                    <div class="px-4 pb-4 pt-1 border-t border-border-subtle bg-surface-sunken/40">
+                      @if (staff.users.length === 0) {
+                        <p class="py-4 text-center text-xs text-text-secondary">
+                          No customers have favourited this staff member yet.
+                        </p>
+                      } @else {
+                        <div class="space-y-2 mt-2">
+                          @for (user of staff.users; track user.userId) {
+                            <div class="flex items-center gap-3 rounded-xl border border-border/60 bg-surface px-3.5 py-2.5">
+                              <app-avatar [src]="user.photoUrl"
+                                [name]="user.displayName || (user.firstName + ' ' + user.lastName)"
+                                size="sm" />
+
+                              <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                  <p class="font-medium text-xs text-text-primary truncate">
+                                    {{ user.displayName || (user.firstName + ' ' + user.lastName) }}
+                                  </p>
+                                  @if (user.nickname) {
+                                    <span class="text-[11px] text-text-secondary">({{ user.nickname }})</span>
+                                  }
+                                </div>
+                                <div class="flex flex-wrap items-center gap-x-2 text-[11px] text-text-secondary">
+                                  @if (user.email) {
+                                    <span class="truncate">{{ user.email }}</span>
+                                  }
+                                  @if (user.phone) {
+                                    <span class="inline-flex items-center gap-1 min-w-0">
+                                      <span class="truncate">{{ user.phone }}</span>
+                                      <button type="button" (click)="copyPhone($event, user.phone)"
+                                        [attr.aria-label]="'Copy phone number ' + user.phone"
+                                        title="Copy phone number"
+                                        class="shrink-0 inline-flex items-center justify-center p-0.5 text-text-secondary hover:text-primary transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                        </svg>
+                                      </button>
+                                    </span>
+                                  }
+                                </div>
+                              </div>
+
+                              <div class="shrink-0 text-right">
+                                <span class="text-[10px] text-text-secondary/70">
+                                  {{ user.favoritedAt | date: 'mediumDate' }}
+                                </span>
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      }
+    }
+
+    <!-- Staff Only View -->
+    @if (isStaffOnly()) {
+      @if (myLoading() && myCustomers().length === 0) {
+        <div class="space-y-3">
+          @for (i of [1, 2, 3, 4]; track i) {
+            <app-skeleton variant="block" height="4.5rem" rounded="rounded-2xl" />
+          }
+        </div>
+      } @else if (myError()) {
+        <div class="rounded-2xl bg-surface-card p-6 text-center">
+          <p class="text-sm text-text-secondary">Failed to load your favourited customers.</p>
+          <button type="button" (click)="loadMyCustomers(myPage())"
+            class="mt-3 px-4 py-2 text-xs font-semibold text-primary border border-primary/30 rounded-xl hover:bg-secondary-light transition-colors">
+            Retry
+          </button>
+        </div>
+      } @else if (myCustomers().length === 0 && !searchQuery()) {
+        <div class="py-16 text-center rounded-2xl bg-surface-card border border-border">
+          <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-secondary-light text-primary mb-3">
+            <app-icon name="heart" class="w-6 h-6" />
+          </div>
+          <p class="text-base font-semibold text-text-primary">No favourites yet</p>
+          <p class="mt-1 text-xs text-text-secondary max-w-xs mx-auto">
+            When customers add you as their favourite, they will appear here.
+          </p>
+        </div>
+      } @else if (isSearching()) {
+        <div class="space-y-3">
+          @for (i of [1, 2, 3, 4]; track i) {
+            <app-skeleton variant="block" height="4.5rem" rounded="rounded-2xl" />
+          }
+        </div>
+      } @else if (filteredMyCustomers().length === 0) {
+        <div class="py-12 text-center rounded-2xl bg-surface-card border border-border">
+          <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-secondary-light text-primary mb-3">
+            <app-icon name="search" class="w-6 h-6" />
+          </div>
+          <p class="text-base font-semibold text-text-primary">No customers found</p>
+          <p class="mt-1 text-xs text-text-secondary max-w-xs mx-auto">
+            No customers match &ldquo;{{ searchQuery() }}&rdquo;.
+          </p>
+          <button
+            type="button"
+            (click)="clearSearch()"
+            class="mt-3 px-4 py-2 text-xs font-semibold text-primary border border-primary/30 rounded-xl hover:bg-secondary-light transition-colors"
+          >
+            Clear search
+          </button>
+        </div>
+      } @else {
+        <div class="space-y-2.5">
+          @for (customer of filteredMyCustomers(); track customer.userId) {
+            <div class="flex items-center gap-3 rounded-2xl border border-border bg-surface-card px-4 py-3.5 transition-colors">
+              <app-avatar [src]="customer.photoUrl"
+                [name]="customer.displayName || (customer.firstName + ' ' + customer.lastName)"
+                size="md" />
+
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <p class="font-semibold text-sm text-text-primary truncate">
+                    {{ customer.displayName || (customer.firstName + ' ' + customer.lastName) }}
+                  </p>
+                  @if (customer.nickname) {
+                    <span class="text-xs text-text-secondary font-normal">({{ customer.nickname }})</span>
+                  }
+                </div>
+
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5 text-xs text-text-secondary">
+                  @if (customer.phone) {
+                    <span class="inline-flex items-center gap-1 min-w-0">
+                      <span class="truncate">{{ customer.phone }}</span>
+                      <button type="button" (click)="copyPhone($event, customer.phone)"
+                        [attr.aria-label]="'Copy phone number ' + customer.phone"
+                        title="Copy phone number"
+                        class="shrink-0 inline-flex items-center justify-center p-0.5 text-text-secondary hover:text-primary transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                      </button>
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <div class="shrink-0 text-right">
+                <span class="text-[11px] text-text-secondary/70">
+                  {{ customer.favoritedAt | date: 'mediumDate' }}
+                </span>
+              </div>
+            </div>
+          }
+        </div>
+
+        @if (myMeta(); as meta) {
+          @if (meta.totalPages > 1) {
+            <div class="mt-6">
+              <app-pagination [meta]="meta" (pageChange)="loadMyCustomers($event)" />
+            </div>
+          }
+        }
+      }
+    }
+  </div>
+</div>
+

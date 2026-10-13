@@ -31,9 +31,11 @@ export class MyAnalyticsService {
   readonly loading = signal(false);
   readonly error = signal(false);
 
-  load(salonId: string, from: string, to: string, timezone: string): void {
+  load(salonId: string, from: string, to: string, timezone: string, silent = false): void {
     const requestId = ++this._requestId;
-    this.loading.set(true);
+    if (!silent) {
+      this.loading.set(true);
+    }
     this.error.set(false);
     analyticsControllerGetMine(this._http, this._apiConfig.rootUrl, {
       salonId,

@@ -33,9 +33,14 @@
           <button type="button" (click)="toggleFavorite()"
             [attr.aria-label]="isFavorited() ? 'Remove from favourites' : 'Add to favourites'"
             [attr.aria-pressed]="isFavorited()"
-            class="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:scale-105 transition-transform">
+            class="flex h-10 min-w-10 px-3 items-center justify-center gap-1.5 rounded-full bg-surface-card/20 backdrop-blur-md border border-white/20 hover:scale-105 transition-transform text-white text-xs font-semibold">
             <app-icon [name]="isFavorited() ? 'heart-filled' : 'heart'"
               class="h-5 w-5 text-primary-500 transition-colors" />
+            @if (salonFavoritesCountLoading()) {
+              <app-inline-spinner sizeClass="w-3.5 h-3.5 text-white" label="Loading favourites count" />
+            } @else if (salonFavoritesCount() !== null) {
+              <span>{{ salonFavoritesCount() }}</span>
+            }
           </button>
         }
       </div>

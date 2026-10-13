@@ -61,6 +61,7 @@ export class QueueSocketService implements OnDestroy {
   private readonly _serverTimes = new Map<string, ReplaySubject<string>>();
   private readonly _called = new Map<string, Subject<CustomerCalledPayload>>();
   private readonly _connectionState$ = new BehaviorSubject<ConnectionState>('disconnected');
+  private readonly _timelineUpdate$ = new Subject<{ queueId: string; timeline: TimelineEntryDto[] }>();
 
   // Per-queue "I (this browser) just dispatched a staff action" timestamp —
   // set by QueueConsoleService right before it fires a mutation request, so
@@ -69,6 +70,7 @@ export class QueueSocketService implements OnDestroy {
   private readonly _selfActionAt = new Map<string, number>();
 
   readonly connectionState$ = this._connectionState$.asObservable();
+  readonly timelineUpdate$ = this._timelineUpdate$.asObservable();
 
   constructor() {
     this._encryptionSubscription = this._encryption.sessionChanged$.subscribe(() => {
@@ -151,6 +153,7 @@ export class QueueSocketService implements OnDestroy {
         this._lastTimeline.set(data.queueId, data.timeline);
         this._timelines.get(data.queueId)?.next(data.timeline);
         if (data.serverTime) this._serverTimes.get(data.queueId)?.next(data.serverTime);
+        this._timelineUpdate$.next({ queueId: data.queueId, timeline: data.timeline });
         this._maybePlaySound(data);
       }).catch(() => this.disconnect());
     });

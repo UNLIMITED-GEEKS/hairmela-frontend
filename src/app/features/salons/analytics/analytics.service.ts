@@ -122,10 +122,16 @@ export class AnalyticsService {
   // The overview always needs an unfiltered salon summary. Keep it separate
   // from the analytics page's mutable staff/service/range filters, and use a
   // shorter TTL because the same response includes "waiting now".
-  overviewSummary(salonId: string, from: string, to: string, timezone: string): Observable<QueueSummaryDto> {
+  overviewSummary(
+    salonId: string,
+    from: string,
+    to: string,
+    timezone: string,
+    bypassCache = false,
+  ): Observable<QueueSummaryDto> {
     const key = `${salonId}|${from}|${to}|${timezone}`;
     const cached = this._overviewSummaryCache.get(key);
-    if (cached && Date.now() - cached.fetchedAt < OVERVIEW_SUMMARY_TTL_MS) {
+    if (!bypassCache && cached && Date.now() - cached.fetchedAt < OVERVIEW_SUMMARY_TTL_MS) {
       return of(cached.summary);
     }
     return analyticsControllerGetSummary(this._http, this._apiConfig.rootUrl, {
@@ -137,6 +143,18 @@ export class AnalyticsService {
       map((response) => response.body),
       tap((summary) => this._overviewSummaryCache.set(key, { summary, fetchedAt: Date.now() })),
     );
+  }
+
+  invalidateOverviewSummary(salonId?: string): void {
+    if (!salonId) {
+      this._overviewSummaryCache.clear();
+      return;
+    }
+    for (const key of this._overviewSummaryCache.keys()) {
+      if (key.startsWith(salonId + '|')) {
+        this._overviewSummaryCache.delete(key);
+      }
+    }
   }
 
   load(salonId: string): void {

@@ -1,7 +1,14 @@
-<button type="button" (click)="select.emit()"
-  [disabled]="!availability().joinable"
-  class="group relative block h-full w-full text-left rounded-xl overflow-hidden bg-surface-overlay hover:shadow-md transition-shadow
-         disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:shadow-none">
+<div (click)="onCardClick()"
+  (keydown.enter)="onCardClick()"
+  (keydown.space)="$event.preventDefault(); onCardClick()"
+  [attr.role]="availability().joinable ? 'button' : null"
+  [attr.tabindex]="availability().joinable ? 0 : -1"
+  [attr.aria-disabled]="!availability().joinable"
+  class="group relative block h-full w-full text-left rounded-xl overflow-hidden bg-surface-overlay hover:shadow-md transition-shadow select-none"
+  [class.cursor-pointer]="availability().joinable"
+  [class.opacity-60]="!availability().joinable"
+  [class.cursor-not-allowed]="!availability().joinable"
+  [class.hover:shadow-none]="!availability().joinable">
 
   <!-- Full-bleed photo — the card IS the photo; name/availability are
        glassmorphic overlays on top of it, not a separate info block below. -->
@@ -9,11 +16,22 @@
     [alt]="staff().firstName" loading="lazy"
     class="h-full w-full object-cover" />
 
+  <!-- Heart — glassmorphic (auth-gated) -->
+  @if (showHeart()) {
+    <button type="button" (click)="toggleFavorite($event)"
+      [attr.aria-label]="isFavorited() ? 'Remove from favourites' : 'Add to favourites'"
+      [attr.aria-pressed]="isFavorited()"
+      class="absolute top-2.5 right-2.5 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:scale-105 active:scale-95 transition-transform">
+      <app-icon [name]="isFavorited() ? 'heart-filled' : 'heart'"
+        class="h-4.5 w-4.5 text-primary-500 transition-colors" />
+    </button>
+  }
+
   <!-- Name/availability — glassmorphic bar pinned to the bottom of the photo.
        Fixed height so every card's bar matches regardless of whether a
        nickname is present — overflow-hidden clips the nickname line instead
        of letting it grow the bar taller than cards without one. -->
-  <div class="absolute inset-x-0 bottom-0  px-4 py-2 bg-glass-strong/40 backdrop-blur-md overflow-hidden">
+  <div class="absolute inset-x-0 bottom-0 px-4 py-2 bg-glass-strong/40 backdrop-blur-md overflow-hidden">
     @if (availability().showBadge) {
       <p class="text-[0.6rem] font-normal" [class]="availability().joinable ? 'text-available' : 'text-white/70'">
         {{ availability().label }}
@@ -25,4 +43,4 @@
     }
   </div>
 
-</button>
+</div>

@@ -19,6 +19,7 @@ const PERSISTED_KEYS = [
   'hairmela_guest',
   'hairmela_active_entries',
   'hm_pending_bank_transfer',
+  'hm_favorites_tab',
 ] as const;
 
 /**
@@ -117,7 +118,15 @@ export class PersistentStore {
 
   /** Plain string value (for non-JSON payloads like a raw token). */
   getRaw(key: string): string | null {
-    if (this._platform.isNative) return this._cache.get(key) ?? null;
+    if (this._platform.isNative) {
+      const cached = this._cache.get(key);
+      if (cached !== undefined) return cached;
+      try {
+        return localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    }
     try {
       return localStorage.getItem(key);
     } catch {
@@ -131,6 +140,11 @@ export class PersistentStore {
       // in the background — callers are synchronous and cannot await this.
       this._cache.set(key, value);
       void this._persist(key, value);
+      try {
+        localStorage.setItem(key, value);
+      } catch {
+        /* ignore */
+      }
       return;
     }
     try {
@@ -144,6 +158,11 @@ export class PersistentStore {
     if (this._platform.isNative) {
       this._cache.delete(key);
       void this._removePersisted(key);
+      try {
+        localStorage.removeItem(key);
+      } catch {
+        /* ignore */
+      }
       return;
     }
     try {

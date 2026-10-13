@@ -13,6 +13,10 @@ import { hasChatCounterparty } from '../../../core/appointments/reschedule-polic
 import { TimelineEntryDto } from '../../../core/socket/socket.types';
 import { StaffService } from '../../staff/staff.service';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { copyToClipboard } from '../../../core/clipboard/copy-to-clipboard';
+import { AddClientModalComponent } from '../add-client-modal/add-client-modal.component';
+import { SalonContextService } from '../../../core/salon-context/salon-context.service';
+import { SalonRole } from '../../../core/salon-context/membership.types';
 
 @Component({
   selector: 'app-queue-list',
@@ -26,6 +30,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
     RouterLink,
     PushPromptComponent,
     IconComponent,
+    AddClientModalComponent,
   ],
 })
 export class QueueListComponent implements OnInit {
@@ -35,11 +40,34 @@ export class QueueListComponent implements OnInit {
   private readonly _location = inject(Location);
   private readonly _toast = inject(ToastService);
   private readonly _staffService = inject(StaffService);
+  private readonly _salonContext = inject(SalonContextService);
   protected readonly soundPreference = inject(QueueSoundPreferenceService);
+
+  protected readonly showAddClientModal = signal(false);
+  protected readonly canAddClientForStaff = computed(() => {
+    const membership = this._salonContext.membership();
+    if (!membership) return false;
+    const isOwnerOrAdmin = membership.role === SalonRole.OWNER || membership.role === SalonRole.ADMIN;
+    if (!isOwnerOrAdmin) return false;
+    const staffId = this.console.queue()?.staffId;
+    if (!staffId) return false;
+    const isOwnQueue = (!!membership.queueId && membership.queueId === this._queueId) ||
+                       (!!membership.staffId && membership.staffId === staffId);
+    return !isOwnQueue;
+  });
 
   protected readonly barber = computed(() =>
     this._staffService.staffList().find((item) => item.staff.id === this._staffId)?.staff,
   );
+  protected readonly staffDisplayName = computed(() => {
+    const b = this.barber();
+    if (!b) return '';
+    if (b.user) {
+      const name = `${b.user.firstName ?? ''} ${b.user.lastName ?? ''}`.trim();
+      return name || b.email || '';
+    }
+    return b.email ?? '';
+  });
   protected readonly activeClients = computed(() =>
     this.console.queueListEntries().filter((entry) => !entry.isUpcoming).length,
   );
@@ -153,6 +181,6 @@ export class QueueListComponent implements OnInit {
   }
 
   protected copyPhone(phone: string): void {
-    navigator.clipboard.writeText(phone).then(() => this._toast.success('Phone copied.'));
+    copyToClipboard(this._toast, phone, 'Phone number');
   }
 }

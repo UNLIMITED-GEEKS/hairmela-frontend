@@ -111,4 +111,12 @@ export const salonRoutes: Routes = [
     loadComponent: () =>
       import('./appointments/appointments-list.component').then((m) => m.AppointmentsListComponent),
   },
+  {
+    path: RouteSegment.CUSTOMERS,
+    title: 'Customers',
+    canActivate: [salonRoleGuard],
+    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
+    loadComponent: () =>
+      import('./customers/customers.component').then((m) => m.CustomersComponent),
+  },
 ];

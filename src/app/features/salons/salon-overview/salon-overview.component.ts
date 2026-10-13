@@ -2,6 +2,7 @@ import { Component, OnInit, computed, effect, inject, signal, untracked } from '
 import { DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { filter, debounceTime } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { QueueEntry } from '../../../api/models/queue-entry';
 import { QueueSummaryDto } from '../../../api/models/queue-summary-dto';
@@ -145,16 +146,23 @@ export class SalonOverviewComponent implements OnInit {
   protected readonly isStaff = computed(() => this.myStaff()?.role === SalonRole.STAFF);
   protected readonly liveQueueId = computed(() => {
     const staff = this.myStaff();
-    if (!staff) return null;
-    if (staff.role === SalonRole.STAFF || staff.isAcceptingClients) return staff.queueId;
-    return this._salonOverviewService.soleStaffQueueId();
+    if (!staff || !staff.isAcceptingClients) return null;
+    return staff.queueId;
+  });
+  protected readonly staffQueueId = computed(() => this.myStaff()?.queueId ?? null);
+  protected readonly salonStaff = this._salonOverviewService.staff;
+  protected readonly salonQueueIds = computed(() => {
+    return this.salonStaff()
+      .filter((s) => s.staff.status === 'ACTIVE' && !!s.queueId)
+      .map((s) => s.queueId!)
+      .filter((id, i, arr) => arr.indexOf(id) === i);
   });
 
   protected readonly howItWorksLink = RoutePath.howItWorks();
   protected readonly notificationsLink = RoutePath.notifications();
 
   constructor() {
-    effect((onCleanup) => {
+    effect(() => {
       const salon = this.salon();
       const staff = this.myStaff();
       if (!salon || !staff) return;
@@ -165,45 +173,11 @@ export class SalonOverviewComponent implements OnInit {
       });
 
       if (staff.role === SalonRole.OWNER || staff.role === SalonRole.ADMIN) {
-        const today = salonToday(salon.timezone);
-        this.monthlySummary.set(null);
-        this.monthlySummaryLoading.set(true);
-        const summarySubscription = this._analytics.overviewSummary(
-          salon.id, `${today.slice(0, 7)}-01`, today, salon.timezone,
-        ).subscribe({
-          next: (summary) => {
-            this.monthlySummary.set(summary);
-            this.monthlySummaryLoading.set(false);
-          },
-          error: () => this.monthlySummaryLoading.set(false),
-        });
-        onCleanup(() => summarySubscription.unsubscribe());
+        this.loadMonthlySummary(salon.id, salon.timezone);
       } else {
         const today = salonToday(salon.timezone);
         this._myAnalytics.load(salon.id, today, today, salon.timezone);
-        this.upcomingAppointments.set([]);
-        this.upcomingLoading.set(true);
-        this.upcomingError.set(false);
-        const upcomingSubscription = staffAppointmentsControllerGetStaffAppointments(this._http, this._apiConfig.rootUrl, {
-          salonId: salon.id,
-          staffId: staff.id,
-          from: today,
-          to: daysThrough(today, 30),
-        }).subscribe({
-          next: (response) => {
-            const now = Date.now();
-            this.upcomingAppointments.set((response.body.data ?? [])
-              .filter((entry) => entry.status === 'WAITING' && !!entry.scheduledAt && Date.parse(entry.scheduledAt) >= now)
-              .sort((a, b) => (a.scheduledAt ?? '').localeCompare(b.scheduledAt ?? ''))
-              .slice(0, 2));
-            this.upcomingLoading.set(false);
-          },
-          error: () => {
-            this.upcomingError.set(true);
-            this.upcomingLoading.set(false);
-          },
-        });
-        onCleanup(() => upcomingSubscription.unsubscribe());
+        this.loadUpcomingAppointments(salon.id, staff.id, salon.timezone);
       }
 
       const now = new Date();
@@ -215,6 +189,96 @@ export class SalonOverviewComponent implements OnInit {
         this._toIsoDate(from),
         this._toIsoDate(to),
       ));
+    });
+
+    effect((onCleanup) => {
+      const salon = this.salon();
+      const staff = this.myStaff();
+      if (!salon || !staff || !this.isOwnerOrAdmin()) return;
+
+      const queueIds = this.salonQueueIds();
+      if (queueIds.length === 0) return;
+
+      this._socket.connect();
+      for (const qid of queueIds) {
+        this._socket.watchQueueAsStaff(qid);
+      }
+
+      onCleanup(() => {
+        for (const qid of queueIds) {
+          this._socket.unwatchQueue(qid);
+        }
+      });
+    });
+
+    effect((onCleanup) => {
+      const salon = this.salon();
+      const staff = this.myStaff();
+      if (!salon || !staff || !this.isOwnerOrAdmin()) return;
+
+      const sub = this._socket.timelineUpdate$
+        .pipe(
+          filter((update) => this.salonQueueIds().includes(update.queueId)),
+          debounceTime(250),
+        )
+        .subscribe(() => {
+          let allHaveTimeline = true;
+          let liveWaiting = 0;
+          for (const qid of this.salonQueueIds()) {
+            const tl = this._socket.lastTimeline(qid);
+            if (tl) {
+              liveWaiting += tl.filter((e) => !e.isUpcoming && e.position !== null).length;
+            } else {
+              allHaveTimeline = false;
+            }
+          }
+          if (allHaveTimeline) {
+            this.monthlySummary.update((curr) =>
+              curr ? { ...curr, currentlyWaiting: liveWaiting } : curr,
+            );
+          }
+          this.loadMonthlySummary(salon.id, salon.timezone, true);
+        });
+
+      onCleanup(() => sub.unsubscribe());
+    });
+
+    effect((onCleanup) => {
+      const salon = this.salon();
+      const staff = this.myStaff();
+      if (!salon || !staff || !this.isStaff()) return;
+
+      const queueId = staff.queueId;
+      if (!queueId) return;
+
+      this._socket.connect();
+      this._socket.watchQueueAsStaff(queueId);
+
+      onCleanup(() => {
+        this._socket.unwatchQueue(queueId);
+      });
+    });
+
+    effect((onCleanup) => {
+      const salon = this.salon();
+      const staff = this.myStaff();
+      if (!salon || !staff || !this.isStaff()) return;
+
+      const queueId = staff.queueId;
+      if (!queueId) return;
+
+      const sub = this._socket.timelineUpdate$
+        .pipe(
+          filter((update) => update.queueId === queueId),
+          debounceTime(250),
+        )
+        .subscribe(() => {
+          const today = salonToday(salon.timezone);
+          this._myAnalytics.load(salon.id, today, today, salon.timezone, true);
+          this.loadUpcomingAppointments(salon.id, staff.id, salon.timezone);
+        });
+
+      onCleanup(() => sub.unsubscribe());
     });
 
     effect((onCleanup) => {
@@ -268,13 +332,73 @@ export class SalonOverviewComponent implements OnInit {
     this._salonOverviewService.load(this._salonId, userId);
     this._invitesService.load();
 
+    const salon = this.salon();
+    const staff = this.myStaff();
+    if (salon && staff) {
+      if (this.isOwnerOrAdmin()) {
+        this.loadMonthlySummary(salon.id, salon.timezone, true);
+      } else {
+        const today = salonToday(salon.timezone);
+        this._myAnalytics.load(salon.id, today, today, salon.timezone, true);
+        this.loadUpcomingAppointments(salon.id, staff.id, salon.timezone);
+      }
+    }
+
     if (!this.salon() && !this.loading()) {
       this._router.navigate(RoutePath.dashboard());
     }
   }
 
+  protected loadMonthlySummary(salonId: string, timezone: string, bypassCache = false): void {
+    untracked(() => {
+      const today = salonToday(timezone);
+      if (!this.monthlySummary()) {
+        this.monthlySummaryLoading.set(true);
+      }
+      this._analytics.overviewSummary(
+        salonId, `${today.slice(0, 7)}-01`, today, timezone, bypassCache,
+      ).subscribe({
+        next: (summary) => {
+          this.monthlySummary.set(summary);
+          this.monthlySummaryLoading.set(false);
+        },
+        error: () => this.monthlySummaryLoading.set(false),
+      });
+    });
+  }
+
+  protected loadUpcomingAppointments(salonId: string, staffId: string, timezone: string): void {
+    untracked(() => {
+      const today = salonToday(timezone);
+      if (this.upcomingAppointments().length === 0) {
+        this.upcomingLoading.set(true);
+      }
+      this.upcomingError.set(false);
+      staffAppointmentsControllerGetStaffAppointments(this._http, this._apiConfig.rootUrl, {
+        salonId,
+        staffId,
+        from: today,
+        to: daysThrough(today, 30),
+      }).subscribe({
+        next: (response) => {
+          const now = Date.now();
+          this.upcomingAppointments.set((response.body.data ?? [])
+            .filter((entry) => entry.status === 'WAITING' && !!entry.scheduledAt && Date.parse(entry.scheduledAt) >= now)
+            .sort((a, b) => (a.scheduledAt ?? '').localeCompare(b.scheduledAt ?? ''))
+            .slice(0, 2));
+          this.upcomingLoading.set(false);
+        },
+        error: () => {
+          this.upcomingError.set(true);
+          this.upcomingLoading.set(false);
+        },
+      });
+    });
+  }
+
   protected retry(): void {
     const userId = this._currentUser.user()?.id ?? '';
+    this._analytics.invalidateOverviewSummary(this._salonId);
     this._salonOverviewService.refresh(this._salonId, userId);
   }
 
@@ -317,8 +441,37 @@ export class SalonOverviewComponent implements OnInit {
       .catch(() => this._toast.error('Could not copy link'));
   }
 
+  protected async shareMyQueueLink(slug: string, queueId?: string | null): Promise<void> {
+    const qId = queueId ?? this.myStaff()?.queueId;
+    const path = qId
+      ? RoutePath.visitQueue('', slug, qId).join('/')
+      : RoutePath.visitSalon('', slug).join('/');
+    const url = `${environment.appBaseUrl}${path}`;
+    const name = this.salon()?.name ? `${this.salon()?.name} - Queue` : 'HairMela Queue';
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: name, text: `Join my queue on HairMela`, url });
+        return;
+      } catch (err) {
+        if ((err as { name?: string })?.name === 'AbortError') return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      this._toast.success('Queue link copied');
+    } catch {
+      this._toast.error('Could not copy link');
+    }
+  }
+
   protected staffLink(salonId: string): string[] {
     return RoutePath.salonStaff(salonId);
+  }
+
+  protected customersLink(salonId: string): string[] {
+    return RoutePath.salonCustomers(salonId);
   }
 
   protected servicesLink(salonId: string): string[] {

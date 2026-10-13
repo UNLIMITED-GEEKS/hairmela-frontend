@@ -1,44 +1,57 @@
-<button type="button" (click)="select.emit()"
-  [class.min-h-22]="true"
-  class="group flex w-full items-center gap-3 rounded-[6px] border border-border bg-surface-card p-3 text-left transition-[border-color,background-color] hover:border-primary/40 hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:p-4">
+<div
+  (click)="select.emit()"
+  (keydown.enter)="select.emit()"
+  (keydown.space)="select.emit()"
+  role="button"
+  tabindex="0"
+  class="group flex w-full flex-col rounded-2xl border border-border bg-surface-card p-3 text-left transition-[border-color,box-shadow,background-color] hover:border-primary/40 hover:shadow-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary cursor-pointer sm:p-3.5"
+>
+  <!-- Top section: Icon, Name + Description, Price -->
+  <div class="flex gap-3" [class.items-center]="!service().description" [class.items-start]="service().description">
+    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-overlay">
+      <app-icon [name]="categoryIcon()" class="h-4.5 w-4.5 text-text-primary" />
+    </div>
 
-  <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary-light sm:h-11 sm:w-11 sm:rounded-2xl">
-    <app-icon [name]="categoryIcon()" class="h-4.5 w-4.5 text-primary" />
-  </div>
-
-  <!-- Wraps rather than truncating: a service name is the whole point of the
-       row, and salons write long ones. wrap-break-word so an unbroken string
-       (no spaces) still wraps instead of overflowing the container. -->
-  <div class="min-w-0 flex-1">
-    <h3 class="text-sm font-semibold leading-5 text-text-primary/90 wrap-break-word sm:text-[15px]">{{ service().name }}</h3>
-    @if (service().description) {
-      <p class="mt-1 text-xs leading-4 text-text-secondary/90 wrap-break-word">{{ service().description }}</p>
-    }
-
-    <div class="flex items-center gap-2 text-xs text-text-secondary"
-      [class.mt-1.5]="service().description"
-      [class.mt-3.5]="!service().description">
-      <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
-        <app-icon name="clock" class="h-3.5 w-3.5 text-primary" />
-        {{ service().duration }} min
-      </span>
-
-      @if (showPrice()) {
-        @if (service().isDynamicPricing) {
-          <span class="truncate font-semibold text-primary/80">
-            Price varies
-          </span>
-        } @else {
-          <span class="inline-flex items-center gap-1 whitespace-nowrap">
-            From
-            <strong class="font-bold text-primary">{{ service().price | currencyNgn: currency() }}</strong>
-          </span>
-        }
+    <div class="min-w-0 flex-1">
+      <h3 class="text-sm font-bold leading-snug text-text-primary wrap-break-word sm:text-base">
+        {{ service().name }}
+      </h3>
+      @if (service().description) {
+        <p class="mt-0.5 text-xs leading-normal text-text-secondary wrap-break-word">
+          {{ service().description }}
+        </p>
       }
     </div>
+
+    @if (showPrice()) {
+      <div class="shrink-0 text-right">
+        @if (service().isDynamicPricing) {
+          <span class="text-xs font-bold text-text-primary sm:text-sm">Price varies</span>
+        } @else {
+          <span class="text-sm font-bold text-text-primary sm:text-base">
+            {{ service().price | currencyNgn: currency() }}
+          </span>
+        }
+      </div>
+    }
   </div>
 
-  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-sunken transition-colors group-hover:bg-secondary-light">
-    <app-icon name="chevron-left" class="h-3 w-3 rotate-180 text-text-muted transition-colors group-hover:text-primary" />
-  </span>
-</button>
+  <!-- Divider -->
+  <div class="my-2 border-b border-border-subtle sm:my-2.5"></div>
+
+  <!-- Bottom section: Duration & Select Button -->
+  <div class="flex items-center justify-between gap-3">
+    <div class="inline-flex items-center gap-1.5 text-xs font-medium text-text-primary sm:text-sm">
+      <app-icon name="clock" class="h-3.5 w-3.5 shrink-0 text-text-secondary" />
+      <span class="leading-none">{{ service().duration }}mins</span>
+    </div>
+
+    <button
+      type="button"
+      (click)="$event.stopPropagation(); select.emit()"
+      class="inline-flex min-h-8 items-center justify-center rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:text-sm"
+    >
+      Select
+    </button>
+  </div>
+</div>

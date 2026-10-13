@@ -98,10 +98,13 @@
             type="button"
             (click)="queueOptionsOpen.update((open) => !open)"
             [attr.aria-expanded]="queueOptionsOpen()"
-            aria-label="Queue options"
-            class="flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-full bg-surface-card text-xl text-text-secondary"
+            aria-label="Queue settings"
+            class="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border border-border-strong bg-surface-card px-3 text-xs font-semibold text-text-secondary transition-colors hover:border-primary hover:text-primary"
+            [class.border-primary]="queueOptionsOpen()"
+            [class.text-primary]="queueOptionsOpen()"
           >
-            <span aria-hidden="true">⋮</span>
+            <app-icon name="settings-gear" class="h-3.5 w-3.5 shrink-0" />
+            <span>Queue settings</span>
           </button>
         </div>
 
@@ -195,10 +198,6 @@
         <a [routerLink]="profileLink"
           class="flex min-h-10 items-center justify-center rounded-xl border border-border-strong bg-surface-card px-4 text-sm font-semibold text-text-primary">
           My Profile
-        </a>
-        <a [routerLink]="settingsLink"
-          class="flex min-h-10 items-center justify-center rounded-xl border border-border-strong bg-surface-card px-4 text-sm font-semibold text-text-primary">
-          Settings
         </a>
           </div>
         </div>

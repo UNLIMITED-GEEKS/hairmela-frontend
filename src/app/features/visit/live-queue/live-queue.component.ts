@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { Location, DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -11,6 +11,8 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { BackButtonComponent } from '../../../shared/components/back-button/back-button.component';
 import { PushPromptComponent } from '../../../shared/components/push-prompt/push-prompt.component';
 import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
+import { CurrentUserStore } from '../../../core/auth/current-user.store';
+import { FavoritesService } from '../../../core/favorites/favorites.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 import { environment } from '../../../../environments/environment';
@@ -39,6 +41,8 @@ export class LiveQueueComponent {
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
   private readonly _toast = inject(ToastService);
+  private readonly _currentUser = inject(CurrentUserStore);
+  private readonly _favorites = inject(FavoritesService);
 
   // Reactive, not snapshot-based — q/:queueId is a single route, so navigating
   // between two barbers (q/A -> q/B) reuses this component instance and never
@@ -71,8 +75,66 @@ export class LiveQueueComponent {
     this._queryParamMap().get(RouteQueryParam.SERVICE_ID),
   );
 
+  protected readonly staffFavoritesCount = signal<number | null>(null);
+  protected readonly staffFavoritesCountLoading = signal(false);
+  private _lastFetchedStaffId: string | null = null;
+
   constructor() {
     effect(() => this.visit.watchQueue(this._queueId()));
+    effect(() => {
+      if (this._currentUser.user()) {
+        this._favorites.ensureStaffIdsLoaded();
+      }
+    });
+    effect(() => {
+      const staff = this._currentStaff();
+      const staffId = staff?.staffId;
+      if (staffId && staffId !== this._lastFetchedStaffId) {
+        this._lastFetchedStaffId = staffId;
+        untracked(() => this._loadStaffFavoritesCount(staffId));
+      }
+    });
+  }
+
+  private async _loadStaffFavoritesCount(staffId: string): Promise<void> {
+    this.staffFavoritesCount.set(null);
+    this.staffFavoritesCountLoading.set(true);
+    try {
+      const count = await this._favorites.getStaffFavoritesCount(staffId);
+      if (count !== null) {
+        this.staffFavoritesCount.set(count);
+      }
+    } finally {
+      this.staffFavoritesCountLoading.set(false);
+    }
+  }
+
+  // Heart shown publicly with like count — guest visitors can see the count
+  // and clicking prompts sign-in.
+  protected readonly showHeart = computed(() => true);
+  protected readonly isFavorited = computed(() => {
+    const s = this._currentStaff();
+    return s ? this._favorites.isStaffFavorited(s.staffId) : false;
+  });
+
+  protected toggleFavorite(): void {
+    if (!this._currentUser.user()) {
+      this._toast.info('Please sign in to save favourites');
+      this._router.navigate(RoutePath.login(), {
+        queryParams: { [RouteQueryParam.RETURN_URL]: this._router.url },
+      });
+      return;
+    }
+
+    const s = this._currentStaff();
+    if (!s) return;
+
+    const wasFavorited = this.isFavorited();
+    const current = this.staffFavoritesCount();
+    if (current !== null) {
+      this.staffFavoritesCount.set(wasFavorited ? Math.max(0, current - 1) : current + 1);
+    }
+    this._favorites.toggleStaff({ staffId: s.staffId });
   }
 
   // "Getting the latest queue status" banner — shown whenever what's on

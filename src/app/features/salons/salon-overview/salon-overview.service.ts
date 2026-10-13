@@ -9,6 +9,7 @@ import { SalonStaff } from '../../../api/models/salon-staff';
 import { salonsControllerFindOne } from '../../../api/fn/salons/salons-controller-find-one';
 import { staffControllerFindAll } from '../../../api/fn/staff/staff-controller-find-all';
 import { staffControllerToggleAcceptingClients } from '../../../api/fn/staff/staff-controller-toggle-accepting-clients';
+import { StaffWithQueueDto } from '../../../api/models/staff-with-queue-dto';
 import { MembershipStore } from '../../../core/salon-context/membership.store';
 import { ToastService } from '../../../core/toast/toast.service';
 import { OptimisticService, ReadToken } from '../../../core/caching/optimistic/optimistic.service';
@@ -25,6 +26,7 @@ interface SalonOverviewCache {
   myStaff: MyStaff | null;
   soleStaffQueueId: string | null;
   onlyOneActiveStaff: boolean;
+  staff: StaffWithQueueDto[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -43,6 +45,7 @@ export class SalonOverviewService {
   private readonly _cache = new Map<string, SalonOverviewCache>();
   private readonly _salon = signal<Salon | null>(null);
   private readonly _myStaff = signal<MyStaff | null>(null);
+  private readonly _staff = signal<StaffWithQueueDto[]>([]);
   private readonly _soleStaffQueueId = signal<string | null>(null);
   private readonly _onlyOneActiveStaff = signal(false);
   private readonly _loading = signal(false);
@@ -51,6 +54,7 @@ export class SalonOverviewService {
 
   readonly salon = this._salon.asReadonly();
   readonly myStaff = this._myStaff.asReadonly();
+  readonly staff = this._staff.asReadonly();
   readonly soleStaffQueueId = this._soleStaffQueueId.asReadonly();
   readonly onlyOneActiveStaff = this._onlyOneActiveStaff.asReadonly();
   readonly loading = this._loading.asReadonly();
@@ -61,6 +65,7 @@ export class SalonOverviewService {
     const cached = this._cache.get(salonId);
     if (cached) {
       this._salon.set(cached.salon);
+      this._staff.set(cached.staff ?? []);
       this._soleStaffQueueId.set(cached.soleStaffQueueId);
       this._onlyOneActiveStaff.set(cached.onlyOneActiveStaff);
       this._optimistic.commitRead(this._myStaff, cached.myStaff, token, (v) => {
@@ -107,6 +112,7 @@ export class SalonOverviewService {
   clear(): void {
     this._cache.clear();
     this._salon.set(null);
+    this._staff.set([]);
     this._soleStaffQueueId.set(null);
     this._onlyOneActiveStaff.set(false);
     this._optimistic.reset(this._myStaff, null);
@@ -124,6 +130,7 @@ export class SalonOverviewService {
       .subscribe({
         next: ({ salon, staff }) => {
           this._inflight.delete(salonId);
+          this._staff.set(staff.body);
           const mine = staff.body.find((s) => s.staff.userId === currentUserId);
           const myStaff: MyStaff | null = mine
             ? {
@@ -136,7 +143,7 @@ export class SalonOverviewService {
           const activeStaff = staff.body.filter((s) => s.staff.status === 'ACTIVE');
           const onlyOneActiveStaff = activeStaff.length === 1;
           const soleStaffQueueId = onlyOneActiveStaff ? activeStaff[0].queueId : null;
-          const entry: SalonOverviewCache = { salon: salon.body, myStaff, soleStaffQueueId, onlyOneActiveStaff };
+          const entry: SalonOverviewCache = { salon: salon.body, myStaff, soleStaffQueueId, onlyOneActiveStaff, staff: staff.body };
           this._cache.set(salonId, entry);
           this._salon.set(salon.body);
           this._soleStaffQueueId.set(soleStaffQueueId);

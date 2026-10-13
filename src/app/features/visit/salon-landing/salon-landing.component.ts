@@ -8,8 +8,10 @@ import {
   effect,
   afterNextRender,
   Injector,
+  untracked,
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { SalonVisitService } from '../salon-visit.service';
 import { SalonPublicStaffDto } from '../../../api/models/salon-public-staff-dto';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
@@ -20,6 +22,7 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar.compon
 import { GalleryModalComponent } from '../../../shared/components/gallery-modal/gallery-modal.component';
 import { BackButtonComponent } from '../../../shared/components/back-button/back-button.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { InlineSpinnerComponent } from '../../../shared/components/inline-spinner/inline-spinner.component';
 import {
   StaffCardComponent,
   StaffCardAvailability,
@@ -109,6 +112,7 @@ interface SalonStatusBadge {
     BookAppointmentDialogComponent,
     MediaUrlPipe,
     RouterLink,
+    InlineSpinnerComponent,
   ],
 })
 export class SalonLandingComponent implements OnInit {
@@ -127,6 +131,12 @@ export class SalonLandingComponent implements OnInit {
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _favorites = inject(FavoritesService);
   private readonly _toast = inject(ToastService);
+
+  private readonly _paramMap = toSignal(this._route.paramMap, { requireSync: true });
+  protected readonly slug = computed(() => this._paramMap().get(RouteParam.SLUG) ?? '');
+
+  protected readonly salonFavoritesCount = signal<number | null>(null);
+  protected readonly salonFavoritesCountLoading = signal(false);
 
   // Fallback photo for salons with no uploaded image — same asset used by
   // SalonCardComponent (public/salon-placeholder.jpg).
@@ -260,17 +270,38 @@ export class SalonLandingComponent implements OnInit {
     // Re-runs as serviceCategories() fills in; _applyCategoryDeepLink is
     // self-guarding and no-ops after its single application.
     effect(() => this._applyCategoryDeepLink());
+
+    effect(() => {
+      const s = this.slug();
+      if (s) {
+        untracked(() => this._loadFavoritesCount(s));
+      }
+    });
+  }
+
+  private async _loadFavoritesCount(slug: string): Promise<void> {
+    this.salonFavoritesCount.set(null);
+    this.salonFavoritesCountLoading.set(true);
+    try {
+      const count = await this._favorites.getSalonFavoritesCount(slug);
+      if (count !== null) {
+        this.salonFavoritesCount.set(count);
+      }
+    } finally {
+      this.salonFavoritesCountLoading.set(false);
+    }
   }
 
   ngOnInit(): void {
     if (this._currentUser.user()) {
       this._favorites.ensureIdsLoaded();
+      this._favorites.ensureStaffIdsLoaded();
     }
   }
 
-  // Heart shown only when authenticated (handoff §2) — same rule as the card,
-  // absent (not disabled) for guest/anonymous visitors on this shared route.
-  protected readonly showHeart = computed(() => !!this._currentUser.user());
+  // Heart shown publicly with like count — guest visitors can see the count
+  // and clicking prompts sign-in.
+  protected readonly showHeart = computed(() => true);
 
   // "Book ahead" is the walk-in fallback for a closed salon — while open,
   // customers use the per-staff "Book an appointment" section on the
@@ -299,8 +330,23 @@ export class SalonLandingComponent implements OnInit {
   });
 
   protected toggleFavorite(): void {
+    if (!this._currentUser.user()) {
+      this._toast.info('Please sign in to save favourites');
+      this._router.navigate(RoutePath.login(), {
+        queryParams: { [RouteQueryParam.RETURN_URL]: this._router.url },
+      });
+      return;
+    }
+
     const id = this.visit.salon()?.id;
-    if (id) this._favorites.toggle({ id });
+    if (!id) return;
+
+    const wasFavorited = this.isFavorited();
+    const current = this.salonFavoritesCount();
+    if (current !== null) {
+      this.salonFavoritesCount.set(wasFavorited ? Math.max(0, current - 1) : current + 1);
+    }
+    this._favorites.toggle({ id });
   }
 
   // The public salon URL, built with NO shell prefix: this page is reachable
@@ -345,7 +391,7 @@ export class SalonLandingComponent implements OnInit {
   }
 
   protected get _slug(): string {
-    return this._route.snapshot.paramMap.get(RouteParam.SLUG) ?? '';
+    return this.slug();
   }
 
   protected get _shellPrefix(): string {

@@ -65,7 +65,6 @@ export class QueueShellComponent implements OnInit, OnDestroy {
   // customer/owner tabs answer questions nobody here is asking.
   protected readonly howItWorksLink = RoutePath.howItWorks();
   protected readonly profileLink = RoutePath.account();
-  protected readonly settingsLink = RoutePath.accountSettings();
   protected readonly howItWorksStaffParams = { [RouteQueryParam.TAB]: HowItWorksTab.STAFF };
 
   // staffFrozen (handoff §5): this non-owner staff member is over the plan's

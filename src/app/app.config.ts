@@ -63,10 +63,8 @@ export const appConfig: ApplicationConfig = {
     // hydrate() is idempotent so the two calls share one pass.
     provideAppInitializer(() => inject(PersistentStore).hydrate()),
     provideAppInitializer(sessionInit()),
-    // After the PersistentStore hydrate above (Angular runs initializers in
-    // parallel but this only reads the already-hydrated synchronous cache on
-    // web; on native the stored value simply applies a frame later). Runs
-    // before first paint either way, so there is no light-to-dark flash.
+    // Awaits PersistentStore hydration on native and applies the theme before
+    // first paint, preventing any light-to-dark flash or theme reversion.
     provideAppInitializer(() => inject(ThemeService).init()),
     // Meta Pixel is web-only and remains completely unloaded until the visitor
     // has accepted optional cookies. The service also tracks SPA navigations.

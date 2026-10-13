@@ -24,6 +24,7 @@ import { ExtendMemberDto } from '../../../api/models/extend-member-dto';
 import { publicQueueControllerGetTimeline } from '../../../api/fn/queues/public-queue-controller-get-timeline';
 import { publicQueueControllerGetQueue } from '../../../api/fn/queues/public-queue-controller-get-queue';
 import { SalonSettingsService } from '../../salons/salon-settings/salon-settings.service';
+import { AnalyticsService } from '../../salons/analytics/analytics.service';
 import { queueManagementControllerSetStatus } from '../../../api/fn/queues/queue-management-controller-set-status';
 import { queueManagementControllerSetAutoCallNext } from '../../../api/fn/queues/queue-management-controller-set-auto-call-next';
 import { queueManagementControllerCallNext } from '../../../api/fn/queues/queue-management-controller-call-next';
@@ -100,6 +101,7 @@ export class QueueConsoleService {
   private readonly _toast = inject(ToastService);
   private readonly _destroyRef = inject(DestroyRef);
   private readonly _salonStore = inject(SalonSettingsService);
+  private readonly _analytics = inject(AnalyticsService);
 
   private readonly _tick = signal(0);
   private _tickInterval: ReturnType<typeof setInterval> | null = null;
@@ -1030,6 +1032,7 @@ export class QueueConsoleService {
     queueId: string,
     members: { memberName: string; serviceId?: string }[],
     onSuccess?: () => void,
+    staffName?: string,
   ): void {
     // Doesn't route through _runLocked (uses _socketPredict.run directly) —
     // mark it here instead, same reason as _runLocked's own call.
@@ -1122,7 +1125,10 @@ export class QueueConsoleService {
     // run() actually accepted the op — a dedupeKey-dropped re-entrant call
     // (double-tap) did nothing and shouldn't claim success.
     if (accepted) {
-      this._toast.success('Client added to queue.');
+      this._analytics.invalidateOverviewSummary(salonId);
+      this._toast.success(
+        staffName ? `Client added to ${staffName}'s queue.` : 'Client added to queue.',
+      );
       onSuccess?.();
     }
   }
@@ -1139,6 +1145,7 @@ export class QueueConsoleService {
     members: { memberName: string; serviceId: string }[],
     onSuccess?: () => void,
     onError?: () => void,
+    staffName?: string,
   ): void {
     // A FUTURE-DAY appointment never appears in _serverTimeline — that's
     // today's live queue, and this booking isn't due yet. The optimistic path
@@ -1158,6 +1165,7 @@ export class QueueConsoleService {
         members,
         onSuccess,
         onError,
+        staffName,
       );
       return;
     }
@@ -1237,7 +1245,10 @@ export class QueueConsoleService {
       onError?.();
       return;
     }
-    this._toast.success('Appointment booked.');
+    this._analytics.invalidateOverviewSummary(salonId);
+    this._toast.success(
+      staffName ? `Appointment booked with ${staffName}.` : 'Appointment booked.',
+    );
     onSuccess?.();
   }
 
@@ -1256,6 +1267,7 @@ export class QueueConsoleService {
     members: { memberName: string; serviceId: string }[],
     onSuccess?: () => void,
     onError?: () => void,
+    staffName?: string,
   ): void {
     const key = `${queueId}:${date}:${startTime}:${members.map((m) => `${m.memberName}:${m.serviceId}`).join(',')}`;
     if (this._futureBookingKeysInFlight.has(key)) return;
@@ -1271,7 +1283,10 @@ export class QueueConsoleService {
       .subscribe({
         next: () => {
           this._futureBookingKeysInFlight.delete(key);
-          this._toast.success('Appointment booked.');
+          this._analytics.invalidateOverviewSummary(salonId);
+          this._toast.success(
+            staffName ? `Appointment booked with ${staffName}.` : 'Appointment booked.',
+          );
           onSuccess?.();
         },
         error: () => {

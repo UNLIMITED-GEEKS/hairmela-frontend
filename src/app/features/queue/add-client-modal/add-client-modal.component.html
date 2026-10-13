@@ -16,7 +16,12 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        <h2 class="text-sm font-bold text-text-primary">{{ mode() === 'walk-in' ? 'Live Queue' : 'Book an appointment' }}</h2>
+        <div class="text-center px-10">
+          <h2 class="text-sm font-bold text-text-primary leading-tight">{{ mode() === 'walk-in' ? 'Live Queue' : 'Book an appointment' }}</h2>
+          @if (staffName()) {
+            <p class="text-[11px] text-text-secondary leading-tight mt-0.5 truncate max-w-[220px]">for {{ staffName() }}</p>
+          }
+        </div>
       </div>
 
       <!-- Mode toggle. Hidden when the salon takes appointments only: there is

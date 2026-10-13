@@ -17,7 +17,7 @@ export interface AnalyticsControllerGetSummary$Params {
   salonId: string;
 
 /**
- * YYYY-MM-DD — single-day mode (defaults to today in UTC). Ignored if from/to are present.
+ * YYYY-MM-DD — single-day mode (defaults to today in the salon timezone). Ignored if from/to are present.
  */
   date?: string;
 
@@ -32,7 +32,7 @@ export interface AnalyticsControllerGetSummary$Params {
   to?: string;
 
 /**
- * IANA timezone (defaults to UTC)
+ * IANA timezone (defaults to the salon timezone)
  */
   timezone?: string;
 

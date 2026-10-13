@@ -79,6 +79,7 @@ export const RouteSegment = {
   MEDIA: 'media',
   CLOSURES: 'closures',
   APPOINTMENTS: 'appointments',
+  CUSTOMERS: 'customers',
   SERVICES: 'services',
   STAFF: 'staff',
   INVITE: 'invite',
@@ -153,6 +154,7 @@ export const RoutePath = {
   salonMedia: (salonId: string) => ['/salons', salonId, RouteSegment.MEDIA],
   salonClosures: (salonId: string) => ['/salons', salonId, RouteSegment.CLOSURES],
   salonAppointments: (salonId: string) => ['/salons', salonId, RouteSegment.APPOINTMENTS],
+  salonCustomers: (salonId: string) => ['/salons', salonId, RouteSegment.CUSTOMERS],
   salonServices: (salonId: string) => ['/salons', salonId, RouteSegment.SERVICES],
   salonServiceNew: (salonId: string) => [
     '/salons',

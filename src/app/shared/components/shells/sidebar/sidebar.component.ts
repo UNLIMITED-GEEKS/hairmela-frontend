@@ -31,6 +31,11 @@ export const NPB_ORG_ID = '05802333-2e32-484d-a8c6-d87ccfcb9388';
 export const CONTROL_ITEMS: ControlItem[] = [
   { label: 'Staff', url: RouteSegment.STAFF, roles: [SalonRole.OWNER, SalonRole.ADMIN] },
   {
+    label: 'Customers',
+    url: RouteSegment.CUSTOMERS,
+    roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF],
+  },
+  {
     label: 'Services',
     url: RouteSegment.SERVICES,
     roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF],

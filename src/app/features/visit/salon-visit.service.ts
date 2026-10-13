@@ -16,6 +16,7 @@ import { CacheRegistry, Clearable } from '../../core/caching/cache-registry/cach
 import { ErrorCodes } from '../../core/errors/error-codes';
 import { isApiError } from '../../core/errors/api-error.types';
 import { TimelineEntryDto } from '../../core/socket/socket.types';
+import { FavoritesService } from '../../core/favorites/favorites.service';
 import {
   WaitContext,
   computeLiveWaitMinutes,
@@ -147,6 +148,7 @@ export class SalonVisitService implements Clearable {
   private readonly _destroyRef = inject(DestroyRef);
   private readonly _comments = inject(CommentsService);
   private readonly _cacheRegistry = inject(CacheRegistry);
+  private readonly _favorites = inject(FavoritesService);
 
   constructor() {
     this._cacheRegistry.register(this);
@@ -1251,5 +1253,15 @@ export class SalonVisitService implements Clearable {
       const others = list.filter((e) => e.queueId !== queueId);
       return [...others, ...live];
     });
+  }
+
+  /** Public favourites count for a salon by slug. */
+  getSalonFavoritesCount(slug: string): Promise<number | null> {
+    return this._favorites.getSalonFavoritesCount(slug);
+  }
+
+  /** Public favourites count for a staff member by staffId. */
+  getStaffFavoritesCount(staffId: string): Promise<number | null> {
+    return this._favorites.getStaffFavoritesCount(staffId);
   }
 }

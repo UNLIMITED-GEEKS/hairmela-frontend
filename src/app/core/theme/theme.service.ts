@@ -44,9 +44,25 @@ export class ThemeService {
     return pref === 'system' ? this._systemMode() : pref;
   });
 
-  /** Called by an app initializer, after PersistentStore has hydrated. */
-  init(): void {
-    const saved = this._store.get<ThemePreference>(THEME_KEY);
+  /** Called by an app initializer, awaiting PersistentStore hydration on native. */
+  async init(): Promise<void> {
+    await this._store.hydrate();
+
+    let saved = this._store.get<ThemePreference>(THEME_KEY);
+    if (!saved) {
+      try {
+        const raw = localStorage.getItem(THEME_KEY);
+        if (raw) {
+          const unquoted = raw.replace(/^"|"$/g, '');
+          if (unquoted === 'dark' || unquoted === 'light' || unquoted === 'system') {
+            saved = unquoted as ThemePreference;
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
     this._preference.set(saved === 'dark' || saved === 'light' ? saved : 'system');
 
     // matchMedia is missing in jsdom (tests) and in server-side rendering, so

@@ -168,18 +168,19 @@
       </a>
     }
     @if (isStaff()) {
-      <a
-        [routerLink]="shareLink(salon.id)"
-        class="flex items-center gap-4 rounded-2xl bg-surface-card px-4 py-4 transition-colors hover:bg-surface-overlay"
+      <button
+        type="button"
+        (click)="shareMyQueueLink(salon.slug, myStaff()?.queueId)"
+        class="flex w-full items-center gap-4 rounded-2xl bg-surface-card px-4 py-4 text-left transition-colors hover:bg-surface-overlay"
       >
         <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-secondary-light text-primary">
-          <app-icon name="qr-scan" class="h-6 w-6" />
+          <app-icon name="share" class="h-6 w-6" />
         </span>
         <span class="min-w-0">
-          <span class="block text-sm font-semibold text-text-primary">Share QR code</span>
+          <span class="block text-sm font-semibold text-text-primary">Share queue link</span>
           <span class="block text-xs text-text-secondary">Let customers join your queue</span>
         </span>
-      </a>
+      </button>
 
       <section aria-labelledby="upcoming-schedule-title">
         <div class="mb-3 flex items-center justify-between gap-3">
@@ -360,11 +361,11 @@
       <div [class]="isStaff() ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-5 gap-2'">
         @if (isOwnerOrAdmin()) {
           <a
-            [routerLink]="shareLink(salon.id)"
+            [routerLink]="customersLink(salon.id)"
             class="flex h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-xl bg-primary px-1 text-center text-white transition-colors hover:bg-primary/90"
           >
-            <app-icon name="share" class="h-5 w-5" />
-            <span class="text-[10px] font-medium leading-tight">Share</span>
+            <app-icon name="person-add" class="h-5 w-5" />
+            <span class="text-[10px] font-medium leading-tight">Customers</span>
           </a>
         } @else if (myStaff()?.queueId; as queueId) {
           <a
@@ -409,9 +410,9 @@
             <span class="text-[10px] font-medium leading-tight">Services</span>
           </a>
         }
-        @if (isStaff() && myStaff()?.queueId; as queueId) {
+        @if (isStaff()) {
           <a
-            [routerLink]="queueCustomersLink(salon.id, queueId)"
+            [routerLink]="customersLink(salon.id)"
             class="flex h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-xl bg-primary px-1 text-center text-white transition-colors hover:bg-primary/90"
           >
             <app-icon name="person-add" class="h-5 w-5" />
@@ -469,24 +470,28 @@
             <app-icon name="clock" class="h-5 w-5 shrink-0 text-primary" />
             <span class="text-sm font-semibold text-text-primary">Create appointment</span>
           </button>
-          <button
-            type="button"
-            (click)="copyMyQueueLink(salon.slug, queueId)"
-            class="flex min-h-20 items-center gap-3 rounded-2xl bg-surface-card px-4 py-3 text-left transition-colors hover:bg-surface-overlay"
-          >
-            <app-icon name="share" class="h-5 w-5 shrink-0 text-primary" />
-            <span class="text-sm font-semibold text-text-primary">Copy queue link</span>
-          </button>
-          <a
-            [routerLink]="howItWorksLink"
-            class="col-span-2 flex min-h-16 items-center gap-3 rounded-2xl bg-surface-card px-4 py-3 transition-colors hover:bg-surface-overlay"
-          >
-            <app-icon name="help-circle" class="h-5 w-5 shrink-0 text-primary" />
-            <span class="text-sm font-semibold text-text-primary">Need help?</span>
-          </a>
         }
+        <a
+          [routerLink]="shareLink(salon.id)"
+          class="flex min-h-20 flex-col justify-center gap-1 rounded-2xl bg-surface-card px-4 py-3 transition-colors hover:bg-surface-overlay"
+        >
+          <span class="text-sm font-semibold text-text-primary">Share Salon Link</span>
+          <span class="text-xs text-text-secondary">QR code & link</span>
+        </a>
         @if (isOwnerOrAdmin()) {
           @if (myStaff(); as staff) {
+            @if (staff.isAcceptingClients) {
+              @if (staff.queueId; as queueId) {
+                <button
+                  type="button"
+                  (click)="copyMyQueueLink(salon.slug, queueId)"
+                  class="flex min-h-20 items-center gap-3 rounded-2xl bg-surface-card px-4 py-3 text-left transition-colors hover:bg-surface-overlay"
+                >
+                  <app-icon name="share" class="h-5 w-5 shrink-0 text-primary" />
+                  <span class="text-sm font-semibold text-text-primary">Copy my queue link</span>
+                </button>
+              }
+            }
             <a
               [routerLink]="staffAppointmentsLink(salon.id, staff.id)"
               class="flex min-h-20 flex-col justify-center gap-1 rounded-2xl bg-surface-card px-4 py-3 transition-colors hover:bg-surface-overlay"
@@ -506,22 +511,13 @@
             </a>
           }
         }
-        @if (isStaff()) {
+        @if (myStaff()?.queueId) {
           <a
-            [routerLink]="shareLink(salon.id)"
-            class="flex min-h-20 flex-col justify-center gap-1 rounded-2xl bg-surface-card px-4 py-3 transition-colors hover:bg-surface-overlay"
+            [routerLink]="howItWorksLink"
+            class="col-span-2 flex min-h-16 items-center gap-3 rounded-2xl bg-surface-card px-4 py-3 transition-colors hover:bg-surface-overlay"
           >
-            <span class="text-sm font-semibold text-text-primary">Share</span>
-            <span class="text-xs text-text-secondary">QR code & link</span>
-          </a>
-        }
-        @if (isStaff() && myStaff(); as staff) {
-          <a
-            [routerLink]="myPhotosLink(salon.id, staff.id)"
-            class="flex min-h-20 flex-col justify-center gap-1 rounded-2xl bg-surface-card px-4 py-3 transition-colors hover:bg-surface-overlay"
-          >
-            <span class="text-sm font-semibold text-text-primary">Update my photos</span>
-            <span class="text-xs text-text-secondary">Profile & gallery</span>
+            <app-icon name="help-circle" class="h-5 w-5 shrink-0 text-primary" />
+            <span class="text-sm font-semibold text-text-primary">Need help?</span>
           </a>
         }
       </div>

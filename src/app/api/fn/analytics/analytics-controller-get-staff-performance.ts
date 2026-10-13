@@ -28,7 +28,7 @@ export interface AnalyticsControllerGetStaffPerformance$Params {
   to?: string;
 
 /**
- * IANA timezone (defaults to UTC)
+ * IANA timezone (defaults to the salon timezone)
  */
   timezone?: string;
 

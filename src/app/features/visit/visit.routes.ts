@@ -9,7 +9,7 @@ export const visitRoutes: Routes = [
     children: [
       {
         path: '',
-        title: 'Salon',
+        title: 'Salon & Spa',
         loadComponent: () =>
           import('./salon-landing/salon-landing.component').then((m) => m.SalonLandingComponent),
       },

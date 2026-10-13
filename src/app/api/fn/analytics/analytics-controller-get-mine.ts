@@ -17,7 +17,7 @@ export interface AnalyticsControllerGetMine$Params {
   salonId: string;
 
 /**
- * YYYY-MM-DD — single day, defaults to today.
+ * YYYY-MM-DD — single day, defaults to today in the salon timezone.
  */
   date?: string;
 
@@ -32,7 +32,7 @@ export interface AnalyticsControllerGetMine$Params {
   to?: string;
 
 /**
- * IANA timezone (defaults to UTC).
+ * IANA timezone (defaults to the salon timezone).
  */
   timezone?: string;
 }
