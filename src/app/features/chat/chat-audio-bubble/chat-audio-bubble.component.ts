@@ -32,8 +32,8 @@ import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
         </div>
         <!-- Micro badge -->
         <span
-          class="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] shadow-xs"
-          [ngClass]="isMine ? 'bg-white text-primary' : 'bg-primary text-white'"
+          class="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px]"
+          [ngClass]="isMine ? 'bg-[#ffffff] text-[#660029]' : 'bg-primary text-white'"
         >
           <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
@@ -49,23 +49,19 @@ import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
             type="button"
             (click)="togglePlay()"
             [disabled]="loadingError()"
-            class="w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition active:scale-95 shadow-2xs"
-            [ngClass]="
-              isMine
-                ? 'bg-white text-primary hover:bg-white/90'
-                : 'bg-primary text-white hover:bg-primary-hover'
-            "
+            class="w-11 h-11 p-0 leading-none rounded-full flex items-center justify-center shrink-0 transition active:scale-95"
+            [class]="isMine ? 'bg-[#ffffff] text-[#660029] hover:opacity-90' : 'bg-primary text-white hover:bg-primary-hover'"
             [attr.aria-label]="isPlaying() ? 'Pause voice message' : 'Play voice message'"
           >
             @if (isPlaying()) {
               <!-- Pause Icon -->
-              <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+              <svg class="block w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
               </svg>
             } @else {
               <!-- Play Icon -->
-              <svg class="w-4 h-4 fill-current translate-x-0.5" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
+              <svg class="block w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 4v16l12-8z" />
               </svg>
             }
           </button>
@@ -77,6 +73,9 @@ import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
             class="flex-1 h-8 flex items-center gap-[2.5px] cursor-pointer group py-1"
             title="Click to seek"
             role="slider"
+            tabindex="0"
+            aria-label="Seek voice message"
+            (keydown)="onSeekKey($event)"
             [attr.aria-valuenow]="currentTime()"
             [attr.aria-valuemin]="0"
             [attr.aria-valuemax]="effectiveDuration()"
@@ -146,6 +145,8 @@ export class ChatAudioBubbleComponent implements OnInit, OnChanges, OnDestroy {
   ];
 
   private _audio: HTMLAudioElement | null = null;
+  private _audioEvents: AbortController | null = null;
+  private _pendingSeek: number | null = null;
 
   ngOnInit(): void {
     if (this.duration && this.duration > 0) {
@@ -159,6 +160,8 @@ export class ChatAudioBubbleComponent implements OnInit, OnChanges, OnDestroy {
     }
     if (changes['audioUrl'] && !changes['audioUrl'].firstChange) {
       this._cleanupAudio();
+      this.loadingError.set(false);
+      this.audioDuration.set(this.duration || 0);
     }
   }
 
@@ -172,7 +175,7 @@ export class ChatAudioBubbleComponent implements OnInit, OnChanges, OnDestroy {
 
   protected formattedTime(): string {
     const current = this.currentTime();
-    if (this.isPlaying() || current > 0) {
+    if (this.isPlaying()) {
       return this._formatTime(current);
     }
     return this._formatTime(this.effectiveDuration());
@@ -223,9 +226,12 @@ export class ChatAudioBubbleComponent implements OnInit, OnChanges, OnDestroy {
       ChatAudioBubbleComponent._activeComponent = this;
 
       this._audio.playbackRate = this.playbackRate();
-      this._audio.play().catch(() => {
-        this.loadingError.set(true);
-        this.isPlaying.set(false);
+      const audio = this._audio;
+      audio.play().catch(() => {
+        if (this._audio === audio) {
+          this.loadingError.set(true);
+          this.isPlaying.set(false);
+        }
       });
     }
   }
@@ -257,68 +263,78 @@ export class ChatAudioBubbleComponent implements OnInit, OnChanges, OnDestroy {
 
     if (!this._audio) return;
 
-    const dur = this._audio.duration || this.effectiveDuration() || 0;
-    const targetTime = pct * dur;
+    this._seekTo(pct, true);
+  }
 
-    this._audio.currentTime = targetTime;
-    this.currentTime.set(targetTime);
+  protected onSeekKey(event: KeyboardEvent): void {
+    const duration = this.effectiveDuration();
+    if (!duration) return;
+    const offsets: Record<string, number> = { ArrowRight: 5, ArrowUp: 5, ArrowLeft: -5, ArrowDown: -5 };
+    let target: number;
+    if (event.key === 'Home') target = 0;
+    else if (event.key === 'End') target = duration;
+    else if (event.key in offsets) target = this.currentTime() + offsets[event.key];
+    else return;
+    event.preventDefault();
+    if (!this._audio) this._initAudio();
+    this._seekTo(target / duration, false);
+  }
 
-    if (!this.isPlaying()) {
-      this.togglePlay();
-    }
+  private _seekTo(progress: number, play: boolean): void {
+    const audio = this._audio;
+    if (!audio) return;
+    const duration = Number.isFinite(audio.duration) && audio.duration > 0
+      ? audio.duration : this.effectiveDuration();
+    const target = Math.max(0, Math.min(1, progress)) * duration;
+    if (audio.readyState >= 1) audio.currentTime = target;
+    else this._pendingSeek = target;
+    this.currentTime.set(target);
+    if (play && !this.isPlaying()) this.togglePlay();
   }
 
   private _initAudio(): void {
     if (typeof Audio === 'undefined') return;
-
     try {
-      this._audio = new Audio(this.audioUrl);
-      this._audio.preload = 'metadata';
-      this._audio.playbackRate = this.playbackRate();
-
-      this._audio.addEventListener('loadedmetadata', () => {
-        if (this._audio && this._audio.duration && !isNaN(this._audio.duration)) {
-          this.audioDuration.set(Math.round(this._audio.duration));
+      const audio = new Audio(this.audioUrl);
+      this._audio = audio;
+      audio.preload = 'metadata';
+      audio.playbackRate = this.playbackRate();
+      this._audioEvents = new AbortController();
+      const listen = (event: string, handler: () => void) =>
+        audio.addEventListener(event, handler, { signal: this._audioEvents!.signal });
+      listen('loadedmetadata', () => {
+        if (Number.isFinite(audio.duration) && audio.duration > 0) {
+          this.audioDuration.set(audio.duration);
+        }
+        if (this._pendingSeek !== null) {
+          audio.currentTime = Math.min(this._pendingSeek, this.effectiveDuration());
+          this._pendingSeek = null;
         }
       });
-
-      this._audio.addEventListener('timeupdate', () => {
-        if (this._audio) {
-          this.currentTime.set(this._audio.currentTime);
-        }
-      });
-
-      this._audio.addEventListener('play', () => {
-        this.isPlaying.set(true);
-      });
-
-      this._audio.addEventListener('pause', () => {
-        this.isPlaying.set(false);
-      });
-
-      this._audio.addEventListener('ended', () => {
-        this.isPlaying.set(false);
-        this.currentTime.set(0);
-      });
-
-      this._audio.addEventListener('error', () => {
-        this.loadingError.set(true);
-        this.isPlaying.set(false);
-      });
+      listen('timeupdate', () => this.currentTime.set(audio.currentTime));
+      listen('play', () => this.isPlaying.set(true));
+      listen('pause', () => this.isPlaying.set(false));
+      listen('ended', () => { this.isPlaying.set(false); this.currentTime.set(0); });
+      listen('error', () => { this.loadingError.set(true); this.isPlaying.set(false); });
     } catch {
       this.loadingError.set(true);
     }
   }
 
   private _cleanupAudio(): void {
-    if (this._audio) {
-      this._audio.pause();
-      this._audio.src = '';
-      this._audio = null;
-    }
-    if (ChatAudioBubbleComponent._activeAudio === this._audio) {
+    const audio = this._audio;
+    this._audioEvents?.abort();
+    this._audioEvents = null;
+    if (ChatAudioBubbleComponent._activeComponent === this) {
       ChatAudioBubbleComponent._activeAudio = null;
       ChatAudioBubbleComponent._activeComponent = null;
+    }
+    this._audio = null;
+    this._pendingSeek = null;
+    if (audio) {
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
     }
     this.isPlaying.set(false);
     this.currentTime.set(0);

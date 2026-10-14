@@ -1245,6 +1245,27 @@ textarea::placeholder {
 .pb-bottom-nav {
   padding-bottom: var(--bottom-nav-height);
 }
+
+/* Native chat uses the space left by the actual shell header and safe areas.
+   Viewport arithmetic assumes a fixed header height and can push its composer
+   into the bottom nav in Capacitor. Keep the browser/PWA layout unchanged. */
+@media (max-width: 767px) {
+  :root.capacitor-native app-auth-shell main > div:has(> app-chat-thread) {
+    height: 100%;
+    min-height: 0;
+  }
+
+  :root.capacitor-native app-chat-thread {
+    height: 100%;
+    min-height: 0;
+    padding-bottom: 1.5rem;
+  }
+
+  :root.capacitor-native app-chat-thread > .chat-thread-panel {
+    height: 100%;
+    min-height: 0;
+  }
+}
 @media (min-width: 768px) {
   .pb-bottom-nav {
     padding-bottom: 0;

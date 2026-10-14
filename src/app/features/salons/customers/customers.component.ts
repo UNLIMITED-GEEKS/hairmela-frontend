@@ -1,8 +1,8 @@
-import { Component, OnInit, inject, signal, computed, effect, DestroyRef } from '@angular/core';
+import { Component, inject, signal, computed, effect, untracked, DestroyRef } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
-import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, debounceTime } from 'rxjs';
+import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CustomersService } from './customers.service';
 import { SalonFavoritedUserDto } from '../../../api/models/salon-favorited-user-dto';
 import { StaffFavoritesSummaryDto } from '../../../api/models/staff-favorites-summary-dto';
@@ -36,7 +36,7 @@ import { copyToClipboard } from '../../../core/clipboard/copy-to-clipboard';
     DatePipe,
   ],
 })
-export class CustomersComponent implements OnInit {
+export class CustomersComponent  {
   private readonly _customersService = inject(CustomersService);
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
@@ -45,14 +45,16 @@ export class CustomersComponent implements OnInit {
   private readonly _destroyRef = inject(DestroyRef);
   protected readonly salonContext = inject(SalonContextService);
 
-  private _initialized = false;
+  private _context = '';
+  private _summaryReqId = 0;
+  private readonly _routeParams = toSignal(this._route.paramMap, { initialValue: this._route.snapshot.paramMap });
   private readonly _searchInput$ = new Subject<string>();
   private _salonReqId = 0;
   private _myReqId = 0;
   private _lastSalonQuery = '';
 
   readonly salonId = computed(
-    () => this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ?? this.salonContext.activeSalonId() ?? '',
+    () => this._routeParams().get(RouteParam.SALON_ID) ?? this.salonContext.activeSalonId() ?? '',
   );
 
   readonly role = computed(() => this.salonContext.membership()?.role);
@@ -70,13 +72,6 @@ export class CustomersComponent implements OnInit {
     { id: 'salon', label: 'Salon' },
     { id: 'staff', label: 'Staff' },
   ];
-
-  // Baseline (unfiltered page 1) cache for instant local filtering & zero-latency clear
-  private readonly _baseSalonCustomers = signal<SalonFavoritedUserDto[]>([]);
-  private readonly _baseSalonMeta = signal<PaginatedMetaDto | null>(null);
-
-  private readonly _baseMyCustomers = signal<StaffFavoritedUserDto[]>([]);
-  private readonly _baseMyMeta = signal<PaginatedMetaDto | null>(null);
 
   // Search pipeline state
   private readonly _isDebouncing = signal(false);
@@ -143,29 +138,35 @@ export class CustomersComponent implements OnInit {
     this._searchInput$
       .pipe(
         debounceTime(350),
-        distinctUntilChanged(),
         takeUntilDestroyed(this._destroyRef),
       )
       .subscribe((query) => {
         this._isDebouncing.set(false);
-        this._triggerSearch(query);
+        if (query && query === this.searchQuery().trim()) this._triggerSearch(query);
       });
 
     effect(() => {
-      const m = this.salonContext.membership();
-      const sId = this.salonId();
-      if (!m || !sId) return;
-      if (this._initialized) return;
-      this._initialized = true;
-      this._initData();
+      const membership = this.salonContext.membership();
+      const salonId = this.salonId();
+      if (!membership || !salonId) return;
+      const context = `${salonId}:${membership.role}:${membership.staffId}`;
+      if (context === this._context) return;
+      this._context = context;
+      untracked(() => {
+        this._salonReqId++;
+        this._myReqId++;
+        this._summaryReqId++;
+        this.salonCustomers.set([]);
+        this.staffSummaries.set([]);
+        this.myCustomers.set([]);
+        this.salonMeta.set(null);
+        this.myMeta.set(null);
+        this.searchQuery.set('');
+        this.expandedStaffIds.set(new Set());
+        this._isDebouncing.set(false);
+        this._initData();
+      });
     });
-  }
-
-  ngOnInit(): void {
-    if (this.salonContext.membership() && this.salonId() && !this._initialized) {
-      this._initialized = true;
-      this._initData();
-    }
   }
 
   private _initData(): void {
@@ -180,40 +181,15 @@ export class CustomersComponent implements OnInit {
   protected onSearchInput(query: string): void {
     const trimmed = query.trim();
     this.searchQuery.set(query);
-    if (!trimmed) {
-      this._isDebouncing.set(false);
-      this._searchInput$.next('');
-      if (this.isOwnerOrAdmin() && this._baseSalonCustomers().length > 0) {
-        this.salonCustomers.set(this._baseSalonCustomers());
-        this.salonMeta.set(this._baseSalonMeta());
-        this.salonPage.set(1);
-        this._lastSalonQuery = '';
-      } else if (this.isStaffOnly() && this._baseMyCustomers().length > 0) {
-        this.myCustomers.set(this._baseMyCustomers());
-        this.myMeta.set(this._baseMyMeta());
-        this.myPage.set(1);
-      }
-      return;
-    }
-
-    this._isDebouncing.set(true);
+    this._salonReqId++;
+    this._myReqId++;
+    this._isDebouncing.set(!!trimmed);
     this._searchInput$.next(trimmed);
+    if (!trimmed) this._triggerSearch('');
   }
 
   protected clearSearch(): void {
-    this.searchQuery.set('');
-    this._isDebouncing.set(false);
-    this._searchInput$.next('');
-    if (this.isOwnerOrAdmin() && this._baseSalonCustomers().length > 0) {
-      this.salonCustomers.set(this._baseSalonCustomers());
-      this.salonMeta.set(this._baseSalonMeta());
-      this.salonPage.set(1);
-      this._lastSalonQuery = '';
-    } else if (this.isStaffOnly() && this._baseMyCustomers().length > 0) {
-      this.myCustomers.set(this._baseMyCustomers());
-      this.myMeta.set(this._baseMyMeta());
-      this.myPage.set(1);
-    }
+    this.onSearchInput('');
   }
 
   private _triggerSearch(query: string): void {
@@ -238,53 +214,65 @@ export class CustomersComponent implements OnInit {
   }
 
   // ── Owner & Admin: Salon tab ──
-  protected async loadSalonCustomers(page: number, query = this.searchQuery()): Promise<void> {
+  protected loadSalonCustomers(page: number, query = this.searchQuery()): void {
     const sId = this.salonId();
     if (!sId) return;
     const trimmed = (query ?? '').trim();
+    let received = false;
     const reqId = ++this._salonReqId;
     this.salonLoading.set(true);
     this.salonError.set(false);
-    try {
-      const res = await this._customersService.getSalonFavorites(sId, page, 100, trimmed);
-      if (reqId !== this._salonReqId) return;
-      this._lastSalonQuery = trimmed;
-      this.salonCustomers.set(res.data);
-      this.salonMeta.set(res.meta);
-      this.salonPage.set(page);
-      if (!trimmed && page === 1) {
-        this._baseSalonCustomers.set(res.data);
-        this._baseSalonMeta.set(res.meta);
-      }
-    } catch {
-      if (reqId !== this._salonReqId) return;
-      this.salonError.set(true);
-    } finally {
-      if (reqId === this._salonReqId) {
-        this.salonLoading.set(false);
-        this._isDebouncing.set(false);
-      }
-    }
+    this._customersService
+      .getSalonFavorites(sId, page, 100, trimmed)
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: (res) => {
+          received = true;
+          if (reqId !== this._salonReqId) return;
+          this._lastSalonQuery = trimmed;
+          this.salonCustomers.set(res.data);
+          this.salonMeta.set(res.meta);
+          this.salonPage.set(page);
+          this.salonLoading.set(false);
+          this._isDebouncing.set(false);
+        },
+        error: () => {
+          if (reqId !== this._salonReqId) return;
+          this.salonError.set(!received && this.salonCustomers().length === 0);
+          this.salonLoading.set(false);
+          this._isDebouncing.set(false);
+        },
+      });
   }
 
   // ── Owner & Admin: Staff tab ──
-  protected async loadStaffSummaries(): Promise<void> {
+  protected loadStaffSummaries(): void {
     const sId = this.salonId();
     if (!sId) return;
+    const reqId = ++this._summaryReqId;
+    let received = false;
     this.staffLoading.set(true);
     this.staffError.set(false);
-    try {
-      const list = await this._customersService.getStaffFavoritesSummary(sId);
-      this.staffSummaries.set(list);
-      // Auto-expand staff who have favorited users if there are few
-      if (list.length === 1 && list[0].staffId) {
-        this.expandedStaffIds.set(new Set([list[0].staffId]));
-      }
-    } catch {
-      this.staffError.set(true);
-    } finally {
-      this.staffLoading.set(false);
-    }
+    this._customersService
+      .getStaffFavoritesSummary(sId)
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: (list) => {
+          if (reqId !== this._summaryReqId) return;
+          received = true;
+          this.staffSummaries.set(list);
+          this.staffLoading.set(false);
+          // Auto-expand staff who have favorited users if there are few
+          if (list.length === 1 && list[0].staffId) {
+            this.expandedStaffIds.set(new Set([list[0].staffId]));
+          }
+        },
+        error: () => {
+          if (reqId !== this._summaryReqId) return;
+          this.staffError.set(!received && this.staffSummaries().length === 0);
+          this.staffLoading.set(false);
+        },
+      });
   }
 
   protected toggleStaffAccordion(staffId: string): void {
@@ -307,30 +295,32 @@ export class CustomersComponent implements OnInit {
   }
 
   // ── Staff only: My customers ──
-  protected async loadMyCustomers(page: number, query = this.searchQuery()): Promise<void> {
+  protected loadMyCustomers(page: number, query = this.searchQuery()): void {
     const trimmed = (query ?? '').trim();
+    let received = false;
     const reqId = ++this._myReqId;
     this.myLoading.set(true);
     this.myError.set(false);
-    try {
-      const res = await this._customersService.getMyFavoritedUsers(page, 100, trimmed);
-      if (reqId !== this._myReqId) return;
-      this.myCustomers.set(res.data);
-      this.myMeta.set(res.meta);
-      this.myPage.set(page);
-      if (!trimmed && page === 1) {
-        this._baseMyCustomers.set(res.data);
-        this._baseMyMeta.set(res.meta);
-      }
-    } catch {
-      if (reqId !== this._myReqId) return;
-      this.myError.set(true);
-    } finally {
-      if (reqId === this._myReqId) {
-        this.myLoading.set(false);
-        this._isDebouncing.set(false);
-      }
-    }
+    this._customersService
+      .getMyFavoritedUsers(page, 100, trimmed)
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: (res) => {
+          received = true;
+          if (reqId !== this._myReqId) return;
+          this.myCustomers.set(res.data);
+          this.myMeta.set(res.meta);
+          this.myPage.set(page);
+          this.myLoading.set(false);
+          this._isDebouncing.set(false);
+        },
+        error: () => {
+          if (reqId !== this._myReqId) return;
+          this.myError.set(!received && this.myCustomers().length === 0);
+          this.myLoading.set(false);
+          this._isDebouncing.set(false);
+        },
+      });
   }
 
   protected copyPhone(event: Event, phone: string): void {

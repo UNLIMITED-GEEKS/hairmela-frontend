@@ -6,14 +6,14 @@ import {
   effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, debounceTime, distinctUntilChanged, merge } from 'rxjs';
+import { Subject, debounceTime } from 'rxjs';
 import { ChatService } from '../../../core/chat/chat.service';
-import { ChatSocketService } from '../../../core/chat/chat-socket.service';
 import { ConversationItemDto } from '../../../core/chat/chat.types';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { ChatStatusIconComponent } from '../chat-status-icon/chat-status-icon.component';
@@ -295,7 +295,6 @@ export type ChatTab = 'my' | 'clients' | 'salon' | 'staff';
 })
 export class CustomerChatComponent implements OnInit {
   private readonly _chatService = inject(ChatService);
-  private readonly _socket = inject(ChatSocketService);
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
   private readonly _destroyRef = inject(DestroyRef);
@@ -307,10 +306,16 @@ export class CustomerChatComponent implements OnInit {
   protected readonly searchQuery = signal<string>('');
   protected readonly isSearching = signal<boolean>(false);
   private readonly _searchInput$ = new Subject<string>();
-  private readonly _lastServerSearch = signal<string>('');
+  private readonly _personalServerSearch = signal('');
+  private readonly _salonServerSearch = signal('');
+  private readonly _lastServerSearch = computed(() =>
+    this.activeTab() === 'my' ? this._personalServerSearch() : this._salonServerSearch(),
+  );
   protected readonly showBroadcastModal = signal<boolean>(false);
 
   /** Conversations where I am the customer (the "My Chats" inbox). */
+  private _personalRequestId = 0;
+  private _salonRequestId = 0;
   private readonly _personal = signal<ConversationItemDto[]>([]);
   /** Salon-side conversations visible to me (backend scopes these by role). */
   private readonly _salonConvs = signal<ConversationItemDto[]>([]);
@@ -509,30 +514,40 @@ export class CustomerChatComponent implements OnInit {
     effect(() => {
       const sId = this.salonId();
       if (!sId) {
+        this._salonRequestId++;
         this._salonConvs.set([]);
         this._salonLoading.set(false);
         return;
       }
-      this._loadSalonConversations(sId);
-      if (this.isManager()) {
-        this._staffService.load(sId);
-      }
+      const manager = this.isManager();
+      untracked(() => {
+        this._loadSalonConversations(sId);
+        if (manager) this._staffService.load(sId);
+      });
     });
 
     // Keep lists fresh when messages arrive in real time.
-    merge(this._socket.messageReceived$, this._socket.badgeUpdated$)
+    this._chatService.inboxUpdated$
       .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe(() => {
+        const q = this.searchQuery().trim() || undefined;
+        const personal = this._chatService.cachedCustomerConversations(1, 100, q);
+        if (personal) this._personal.set(personal.data);
+        const salon = this._chatService.cachedSalonConversations(this.salonId(), 1, 100, undefined, q);
+        if (salon) this._salonConvs.set(salon.data);
+      });
+    this._chatService.inboxRefresh$
+      .pipe(debounceTime(50), takeUntilDestroyed(this._destroyRef))
       .subscribe(() => this.reload());
 
     // Debounced server search
     this._searchInput$
       .pipe(
         debounceTime(350),
-        distinctUntilChanged(),
         takeUntilDestroyed(this._destroyRef),
       )
       .subscribe((query) => {
-        this._triggerSearch(query);
+        if (query.trim() && query.trim() === this.searchQuery().trim()) this._triggerSearch(query);
       });
   }
 
@@ -542,7 +557,9 @@ export class CustomerChatComponent implements OnInit {
     const q = this._route.snapshot.queryParamMap;
     const tab = q.get('tab') as ChatTab | null;
     if (tab) {
-      this._requestedTab.set(tab);
+      this._personalRequestId++;
+    this._salonRequestId++;
+    this._requestedTab.set(tab);
       if (typeof window !== 'undefined') {
         localStorage.setItem(CustomerChatComponent.TAB_STORAGE_KEY, tab);
       }
@@ -559,14 +576,14 @@ export class CustomerChatComponent implements OnInit {
   // ── Actions ────────────────────────────────────────────────────────────────
   protected onSearchChange(term: string): void {
     this.searchQuery.set(term);
+    this._personalRequestId++;
+    this._salonRequestId++;
     this._searchInput$.next(term);
+    if (!term.trim()) this._triggerSearch('');
   }
 
   protected clearSearch(): void {
-    this.searchQuery.set('');
-    this._lastServerSearch.set('');
-    this._searchInput$.next('');
-    this._triggerSearch('');
+    this.onSearchChange('');
   }
 
   private _triggerSearch(query: string): void {
@@ -585,7 +602,8 @@ export class CustomerChatComponent implements OnInit {
     this._requestedTab.set(tab);
     this.selectedStaffId.set(null);
     this.searchQuery.set('');
-    this._lastServerSearch.set('');
+    this._personalServerSearch.set('');
+    this._salonServerSearch.set('');
     if (typeof window !== 'undefined') {
       localStorage.setItem(CustomerChatComponent.TAB_STORAGE_KEY, tab);
     }
@@ -601,7 +619,8 @@ export class CustomerChatComponent implements OnInit {
   protected openStaff(staffId: string): void {
     this.selectedStaffId.set(staffId);
     this.searchQuery.set('');
-    this._lastServerSearch.set('');
+    this._personalServerSearch.set('');
+    this._salonServerSearch.set('');
     this._syncQuery({ tab: 'staff', staff: staffId });
     const sId = this.salonId();
     if (sId) this._loadSalonConversations(sId, false);
@@ -610,7 +629,8 @@ export class CustomerChatComponent implements OnInit {
   protected closeStaff(): void {
     this.selectedStaffId.set(null);
     this.searchQuery.set('');
-    this._lastServerSearch.set('');
+    this._personalServerSearch.set('');
+    this._salonServerSearch.set('');
     this._syncQuery({ tab: 'staff', staff: null });
     const sId = this.salonId();
     if (sId) this._loadSalonConversations(sId, false);
@@ -698,37 +718,49 @@ export class CustomerChatComponent implements OnInit {
   }
 
   private _loadPersonal(showSpinner = true, q?: string): void {
+    const requestId = ++this._personalRequestId;
     if (showSpinner) this._personalLoading.set(true);
-    if (q !== undefined) this.isSearching.set(true);
-    this._chatService.getCustomerConversations(1, 100, q).subscribe({
-      next: (res) => {
-        this._personal.set(res.data);
-        this._lastServerSearch.set(q ?? '');
-        this._personalLoading.set(false);
-        this.isSearching.set(false);
-      },
-      error: () => {
-        this._personalLoading.set(false);
-        this.isSearching.set(false);
-      },
-    });
+    if (q !== undefined && this.activeTab() === 'my') this.isSearching.set(true);
+    this._chatService
+      .getCustomerConversations(1, 100, q)
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: (res) => {
+          if (requestId !== this._personalRequestId) return;
+          this._personal.set(res.data);
+          this._personalServerSearch.set(q ?? '');
+          this._personalLoading.set(false);
+          if (this.activeTab() === 'my') this.isSearching.set(false);
+        },
+        error: () => {
+          if (requestId !== this._personalRequestId) return;
+          this._personalLoading.set(false);
+          if (this.activeTab() === 'my') this.isSearching.set(false);
+        },
+      });
   }
 
   private _loadSalonConversations(salonId: string, showSpinner = true, q?: string): void {
+    const requestId = ++this._salonRequestId;
     if (showSpinner) this._salonLoading.set(true);
-    if (q !== undefined) this.isSearching.set(true);
-    this._chatService.getSalonConversations(salonId, 1, 100, undefined, q).subscribe({
-      next: (res) => {
-        this._salonConvs.set(res.data);
-        this._lastServerSearch.set(q ?? '');
-        this._salonLoading.set(false);
-        this.isSearching.set(false);
-      },
-      error: () => {
-        this._salonLoading.set(false);
-        this.isSearching.set(false);
-      },
-    });
+    if (q !== undefined && this.activeTab() !== 'my') this.isSearching.set(true);
+    this._chatService
+      .getSalonConversations(salonId, 1, 100, undefined, q)
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: (res) => {
+          if (requestId !== this._salonRequestId) return;
+          this._salonConvs.set(res.data);
+          this._salonServerSearch.set(q ?? '');
+          this._salonLoading.set(false);
+          if (this.activeTab() !== 'my') this.isSearching.set(false);
+        },
+        error: () => {
+          if (requestId !== this._salonRequestId) return;
+          this._salonLoading.set(false);
+          if (this.activeTab() !== 'my') this.isSearching.set(false);
+        },
+      });
   }
 
   private _syncQuery(params: { tab: ChatTab; staff: string | null }): void {

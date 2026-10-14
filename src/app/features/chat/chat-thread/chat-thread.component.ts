@@ -1,10 +1,12 @@
 import {
   Component,
   ElementRef,
+  DestroyRef,
   OnDestroy,
-  OnInit,
   ViewChild,
   computed,
+  effect,
+  untracked,
   inject,
   input,
   signal,
@@ -13,7 +15,8 @@ import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Subscription, firstValueFrom } from 'rxjs';
+import { Subscription, Subject, firstValueFrom, map, takeUntil } from 'rxjs';
+import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { ChatService } from '../../../core/chat/chat.service';
 import { ChatSocketService } from '../../../core/chat/chat-socket.service';
@@ -35,6 +38,8 @@ import { SalonContextService } from '../../../core/salon-context/salon-context.s
 import { SalonsStore } from '../../../core/salon-context/salons.store';
 import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
 
+type AudioMime = 'audio/webm' | 'audio/mp4' | 'audio/aac' | 'audio/ogg';
+
 @Component({
   selector: 'app-chat-thread',
   standalone: true,
@@ -52,7 +57,7 @@ import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
     class: 'block w-full',
   },
   template: `
-    <div class="flex flex-col h-[calc(100vh-5.5rem-var(--bottom-nav-height))] supports-[height:100dvh]:h-[calc(100dvh-5.5rem-var(--bottom-nav-height))] md:h-[calc(100vh-4rem)] md:supports-[height:100dvh]:h-[calc(100dvh-4rem)] max-w-3xl mx-auto bg-surface-card border border-border shadow-xs relative overflow-hidden rounded-2xl md:rounded-xl">
+    <div class="chat-thread-panel flex flex-col h-[calc(100vh-5.5rem-var(--bottom-nav-height))] supports-[height:100dvh]:h-[calc(100dvh-5.5rem-var(--bottom-nav-height))] md:h-[calc(100vh-4rem)] md:supports-[height:100dvh]:h-[calc(100dvh-4rem)] max-w-3xl mx-auto bg-surface-card border border-border shadow-xs relative overflow-hidden rounded-2xl md:rounded-xl">
       <!-- Chat Header -->
       <header class="flex items-center justify-between gap-2 sm:gap-3 px-3 py-2.5 sm:px-4 sm:py-3 bg-surface-card border-b border-border z-10 shrink-0">
         <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -251,11 +256,11 @@ import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
             }
 
             <div
-              class="max-w-[82%] sm:max-w-[70%] rounded-2xl px-3.5 py-2.5 shadow-sm text-sm break-words relative transition"
+              class="max-w-[82%] sm:max-w-[70%] rounded-2xl px-3.5 py-2.5 text-sm break-words relative transition"
               [ngClass]="
                 isMine(msg)
                   ? 'bg-primary text-white rounded-br-xs'
-                  : 'bg-surface-card text-text-primary border border-border shadow-2xs rounded-bl-xs'
+                  : 'bg-surface-card text-text-primary border border-border rounded-bl-xs'
               "
             >
               <!-- Broadcast pill (Section 3.2) -->
@@ -479,9 +484,10 @@ import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
     </div>
   `,
 })
-export class ChatThreadComponent implements OnInit, OnDestroy {
+export class ChatThreadComponent implements OnDestroy {
   @ViewChild('scrollContainer') private _scrollContainer?: ElementRef<HTMLDivElement>;
 
+  private readonly _destroyRef = inject(DestroyRef);
   private readonly _route = inject(ActivatedRoute);
   private readonly _router = inject(Router);
   private readonly _location = inject(Location);
@@ -494,13 +500,18 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
   private readonly _salonContext = inject(SalonContextService);
   private readonly _salonsStore = inject(SalonsStore);
 
+  private readonly _routeId = toSignal(this._route.paramMap.pipe(
+    map((params) => params.get(RouteParam.CONVERSATION_ID) || ''),
+  ), { initialValue: this._route.snapshot.paramMap.get(RouteParam.CONVERSATION_ID) || '' });
+
   readonly conversationIdInput = input<string | null>(null, { alias: 'conversationId' });
   readonly backFallbackRoute = input<string[] | null>(null);
 
   protected readonly showBroadcastModal = signal<boolean>(false);
   protected readonly conversationId = signal<string>('');
   protected readonly conversation = signal<ConversationItemDto | null>(null);
-  protected readonly messages = signal<ConversationMessageDto[]>([]);
+  private readonly _messageState = signal(signal<ConversationMessageDto[]>([]));
+  protected readonly messages = computed(() => this._messageState()());
   protected readonly loading = signal<boolean>(true);
   protected readonly loadingOlder = signal<boolean>(false);
   protected readonly hasMore = signal<boolean>(false);
@@ -513,18 +524,21 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
   protected readonly isRecording = signal<boolean>(false);
   protected readonly recordingSeconds = signal<number>(0);
 
+  private _recordingRequest = 0;
   private _mediaRecorder: MediaRecorder | null = null;
   private _mediaStream: MediaStream | null = null;
   private _recordingTimer: ReturnType<typeof setInterval> | null = null;
   private _audioChunks: Blob[] = [];
   private _recordingStartTime = 0;
   private _recordingMimeType = 'audio/webm';
+  private _recordingContentType: AudioMime = 'audio/webm';
   private _recordingFileExt = 'webm';
 
   private _typingDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private _typingStopTimer: ReturnType<typeof setTimeout> | null = null;
   private _partnerTypingClearTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly _subs = new Subscription();
+  private _subs = new Subscription();
+  private readonly _conversationEnd$ = new Subject<void>();
 
   protected readonly formattedRecordingDuration = computed(() => {
     const sec = this.recordingSeconds();
@@ -653,51 +667,75 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
     }
   }
 
-  ngOnInit(): void {
-    const id = this.conversationIdInput() || this._route.snapshot.paramMap.get(RouteParam.CONVERSATION_ID) || '';
-    this.conversationId.set(id);
-
-    if (id) {
-      this._loadThread(id);
-      this._socket.joinConversation(id, (ack) => {
-        if (ack?.status === 'forbidden') {
-          this._toast.error('You do not have access to this conversation.');
-          this.goBack();
-        }
-      });
-      this._setupSubscriptions(id);
-    }
+  constructor() {
+    effect((onCleanup) => {
+      const id = this.conversationIdInput() || this._routeId();
+      if (!id) return;
+      untracked(() => this._openConversation(id));
+      onCleanup(() => this._leaveConversation(id));
+    });
   }
 
-  private _loadThread(conversationId: string): void {
-    this.loading.set(true);
+  private _openConversation(id: string): void {
+    this.conversationId.set(id);
+    this.conversation.set(null);
+    this._messageState.set(this._chatService.activateConversation(id));
+    this.draft.set('');
+    this.pendingMediaUrl.set(null);
+    this.uploadingMedia.set(false);
+    this.isPartnerTyping.set(false);
+    this.partnerTypingName.set('');
+    this.blockingAction.set(false);
+    this.loadingOlder.set(false);
+    this.hasMore.set(false);
+    this._subs = new Subscription();
+    this._loadThread(id, true);
+    this._socket.joinConversation(id, (ack) => {
+      if (this._destroyRef.destroyed || this.conversationId() !== id) return;
+      if (ack?.status === 'forbidden') {
+        this._toast.error('You do not have access to this conversation.');
+        this.goBack();
+      }
+    });
+    this._setupSubscriptions(id);
+  }
+
+  private _leaveConversation(id: string): void {
+    this.cancelRecording();
+    this._conversationEnd$.next();
+    this._socket.stopTyping(id);
+    this._socket.leaveConversation(id);
+    this._chatService.deactivateConversation(id);
+    this._subs.unsubscribe();
+    if (this._typingDebounceTimer) clearTimeout(this._typingDebounceTimer);
+    if (this._typingStopTimer) clearTimeout(this._typingStopTimer);
+    if (this._partnerTypingClearTimer) clearTimeout(this._partnerTypingClearTimer);
+  }
+
+  private _loadThread(conversationId: string, scrollOnOpen = false): void {
+    const cached = this._chatService.cachedHistory(conversationId);
+    this.loading.set(!cached && this.messages().length === 0);
+    if (cached) {
+      this.hasMore.set(cached.hasMore);
+      if (scrollOnOpen) this._scrollToBottom();
+    }
 
     // 1. The inbox passes the conversation along via router state (survives refresh too).
     const stateConv =
       typeof window !== 'undefined'
         ? (window.history.state?.conversation as ConversationItemDto | undefined)
         : undefined;
-    if (stateConv?.id === conversationId) {
-      this.conversation.set(stateConv);
+    const cachedConversation = this._chatService.cachedConversation(conversationId);
+    if (cachedConversation || stateConv?.id === conversationId) {
+      const conversation = cachedConversation || stateConv!;
+      this.conversation.set(conversation);
+      if (!cachedConversation) this._chatService.rememberConversation(conversation);
     } else {
       // 2. Deep link: look in my customer inbox...
-      this._chatService.getCustomerConversations(1, 100).subscribe({
-        next: (res) => {
-          const found = res.data.find((c) => c.id === conversationId);
-          if (found) {
-            this.conversation.set(found);
-          }
-        },
-        error: () => {},
-      });
-
-      // 3. ...and in every salon I work at (staff / owner / admin views).
-      const salonIds = new Set<string>();
-      const routeSalonId = this._route.snapshot.paramMap.get(RouteParam.SALON_ID);
-      if (routeSalonId) salonIds.add(routeSalonId);
-      for (const s of this._salonsStore.salons()) salonIds.add(s.salon.id);
-      for (const salonId of salonIds) {
-        this._chatService.getSalonConversations(salonId, 1, 100).subscribe({
+      this._chatService
+        .getCustomerConversations(1, 100)
+        .pipe(takeUntil(this._conversationEnd$), takeUntilDestroyed(this._destroyRef))
+        .subscribe({
           next: (res) => {
             const found = res.data.find((c) => c.id === conversationId);
             if (found) {
@@ -706,86 +744,60 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
           },
           error: () => {},
         });
+
+      // 3. ...and in every salon I work at (staff / owner / admin views).
+      const salonIds = new Set<string>();
+      const routeSalonId = this._route.snapshot.paramMap.get(RouteParam.SALON_ID);
+      if (routeSalonId) salonIds.add(routeSalonId);
+      for (const s of this._salonsStore.salons()) salonIds.add(s.salon.id);
+      for (const salonId of salonIds) {
+        this._chatService
+          .getSalonConversations(salonId, 1, 100)
+          .pipe(takeUntil(this._conversationEnd$), takeUntilDestroyed(this._destroyRef))
+          .subscribe({
+            next: (res) => {
+              const found = res.data.find((c) => c.id === conversationId);
+              if (found) {
+                this.conversation.set(found);
+              }
+            },
+            error: () => {},
+          });
       }
     }
 
     // Fetch messages
-    this._chatService.getMessageHistory(conversationId).subscribe({
-      next: (res) => {
-        this.messages.set([...res.data].reverse());
-        this.hasMore.set(res.hasMore);
-        this.loading.set(false);
-        this._chatService.markAsRead(conversationId).subscribe();
-        this._scrollToBottom();
-      },
-      error: () => {
-        this.loading.set(false);
-      },
-    });
+    this._chatService
+      .getMessageHistory(conversationId)
+      .pipe(takeUntil(this._conversationEnd$), takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.hasMore.set(res.hasMore);
+          this.loading.set(false);
+          this._markRead(conversationId);
+          if (scrollOnOpen && !cached) this._scrollToBottom();
+        },
+        error: () => {
+          this.loading.set(false);
+        },
+      });
+  }
+
+  private _markRead(id: string): void {
+    const last = [...this.messages()].reverse().find((message) =>
+      message.senderUserId !== this._currentUser.user()?.id && message.status !== 'PENDING',
+    );
+    if (last) this._chatService.markAsRead(id, last.id).subscribe({ error: () => {} });
   }
 
   private _setupSubscriptions(conversationId: string): void {
+    this._subs.add(this._socket.reconnected$.subscribe(() => this._loadThread(conversationId)));
     // New message arrived via socket
     this._subs.add(
       this._socket.messageReceived$.subscribe((msg) => {
         if (msg.conversationId === conversationId) {
-          const current = this.messages();
-          const existingIdx = current.findIndex(
-            (m) => m.id === msg.id || (m.clientMessageId && m.clientMessageId === msg.clientMessageId),
-          );
-          if (existingIdx >= 0) {
-            const updated = [...current];
-            updated[existingIdx] = msg;
-            this.messages.set(updated);
-          } else {
-            this.messages.set([...current, msg]);
-          }
-          this._chatService.markAsRead(conversationId).subscribe();
+          if (msg.senderUserId !== this._currentUser.user()?.id) this._markRead(conversationId);
           this._scrollToBottom();
-        }
-      }),
-    );
-
-    // Status updated via socket (receipt checkmarks)
-    this._subs.add(
-      this._socket.statusUpdated$.subscribe((payload) => {
-        if (payload.conversationId === conversationId) {
-          const current = this.messages();
-          let changed = false;
-
-          if (payload.upToMessageId) {
-            const upToIdx = current.findIndex(
-              (m) => m.id === payload.upToMessageId || m.clientMessageId === payload.upToMessageId,
-            );
-            if (upToIdx >= 0) {
-              for (let i = 0; i <= upToIdx; i++) {
-                if (current[i].status !== 'READ') {
-                  current[i].status = payload.status;
-                  if (payload.readAt) current[i].readAt = payload.readAt;
-                  if (payload.deliveredAt) current[i].deliveredAt = payload.deliveredAt;
-                  changed = true;
-                }
-              }
-            }
-          }
-
-          if (payload.messageId || payload.clientMessageId) {
-            const target = current.find(
-              (m) =>
-                (payload.messageId && m.id === payload.messageId) ||
-                (payload.clientMessageId && m.clientMessageId === payload.clientMessageId),
-            );
-            if (target) {
-              target.status = payload.status;
-              if (payload.readAt) target.readAt = payload.readAt;
-              if (payload.deliveredAt) target.deliveredAt = payload.deliveredAt;
-              changed = true;
-            }
-          }
-
-          if (changed) {
-            this.messages.set([...current]);
-          }
         }
       }),
     );
@@ -843,7 +855,7 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
     if (!id || this.blockingAction()) return;
 
     this.blockingAction.set(true);
-    this._chatService.blockConversation(id).subscribe({
+    this._chatService.blockConversation(id).pipe(takeUntil(this._conversationEnd$)).subscribe({
       next: (updated) => {
         this.blockingAction.set(false);
         this.conversation.set(updated);
@@ -861,7 +873,7 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
     if (!id || this.blockingAction()) return;
 
     this.blockingAction.set(true);
-    this._chatService.unblockConversation(id).subscribe({
+    this._chatService.unblockConversation(id).pipe(takeUntil(this._conversationEnd$)).subscribe({
       next: (updated) => {
         this.blockingAction.set(false);
         this.conversation.set(updated);
@@ -880,7 +892,7 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
     if (!file) return;
 
     this.uploadingMedia.set(true);
-    uploadAdHocImage(this._http, this._apiConfig, file, 'COMMENT').subscribe({
+    uploadAdHocImage(this._http, this._apiConfig, file, 'COMMENT').pipe(takeUntil(this._conversationEnd$), takeUntilDestroyed(this._destroyRef)).subscribe({
       next: (res) => {
         this.pendingMediaUrl.set(res.url);
         this.uploadingMedia.set(false);
@@ -904,10 +916,7 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
     if ((!text && !mediaUrl) || !id || this.isBlocked() || this.uploadingMedia()) return;
 
     const bodyText = text || 'Photo';
-    const clientMessageId =
-      typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : 'cli_' + Math.random().toString(36).slice(2, 11) + '_' + Date.now();
+    const clientMessageId = crypto.randomUUID();
 
     const user = this._currentUser.user();
 
@@ -932,7 +941,7 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
       createdAt: new Date().toISOString(),
     };
 
-    this.messages.set([...this.messages(), optimisticMsg]);
+    this._messageState().set([...this.messages(), optimisticMsg]);
     this.draft.set('');
     this.pendingMediaUrl.set(null);
     this._socket.stopTyping(id);
@@ -945,21 +954,12 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
         mediaUrl: mediaUrl || undefined,
       })
       .subscribe({
-        next: (saved) => {
-          const list = this.messages();
-          const idx = list.findIndex((m) => m.clientMessageId === clientMessageId);
-          if (idx >= 0) {
-            const updated = [...list];
-            updated[idx] = saved;
-            this.messages.set(updated);
-          }
-        },
         error: (err) => {
+          this._chatService.removePendingMessage(id, clientMessageId);
+          if (this._destroyRef.destroyed || this.conversationId() !== id) return;
           if (err?.status === 403) {
             this._toast.error(err?.error?.message || 'This conversation has been blocked.');
             this.conversation.update((curr) => (curr ? { ...curr, status: 'BLOCKED' } : null));
-            // Remove optimistic message
-            this.messages.update((list) => list.filter((m) => m.clientMessageId !== clientMessageId));
           } else {
             this._toast.error('Failed to send message.');
           }
@@ -977,12 +977,19 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const id = this.conversationId();
+    const request = ++this._recordingRequest;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (this._destroyRef.destroyed || this.conversationId() !== id || request !== this._recordingRequest) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       this._mediaStream = stream;
 
-      const { mimeType, ext } = this._getSupportedAudioMimeType();
+      const { mimeType, contentType, ext } = this._getSupportedAudioMimeType();
       this._recordingMimeType = mimeType;
+      this._recordingContentType = contentType;
       this._recordingFileExt = ext;
       this._audioChunks = [];
 
@@ -1011,6 +1018,7 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
 
       recorder.start(250);
     } catch (err: any) {
+      if (this._destroyRef.destroyed || this.conversationId() !== id || request !== this._recordingRequest) return;
       this._cleanupRecordingStream();
       this.isRecording.set(false);
       if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
@@ -1022,6 +1030,7 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
   }
 
   protected cancelRecording(): void {
+    this._recordingRequest++;
     if (this._recordingTimer) {
       clearInterval(this._recordingTimer);
       this._recordingTimer = null;
@@ -1048,6 +1057,7 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
 
     const recorder = this._mediaRecorder;
     const mimeType = this._recordingMimeType || 'audio/webm';
+    const contentType = this._recordingContentType;
     const ext = this._recordingFileExt || 'webm';
 
     recorder.onstop = async () => {
@@ -1063,7 +1073,7 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
         return;
       }
 
-      await this._uploadAndSendVoiceNote(audioBlob, mimeType, ext, elapsedSeconds);
+      await this._uploadAndSendVoiceNote(audioBlob, contentType, ext, elapsedSeconds);
     };
 
     if (recorder.state !== 'inactive') {
@@ -1073,7 +1083,7 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
 
   private async _uploadAndSendVoiceNote(
     blob: Blob,
-    mimeType: string,
+    contentType: AudioMime,
     ext: string,
     durationSeconds: number,
   ): Promise<void> {
@@ -1082,10 +1092,7 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
 
     this.uploadingMedia.set(true);
 
-    const clientMessageId =
-      typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : 'cli_' + Math.random().toString(36).slice(2, 11) + '_' + Date.now();
+    const clientMessageId = crypto.randomUUID();
 
     const user = this._currentUser.user();
     let senderRole: MessageSenderRole = 'CUSTOMER';
@@ -1114,7 +1121,7 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
       createdAt: new Date().toISOString(),
     };
 
-    this.messages.set([...this.messages(), optimisticMsg]);
+    this._messageState().set([...this.messages(), optimisticMsg]);
     this._scrollToBottom();
 
     try {
@@ -1123,7 +1130,7 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
         publicMediaControllerPresignUpload(this._http, this._apiConfig.rootUrl, {
           body: {
             filename: `voice-note-${Date.now()}.${ext}`,
-            contentType: mimeType as any,
+            contentType,
             fileSize: blob.size,
             entityType: 'CHAT',
             type: 'GALLERY',
@@ -1131,14 +1138,19 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
         }),
       );
 
+      if (this._currentUser.user()?.id !== user?.id) {
+        this._chatService.removePendingMessage(id, clientMessageId);
+        return;
+      }
       const { uploadUrl, url: publicUrl } = presignRes.body;
 
+      // R2 signs the base MIME, not MediaRecorder's codec parameters.
+      const headers = new Headers(presignRes.body.headers as Record<string, string>);
+      if (!headers.has('Content-Type')) headers.set('Content-Type', contentType);
       // 2. Direct binary PUT upload to Cloudflare R2
       const putRes = await fetch(uploadUrl, {
         method: 'PUT',
-        headers: {
-          'Content-Type': mimeType,
-        },
+        headers,
         body: blob,
       });
 
@@ -1146,6 +1158,10 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
         throw new Error(`R2 upload failed with status ${putRes.status}`);
       }
 
+      if (this._currentUser.user()?.id !== user?.id) {
+        this._chatService.removePendingMessage(id, clientMessageId);
+        return;
+      }
       // 3. Commit voice note message to thread
       this._chatService
         .sendMessage(id, {
@@ -1155,51 +1171,47 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
           mediaDurationSeconds: durationSeconds,
         })
         .subscribe({
-          next: (saved) => {
+          next: () => {
+            if (this._destroyRef.destroyed || this.conversationId() !== id) return;
             this.uploadingMedia.set(false);
-            const list = this.messages();
-            const idx = list.findIndex((m) => m.clientMessageId === clientMessageId);
-            if (idx >= 0) {
-              const updated = [...list];
-              updated[idx] = saved;
-              this.messages.set(updated);
-            }
           },
           error: (err) => {
+            this._chatService.removePendingMessage(id, clientMessageId);
+            if (this._destroyRef.destroyed || this.conversationId() !== id) return;
             this.uploadingMedia.set(false);
             if (err?.status === 403) {
               this._toast.error(err?.error?.message || 'This conversation has been blocked.');
               this.conversation.update((curr) => (curr ? { ...curr, status: 'BLOCKED' } : null));
-              this.messages.update((list) => list.filter((m) => m.clientMessageId !== clientMessageId));
             } else {
               this._toast.error('Failed to deliver voice note.');
             }
           },
         });
     } catch (err: any) {
+      this._chatService.removePendingMessage(id, clientMessageId);
+      if (this._destroyRef.destroyed || this.conversationId() !== id) return;
       this.uploadingMedia.set(false);
-      this.messages.update((list) => list.filter((m) => m.clientMessageId !== clientMessageId));
       this._toast.error(err?.message || 'Failed to upload voice note.');
     }
   }
 
-  private _getSupportedAudioMimeType(): { mimeType: string; ext: string } {
+  private _getSupportedAudioMimeType(): { mimeType: string; contentType: AudioMime; ext: string } {
     if (typeof MediaRecorder === 'undefined') {
-      return { mimeType: 'audio/webm', ext: 'webm' };
+      return { mimeType: 'audio/webm', contentType: 'audio/webm', ext: 'webm' };
     }
-    const candidates = [
-      { mimeType: 'audio/webm;codecs=opus', ext: 'webm' },
-      { mimeType: 'audio/webm', ext: 'webm' },
-      { mimeType: 'audio/mp4', ext: 'm4a' },
-      { mimeType: 'audio/aac', ext: 'aac' },
-      { mimeType: 'audio/ogg', ext: 'ogg' },
+    const candidates: { mimeType: string; contentType: AudioMime; ext: string }[] = [
+      { mimeType: 'audio/webm;codecs=opus', contentType: 'audio/webm', ext: 'webm' },
+      { mimeType: 'audio/webm', contentType: 'audio/webm', ext: 'webm' },
+      { mimeType: 'audio/mp4', contentType: 'audio/mp4', ext: 'm4a' },
+      { mimeType: 'audio/aac', contentType: 'audio/aac', ext: 'aac' },
+      { mimeType: 'audio/ogg', contentType: 'audio/ogg', ext: 'ogg' },
     ];
     for (const c of candidates) {
       if (MediaRecorder.isTypeSupported(c.mimeType)) {
         return c;
       }
     }
-    return { mimeType: 'audio/webm', ext: 'webm' };
+    return { mimeType: 'audio/webm', contentType: 'audio/webm', ext: 'webm' };
   }
 
   private _cleanupRecordingStream(): void {
@@ -1228,10 +1240,8 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
     const el = this._scrollContainer?.nativeElement;
     const oldScrollHeight = el ? el.scrollHeight : 0;
 
-    this._chatService.getMessageHistory(id, oldest.id).subscribe({
+    this._chatService.getMessageHistory(id, oldest.id).pipe(takeUntil(this._conversationEnd$), takeUntilDestroyed(this._destroyRef)).subscribe({
       next: (res) => {
-        const older = [...res.data].reverse();
-        this.messages.set([...older, ...this.messages()]);
         this.hasMore.set(res.hasMore);
         this.loadingOlder.set(false);
 
@@ -1268,7 +1278,9 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
   }
 
   private _scrollToBottom(): void {
+    const id = this.conversationId();
     setTimeout(() => {
+      if (this._destroyRef.destroyed || this.conversationId() !== id) return;
       const el = this._scrollContainer?.nativeElement;
       if (el) {
         el.scrollTop = el.scrollHeight;
@@ -1278,13 +1290,8 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.cancelRecording();
-    const id = this.conversationId();
-    if (id) {
-      this._socket.leaveConversation(id);
-    }
-    if (this._typingDebounceTimer) clearTimeout(this._typingDebounceTimer);
-    if (this._typingStopTimer) clearTimeout(this._typingStopTimer);
-    if (this._partnerTypingClearTimer) clearTimeout(this._partnerTypingClearTimer);
+    this._conversationEnd$.next();
+    this._conversationEnd$.complete();
     this._subs.unsubscribe();
   }
 }

@@ -1,3 +1,4 @@
+import { ConversationLastMessageSnippetDto } from '../../api/models/conversation-last-message-snippet-dto';
 import { ConversationResponseDto } from '../../api/models/conversation-response-dto';
 import { ConversationMessageResponseDto } from '../../api/models/conversation-message-response-dto';
 import { ConversationEligibilityResponseDto } from '../../api/models/conversation-eligibility-response-dto';
@@ -11,7 +12,14 @@ export type MessageStatus = 'PENDING' | 'SENT' | 'DELIVERED' | 'READ';
 export type MessageSenderRole = 'CUSTOMER' | 'STAFF' | 'OWNER';
 export type ConversationStatus = 'ACTIVE' | 'ARCHIVED' | 'BLOCKED';
 
-export type ConversationItemDto = ConversationResponseDto;
+// Badge events contain preview text but no message ID or sender role. Keep
+// those fields absent until REST supplies the actual message metadata.
+export type ConversationItemDto = Omit<ConversationResponseDto, 'lastMessage'> & {
+  lastMessage?:
+    | (Omit<ConversationLastMessageSnippetDto, 'id' | 'senderRole'> &
+        Partial<Pick<ConversationLastMessageSnippetDto, 'id' | 'senderRole'>>)
+    | null;
+};
 
 export type ConversationMessageDto = Omit<ConversationMessageResponseDto, 'status'> & {
   status: MessageStatus;
@@ -58,6 +66,7 @@ export interface MessageStatusUpdatedPayload {
   status: MessageStatus;
   deliveredAt?: string;
   readAt?: string;
+  readerUserId?: string;
   upToMessageId?: string;
 }
 
@@ -66,6 +75,7 @@ export interface InboxBadgeUpdatedPayload {
   unreadCount?: number;
   lastMessage?: {
     senderName?: string;
+    mediaDurationSeconds?: number | null;
     body?: string;
     createdAt?: string;
   };
