@@ -12,13 +12,13 @@ import {
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { ChatService } from '../../../core/chat/chat.service';
 import { ChatSocketService } from '../../../core/chat/chat-socket.service';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
-import { RouteParam } from '../../../core/routing/route-paths';
+import { RouteParam, RoutePath } from '../../../core/routing/route-paths';
 import {
   ConversationItemDto,
   ConversationMessageDto,
@@ -28,23 +28,35 @@ import { ChatStatusIconComponent } from '../chat-status-icon/chat-status-icon.co
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { uploadAdHocImage } from '../../../core/media/media-upload';
+import { BroadcastModalComponent } from '../../salons/salon-chat/broadcast-modal.component';
+import { SalonContextService } from '../../../core/salon-context/salon-context.service';
+import { SalonsStore } from '../../../core/salon-context/salons.store';
+import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
 
 @Component({
   selector: 'app-chat-thread',
   standalone: true,
-  imports: [CommonModule, FormsModule, ChatStatusIconComponent, IconComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    ChatStatusIconComponent,
+    IconComponent,
+    BroadcastModalComponent,
+    MediaUrlPipe,
+  ],
   host: {
     class: 'block w-full',
   },
   template: `
-    <div class="flex flex-col h-[calc(100vh-5.5rem-var(--bottom-nav-height))] supports-[height:100dvh]:h-[calc(100dvh-5.5rem-var(--bottom-nav-height))] md:h-[calc(100vh-4rem)] md:supports-[height:100dvh]:h-[calc(100dvh-4rem)] max-w-3xl mx-auto bg-slate-50 dark:bg-zinc-950 border border-border/40 shadow-sm relative overflow-hidden rounded-2xl md:rounded-xl">
+    <div class="flex flex-col h-[calc(100vh-5.5rem-var(--bottom-nav-height))] supports-[height:100dvh]:h-[calc(100dvh-5.5rem-var(--bottom-nav-height))] md:h-[calc(100vh-4rem)] md:supports-[height:100dvh]:h-[calc(100dvh-4rem)] max-w-3xl mx-auto bg-surface-card border border-border shadow-xs relative overflow-hidden rounded-2xl md:rounded-xl">
       <!-- Chat Header -->
-      <header class="flex items-center justify-between gap-3 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-border z-10 shrink-0">
-        <div class="flex items-center gap-3 min-w-0">
+      <header class="flex items-center justify-between gap-2 sm:gap-3 px-3 py-2.5 sm:px-4 sm:py-3 bg-surface-card border-b border-border z-10 shrink-0">
+        <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
           <button
             type="button"
             (click)="goBack()"
-            class="p-2 -ml-2 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-800 text-text-primary transition"
+            class="p-2 -ml-2 rounded-full hover:bg-surface-overlay text-text-primary transition"
             aria-label="Back"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,13 +65,28 @@ import { uploadAdHocImage } from '../../../core/media/media-upload';
           </button>
 
           <!-- Avatar -->
-          <div class="relative w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-base shrink-0 overflow-hidden">
-            @if (avatarUrl()) {
-              <img [src]="avatarUrl()" alt="Avatar" class="w-full h-full object-cover" />
-            } @else {
-              <span>{{ displayName().slice(0, 1).toUpperCase() }}</span>
-            }
-          </div>
+          @if (viewTarget(); as target) {
+            <a
+              [routerLink]="target.link"
+              [queryParams]="target.queryParams"
+              [title]="target.label"
+              class="relative w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-base shrink-0 overflow-hidden hover:opacity-90 transition active:scale-95"
+            >
+              @if (avatarUrl()) {
+                <img [src]="avatarUrl()! | mediaUrl:'thumb'" alt="Avatar" class="w-full h-full object-cover" />
+              } @else {
+                <span>{{ displayName().slice(0, 1).toUpperCase() }}</span>
+              }
+            </a>
+          } @else {
+            <div class="relative w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-base shrink-0 overflow-hidden">
+              @if (avatarUrl()) {
+                <img [src]="avatarUrl()! | mediaUrl:'thumb'" alt="Avatar" class="w-full h-full object-cover" />
+              } @else {
+                <span>{{ displayName().slice(0, 1).toUpperCase() }}</span>
+              }
+            </div>
+          }
 
           <!-- Title & Status -->
           <div class="min-w-0">
@@ -82,15 +109,26 @@ import { uploadAdHocImage } from '../../../core/media/media-upload';
           </div>
         </div>
 
-        <!-- Header Actions: Block / Unblock -->
+        <!-- Header Actions: View Staff / Salon, Block / Unblock OR Broadcast Button -->
         @if (!isBroadcastConversation()) {
-          <div class="flex items-center gap-2 shrink-0">
+          <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            @if (viewTarget(); as target) {
+              <a
+                [routerLink]="target.link"
+                [queryParams]="target.queryParams"
+                class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold border border-primary/20 text-primary bg-primary/5 hover:bg-primary/10 active:scale-95 transition shadow-2xs"
+              >
+                <app-icon [name]="target.icon" class="w-3.5 h-3.5" />
+                <span class="whitespace-nowrap">{{ target.label }}</span>
+              </a>
+            }
+
             @if (isBlocked()) {
               <button
                 type="button"
                 (click)="unblock()"
                 [disabled]="blockingAction()"
-                class="px-3 py-1.5 rounded-full text-xs font-semibold bg-primary text-white hover:bg-primary-hover active:scale-95 transition shadow-2xs"
+                class="px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold bg-primary text-white hover:bg-primary-hover active:scale-95 transition shadow-2xs"
               >
                 Unblock
               </button>
@@ -99,12 +137,26 @@ import { uploadAdHocImage } from '../../../core/media/media-upload';
                 type="button"
                 (click)="block()"
                 [disabled]="blockingAction()"
-                class="px-2.5 py-1.5 rounded-full text-xs font-medium text-text-secondary hover:text-error hover:bg-error-light/50 transition"
+                class="px-2 sm:px-2.5 py-1.5 rounded-full text-xs font-medium text-text-secondary hover:text-error hover:bg-error-light/50 transition"
                 title="Block conversation"
               >
                 Block
               </button>
             }
+          </div>
+        } @else {
+          <div class="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              (click)="showBroadcastModal.set(true)"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-primary text-white hover:bg-primary-hover active:scale-95 transition shadow-2xs shrink-0"
+              title="Send Broadcast"
+            >
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+              </svg>
+              <span>Broadcast</span>
+            </button>
           </div>
         }
       </header>
@@ -133,7 +185,7 @@ import { uploadAdHocImage } from '../../../core/media/media-upload';
       <div
         #scrollContainer
         (scroll)="onScroll()"
-        class="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-slate-100/70 dark:bg-zinc-900/40 relative"
+        class="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-surface relative"
       >
         <!-- Loading Older Spinner -->
         @if (loadingOlder()) {
@@ -144,15 +196,37 @@ import { uploadAdHocImage } from '../../../core/media/media-upload';
 
         <!-- Empty State -->
         @if (!loading() && messages().length === 0) {
-          <div class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-text-secondary">
-            <div class="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-3">
-              <app-icon name="chat" class="w-7 h-7" />
+          @if (isBroadcastConversation()) {
+            <div class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-text-secondary">
+              <div class="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-3 text-2xl">
+                📢
+              </div>
+              <p class="font-medium text-text-primary text-base">No broadcast announcements yet</p>
+              <p class="text-xs text-text-disabled mt-1 max-w-xs">
+                Announcements sent will reach all customers who have favourited your salon.
+              </p>
+              <button
+                type="button"
+                (click)="showBroadcastModal.set(true)"
+                class="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-primary text-white hover:bg-primary-hover active:scale-95 transition shadow-xs"
+              >
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                </svg>
+                <span>Send First Broadcast</span>
+              </button>
             </div>
-            <p class="font-medium text-text-primary">No messages yet</p>
-            <p class="text-xs text-text-disabled mt-1 max-w-xs">
-              Say hello! Messages are delivered in real time with WhatsApp standard checkmarks.
-            </p>
-          </div>
+          } @else {
+            <div class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-text-secondary">
+              <div class="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-3">
+                <app-icon name="chat" class="w-7 h-7" />
+              </div>
+              <p class="font-medium text-text-primary">No messages yet</p>
+              <p class="text-xs text-text-disabled mt-1 max-w-xs">
+                Say hello! Messages are delivered in real time with WhatsApp standard checkmarks.
+              </p>
+            </div>
+          }
         }
 
         <!-- Message Bubbles -->
@@ -163,9 +237,14 @@ import { uploadAdHocImage } from '../../../core/media/media-upload';
           >
             <!-- Sender Display Name (Section 3.1) -->
             @if (!isMine(msg) && msg.senderDisplayName) {
-              <span class="text-[11px] font-semibold text-text-muted mb-1 px-1">
-                {{ msg.senderDisplayName }}
-              </span>
+              <div class="flex items-center gap-1.5 mb-1 px-1">
+                @if (msg.senderAvatarUrl) {
+                  <img [src]="msg.senderAvatarUrl | mediaUrl:'thumb'" alt="" class="w-4 h-4 rounded-full object-cover shrink-0" />
+                }
+                <span class="text-[11px] font-semibold text-text-muted">
+                  {{ msg.senderDisplayName }}
+                </span>
+              </div>
             }
 
             <div
@@ -173,7 +252,7 @@ import { uploadAdHocImage } from '../../../core/media/media-upload';
               [ngClass]="
                 isMine(msg)
                   ? 'bg-primary text-white rounded-br-xs'
-                  : 'bg-white dark:bg-zinc-800 text-text-primary border border-border/30 rounded-bl-xs'
+                  : 'bg-surface-card text-text-primary border border-border shadow-2xs rounded-bl-xs'
               "
             >
               <!-- Broadcast pill (Section 3.2) -->
@@ -214,28 +293,38 @@ import { uploadAdHocImage } from '../../../core/media/media-upload';
         <!-- Typing Indicator Bubble -->
         @if (isPartnerTyping()) {
           <div class="flex items-start">
-            <div class="bg-white dark:bg-zinc-800 border border-border/30 rounded-2xl rounded-bl-xs px-3.5 py-2 shadow-sm flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-slate-400 animate-bounce"></span>
-              <span class="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:0.2s]"></span>
-              <span class="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:0.4s]"></span>
+            <div class="bg-surface-card border border-border rounded-2xl rounded-bl-xs px-3.5 py-2 shadow-2xs flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-text-disabled animate-bounce"></span>
+              <span class="w-2 h-2 rounded-full bg-text-disabled animate-bounce [animation-delay:0.2s]"></span>
+              <span class="w-2 h-2 rounded-full bg-text-disabled animate-bounce [animation-delay:0.4s]"></span>
             </div>
           </div>
         }
       </div>
 
       <!-- Input Bar -->
-      <footer class="bg-white dark:bg-zinc-900 border-t border-border z-10 shrink-0">
+      <footer class="bg-surface-card border-t border-border z-10 shrink-0">
         @if (isBroadcastConversation()) {
-          <div class="px-4 py-3.5 bg-slate-50 dark:bg-zinc-850 flex items-center justify-center text-center">
-            <div class="flex items-center gap-2 text-xs text-text-secondary">
-              <span aria-hidden="true">📢</span>
-              <span>Broadcast Channel (Read-only). Announcements are posted using the Broadcast modal.</span>
+          <div class="px-4 py-3 bg-surface-sunken border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-2 text-xs text-text-secondary min-w-0">
+              <span class="text-base shrink-0" aria-hidden="true">📢</span>
+              <span class="truncate">Announcements are broadcast to all customers who favourited your salon.</span>
             </div>
+            <button
+              type="button"
+              (click)="showBroadcastModal.set(true)"
+              class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-primary text-white hover:bg-primary-hover active:scale-95 transition shadow-xs shrink-0 w-full sm:w-auto"
+            >
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+              </svg>
+              <span>Broadcast to Customers</span>
+            </button>
           </div>
         } @else {
           <!-- Pending Media Preview -->
           @if (pendingMediaUrl()) {
-            <div class="px-4 py-2 bg-slate-50 dark:bg-zinc-850 border-b border-border/60 flex items-center justify-between gap-3 animate-fade-in">
+            <div class="px-4 py-2 bg-surface-sunken border-b border-border flex items-center justify-between gap-3 animate-fade-in">
               <div class="flex items-center gap-3 min-w-0">
                 <div class="relative w-12 h-12 rounded-lg overflow-hidden border border-border shrink-0">
                   <img [src]="pendingMediaUrl()!" alt="Pending attachment" class="w-full h-full object-cover" />
@@ -245,7 +334,7 @@ import { uploadAdHocImage } from '../../../core/media/media-upload';
               <button
                 type="button"
                 (click)="removePendingMedia()"
-                class="p-1 rounded-full text-text-disabled hover:text-text-primary hover:bg-slate-200 dark:hover:bg-zinc-750 transition"
+                class="p-1 rounded-full text-text-disabled hover:text-text-primary hover:bg-surface-overlay transition"
                 title="Remove attachment"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -268,7 +357,7 @@ import { uploadAdHocImage } from '../../../core/media/media-upload';
               type="button"
               (click)="chatFileInput.click()"
               [disabled]="isBlocked() || uploadingMedia()"
-              class="p-2 rounded-full text-text-secondary hover:text-primary hover:bg-slate-100 dark:hover:bg-zinc-800 transition disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+              class="p-2 rounded-full text-text-secondary hover:text-primary hover:bg-surface-overlay transition disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
               title="Attach image"
               aria-label="Attach image"
             >
@@ -289,7 +378,7 @@ import { uploadAdHocImage } from '../../../core/media/media-upload';
               [disabled]="isBlocked()"
               [placeholder]="isBlocked() ? 'This conversation has been blocked' : 'Type a message...'"
               autocomplete="off"
-              class="flex-1 bg-slate-100 dark:bg-zinc-800 text-text-primary placeholder:text-text-disabled rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition border border-transparent focus:border-primary/30 disabled:opacity-60 disabled:cursor-not-allowed"
+              class="flex-1 bg-surface-sunken text-text-primary placeholder:text-text-disabled rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition border border-border focus:border-primary disabled:opacity-60 disabled:cursor-not-allowed"
             />
 
             <button
@@ -305,6 +394,15 @@ import { uploadAdHocImage } from '../../../core/media/media-upload';
           </form>
         }
       </footer>
+
+      <!-- Broadcast Modal Dialog -->
+      @if (showBroadcastModal() && salonId()) {
+        <app-broadcast-modal
+          [salonId]="salonId()"
+          (closed)="showBroadcastModal.set(false)"
+          (sent)="onBroadcastSent()"
+        />
+      }
     </div>
   `,
 })
@@ -320,10 +418,13 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
   private readonly _socket = inject(ChatSocketService);
   private readonly _currentUser = inject(CurrentUserStore);
   private readonly _toast = inject(ToastService);
+  private readonly _salonContext = inject(SalonContextService);
+  private readonly _salonsStore = inject(SalonsStore);
 
   readonly conversationIdInput = input<string | null>(null, { alias: 'conversationId' });
   readonly backFallbackRoute = input<string[] | null>(null);
 
+  protected readonly showBroadcastModal = signal<boolean>(false);
   protected readonly conversationId = signal<string>('');
   protected readonly conversation = signal<ConversationItemDto | null>(null);
   protected readonly messages = signal<ConversationMessageDto[]>([]);
@@ -376,6 +477,41 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
     return c.customerPhone || (c.staffName ? `with ${c.staffName}` : c.salonName);
   });
 
+  protected readonly viewTarget = computed<{
+    label: string;
+    link: string[];
+    queryParams?: Record<string, string>;
+    icon: string;
+  } | null>(() => {
+    const c = this.conversation();
+    if (!c || c.type === 'BROADCAST' || !c.salonSlug) return null;
+    const me = this._currentUser.user();
+    const isCustomer = !!me && c.customerId === me.id;
+    if (!isCustomer) return null;
+
+    if (c.staffId) {
+      if (c.staffQueueId) {
+        return {
+          label: 'View Staff',
+          link: RoutePath.visitQueue('', c.salonSlug, c.staffQueueId),
+          icon: 'queue',
+        };
+      }
+      return {
+        label: 'View Staff',
+        link: RoutePath.visitSalon('', c.salonSlug),
+        queryParams: { tab: 'staffs' },
+        icon: 'person',
+      };
+    }
+
+    return {
+      label: 'View Salon',
+      link: RoutePath.visitSalon('', c.salonSlug),
+      icon: 'scissors',
+    };
+  });
+
   protected readonly avatarUrl = computed(() => {
     const c = this.conversation();
     if (!c) return null;
@@ -384,8 +520,27 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
     if (c.customerId && c.customerId === me?.id) {
       return c.staffAvatarUrl || c.salonLogoUrl || null;
     }
-    return c.customerAvatarUrl || c.staffAvatarUrl || null;
+    return c.customerAvatarUrl || c.staffAvatarUrl || c.salonLogoUrl || null;
   });
+
+  protected readonly salonId = computed(() => {
+    return (
+      this.conversation()?.salonId ||
+      this._route.snapshot.paramMap.get(RouteParam.SALON_ID) ||
+      this._route.parent?.snapshot.paramMap.get(RouteParam.SALON_ID) ||
+      this._salonContext.activeSalonId() ||
+      this._salonContext.displaySalonId() ||
+      this._salonsStore.salons().find((s) => s.role === 'OWNER' || s.role === 'ADMIN')?.salon.id ||
+      ''
+    );
+  });
+
+  protected onBroadcastSent(): void {
+    const id = this.conversationId();
+    if (id) {
+      this._loadThread(id);
+    }
+  }
 
   ngOnInit(): void {
     const id = this.conversationIdInput() || this._route.snapshot.paramMap.get(RouteParam.CONVERSATION_ID) || '';
@@ -406,32 +561,47 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
   private _loadThread(conversationId: string): void {
     this.loading.set(true);
 
-    const salonId = this._route.snapshot.paramMap.get(RouteParam.SALON_ID);
-    if (salonId) {
-      this._chatService.getSalonConversations(salonId, 1, 100).subscribe({
+    // 1. The inbox passes the conversation along via router state (survives refresh too).
+    const stateConv =
+      typeof window !== 'undefined'
+        ? (window.history.state?.conversation as ConversationItemDto | undefined)
+        : undefined;
+    if (stateConv?.id === conversationId) {
+      this.conversation.set(stateConv);
+    } else {
+      // 2. Deep link: look in my customer inbox...
+      this._chatService.getCustomerConversations(1, 100).subscribe({
         next: (res) => {
           const found = res.data.find((c) => c.id === conversationId);
           if (found) {
             this.conversation.set(found);
           }
         },
+        error: () => {},
       });
-    }
 
-    // Fetch conversation details from customer inbox
-    this._chatService.getCustomerConversations(1, 100).subscribe({
-      next: (res) => {
-        const found = res.data.find((c) => c.id === conversationId);
-        if (found) {
-          this.conversation.set(found);
-        }
-      },
-    });
+      // 3. ...and in every salon I work at (staff / owner / admin views).
+      const salonIds = new Set<string>();
+      const routeSalonId = this._route.snapshot.paramMap.get(RouteParam.SALON_ID);
+      if (routeSalonId) salonIds.add(routeSalonId);
+      for (const s of this._salonsStore.salons()) salonIds.add(s.salon.id);
+      for (const salonId of salonIds) {
+        this._chatService.getSalonConversations(salonId, 1, 100).subscribe({
+          next: (res) => {
+            const found = res.data.find((c) => c.id === conversationId);
+            if (found) {
+              this.conversation.set(found);
+            }
+          },
+          error: () => {},
+        });
+      }
+    }
 
     // Fetch messages
     this._chatService.getMessageHistory(conversationId).subscribe({
       next: (res) => {
-        this.messages.set(res.data);
+        this.messages.set([...res.data].reverse());
         this.hasMore.set(res.hasMore);
         this.loading.set(false);
         this._chatService.markAsRead(conversationId).subscribe();
@@ -706,7 +876,8 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
 
     this._chatService.getMessageHistory(id, oldest.id).subscribe({
       next: (res) => {
-        this.messages.set([...res.data, ...this.messages()]);
+        const older = [...res.data].reverse();
+        this.messages.set([...older, ...this.messages()]);
         this.hasMore.set(res.hasMore);
         this.loadingOlder.set(false);
 

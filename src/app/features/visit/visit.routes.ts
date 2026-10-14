@@ -10,6 +10,9 @@ export const visitRoutes: Routes = [
       {
         path: '',
         title: 'Salon & Spa',
+        // The landing page has its own hero photo with back/share/favourite
+        // buttons, so the shell's page header is redundant here.
+        data: { mobileHeader: false },
         loadComponent: () =>
           import('./salon-landing/salon-landing.component').then((m) => m.SalonLandingComponent),
       },

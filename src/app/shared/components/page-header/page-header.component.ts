@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, inject, input, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, inject, input, signal, computed } from '@angular/core';
 import { BackButtonComponent } from '../back-button/back-button.component';
 import { AppPlatformService } from '../../../core/native/app-platform.service';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -7,6 +7,9 @@ import { AppHeaderService } from '../../../core/routing/app-header.service';
 import { RouterLink } from '@angular/router';
 import { CurrentUserStore } from '../../../core/auth/current-user.store';
 import { RoutePath } from '../../../core/routing/route-paths';
+import { ChatService } from '../../../core/chat/chat.service';
+import { SalonContextService } from '../../../core/salon-context/salon-context.service';
+import { SalonsStore } from '../../../core/salon-context/salons.store';
 
 /**
  * Desktop/public page header. Its title and back destination come from the
@@ -29,7 +32,17 @@ export class PageHeaderComponent {
   private readonly _toast = inject(ToastService);
   protected readonly header = inject(AppHeaderService);
   protected readonly currentUser = inject(CurrentUserStore);
+  protected readonly chatService = inject(ChatService);
+  private readonly _salonContext = inject(SalonContextService);
+  private readonly _salonsStore = inject(SalonsStore);
+
   protected readonly profileLink = RoutePath.account();
+  protected readonly chatLink = computed(() => RoutePath.chat());
+  protected readonly managedSalon = computed(() => {
+    const sId = this._salonContext.activeSalonId();
+    if (sId) return null;
+    return this._salonsStore.salons().find((s) => s.role === 'OWNER' || s.role === 'ADMIN' || s.role === 'STAFF') ?? null;
+  });
   protected readonly favoritesLink = RoutePath.favorites();
   protected readonly notificationsLink = RoutePath.notifications();
   protected readonly settingsLink = RoutePath.accountSettings();

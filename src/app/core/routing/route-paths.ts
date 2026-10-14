@@ -228,20 +228,6 @@ export const RoutePath = {
     staffId,
     RouteSegment.APPOINTMENTS,
   ],
-  salonChats: (salonId: string) => ['/salons', salonId, RouteSegment.CHATS],
-  salonChatThread: (salonId: string, conversationId: string) => [
-    '/salons',
-    salonId,
-    RouteSegment.CHATS,
-    conversationId,
-  ],
-  salonStaffChats: (salonId: string, staffId: string) => [
-    '/salons',
-    salonId,
-    RouteSegment.STAFF,
-    staffId,
-    RouteSegment.CHATS,
-  ],
   salonQueueConsole: (salonId: string, queueId: string) => [
     '/salons',
     salonId,

@@ -17,6 +17,11 @@ export interface CustomerChatControllerListMyConversations$Params {
  */
   limit?: number;
   page?: number;
+
+/**
+ * Search query across participant names, salon, and messages
+ */
+  q?: string;
 }
 
 export function customerChatControllerListMyConversations(http: HttpClient, rootUrl: string, params?: CustomerChatControllerListMyConversations$Params, context?: HttpContext): Observable<StrictHttpResponse<{
@@ -27,6 +32,7 @@ export function customerChatControllerListMyConversations(http: HttpClient, root
   if (params) {
     rb.query('limit', params.limit, {});
     rb.query('page', params.page, {});
+    rb.query('q', params.q, {});
   }
 
   return http.request(

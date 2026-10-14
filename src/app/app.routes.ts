@@ -295,9 +295,10 @@ export const routes: Routes = [
       },
       {
         path: `${RouteSegment.SALONS}/${RouteSegment.NEW}`,
-        title: (route) => route.queryParamMap.has(RouteQueryParam.PARENT_SALON_ID)
-          ? 'Create a new branch'
-          : 'Create a salon',
+        title: (route) =>
+          route.queryParamMap.has(RouteQueryParam.PARENT_SALON_ID)
+            ? 'Create a new branch'
+            : 'Create a salon',
         loadComponent: () =>
           import('./features/salons/create-salon/create-salon.component').then(
             (m) => m.CreateSalonComponent,

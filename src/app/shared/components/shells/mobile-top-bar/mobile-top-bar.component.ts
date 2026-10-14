@@ -4,7 +4,6 @@ import { MembershipStore } from '../../../../core/salon-context/membership.store
 import { MySalonDto } from '../../../../api/models/my-salon-dto';
 import { RoutePath, RouteQueryParam, RouteSegment } from '../../../../core/routing/route-paths';
 import { BackButtonComponent } from '../../back-button/back-button.component';
-import { IconComponent } from '../../icon/icon.component';
 import { AppPlatformService } from '../../../../core/native/app-platform.service';
 import { ToastService } from '../../../../core/toast/toast.service';
 import { environment } from '../../../../../environments/environment';
@@ -14,7 +13,7 @@ import { ChatService } from '../../../../core/chat/chat.service';
 @Component({
   selector: 'app-mobile-top-bar',
   templateUrl: './mobile-top-bar.component.html',
-  imports: [RouterLink, BackButtonComponent, IconComponent],
+  imports: [RouterLink, BackButtonComponent],
 })
 export class MobileTopBarComponent {
   private readonly _router = inject(Router);
@@ -29,18 +28,11 @@ export class MobileTopBarComponent {
   readonly activeSalonId = input<string | null>(null);
 
   protected readonly accountLink = RoutePath.account();
-  protected readonly chatLink = computed(() => {
+  protected readonly chatLink = computed(() => RoutePath.chat());
+  protected readonly managedSalon = computed(() => {
     const sId = this.activeSalonId();
-    const active = this.activeSalon();
-    if (sId && active && (active.role === 'OWNER' || active.role === 'ADMIN' || active.role === 'STAFF')) {
-      return RoutePath.salonChats(sId);
-    }
-    const mySalons = this.salons();
-    const ownerOrAdmin = mySalons.find((s) => s.role === 'OWNER' || s.role === 'ADMIN' || s.role === 'STAFF');
-    if (ownerOrAdmin) {
-      return RoutePath.salonChats(ownerOrAdmin.salon.id);
-    }
-    return RoutePath.chat();
+    if (sId) return null;
+    return this.salons().find((s) => s.role === 'OWNER' || s.role === 'ADMIN' || s.role === 'STAFF') ?? null;
   });
   protected readonly favoritesLink = RoutePath.favorites();
   protected readonly notificationsLink = RoutePath.notifications();

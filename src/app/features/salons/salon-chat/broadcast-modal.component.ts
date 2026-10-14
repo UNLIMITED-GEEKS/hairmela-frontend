@@ -17,7 +17,7 @@ import { uploadMedia } from '../../../core/media/media-upload';
       (click)="close()"
     >
       <div
-        class="bg-white dark:bg-zinc-900 rounded-2xl max-w-md w-full p-6 shadow-xl border border-border/80"
+        class="bg-surface-card rounded-2xl max-w-md w-full p-6 shadow-xl border border-border"
         (click)="$event.stopPropagation()"
       >
         <!-- Modal Header -->
@@ -56,7 +56,7 @@ import { uploadMedia } from '../../../core/media/media-upload';
             rows="4"
             maxlength="500"
             placeholder="e.g. Special Tuesday offer: 20% off all haircuts today between 12pm and 4pm! Walk-ins welcome."
-            class="w-full bg-slate-100 dark:bg-zinc-800 text-text-primary placeholder:text-text-disabled rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition border border-transparent focus:border-primary/30 resize-none"
+            class="w-full bg-surface-sunken text-text-primary placeholder:text-text-disabled rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition border border-border focus:border-primary resize-none"
           ></textarea>
           <div class="flex justify-between items-center text-[11px] text-text-disabled mt-1 px-1">
             <span>Powered by WhatsApp Standard Broadcast</span>
@@ -93,7 +93,7 @@ import { uploadMedia } from '../../../core/media/media-upload';
               type="button"
               (click)="fileInput.click()"
               [disabled]="uploadingMedia()"
-              class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium bg-slate-100 dark:bg-zinc-800 text-text-secondary hover:text-text-primary hover:bg-slate-200 dark:hover:bg-zinc-700 transition disabled:opacity-50"
+              class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium bg-surface-sunken border border-border text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition disabled:opacity-50"
             >
               @if (uploadingMedia()) {
                 <div class="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -113,7 +113,7 @@ import { uploadMedia } from '../../../core/media/media-upload';
           <button
             type="button"
             (click)="close()"
-            class="px-4 py-2 rounded-xl text-sm font-medium text-text-secondary hover:bg-slate-100 dark:hover:bg-zinc-800 transition"
+            class="px-4 py-2 rounded-xl text-sm font-medium text-text-secondary hover:bg-surface-overlay transition"
           >
             Cancel
           </button>

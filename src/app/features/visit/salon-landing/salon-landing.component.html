@@ -1,6 +1,6 @@
 @if (visit.salon(); as s) {
   <!-- MOBILE VIEW (md:hidden) — Preserved exact mobile sheet experience -->
-  <div class="md:hidden pt-1 px-2">
+  <div class="md:hidden  px-2">
     <!-- Header — full-bleed salon photo, glass chat/share/favourite buttons overlaid -->
     <div class="relative h-56 w-full overflow-hidden">
       @if (s.photoUrl) {
@@ -14,30 +14,37 @@
           class="absolute inset-0 h-full w-full object-cover object-top rounded-t-2xl" />
       }
 
+      <!-- Back, top-left over the photo (the shell's page header is hidden on this page). -->
+      <div class="absolute top-3 left-3">
+        <app-back-button variant="glass" />
+      </div>
+
       <!-- Chat, share + favourite, top-right over the photo. -->
       <div class="absolute top-3 right-3 flex items-center gap-2">
-        <button type="button" (click)="messageSalon()"
-          aria-label="Message salon"
-          title="Message salon"
-          class="flex h-10 w-10 items-center justify-center rounded-full bg-surface-card/20 backdrop-blur-md border border-white/20 hover:scale-105 transition-transform text-white">
-          <app-icon name="chat" class="h-5 w-5 text-white" />
-        </button>
+        @if (enableChat) {
+          <button type="button" (click)="messageSalon()"
+            aria-label="Message salon"
+            title="Message salon"
+            class="flex h-10 w-10 items-center justify-center rounded-full bg-surface-card/40 dark:bg-surface-card/20 backdrop-blur-md border border-border/40 dark:border-white/20 hover:scale-105 hover:bg-surface-card dark:hover:bg-surface-card/60 transition-all text-text-primary dark:text-white shadow-xs">
+            <app-icon name="chat" class="h-5 w-5 text-text-primary dark:text-white" />
+          </button>
+        }
 
         <button type="button" (click)="shareSalon()"
           aria-label="Share this salon"
-          class="flex h-10 w-10 items-center justify-center rounded-full bg-surface-card/20 backdrop-blur-md border border-white/20 hover:scale-105 transition-transform">
-          <app-icon name="share" class="h-5 w-5 text-white" />
+          class="flex h-10 w-10 items-center justify-center rounded-full bg-surface-card/40 dark:bg-surface-card/20 backdrop-blur-md border border-border/40 dark:border-white/20 hover:scale-105 hover:bg-surface-card dark:hover:bg-surface-card/60 transition-all text-text-primary dark:text-white shadow-xs">
+          <app-icon name="share" class="h-5 w-5 text-text-primary dark:text-white" />
         </button>
 
         @if (showHeart()) {
           <button type="button" (click)="toggleFavorite()"
             [attr.aria-label]="isFavorited() ? 'Remove from favourites' : 'Add to favourites'"
             [attr.aria-pressed]="isFavorited()"
-            class="flex h-10 min-w-10 px-3 items-center justify-center gap-1.5 rounded-full bg-surface-card/20 backdrop-blur-md border border-white/20 hover:scale-105 transition-transform text-white text-xs font-semibold">
+            class="flex h-10 min-w-10 px-3 items-center justify-center gap-1.5 rounded-full bg-surface-card/20 dark:bg-surface-card/30 backdrop-blur-md border border-border/40 dark:border-white/20 hover:scale-105 hover:bg-surface-card dark:hover:bg-surface-card/60 transition-all text-text-primary dark:text-white shadow-xs text-xs font-semibold">
             <app-icon [name]="isFavorited() ? 'heart-filled' : 'heart'"
               class="h-5 w-5 text-primary-500 transition-colors" />
             @if (salonFavoritesCountLoading()) {
-              <app-inline-spinner sizeClass="w-3.5 h-3.5 text-white" label="Loading favourites count" />
+              <app-inline-spinner sizeClass="w-3.5 h-3.5 text-text-primary dark:text-white" label="Loading favourites count" />
             } @else if (salonFavoritesCount() !== null) {
               <span>{{ salonFavoritesCount() }}</span>
             }
@@ -47,7 +54,7 @@
 
       @if (!platform.isAppContext && !install.installed()) {
         <a [routerLink]="howToInstallLink"
-          class="absolute bottom-10 right-3 flex items-center gap-1.5 h-9 px-3 rounded-full bg-surface-card/20 backdrop-blur-md border border-white/20 text-white text-xs font-semibold hover:scale-105 transition-transform">
+          class="absolute bottom-10 right-3 flex items-center gap-1.5 h-9 px-3 rounded-full bg-surface-card/40 dark:bg-surface-card/40 backdrop-blur-md border border-border/40 dark:border-white/20 text-text-primary dark:text-white shadow-xs text-xs font-semibold hover:scale-105 hover:bg-surface-card dark:hover:bg-surface-card/60 transition-all">
           <app-icon name="download" class="h-3.5 w-3.5" />
           Get the app
         </a>
@@ -79,13 +86,13 @@
           <app-icon name="clock" class="w-4 h-4" />
           Book Appointment
         </button>
-        @if (s.phone && !visit.salonData()?.isFrozen) {
+        <!-- @if (s.phone && !visit.salonData()?.isFrozen) {
           <a [href]="'tel:' + s.phone"
             class="mt-5 w-full min-h-12 rounded-full bg-primary text-white text-sm font-normal flex items-center justify-center gap-2 hover:bg-surface-hover transition-colors">
             <app-icon name="phone" class="w-4 h-4" />
             Call
           </a>
-        }
+        } -->
       }
 
       <div class="mt-5">
@@ -140,12 +147,14 @@
 
       <!-- Header action buttons -->
       <div class="flex items-center gap-2.5 shrink-0 pt-1">
-        <button type="button" (click)="messageSalon()"
-          aria-label="Message salon"
-          title="Message salon"
-          class="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface-card hover:bg-surface-sunken hover:border-primary/30 transition-all text-text-primary shadow-xs">
-          <app-icon name="chat" class="h-4.5 w-4.5 text-primary" />
-        </button>
+        @if (enableChat) {
+          <button type="button" (click)="messageSalon()"
+            aria-label="Message salon"
+            title="Message salon"
+            class="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface-card hover:bg-surface-sunken hover:border-primary/30 transition-all text-text-primary shadow-xs">
+            <app-icon name="chat" class="h-4.5 w-4.5 text-primary" />
+          </button>
+        }
 
         <button type="button" (click)="shareSalon()"
           aria-label="Share this salon"
@@ -217,7 +226,7 @@
     </div>
 
     <!-- Tabs bar -->
-    <div class="mt-8 border-b border-border">
+    <div class="mt-8">
       <app-tabs [tabs]="landingTabs" [activeId]="activeTab()" (tabChange)="setTab($event)" />
     </div>
 
@@ -255,19 +264,21 @@
               </button>
             }
 
-            @if (s.phone && !visit.salonData()?.isFrozen) {
+            <!-- @if (s.phone && !visit.salonData()?.isFrozen) {
               <a [href]="'tel:' + s.phone"
                 class="w-full min-h-12 rounded-xl border border-primary text-primary text-sm font-semibold flex items-center justify-center gap-2 hover:bg-secondary-light transition-colors">
                 <app-icon name="phone" class="w-4 h-4" />
                 Call {{ s.phone }}
               </a>
-            }
+            } -->
 
-            <button type="button" (click)="messageSalon()"
-              class="w-full min-h-12 rounded-xl border border-border bg-surface text-text-primary text-sm font-semibold flex items-center justify-center gap-2 hover:bg-surface-sunken transition-colors">
-              <app-icon name="chat" class="w-4 h-4 text-primary" />
-              Message Salon
-            </button>
+            @if (enableChat) {
+              <button type="button" (click)="messageSalon()"
+                class="w-full min-h-12 rounded-xl border border-border bg-surface text-text-primary text-sm font-semibold flex items-center justify-center gap-2 hover:bg-surface-sunken transition-colors">
+                <app-icon name="chat" class="w-4 h-4 text-primary" />
+                Message Salon
+              </button>
+            }
           </div>
 
           <!-- Address & directions -->
@@ -338,6 +349,12 @@
               }
             </div>
           </div>
+           @if (directionsUrl !== '#') {
+                  <a [href]="directionsUrl" target="_blank" rel="noopener noreferrer"
+                    class="inline-block text-xs md:hidden font-semibold text-primary hover:underline mt-4.5">
+                    Get directions
+                  </a>
+                }
         }
       </div>
     } @else if (activeTab() === 'services') {

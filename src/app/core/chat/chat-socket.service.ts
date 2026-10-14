@@ -17,6 +17,7 @@ export class ChatSocketService implements OnDestroy {
   private readonly _platformId = inject(PLATFORM_ID);
 
   private _socket: Socket | null = null;
+  private _currentConversationId: string | null = null;
   private readonly _isBrowser = isPlatformBrowser(this._platformId);
 
   private readonly _messageReceived$ = new Subject<ConversationMessageDto>();
@@ -49,6 +50,12 @@ export class ChatSocketService implements OnDestroy {
         reconnection: true,
         reconnectionAttempts: 10,
         reconnectionDelay: 1000,
+      });
+
+      this._socket.on('connect', () => {
+        if (this._currentConversationId) {
+          this._socket?.emit('conversation:join', { conversationId: this._currentConversationId });
+        }
       });
 
       this._socket.on('connect_error', (err) => {
@@ -87,6 +94,7 @@ export class ChatSocketService implements OnDestroy {
     conversationId: string,
     ack?: (res: { status: 'joined' | 'forbidden' }) => void,
   ): void {
+    this._currentConversationId = conversationId;
     if (!this._socket?.connected) {
       this.connect();
     }
@@ -97,6 +105,9 @@ export class ChatSocketService implements OnDestroy {
     conversationId: string,
     ack?: (res: { status: 'left' }) => void,
   ): void {
+    if (this._currentConversationId === conversationId) {
+      this._currentConversationId = null;
+    }
     this._socket?.emit('conversation:leave', { conversationId }, ack);
   }
 
@@ -112,6 +123,7 @@ export class ChatSocketService implements OnDestroy {
     if (this._socket) {
       this._socket.disconnect();
       this._socket = null;
+      this._currentConversationId = null;
     }
   }
 

@@ -95,14 +95,9 @@ export const staffRoutes: Routes = [
         (m) => m.AppointmentsListComponent,
       ),
   },
+  // Staff chats now live in the Staff tab of the single /chat route.
   {
     path: `:${RouteParam.STAFF_ID}/${RouteSegment.CHATS}`,
-    title: 'Staff Chats',
-    canActivate: [salonRoleGuard],
-    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
-    loadComponent: () =>
-      import('../salons/staff-chat/selected-staff-chat.component').then(
-        (m) => m.SelectedStaffChatComponent,
-      ),
+    redirectTo: '/chat',
   },
 ];

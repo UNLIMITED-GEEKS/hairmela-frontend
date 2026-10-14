@@ -141,6 +141,9 @@ export class SalonLandingComponent implements OnInit {
   protected readonly salonFavoritesCount = signal<number | null>(null);
   protected readonly salonFavoritesCountLoading = signal(false);
 
+  // Temporarily hide chat on salon landing
+  protected readonly enableChat = false;
+
   protected messageSalon(): void {
     if (!this._currentUser.user()) {
       this._toast.info('Please sign in to message this salon');

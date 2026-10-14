@@ -1,21 +1,39 @@
-<div class="relative grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-2 mb-6 mt-6 mx-3">
+<div class="relative grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-2 mb-6 mt-6 mx-3">
   <app-back-button [variant]="backVariant() === 'plain' ? 'plain' : 'surface'" [fallbackRoute]="header.state().backFallback" />
   <h1 class="truncate text-center text-base font-semibold text-text-primary">{{ header.state().title }}</h1>
-  <div class="relative flex justify-end">
+  <div class="relative flex items-center justify-end gap-2">
     <ng-content select="[slot=actions]" />
     <button type="button" (click)="menuOpen.update(open => !open)"
       [attr.aria-expanded]="menuOpen()" aria-label="More options"
-      class="page-header-action flex h-10 w-10 items-center justify-center rounded-full bg-surface-overlay/50 text-text-primary hover:bg-surface-strong transition-colors">
+      class="relative page-header-action flex h-10 w-10 items-center justify-center rounded-full bg-surface-overlay/50 text-text-primary hover:bg-surface-strong transition-colors">
       <span class="text-xl leading-none" aria-hidden="true">⋮</span>
+      @if (currentUser.user() && chatService.unreadCount() > 0) {
+        <span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-surface animate-pulse"></span>
+      }
     </button>
     @if (menuOpen()) {
       <div animate.enter="header-menu-enter" animate.leave="header-menu-leave"
-        class="absolute right-0 top-full z-30 mt-2 min-w-36 rounded-xl border border-border bg-surface-card p-1 shadow-lg">
+        class="absolute right-0 top-full z-30 mt-2 min-w-40 rounded-xl border border-border bg-surface-card p-1 shadow-lg">
         @if (currentUser.user()) {
           <a [routerLink]="profileLink" (click)="menuOpen.set(false)"
             class="flex min-h-11 items-center rounded-lg px-3 text-sm text-text-primary hover:bg-surface-overlay">
             My Profile
           </a>
+          <a [routerLink]="chatLink()" (click)="menuOpen.set(false)"
+            class="flex min-h-11 items-center justify-between rounded-lg px-3 text-sm text-text-primary hover:bg-surface-overlay">
+            <span>Messages</span>
+            @if (chatService.unreadCount() > 0) {
+              <span class="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-primary text-white">
+                {{ chatService.unreadCount() }}
+              </span>
+            }
+          </a>
+          @if (managedSalon(); as ms) {
+            <a [routerLink]="['/chat']" [queryParams]="{ tab: 'salon' }" (click)="menuOpen.set(false)"
+              class="flex min-h-11 items-center justify-between rounded-lg px-3 text-sm text-text-primary hover:bg-surface-overlay">
+              <span class="truncate">Salon Inbox ({{ ms.salon.name }})</span>
+            </a>
+          }
           <a [routerLink]="favoritesLink" (click)="menuOpen.set(false)"
             class="flex min-h-11 items-center rounded-lg px-3 text-sm text-text-primary hover:bg-surface-overlay">
             Favourites

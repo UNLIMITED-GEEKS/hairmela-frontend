@@ -104,10 +104,15 @@ export class ChatService {
   }
 
   // ── 4.3 Customer Inbox List ────────────────────────────────────────────────
-  getCustomerConversations(page = 1, limit = 50): Observable<{ data: ConversationItemDto[]; meta: any }> {
+  getCustomerConversations(
+    page = 1,
+    limit = 50,
+    q?: string,
+  ): Observable<{ data: ConversationItemDto[]; meta: any }> {
     return customerChatControllerListMyConversations(this._http, this._apiConfig.rootUrl, {
       page,
       limit,
+      q: q?.trim() || undefined,
     }).pipe(
       map((res) => ({
         data: res.body.data ?? [],
@@ -122,11 +127,14 @@ export class ChatService {
     page = 1,
     limit = 50,
     staffId?: string,
+    q?: string,
   ): Observable<{ data: ConversationItemDto[]; meta: any }> {
     return salonChatControllerListSalonConversations(this._http, this._apiConfig.rootUrl, {
       salonId,
       page,
       limit,
+      staffId: staffId || undefined,
+      q: q?.trim() || undefined,
     }).pipe(
       map((res) => {
         let list = res.body.data ?? [];

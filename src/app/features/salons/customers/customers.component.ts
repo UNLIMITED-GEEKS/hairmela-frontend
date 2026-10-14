@@ -340,19 +340,31 @@ export class CustomersComponent implements OnInit {
   }
 
   protected getChatRoute(): string[] {
-    const salonId = this.salonId();
-    const staffId = this.salonContext.membership()?.staffId;
-    if (this.isStaffOnly() && staffId) {
-      return RoutePath.salonStaffChats(salonId, staffId);
-    }
-    return RoutePath.salonChats(salonId);
+    return RoutePath.chat();
   }
 
+  protected getChatParams(): Record<string, string> {
+    return this.isStaffOnly() ? { tab: 'clients' } : { tab: 'salon' };
+  }
+
+  /**
+   * Opens (or creates) a conversation with a customer.
+   *
+   * `staffId` decides which inbox the thread lives in:
+   *  - `null`      → salon chat (Customers → Salon tab; shows under "Salon Chats").
+   *  - a staff id  → that staff member's client chat (Customers → Staff tab; shows under
+   *                  that staff member's "Salon Client Chats" and the owner/admin "Staff" tab).
+   *  - omitted     → the caller's own staff id (staff working their own customer list).
+   */
   protected messageCustomer(
     customer: StaffFavoritedUserDto | SalonFavoritedUserDto | FavoritedCustomerDto,
+    staffIdOverride?: string | null,
   ): void {
     const salonId = this.salonId();
-    const staffId = this.salonContext.membership()?.staffId || undefined;
+    const staffId =
+      staffIdOverride === undefined
+        ? this.salonContext.membership()?.staffId || undefined
+        : staffIdOverride || undefined;
     const customerId = (customer as any).userId;
     const customerName =
       (customer as any).displayName ||
@@ -360,7 +372,7 @@ export class CustomersComponent implements OnInit {
       'Customer';
     this._chatService.createOrOpenConversation(salonId, staffId, { customerId, customerName }).subscribe({
       next: (conv) => {
-        this._router.navigate(RoutePath.salonChatThread(salonId, conv.id));
+        this._router.navigate(RoutePath.chatThread(conv.id), { state: { conversation: conv } });
       },
       error: (err) => {
         if (err?.status === 403) {

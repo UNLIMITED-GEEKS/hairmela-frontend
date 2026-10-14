@@ -1,7 +1,7 @@
 @if (variant() === 'glass') {
   <button type="button" (click)="goBack()"
     aria-label="Go back"
-    class="flex h-10 w-10 items-center justify-center rounded-full bg-surface-card/20 backdrop-blur-md border border-white/20 text-white hover:bg-surface-card/30 transition-colors">
+    class="flex h-10 w-10 items-center justify-center rounded-full bg-surface-card/40 dark:bg-surface-card/40 backdrop-blur-md border border-border/40 dark:border-white/20 text-text-primary dark:text-white shadow-xs hover:bg-surface-card dark:hover:bg-surface-card/60 transition-colors">
     <app-icon name="chevron-left" class="w-2 h-3.5" />
   </button>
 } @else if (variant() === 'surface') {

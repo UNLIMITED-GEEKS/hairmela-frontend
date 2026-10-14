@@ -119,20 +119,13 @@ export const salonRoutes: Routes = [
     loadComponent: () =>
       import('./customers/customers.component').then((m) => m.CustomersComponent),
   },
+  // Chat now lives on the single /chat route; keep old salon-scoped URLs working.
   {
     path: RouteSegment.CHATS,
-    title: 'Salon Messages',
-    canActivate: [salonRoleGuard],
-    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
-    loadComponent: () =>
-      import('./salon-chat/salon-chat.component').then((m) => m.SalonChatComponent),
+    redirectTo: '/chat',
   },
   {
     path: `${RouteSegment.CHATS}/:${RouteParam.CONVERSATION_ID}`,
-    title: 'Chat',
-    canActivate: [salonRoleGuard],
-    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },
-    loadComponent: () =>
-      import('../chat/chat-thread/chat-thread.component').then((m) => m.ChatThreadComponent),
+    redirectTo: `/chat/:${RouteParam.CONVERSATION_ID}`,
   },
 ];

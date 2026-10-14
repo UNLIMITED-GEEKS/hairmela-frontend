@@ -64,21 +64,14 @@
             </div>
           }
         }
-        @if (!isGuest()) {
-          <a [routerLink]="chatLink()"
-            aria-label="Messages"
-            class="relative page-header-action flex h-10 w-10 items-center justify-center rounded-full bg-surface-overlay/50 text-text-primary hover:bg-surface-strong transition-colors">
-            <app-icon name="chat" class="w-5 h-5 text-text-primary" />
-            @if (chatService.unreadCount() > 0) {
-              <span class="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-surface animate-pulse"></span>
-            }
-          </a>
-        }
         <div class="relative shrink-0">
           <button type="button" (click)="toggleMenu()"
             [attr.aria-expanded]="menuOpen()" aria-label="More options"
-            class="page-header-action flex h-10 w-10 items-center justify-center rounded-full bg-surface-overlay/50 text-text-primary hover:bg-surface-strong transition-colors">
+            class="relative page-header-action flex h-10 w-10 items-center justify-center rounded-full bg-surface-overlay/50 text-text-primary hover:bg-surface-strong transition-colors">
             <span class="text-xl leading-none" aria-hidden="true">⋮</span>
+            @if (!isGuest() && chatService.unreadCount() > 0) {
+              <span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-surface animate-pulse"></span>
+            }
           </button>
           @if (menuOpen()) {
             <div animate.enter="header-menu-enter" animate.leave="header-menu-leave"
@@ -97,6 +90,12 @@
                     </span>
                   }
                 </a>
+                @if (managedSalon(); as ms) {
+                  <a [routerLink]="['/chat']" [queryParams]="{ tab: 'salon' }" (click)="closeMenu()"
+                    class="flex min-h-11 items-center justify-between rounded-lg px-3 text-sm text-text-primary hover:bg-surface-overlay">
+                    <span class="truncate">Salon Inbox ({{ ms.salon.name }})</span>
+                  </a>
+                }
                 <a [routerLink]="favoritesLink" (click)="closeMenu()"
                   class="flex min-h-11 items-center rounded-lg px-3 text-sm text-text-primary hover:bg-surface-overlay">
                   Favourites

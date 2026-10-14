@@ -20,9 +20,19 @@ export interface ConversationResponseDto {
   salonId: string;
   salonLogoUrl?: string | null;
   salonName: string;
+
+  /**
+   * Unique salon slug for URL routing (/s/:salonSlug)
+   */
+  salonSlug: string;
   staffAvatarUrl?: string | null;
   staffId?: string | null;
   staffName?: string | null;
+
+  /**
+   * Active queue ID for the staff member, used to construct live queue link (/s/:salonSlug/q/:queueId)
+   */
+  staffQueueId?: string | null;
   status: 'ACTIVE' | 'ARCHIVED' | 'BLOCKED';
 
   /**

@@ -22,6 +22,16 @@ export interface SalonChatControllerListSalonConversations$Params {
  */
   limit?: number;
   page?: number;
+
+/**
+ * Search query across participant names, phone, salon, and messages
+ */
+  q?: string;
+
+/**
+ * Filter conversations by staff ID
+ */
+  staffId?: string;
 }
 
 export function salonChatControllerListSalonConversations(http: HttpClient, rootUrl: string, params: SalonChatControllerListSalonConversations$Params, context?: HttpContext): Observable<StrictHttpResponse<{
@@ -33,6 +43,8 @@ export function salonChatControllerListSalonConversations(http: HttpClient, root
     rb.path('salonId', params.salonId, {});
     rb.query('limit', params.limit, {});
     rb.query('page', params.page, {});
+    rb.query('q', params.q, {});
+    rb.query('staffId', params.staffId, {});
   }
 
   return http.request(

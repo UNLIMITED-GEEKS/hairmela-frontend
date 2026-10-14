@@ -109,7 +109,11 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
 
   protected readonly sheetOpen = signal(false);
   protected readonly appointmentRequest = this._staffAppointmentModal.request;
-  protected readonly quickAddRequest = signal<{ salonId: string; queueId: string; staffId: string } | null>(null);
+  protected readonly quickAddRequest = signal<{
+    salonId: string;
+    queueId: string;
+    staffId: string;
+  } | null>(null);
 
   constructor() {
     this._router.events
@@ -140,29 +144,19 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   );
   protected readonly canQuickAdd = computed(() => {
     const membership = this.quickAddMembership();
-    return !!membership &&
+    return (
+      !!membership &&
       ['OWNER', 'ADMIN', 'STAFF'].includes(membership.role) &&
       !!membership.queueId &&
-      !!membership.staffId;
+      !!membership.staffId
+    );
   });
   protected readonly isCustomer = computed(() => !this.quickAddMembership()?.isStaff);
   // Membership for displaySalonId — feeds shell-level navigation on pages
   // without a salon route. Page-level tier and role guards still use the
   // strict route-derived membership.
 
-  private readonly _chatUrl = computed(() => {
-    const sId = this._salonContext.activeSalonId() || this._salonContext.displaySalonId();
-    const role = this._salonContext.membership()?.role || this._salonContext.displayMembership()?.role;
-    if (sId && (role === SalonRole.OWNER || role === SalonRole.ADMIN || role === SalonRole.STAFF)) {
-      return RoutePath.salonChats(sId).join('/');
-    }
-    const mySalons = this._dashboardService.salons();
-    const ownerOrAdmin = mySalons.find((s) => s.role === 'OWNER' || s.role === 'ADMIN' || s.role === 'STAFF');
-    if (ownerOrAdmin) {
-      return RoutePath.salonChats(ownerOrAdmin.salon.id).join('/');
-    }
-    return RoutePath.chat()[0];
-  });
+  private readonly _chatUrl = computed(() => RoutePath.chat()[0]);
 
   protected readonly navItems = computed<NavItem[]>(() => {
     const savedItem: NavItem[] = !this.isCustomer()
