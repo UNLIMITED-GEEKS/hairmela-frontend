@@ -4,7 +4,7 @@
 export interface Media {
   createdAt: string;
   entityId: string;
-  entityType: 'USER' | 'SALON' | 'STAFF' | 'COMMENT' | 'RECEIPT';
+  entityType: 'USER' | 'SALON' | 'STAFF' | 'COMMENT' | 'RECEIPT' | 'CHAT';
   id: string;
   providerId: string;
   sortOrder: number;

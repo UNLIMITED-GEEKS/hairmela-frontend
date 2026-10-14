@@ -13,7 +13,7 @@ import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, firstValueFrom } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { ChatService } from '../../../core/chat/chat.service';
 import { ChatSocketService } from '../../../core/chat/chat-socket.service';
@@ -25,9 +25,11 @@ import {
   MessageSenderRole,
 } from '../../../core/chat/chat.types';
 import { ChatStatusIconComponent } from '../chat-status-icon/chat-status-icon.component';
+import { ChatAudioBubbleComponent } from '../chat-audio-bubble/chat-audio-bubble.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { uploadAdHocImage } from '../../../core/media/media-upload';
+import { publicMediaControllerPresignUpload } from '../../../api/fn/media/public-media-controller-presign-upload';
 import { BroadcastModalComponent } from '../../salons/salon-chat/broadcast-modal.component';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { SalonsStore } from '../../../core/salon-context/salons.store';
@@ -41,6 +43,7 @@ import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
     FormsModule,
     RouterLink,
     ChatStatusIconComponent,
+    ChatAudioBubbleComponent,
     IconComponent,
     BroadcastModalComponent,
     MediaUrlPipe,
@@ -266,15 +269,27 @@ import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
                 </div>
               }
 
-              <!-- Media attachment preview if present -->
+              <!-- Media attachment / Voice Note preview if present -->
               @if (msg.mediaUrl) {
-                <div class="mb-2 rounded-lg overflow-hidden border border-black/10">
-                  <img [src]="msg.mediaUrl" alt="Attachment" class="max-h-60 w-auto object-cover" />
-                </div>
+                @if (isAudio(msg)) {
+                  <app-chat-audio-bubble
+                    [audioUrl]="msg.mediaUrl"
+                    [duration]="msg.mediaDurationSeconds || 0"
+                    [isMine]="isMine(msg)"
+                    [avatarUrl]="msg.senderAvatarUrl || null"
+                    [senderName]="msg.senderDisplayName"
+                  />
+                } @else {
+                  <div class="mb-2 rounded-lg overflow-hidden border border-black/10">
+                    <img [src]="msg.mediaUrl" alt="Attachment" class="max-h-60 w-auto object-cover" />
+                  </div>
+                }
               }
 
-              <!-- Body text -->
-              <p class="whitespace-pre-wrap leading-relaxed">{{ msg.body }}</p>
+              <!-- Body text (only if non-empty) -->
+              @if (msg.body) {
+                <p class="whitespace-pre-wrap leading-relaxed">{{ msg.body }}</p>
+              }
 
               <!-- Footer with time & checkmarks -->
               <div
@@ -344,54 +359,112 @@ import { MediaUrlPipe } from '../../../shared/pipes/media-url.pipe';
             </div>
           }
 
-          <form (ngSubmit)="send()" class="p-3 flex items-center gap-2">
-            <!-- Attachment Button -->
-            <input
-              #chatFileInput
-              type="file"
-              accept="image/*"
-              class="hidden"
-              (change)="onFileSelected($event)"
-            />
-            <button
-              type="button"
-              (click)="chatFileInput.click()"
-              [disabled]="isBlocked() || uploadingMedia()"
-              class="p-2 rounded-full text-text-secondary hover:text-primary hover:bg-surface-overlay transition disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-              title="Attach image"
-              aria-label="Attach image"
-            >
-              @if (uploadingMedia()) {
-                <div class="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+          @if (isRecording()) {
+            <div class="p-3 flex items-center justify-between gap-3 bg-surface-sunken animate-fade-in">
+              <!-- Blinking red recording indicator + Timer -->
+              <div class="flex items-center gap-2.5 min-w-0">
+                <span class="relative flex h-3 w-3 shrink-0">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                </span>
+                <span class="text-sm font-semibold text-text-primary tabular-nums shrink-0">
+                  {{ formattedRecordingDuration() }}
+                </span>
+                <span class="text-xs text-text-muted truncate hidden sm:inline">Recording voice note...</span>
+              </div>
+
+              <!-- Cancel and Stop & Send Buttons -->
+              <div class="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  (click)="cancelRecording()"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-red-500 hover:bg-red-500/10 active:scale-95 transition"
+                  aria-label="Cancel recording"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <span>Cancel</span>
+                </button>
+
+                <button
+                  type="button"
+                  (click)="stopAndSendRecording()"
+                  class="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary-hover active:scale-95 transition shadow-sm"
+                  aria-label="Send voice note"
+                  title="Send voice note"
+                >
+                  <svg class="w-4 h-4 translate-x-0.5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          } @else {
+            <form (ngSubmit)="send()" class="p-3 flex items-center gap-2">
+              <!-- Attachment Button -->
+              <input
+                #chatFileInput
+                type="file"
+                accept="image/*"
+                class="hidden"
+                (change)="onFileSelected($event)"
+              />
+              <button
+                type="button"
+                (click)="chatFileInput.click()"
+                [disabled]="isBlocked() || uploadingMedia()"
+                class="p-2 rounded-full text-text-secondary hover:text-primary hover:bg-surface-overlay transition disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                title="Attach image"
+                aria-label="Attach image"
+              >
+                @if (uploadingMedia()) {
+                  <div class="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                } @else {
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+                }
+              </button>
+
+              <input
+                type="text"
+                [(ngModel)]="draft"
+                (ngModelChange)="onDraftChange()"
+                name="draft"
+                [disabled]="isBlocked() || uploadingMedia()"
+                [placeholder]="isBlocked() ? 'This conversation has been blocked' : 'Type a message...'"
+                autocomplete="off"
+                class="flex-1 bg-surface-sunken text-text-primary placeholder:text-text-disabled rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition border border-border focus:border-primary disabled:opacity-60 disabled:cursor-not-allowed"
+              />
+
+              @if (draft().trim() || pendingMediaUrl()) {
+                <button
+                  type="submit"
+                  [disabled]="isBlocked() || uploadingMedia()"
+                  class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary-hover active:scale-95 transition shadow-sm"
+                  aria-label="Send message"
+                >
+                  <svg class="w-4 h-4 translate-x-0.5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                  </svg>
+                </button>
               } @else {
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                </svg>
+                <button
+                  type="button"
+                  (click)="startRecording()"
+                  [disabled]="isBlocked() || uploadingMedia()"
+                  class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary-hover active:scale-95 transition shadow-sm"
+                  aria-label="Record voice note"
+                  title="Record voice note"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  </svg>
+                </button>
               }
-            </button>
-
-            <input
-              type="text"
-              [(ngModel)]="draft"
-              (ngModelChange)="onDraftChange()"
-              name="draft"
-              [disabled]="isBlocked()"
-              [placeholder]="isBlocked() ? 'This conversation has been blocked' : 'Type a message...'"
-              autocomplete="off"
-              class="flex-1 bg-surface-sunken text-text-primary placeholder:text-text-disabled rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition border border-border focus:border-primary disabled:opacity-60 disabled:cursor-not-allowed"
-            />
-
-            <button
-              type="submit"
-              [disabled]="(!draft().trim() && !pendingMediaUrl()) || isBlocked() || uploadingMedia()"
-              class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary-hover active:scale-95 transition shadow-sm"
-              aria-label="Send message"
-            >
-              <svg class="w-4 h-4 translate-x-0.5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-              </svg>
-            </button>
-          </form>
+            </form>
+          }
         }
       </footer>
 
@@ -437,11 +510,49 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
   protected readonly isPartnerTyping = signal<boolean>(false);
   protected readonly partnerTypingName = signal<string>('');
   protected readonly blockingAction = signal<boolean>(false);
+  protected readonly isRecording = signal<boolean>(false);
+  protected readonly recordingSeconds = signal<number>(0);
+
+  private _mediaRecorder: MediaRecorder | null = null;
+  private _mediaStream: MediaStream | null = null;
+  private _recordingTimer: ReturnType<typeof setInterval> | null = null;
+  private _audioChunks: Blob[] = [];
+  private _recordingStartTime = 0;
+  private _recordingMimeType = 'audio/webm';
+  private _recordingFileExt = 'webm';
 
   private _typingDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private _typingStopTimer: ReturnType<typeof setTimeout> | null = null;
   private _partnerTypingClearTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly _subs = new Subscription();
+
+  protected readonly formattedRecordingDuration = computed(() => {
+    const sec = this.recordingSeconds();
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  });
+
+  protected isAudio(msg: ConversationMessageDto): boolean {
+    if (
+      msg.mediaDurationSeconds !== undefined &&
+      msg.mediaDurationSeconds !== null &&
+      msg.mediaDurationSeconds > 0
+    ) {
+      return true;
+    }
+    if (!msg.mediaUrl) return false;
+    const url = msg.mediaUrl.toLowerCase();
+    return (
+      url.endsWith('.webm') ||
+      url.endsWith('.m4a') ||
+      url.endsWith('.mp3') ||
+      url.endsWith('.ogg') ||
+      url.endsWith('.wav') ||
+      url.endsWith('.aac') ||
+      url.endsWith('.mp4')
+    );
+  }
 
   protected readonly isBlocked = computed(() => {
     return this.conversation()?.status === 'BLOCKED';
@@ -856,6 +967,249 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
       });
   }
 
+  // ── Voice Notes (Audio Messages) ──────────────────────────────────────────
+
+  protected async startRecording(): Promise<void> {
+    if (this.isBlocked() || this.uploadingMedia()) return;
+
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      this._toast.error('Voice recording is not supported in this browser.');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this._mediaStream = stream;
+
+      const { mimeType, ext } = this._getSupportedAudioMimeType();
+      this._recordingMimeType = mimeType;
+      this._recordingFileExt = ext;
+      this._audioChunks = [];
+
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      this._mediaRecorder = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          this._audioChunks.push(event.data);
+        }
+      };
+
+      this._recordingStartTime = Date.now();
+      this.recordingSeconds.set(0);
+      this.isRecording.set(true);
+
+      // Live timer tick every second
+      this._recordingTimer = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - this._recordingStartTime) / 1000);
+        this.recordingSeconds.set(elapsed);
+        if (elapsed >= 600) {
+          // Max 10 minutes reached
+          this.stopAndSendRecording();
+        }
+      }, 1000);
+
+      recorder.start(250);
+    } catch (err: any) {
+      this._cleanupRecordingStream();
+      this.isRecording.set(false);
+      if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
+        this._toast.error('Microphone permission denied. Please allow microphone access to record voice notes.');
+      } else {
+        this._toast.error('Could not access microphone.');
+      }
+    }
+  }
+
+  protected cancelRecording(): void {
+    if (this._recordingTimer) {
+      clearInterval(this._recordingTimer);
+      this._recordingTimer = null;
+    }
+    if (this._mediaRecorder && this._mediaRecorder.state !== 'inactive') {
+      this._mediaRecorder.onstop = null;
+      this._mediaRecorder.stop();
+    }
+    this._cleanupRecordingStream();
+    this._audioChunks = [];
+    this.isRecording.set(false);
+    this.recordingSeconds.set(0);
+  }
+
+  protected stopAndSendRecording(): void {
+    if (!this.isRecording() || !this._mediaRecorder) return;
+
+    if (this._recordingTimer) {
+      clearInterval(this._recordingTimer);
+      this._recordingTimer = null;
+    }
+
+    const elapsedSeconds = Math.max(1, Math.min(600, Math.floor((Date.now() - this._recordingStartTime) / 1000)));
+
+    const recorder = this._mediaRecorder;
+    const mimeType = this._recordingMimeType || 'audio/webm';
+    const ext = this._recordingFileExt || 'webm';
+
+    recorder.onstop = async () => {
+      this._cleanupRecordingStream();
+      this.isRecording.set(false);
+      this.recordingSeconds.set(0);
+
+      const audioBlob = new Blob(this._audioChunks, { type: mimeType });
+      this._audioChunks = [];
+
+      if (audioBlob.size === 0) {
+        this._toast.error('No audio recorded.');
+        return;
+      }
+
+      await this._uploadAndSendVoiceNote(audioBlob, mimeType, ext, elapsedSeconds);
+    };
+
+    if (recorder.state !== 'inactive') {
+      recorder.stop();
+    }
+  }
+
+  private async _uploadAndSendVoiceNote(
+    blob: Blob,
+    mimeType: string,
+    ext: string,
+    durationSeconds: number,
+  ): Promise<void> {
+    const id = this.conversationId();
+    if (!id || this.isBlocked()) return;
+
+    this.uploadingMedia.set(true);
+
+    const clientMessageId =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : 'cli_' + Math.random().toString(36).slice(2, 11) + '_' + Date.now();
+
+    const user = this._currentUser.user();
+    let senderRole: MessageSenderRole = 'CUSTOMER';
+    const c = this.conversation();
+    if (c && user?.id && c.staffId && c.customerId !== user.id) {
+      senderRole = 'STAFF';
+    }
+
+    // Local object URL for instant, zero-latency playback preview
+    const localBlobUrl = URL.createObjectURL(blob);
+
+    // Optimistic voice message bubble
+    const optimisticMsg: ConversationMessageDto = {
+      id: 'opt_' + clientMessageId,
+      clientMessageId,
+      conversationId: id,
+      senderUserId: user?.id || 'u_me',
+      senderRole: senderRole as 'CUSTOMER' | 'STAFF',
+      senderDisplayName: user ? `${user.firstName} ${user.lastName}`.trim() : 'Me',
+      senderAvatarUrl: null,
+      body: '',
+      mediaUrl: localBlobUrl,
+      mediaDurationSeconds: durationSeconds,
+      status: 'PENDING',
+      isBroadcast: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.messages.set([...this.messages(), optimisticMsg]);
+    this._scrollToBottom();
+
+    try {
+      // 1. Request presigned upload URL from R2
+      const presignRes = await firstValueFrom(
+        publicMediaControllerPresignUpload(this._http, this._apiConfig.rootUrl, {
+          body: {
+            filename: `voice-note-${Date.now()}.${ext}`,
+            contentType: mimeType as any,
+            fileSize: blob.size,
+            entityType: 'CHAT',
+            type: 'GALLERY',
+          },
+        }),
+      );
+
+      const { uploadUrl, url: publicUrl } = presignRes.body;
+
+      // 2. Direct binary PUT upload to Cloudflare R2
+      const putRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': mimeType,
+        },
+        body: blob,
+      });
+
+      if (!putRes.ok) {
+        throw new Error(`R2 upload failed with status ${putRes.status}`);
+      }
+
+      // 3. Commit voice note message to thread
+      this._chatService
+        .sendMessage(id, {
+          clientMessageId,
+          body: '',
+          mediaUrl: publicUrl,
+          mediaDurationSeconds: durationSeconds,
+        })
+        .subscribe({
+          next: (saved) => {
+            this.uploadingMedia.set(false);
+            const list = this.messages();
+            const idx = list.findIndex((m) => m.clientMessageId === clientMessageId);
+            if (idx >= 0) {
+              const updated = [...list];
+              updated[idx] = saved;
+              this.messages.set(updated);
+            }
+          },
+          error: (err) => {
+            this.uploadingMedia.set(false);
+            if (err?.status === 403) {
+              this._toast.error(err?.error?.message || 'This conversation has been blocked.');
+              this.conversation.update((curr) => (curr ? { ...curr, status: 'BLOCKED' } : null));
+              this.messages.update((list) => list.filter((m) => m.clientMessageId !== clientMessageId));
+            } else {
+              this._toast.error('Failed to deliver voice note.');
+            }
+          },
+        });
+    } catch (err: any) {
+      this.uploadingMedia.set(false);
+      this.messages.update((list) => list.filter((m) => m.clientMessageId !== clientMessageId));
+      this._toast.error(err?.message || 'Failed to upload voice note.');
+    }
+  }
+
+  private _getSupportedAudioMimeType(): { mimeType: string; ext: string } {
+    if (typeof MediaRecorder === 'undefined') {
+      return { mimeType: 'audio/webm', ext: 'webm' };
+    }
+    const candidates = [
+      { mimeType: 'audio/webm;codecs=opus', ext: 'webm' },
+      { mimeType: 'audio/webm', ext: 'webm' },
+      { mimeType: 'audio/mp4', ext: 'm4a' },
+      { mimeType: 'audio/aac', ext: 'aac' },
+      { mimeType: 'audio/ogg', ext: 'ogg' },
+    ];
+    for (const c of candidates) {
+      if (MediaRecorder.isTypeSupported(c.mimeType)) {
+        return c;
+      }
+    }
+    return { mimeType: 'audio/webm', ext: 'webm' };
+  }
+
+  private _cleanupRecordingStream(): void {
+    if (this._mediaStream) {
+      this._mediaStream.getTracks().forEach((track) => track.stop());
+      this._mediaStream = null;
+    }
+    this._mediaRecorder = null;
+  }
+
   protected onScroll(): void {
     const el = this._scrollContainer?.nativeElement;
     if (!el) return;
@@ -923,6 +1277,7 @@ export class ChatThreadComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.cancelRecording();
     const id = this.conversationId();
     if (id) {
       this._socket.leaveConversation(id);

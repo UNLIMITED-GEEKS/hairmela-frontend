@@ -5,6 +5,11 @@ export interface ConversationLastMessageSnippetDto {
   body: string;
   createdAt: string;
   id: string;
+
+  /**
+   * Duration in seconds if last message is an audio voice note
+   */
+  mediaDurationSeconds?: number | null;
   senderRole: 'CUSTOMER' | 'STAFF';
   status: 'SENT' | 'DELIVERED' | 'READ';
 }

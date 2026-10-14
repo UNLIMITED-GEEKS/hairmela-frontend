@@ -17,6 +17,11 @@ export interface ConversationMessageResponseDto {
    * Whether this message is part of a broadcast announcement
    */
   isBroadcast: boolean;
+
+  /**
+   * Duration in seconds if this is an audio voice note
+   */
+  mediaDurationSeconds?: number | null;
   mediaUrl?: string | null;
   readAt?: string | null;
 

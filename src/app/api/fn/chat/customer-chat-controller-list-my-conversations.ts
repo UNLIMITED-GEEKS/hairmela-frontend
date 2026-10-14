@@ -16,12 +16,17 @@ export interface CustomerChatControllerListMyConversations$Params {
  * Number of conversation threads per page (1-100)
  */
   limit?: number;
-  page?: number;
 
 /**
- * Search query across participant names, salon, and messages
+ * Search query to filter conversations by participant names, phone, salon, or message body
  */
   q?: string;
+
+/**
+ * Filter conversations by staff ID (manager / owner view)
+ */
+  staffId?: string;
+  page?: number;
 }
 
 export function customerChatControllerListMyConversations(http: HttpClient, rootUrl: string, params?: CustomerChatControllerListMyConversations$Params, context?: HttpContext): Observable<StrictHttpResponse<{
@@ -31,8 +36,9 @@ export function customerChatControllerListMyConversations(http: HttpClient, root
   const rb = new RequestBuilder(rootUrl, customerChatControllerListMyConversations.PATH, 'get');
   if (params) {
     rb.query('limit', params.limit, {});
-    rb.query('page', params.page, {});
     rb.query('q', params.q, {});
+    rb.query('staffId', params.staffId, {});
+    rb.query('page', params.page, {});
   }
 
   return http.request(

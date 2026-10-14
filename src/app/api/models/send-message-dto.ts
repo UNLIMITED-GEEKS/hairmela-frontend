@@ -4,9 +4,9 @@
 export interface SendMessageDto {
 
   /**
-   * Message body text (1 to 4000 characters)
+   * Message body text (required if no mediaUrl is attached; optional for voice notes or photo captions)
    */
-  body: string;
+  body?: string;
 
   /**
    * Client-generated UUID nonce to ensure idempotent sends and prevent duplicate bubbles on reconnects
@@ -14,12 +14,17 @@ export interface SendMessageDto {
   clientMessageId: string;
 
   /**
-   * Optional storage driver provider ID for the image
+   * Duration in seconds if this is an audio voice note (1 to 600 seconds)
+   */
+  mediaDurationSeconds?: number;
+
+  /**
+   * Optional storage driver provider ID for the image or audio
    */
   mediaProviderId?: string;
 
   /**
-   * Optional media image URL
+   * Optional media image or audio voice note URL
    */
   mediaUrl?: string;
 }

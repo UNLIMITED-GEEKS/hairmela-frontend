@@ -263,7 +263,7 @@ export type ChatTab = 'my' | 'clients' | 'salon' | 'staff';
                         <app-chat-status-icon [status]="conv.lastMessage!.status" />
                       }
                       <span class="truncate">
-                        {{ conv.lastMessage?.body || (conv.type === 'BROADCAST' ? 'No broadcast announcements yet' : 'No messages yet') }}
+                        {{ lastMessageSnippet(conv) }}
                       </span>
                     </div>
                     @if (conv.unreadCount > 0) {
@@ -645,6 +645,22 @@ export class CustomerChatComponent implements OnInit {
     if (conv.type === 'BROADCAST') return 'All favourited customers';
     if (this._isCustomerView(conv)) return conv.staffName ? conv.salonName : '';
     return conv.customerPhone || '';
+  }
+
+  protected lastMessageSnippet(conv: ConversationItemDto): string {
+    const last = conv.lastMessage;
+    if (!last) {
+      return conv.type === 'BROADCAST' ? 'No broadcast announcements yet' : 'No messages yet';
+    }
+    if (!last.body && last.mediaDurationSeconds) {
+      const mins = Math.floor(last.mediaDurationSeconds / 60);
+      const secs = String(last.mediaDurationSeconds % 60).padStart(2, '0');
+      return `🎤 Voice message (${mins}:${secs})`;
+    }
+    if (!last.body) {
+      return 'Media message';
+    }
+    return last.body;
   }
 
   protected isLastMessageMine(conv: ConversationItemDto): boolean {

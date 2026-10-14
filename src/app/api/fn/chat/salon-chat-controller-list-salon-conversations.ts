@@ -21,17 +21,17 @@ export interface SalonChatControllerListSalonConversations$Params {
  * Number of conversation threads per page (1-100)
  */
   limit?: number;
-  page?: number;
 
 /**
- * Search query across participant names, phone, salon, and messages
+ * Search query to filter conversations by participant names, phone, salon, or message body
  */
   q?: string;
 
 /**
- * Filter conversations by staff ID
+ * Filter conversations by staff ID (manager / owner view)
  */
   staffId?: string;
+  page?: number;
 }
 
 export function salonChatControllerListSalonConversations(http: HttpClient, rootUrl: string, params: SalonChatControllerListSalonConversations$Params, context?: HttpContext): Observable<StrictHttpResponse<{
@@ -42,9 +42,9 @@ export function salonChatControllerListSalonConversations(http: HttpClient, root
   if (params) {
     rb.path('salonId', params.salonId, {});
     rb.query('limit', params.limit, {});
-    rb.query('page', params.page, {});
     rb.query('q', params.q, {});
     rb.query('staffId', params.staffId, {});
+    rb.query('page', params.page, {});
   }
 
   return http.request(
