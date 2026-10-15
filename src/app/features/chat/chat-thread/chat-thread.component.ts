@@ -719,6 +719,8 @@ export class ChatThreadComponent implements OnDestroy {
       this.hasMore.set(cached.hasMore);
       if (scrollOnOpen) this._scrollToBottom();
     }
+    // Cached messages are already visible, even while history refreshes.
+    if (scrollOnOpen && this.messages().length) this._markRead(conversationId);
 
     // 1. The inbox passes the conversation along via router state (survives refresh too).
     const stateConv =

@@ -502,7 +502,16 @@ export class ChatService {
         STATUS_ORDER[status] < STATUS_ORDER[last.status]
       )
         return conversation;
-      return { ...conversation, lastMessage: { ...last, status } };
+      const readLatest =
+        payload.status === 'READ' &&
+        payload.readerUserId === this._user.user()?.id &&
+        !!last.id &&
+        (last.id === payload.upToMessageId || last.id === payload.messageId);
+      return {
+        ...conversation,
+        lastMessage: { ...last, status },
+        unreadCount: readLatest ? 0 : conversation.unreadCount,
+      };
     });
   }
 

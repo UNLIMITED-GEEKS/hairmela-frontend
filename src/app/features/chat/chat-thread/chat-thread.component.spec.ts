@@ -126,6 +126,35 @@ describe('ChatThreadComponent route and cache integration', () => {
       .flush({ data: [message('a')], hasMore: false });
   });
 
+  it('marks visible cached messages read before the background history refresh finishes', async () => {
+    const received = { ...message('a'), senderUserId: 'customer', senderRole: 'CUSTOMER' as const };
+    const row = {
+      ...conversation('a'), customerId: 'customer', unreadCount: 1,
+      lastMessageAt: received.createdAt, lastMessage: received,
+    };
+    service.getSalonConversations('salon', 1, 100).subscribe();
+    http.expectOne((request) => request.url === '/v1/salons/salon/conversations')
+      .flush({ data: [row] });
+    service.getMessageHistory('a').subscribe();
+    http.expectOne((request) => request.url.endsWith('/a/messages'))
+      .flush({ data: [received], hasMore: false });
+
+    const harness = await RouterTestingHarness.create('/chat/a');
+    const refresh = http.expectOne((request) => request.url.endsWith('/a/messages'));
+    expect(harness.routeNativeElement!.textContent).toContain('Message for a');
+    const read = http.match((request) => request.method === 'PATCH' && request.url.endsWith('/a/read'));
+    // Leave while the background request is still pending.
+    await harness.navigateByUrl('/chat/b');
+    read.forEach((request) => request.flush({ success: true }));
+    http.match((request) => request.url.endsWith('/unread-count'))
+      .forEach((request) => request.flush({ unreadCount: 0 }));
+    refresh.flush({ data: [received], hasMore: false });
+    http.expectOne((request) => request.url.endsWith('/b/messages'))
+      .flush({ data: [], hasMore: false });
+    expect(read).toHaveLength(1);
+    expect(service.cachedSalonConversations('salon', 1, 100)!.data[0].unreadCount).toBe(0);
+  });
+
   it('reuses the existing message DOM node when a socket acknowledgement confirms an optimistic send', async () => {
     const harness = await RouterTestingHarness.create('/chat/a');
     http

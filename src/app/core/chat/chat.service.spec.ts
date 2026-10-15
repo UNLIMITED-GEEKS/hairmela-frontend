@@ -164,6 +164,54 @@ describe('ChatService cached state', () => {
     flushUnread();
   });
 
+  it('clears the cached salon inbox badge when I read its latest message', () => {
+    const row = {
+      ...conversation(), customerId: 'customer', unreadCount: 1,
+      lastMessage: { ...message('old'), senderUserId: 'customer', senderRole: 'CUSTOMER' as const },
+    };
+    service.getSalonConversations('salon-1', 1, 100).subscribe();
+    http.expectOne('/v1/salons/salon-1/conversations?limit=100&page=1').flush({ data: [row] });
+
+    statuses.next({
+      conversationId: 'thread-1',
+      upToMessageId: 'old',
+      readerUserId: 'me',
+      status: 'READ',
+    });
+
+    // Returning to the inbox renders this cached emission before refreshing.
+    const counts: number[] = [];
+    service.getSalonConversations('salon-1', 1, 100).subscribe((inbox) => {
+      counts.push(inbox.data[0].unreadCount);
+    });
+    http.expectOne('/v1/salons/salon-1/conversations?limit=100&page=1').flush({
+      data: [{ ...row, unreadCount: 0 }],
+    });
+    expect(counts).toEqual([0, 0]);
+  });
+
+  it('keeps unread badges for another reader or a newer message outside my read receipt', () => {
+    loadInbox();
+    messages.next(message('first', 10));
+    messages.next(message('second', 20));
+    statuses.next({
+      conversationId: 'thread-1', upToMessageId: 'second',
+      readerUserId: 'someone-else', status: 'READ',
+    });
+    expect(service.cachedCustomerConversations(1, 100)!.data[0].unreadCount).toBe(2);
+    statuses.next({
+      conversationId: 'thread-1', upToMessageId: 'first', readerUserId: 'me', status: 'READ',
+    });
+    expect(service.cachedCustomerConversations(1, 100)!.data[0].unreadCount).toBe(2);
+    statuses.next({
+      conversationId: 'thread-1', upToMessageId: 'second', readerUserId: 'me', status: 'READ',
+    });
+    expect(service.cachedCustomerConversations(1, 100)!.data[0].unreadCount).toBe(0);
+    messages.next(message('third', 30));
+    expect(service.cachedCustomerConversations(1, 100)!.data[0].unreadCount).toBe(1);
+    flushUnread();
+  });
+
   it('counts distinct messages with identical timestamps separately', () => {
     loadInbox();
     messages.next(message('first', 20));
