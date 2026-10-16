@@ -156,7 +156,7 @@
                       class="inline-block text-xs font-medium px-2.5 py-1 rounded-full border"
                       [class]="statusBadgeClasses(entry.status)"
                     >
-                      {{ entry.status }}
+                      {{ entry.status === "NO_SHOW" ? 'No-show' : entry.status }}
                     </span>
                   </div>
                 </div>
@@ -203,19 +203,75 @@
                          wrap rather than push the row wider. -->
                     <ul class="space-y-2">
                       @for (member of entry.members; track member.id) {
-                        <li
-                          class="flex flex-col gap-0.5 text-xs sm:flex-row sm:items-baseline sm:justify-between sm:gap-3"
-                        >
-                          <span class="min-w-0 font-medium text-text-body wrap-break-word">{{
-                            member.memberName
-                          }}</span>
-                          <span class="min-w-0 text-text-secondary wrap-break-word sm:text-right">
-                            @if (member.service?.name) {
-                              {{ member.service?.name }} · {{ member.durationSnapshot }} mins
-                            } @else {
-                              {{ member.durationSnapshot }} mins
+                        <li class="rounded-xl border border-border/40 bg-surface/50 p-2.5 space-y-2">
+                          <div class="flex items-center justify-between gap-2">
+                            <span class="min-w-0 font-medium text-xs text-text-body wrap-break-word">
+                              {{ member.memberName }}
+                            </span>
+                            @if (entry.status !== 'CANCELLED' && entry.status !== 'NO_SHOW') {
+                              <button
+                                type="button"
+                                (click)="openAddService(entry, member)"
+                                class="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary-hover px-2 py-0.5 rounded-md bg-primary/5 hover:bg-primary/10 transition-colors"
+                              >
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                <span>Add service</span>
+                              </button>
                             }
-                          </span>
+                          </div>
+
+                          @if (member.services && member.services.length > 0) {
+                            <div class="space-y-1.5 pl-1">
+                              @for (svc of member.services; track svc.id) {
+                                <div class="flex items-center justify-between gap-2 text-xs">
+                                  <span class="text-text-secondary truncate">
+                                    {{ svc.service?.name ?? 'Service' }} · {{ svc.durationSnapshot }} mins
+                                  </span>
+                                  <div class="flex items-center gap-1.5 shrink-0">
+                                    <span class="font-semibold text-text-primary">
+                                      {{ svc.priceSnapshot | currencyNgn: currencyCode() }}
+                                    </span>
+                                    @if (entry.status !== 'CANCELLED' && entry.status !== 'NO_SHOW' && canEditPrice()) {
+                                      <button
+                                        type="button"
+                                        (click)="openEditPrice(entry, member, svc)"
+                                        class="p-1 text-text-secondary hover:text-primary transition-colors rounded"
+                                        title="Edit price"
+                                        aria-label="Edit price"
+                                      >
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg>
+                                      </button>
+                                    }
+                                  </div>
+                                </div>
+                              }
+                              @if (member.services.length > 1) {
+                                <div class="flex items-center justify-between text-xs font-semibold text-primary pt-1 border-t border-border-subtle/50">
+                                  <span>Total</span>
+                                  <span>{{ calculateTotalMemberPrice(member.services) | currencyNgn: currencyCode() }}</span>
+                                </div>
+                              }
+                            </div>
+                          } @else {
+                            <div class="flex items-center justify-between text-xs text-text-secondary pl-1">
+                              <span>
+                                @if (member.service?.name) {
+                                  {{ member.service?.name }} · {{ member.durationSnapshot }} mins
+                                } @else {
+                                  {{ member.durationSnapshot }} mins
+                                }
+                              </span>
+                              @if (member.priceSnapshot) {
+                                <span class="font-semibold text-text-primary">
+                                  {{ member.priceSnapshot | currencyNgn: currencyCode() }}
+                                </span>
+                              }
+                            </div>
+                          }
                         </li>
                       }
                     </ul>
@@ -259,3 +315,30 @@
   (closed)="rescheduleEntry.set(null)"
   (rescheduled)="onRescheduled()"
 />
+
+@if (addServiceTarget(); as target) {
+  <app-add-member-services-modal
+    [open]="addServiceModalOpen()"
+    [memberName]="target.memberName"
+    actor="staff"
+    [availableServices]="availableServices()"
+    [currencyCode]="currencyCode()"
+    [showPrice]="true"
+    [loading]="addingServices()"
+    (closed)="closeAddService()"
+    (servicesSubmitted)="submitAddServices($event)"
+  />
+}
+
+@if (editPriceTarget(); as target) {
+  <app-edit-member-service-price-modal
+    [open]="editPriceModalOpen()"
+    [serviceName]="target.serviceName"
+    [currentPrice]="target.currentPrice"
+    [currencyCode]="currencyCode()"
+    [loading]="updatingPrice()"
+    (closed)="closeEditPrice()"
+    (priceSubmitted)="submitEditPrice($event)"
+  />
+}
+

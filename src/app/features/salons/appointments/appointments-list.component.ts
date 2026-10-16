@@ -1,8 +1,13 @@
-import { Component, OnInit, inject, signal, computed, viewChildren } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, viewChildren, DestroyRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { DatePipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ApiConfiguration } from '../../../api/api-configuration';
 import { AppointmentsCalendarService } from './appointments-calendar.service';
 import { QueueEntry } from '../../../api/models/queue-entry';
+import { QueueEntryMember } from '../../../api/models/queue-entry-member';
+import { QueueMemberService } from '../../../api/models/queue-member-service';
 import { RescheduleDialogComponent } from '../../visit/reschedule-dialog/reschedule-dialog.component';
 import { canReschedule } from '../../../core/appointments/reschedule-policy';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
@@ -13,7 +18,22 @@ import { RouteParam } from '../../../core/routing/route-paths';
 import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.component';
 import { canChatFromHistory, queueEntryHistoryDate } from './queue-entry-history.util';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
+import { SalonRole } from '../../../core/salon-context/membership.types';
 import { StaffAppointmentModalService } from '../../queue/staff-appointment-modal/staff-appointment-modal.service';
+import { SalonServicesCache } from '../../../core/appointments/salon-services-cache.service';
+import { ToastService } from '../../../core/toast/toast.service';
+import { CurrencyNgnPipe } from '../../../shared/pipes/currency-ngn.pipe';
+import {
+  AddMemberServicesModalComponent,
+  SelectableMemberService,
+} from '../../../shared/components/add-member-services-modal/add-member-services-modal.component';
+import { EditMemberServicePriceModalComponent } from '../../../shared/components/edit-member-service-price-modal/edit-member-service-price-modal.component';
+import { queueManagementControllerAddMemberServices } from '../../../api/fn/queues/queue-management-controller-add-member-services';
+import { queueManagementControllerUpdateMemberServicePrice } from '../../../api/fn/queues/queue-management-controller-update-member-service-price';
+import {
+  calculateTotalMemberPrice,
+  getMemberServiceErrorMessage,
+} from '../../../core/queue/member-services.util';
 
 function toIsoDate(d: Date): string {
   const yyyy = d.getFullYear();
@@ -39,12 +59,20 @@ type EntryFilter = 'ALL' | 'APPOINTMENTS' | 'WALK_INS';
     AccordionComponent,
     CommentsThreadComponent,
     RescheduleDialogComponent,
+    CurrencyNgnPipe,
+    AddMemberServicesModalComponent,
+    EditMemberServicePriceModalComponent,
   ],
 })
 export class AppointmentsListComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
   private readonly _salonContext = inject(SalonContextService);
   private readonly _staffAppointmentModal = inject(StaffAppointmentModalService);
+  private readonly _http = inject(HttpClient);
+  private readonly _apiConfig = inject(ApiConfiguration);
+  private readonly _destroyRef = inject(DestroyRef);
+  private readonly _toast = inject(ToastService);
+  private readonly _servicesCache = inject(SalonServicesCache);
   protected readonly calendar = inject(AppointmentsCalendarService);
 
   protected readonly isStaffScoped = computed(() => !!this._staffId);
@@ -52,6 +80,35 @@ export class AppointmentsListComponent implements OnInit {
     const membership = this._salonContext.membership();
     return !!membership?.queueId && !!membership.staffId;
   });
+  protected readonly canEditPrice = computed(() => {
+    const role = this._salonContext.membership()?.role;
+    return role === SalonRole.OWNER || role === SalonRole.ADMIN;
+  });
+
+  protected readonly currencyCode = computed(() => this._salonContext.currency() ?? null);
+  protected readonly availableServices = signal<SelectableMemberService[]>([]);
+
+  protected readonly addServiceModalOpen = signal(false);
+  protected readonly addServiceTarget = signal<{
+    entryId: string;
+    queueId: string;
+    memberId: string;
+    memberName: string;
+  } | null>(null);
+  protected readonly addingServices = signal(false);
+
+  protected readonly editPriceModalOpen = signal(false);
+  protected readonly editPriceTarget = signal<{
+    entryId: string;
+    queueId: string;
+    memberId: string;
+    selectionId: string;
+    serviceName: string;
+    currentPrice: string;
+  } | null>(null);
+  protected readonly updatingPrice = signal(false);
+
+  protected readonly calculateTotalMemberPrice = calculateTotalMemberPrice;
 
   // Only one entry's Notes accordion open at a time — same pattern as
   // queue-list's per-row Notes.
@@ -137,6 +194,116 @@ export class AppointmentsListComponent implements OnInit {
     // on arrival — same pattern as the booking modals' day auto-selection.
     this.selectedDate.set(toIsoDate(new Date()));
     this._loadMonth(this.viewedMonth());
+    this._loadServices();
+  }
+
+  private _loadServices(): void {
+    if (!this._salonId) return;
+    this._servicesCache
+      .forSalon(this._salonId)
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe((svcs) => {
+        this.availableServices.set(
+          svcs.map((s) => ({
+            id: s.id,
+            name: s.name,
+            duration: s.duration ?? 30,
+            price: s.price,
+          })),
+        );
+      });
+  }
+
+  protected openAddService(entry: QueueEntry, member: QueueEntryMember): void {
+    this.addServiceTarget.set({
+      entryId: entry.id,
+      queueId: entry.queueId,
+      memberId: member.id,
+      memberName: member.memberName,
+    });
+    this.addServiceModalOpen.set(true);
+  }
+
+  protected closeAddService(): void {
+    this.addServiceModalOpen.set(false);
+    this.addServiceTarget.set(null);
+  }
+
+  protected submitAddServices(serviceIds: string[]): void {
+    const target = this.addServiceTarget();
+    if (!target || serviceIds.length === 0) return;
+    this.addingServices.set(true);
+    queueManagementControllerAddMemberServices(this._http, this._apiConfig.rootUrl, {
+      salonId: this._salonId,
+      queueId: target.queueId,
+      entryId: target.entryId,
+      memberId: target.memberId,
+      body: { serviceIds },
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: () => {
+          this.addingServices.set(false);
+          this.closeAddService();
+          this._toast.success(serviceIds.length === 1 ? 'Service added.' : 'Services added.');
+          const { from, to } = this._monthRange(this.viewedMonth());
+          this.calendar.refresh(this._salonId, this._staffId, from, to);
+        },
+        error: (err: unknown) => {
+          this.addingServices.set(false);
+          this._toast.error(getMemberServiceErrorMessage(err));
+        },
+      });
+  }
+
+  protected openEditPrice(
+    entry: QueueEntry,
+    member: QueueEntryMember,
+    service: QueueMemberService,
+  ): void {
+    if (!this.canEditPrice()) return;
+    this.editPriceTarget.set({
+      entryId: entry.id,
+      queueId: entry.queueId,
+      memberId: member.id,
+      selectionId: service.id,
+      serviceName: service.service?.name ?? 'Service',
+      currentPrice: service.priceSnapshot,
+    });
+    this.editPriceModalOpen.set(true);
+  }
+
+  protected closeEditPrice(): void {
+    this.editPriceModalOpen.set(false);
+    this.editPriceTarget.set(null);
+  }
+
+  protected submitEditPrice(price: string): void {
+    const target = this.editPriceTarget();
+    if (!target || !this.canEditPrice()) return;
+    this.updatingPrice.set(true);
+    queueManagementControllerUpdateMemberServicePrice(this._http, this._apiConfig.rootUrl, {
+      salonId: this._salonId,
+      queueId: target.queueId,
+      entryId: target.entryId,
+      memberId: target.memberId,
+      selectionId: target.selectionId,
+      body: { price },
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: () => {
+          this.updatingPrice.set(false);
+          this.closeEditPrice();
+          this._toast.success('Price updated.');
+          const { from, to } = this._monthRange(this.viewedMonth());
+          this.calendar.refresh(this._salonId, this._staffId, from, to);
+        },
+        error: (err: unknown) => {
+          this.updatingPrice.set(false);
+          this._toast.error(getMemberServiceErrorMessage(err));
+        },
+      });
   }
 
   protected onMonthChange(month: Date): void {

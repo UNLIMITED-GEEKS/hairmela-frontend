@@ -38,6 +38,7 @@ import { publicQueueControllerGetQueue } from '../../api/fn/queues/public-queue-
 import { walkInControllerJoinQueue } from '../../api/fn/queues/walk-in-controller-join-queue';
 import { walkInControllerLeaveQueue } from '../../api/fn/queues/walk-in-controller-leave-queue';
 import { walkInControllerCancelMyMember } from '../../api/fn/queues/walk-in-controller-cancel-my-member';
+import { customerMemberServicesControllerAdd } from '../../api/fn/queues/customer-member-services-controller-add';
 import { availabilityControllerGetSlots } from '../../api/fn/schedules/availability-controller-get-slots';
 import { bookingControllerBookAppointment } from '../../api/fn/queues/booking-controller-book-appointment';
 import { AvailableSlotDto } from '../../api/models/available-slot-dto';
@@ -971,6 +972,35 @@ export class SalonVisitService implements Clearable {
           if (isApiError(apiBody) && apiBody.code === ErrorCodes.PARTY_TOO_LARGE) {
             this._toast.error('Party size exceeds the maximum allowed.');
           }
+        },
+      });
+  }
+
+  addCustomerMemberServices(
+    queueId: string,
+    entryId: string,
+    memberId: string,
+    serviceIds: string[],
+    onSuccess?: () => void,
+    onError?: (err: unknown) => void,
+  ): void {
+    customerMemberServicesControllerAdd(this._http, this._apiConfig.rootUrl, {
+      queueId,
+      entryId,
+      memberId,
+      body: { serviceIds },
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: () => {
+          this._toast.success(
+            serviceIds.length === 1 ? 'Service added.' : 'Services added.',
+          );
+          this._loadInitialTimeline(queueId);
+          onSuccess?.();
+        },
+        error: (err: unknown) => {
+          onError?.(err);
         },
       });
   }

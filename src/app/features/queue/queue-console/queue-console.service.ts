@@ -35,6 +35,8 @@ import { queueManagementControllerExtendMember } from '../../../api/fn/queues/qu
 import { queueManagementControllerMarkNoShow } from '../../../api/fn/queues/queue-management-controller-mark-no-show';
 import { queueManagementControllerCancelEntry } from '../../../api/fn/queues/queue-management-controller-cancel-entry';
 import { queueManagementControllerCancelMember } from '../../../api/fn/queues/queue-management-controller-cancel-member';
+import { queueManagementControllerAddMemberServices } from '../../../api/fn/queues/queue-management-controller-add-member-services';
+import { queueManagementControllerUpdateMemberServicePrice } from '../../../api/fn/queues/queue-management-controller-update-member-service-price';
 import { walkInControllerStaffAddToQueue } from '../../../api/fn/queues/walk-in-controller-staff-add-to-queue';
 import { staffBookingControllerStaffBookAppointment } from '../../../api/fn/queues/staff-booking-controller-staff-book-appointment';
 import { staffServicesControllerGetStaffServices } from '../../../api/fn/services/staff-services-controller-get-staff-services';
@@ -997,6 +999,76 @@ export class QueueConsoleService {
       });
   }
 
+  addMemberServices(
+    salonId: string,
+    queueId: string,
+    entryId: string,
+    memberId: string,
+    serviceIds: string[],
+    onSuccess?: () => void,
+    onError?: (err: unknown) => void,
+  ): void {
+    if (this.isLocked(entryId) || this.isLocked(memberId)) return;
+    this._beginPending(entryId, memberId);
+    queueManagementControllerAddMemberServices(this._http, this._apiConfig.rootUrl, {
+      salonId,
+      queueId,
+      entryId,
+      memberId,
+      body: { serviceIds },
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: () => {
+          this._clearPending(entryId, memberId);
+          this._toast.success(serviceIds.length === 1 ? 'Service added.' : 'Services added.');
+          this._silentRefetchTimeline(queueId);
+          onSuccess?.();
+        },
+        error: (err: unknown) => {
+          this._clearPending(entryId, memberId);
+          this._refetchTimeline(queueId);
+          onError?.(err);
+        },
+      });
+  }
+
+  updateMemberServicePrice(
+    salonId: string,
+    queueId: string,
+    entryId: string,
+    memberId: string,
+    selectionId: string,
+    price: string,
+    onSuccess?: () => void,
+    onError?: (err: unknown) => void,
+  ): void {
+    if (this.isLocked(entryId) || this.isLocked(memberId)) return;
+    this._beginPending(entryId, memberId);
+    queueManagementControllerUpdateMemberServicePrice(this._http, this._apiConfig.rootUrl, {
+      salonId,
+      queueId,
+      entryId,
+      memberId,
+      selectionId,
+      body: { price },
+    })
+      .pipe(takeUntilDestroyed(this._destroyRef))
+      .subscribe({
+        next: () => {
+          this._clearPending(entryId, memberId);
+          this._toast.success('Price updated.');
+          this._silentRefetchTimeline(queueId);
+          onSuccess?.();
+        },
+        error: (err: unknown) => {
+          this._clearPending(entryId, memberId);
+          this._refetchTimeline(queueId);
+          onError?.(err);
+        },
+      });
+  }
+
   // Best-guess wait for a client arriving right now, used only to paint the
   // optimistic temp entry before the server confirms. Math.max over already-
   // reported estimatedWaitMinutes is wrong when the queue has a SERVING entry
@@ -1070,6 +1142,16 @@ export class QueueConsoleService {
           phone: null,
           email: null,
           updatedAt: now,
+          services: [
+            {
+              id: `temp_svc_${crypto.randomUUID()}`,
+              serviceId: m.serviceId ?? null,
+              serviceName: svc?.service.name ?? null,
+              durationSnapshot: svc?.service.duration ?? 30,
+              priceSnapshot: svc?.service.price ? String(svc.service.price) : '0',
+              source: 'INITIAL',
+            },
+          ],
         };
       }),
     };
@@ -1209,6 +1291,16 @@ export class QueueConsoleService {
           phone: null,
           email: null,
           updatedAt: now,
+          services: [
+            {
+              id: `temp_svc_${crypto.randomUUID()}`,
+              serviceId: m.serviceId,
+              serviceName: svc?.service.name ?? null,
+              durationSnapshot: svc?.service.duration ?? 30,
+              priceSnapshot: svc?.service.price ? String(svc.service.price) : '0',
+              source: 'INITIAL',
+            },
+          ],
         };
       }),
     };

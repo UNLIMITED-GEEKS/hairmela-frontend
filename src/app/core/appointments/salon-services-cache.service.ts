@@ -8,6 +8,8 @@ import { CacheRegistry, Clearable } from '../caching/cache-registry/cache-regist
 export interface ServiceOption {
   readonly id: string;
   readonly name: string;
+  readonly duration?: number;
+  readonly price?: string;
   /** Staff who perform this service — lets callers narrow to one barber. */
   readonly staffIds: readonly string[];
 }
@@ -54,6 +56,8 @@ export class SalonServicesCache implements Clearable {
           .map((svc) => ({
             id: svc.id,
             name: svc.name,
+            duration: svc.duration,
+            price: svc.price,
             staffIds: svc.assignedStaffIds,
           })),
       ),

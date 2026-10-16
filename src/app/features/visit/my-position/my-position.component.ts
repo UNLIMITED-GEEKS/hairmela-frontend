@@ -27,6 +27,19 @@ import { ordinalSuffix } from '../../../core/utils/queue-format';
 import { AddToCalendarComponent } from '../../../shared/components/add-to-calendar/add-to-calendar.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { ThemeService } from '../../../core/theme/theme.service';
+import { CurrencyNgnPipe } from '../../../shared/pipes/currency-ngn.pipe';
+import { ToastService } from '../../../core/toast/toast.service';
+import { TimelineMemberDto } from '../../../api/models/timeline-member-dto';
+import {
+  AddMemberServicesModalComponent,
+  SelectableMemberService,
+} from '../../../shared/components/add-member-services-modal/add-member-services-modal.component';
+import {
+  calculateTotalMemberPrice,
+  getCustomerRemainingAdditions,
+  getMemberServiceIds,
+  getMemberServiceErrorMessage,
+} from '../../../core/queue/member-services.util';
 
 // Ring geometry — must match the r="125" circle in the template's SVG. Kept
 // smaller than the tick-marks' inner edge (~143, per queue-ticks.svg's major
@@ -51,6 +64,8 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
     DatePipe,
     AddToCalendarComponent,
     IconComponent,
+    CurrencyNgnPipe,
+    AddMemberServicesModalComponent,
   ],
 })
 export class MyPositionComponent {
@@ -62,10 +77,30 @@ export class MyPositionComponent {
   private readonly _fb = inject(FormBuilder);
   private readonly _push = inject(PushService);
   private readonly _destroyRef = inject(DestroyRef);
+  private readonly _toast = inject(ToastService);
 
   protected readonly ringCircumference = RING_CIRCUMFERENCE;
 
   protected readonly showAddKidsModal = signal(false);
+  protected readonly addServiceModalOpen = signal(false);
+  protected readonly addServiceTargetMember = signal<TimelineMemberDto | null>(null);
+  protected readonly addingServices = signal(false);
+
+  protected readonly calculateTotalMemberPrice = calculateTotalMemberPrice;
+  protected readonly getCustomerRemainingAdditions = getCustomerRemainingAdditions;
+  protected readonly getMemberServiceIds = getMemberServiceIds;
+
+  protected readonly selectableServices = computed<SelectableMemberService[]>(() => {
+    const staff = this.visit.staffForQueue(this._queueId());
+    const svcs = staff ? this.visit.staffServices(staff) : this.visit.services();
+    return svcs.map((s) => ({
+      id: s.id,
+      name: s.name,
+      duration: s.duration,
+      price: s.price,
+    }));
+  });
+
   protected readonly notesOpen = signal(false);
   private readonly _commentsThread = viewChild(CommentsThreadComponent);
 
@@ -369,6 +404,37 @@ export class MyPositionComponent {
       this.membersArray.clear();
       this.closeAddKids();
     });
+  }
+
+  protected openAddService(member: TimelineMemberDto): void {
+    this.addServiceTargetMember.set(member);
+    this.addServiceModalOpen.set(true);
+  }
+
+  protected closeAddService(): void {
+    this.addServiceModalOpen.set(false);
+    this.addServiceTargetMember.set(null);
+  }
+
+  protected submitAddServices(serviceIds: string[]): void {
+    const member = this.addServiceTargetMember();
+    if (!member || serviceIds.length === 0) return;
+    this.addingServices.set(true);
+    this.visit.addCustomerMemberServices(
+      this._queueId(),
+      this._entryId(),
+      member.memberId,
+      serviceIds,
+      () => {
+        this.addingServices.set(false);
+        this.closeAddService();
+        this._fetchEntryStatus(this._queueId(), this._entryId());
+      },
+      (err) => {
+        this.addingServices.set(false);
+        this._toast.error(getMemberServiceErrorMessage(err));
+      },
+    );
   }
 
   // Unlike leaveQueue(), no navigation on success: removing one non-leader

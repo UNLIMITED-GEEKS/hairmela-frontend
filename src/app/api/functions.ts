@@ -253,6 +253,8 @@ export type { GuestEntriesControllerGetGuestEntryHistory$Params as GuestEntriesC
 export { guestEntriesControllerGetGuestEntryHistory as guestEntriesControllerGetGuestEntryHistory } from './fn/queues/guest-entries-controller-get-guest-entry-history';
 export type { EntryStatusControllerGetEntry$Params as EntryStatusControllerGetEntry$Params } from './fn/queues/entry-status-controller-get-entry';
 export { entryStatusControllerGetEntry as entryStatusControllerGetEntry } from './fn/queues/entry-status-controller-get-entry';
+export type { CustomerMemberServicesControllerAdd$Params as CustomerMemberServicesControllerAdd$Params } from './fn/queues/customer-member-services-controller-add';
+export { customerMemberServicesControllerAdd as customerMemberServicesControllerAdd } from './fn/queues/customer-member-services-controller-add';
 export type { PublicQueueControllerGetQueue$Params as PublicQueueControllerGetQueue$Params } from './fn/queues/public-queue-controller-get-queue';
 export { publicQueueControllerGetQueue as publicQueueControllerGetQueue } from './fn/queues/public-queue-controller-get-queue';
 export type { PublicQueueControllerGetTimeline$Params as PublicQueueControllerGetTimeline$Params } from './fn/queues/public-queue-controller-get-timeline';
@@ -271,6 +273,10 @@ export type { QueueManagementControllerCompleteMember$Params as QueueManagementC
 export { queueManagementControllerCompleteMember as queueManagementControllerCompleteMember } from './fn/queues/queue-management-controller-complete-member';
 export type { QueueManagementControllerExtendMember$Params as QueueManagementControllerExtendMember$Params } from './fn/queues/queue-management-controller-extend-member';
 export { queueManagementControllerExtendMember as queueManagementControllerExtendMember } from './fn/queues/queue-management-controller-extend-member';
+export type { QueueManagementControllerAddMemberServices$Params as QueueManagementControllerAddMemberServices$Params } from './fn/queues/queue-management-controller-add-member-services';
+export { queueManagementControllerAddMemberServices as queueManagementControllerAddMemberServices } from './fn/queues/queue-management-controller-add-member-services';
+export type { QueueManagementControllerUpdateMemberServicePrice$Params as QueueManagementControllerUpdateMemberServicePrice$Params } from './fn/queues/queue-management-controller-update-member-service-price';
+export { queueManagementControllerUpdateMemberServicePrice as queueManagementControllerUpdateMemberServicePrice } from './fn/queues/queue-management-controller-update-member-service-price';
 export type { QueueManagementControllerCancelMember$Params as QueueManagementControllerCancelMember$Params } from './fn/queues/queue-management-controller-cancel-member';
 export { queueManagementControllerCancelMember as queueManagementControllerCancelMember } from './fn/queues/queue-management-controller-cancel-member';
 export type { QueueManagementControllerCompleteAllMembers$Params as QueueManagementControllerCompleteAllMembers$Params } from './fn/queues/queue-management-controller-complete-all-members';

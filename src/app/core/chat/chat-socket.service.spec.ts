@@ -46,8 +46,12 @@ describe('ChatSocketService lifecycle', () => {
       ],
     });
     service = TestBed.inject(ChatSocketService);
+    service.disconnect();
   });
-  afterEach(() => TestBed.resetTestingModule());
+  afterEach(() => {
+    service.ngOnDestroy();
+    TestBed.resetTestingModule();
+  });
 
   it('uses the current access token for every handshake and keeps retrying after long outages', () => {
     service.connect();

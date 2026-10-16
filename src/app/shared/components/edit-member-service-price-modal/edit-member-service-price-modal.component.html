@@ -1,0 +1,93 @@
+@if (open()) {
+  <div
+    animate.enter="modal-backdrop-enter"
+    animate.leave="modal-backdrop-leave"
+    class="fixed inset-0 z-50 flex items-center justify-center px-4"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="'Edit price for ' + serviceName()"
+  >
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-xs" (click)="close()"></div>
+    <div
+      animate.enter="modal-card-enter"
+      animate.leave="modal-card-leave"
+      class="relative w-full max-w-sm bg-surface-card rounded-3xl p-5 z-10 flex flex-col shadow-xl border border-border"
+    >
+      <!-- Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-border-subtle">
+        <div class="min-w-0 flex-1 pr-2">
+          <h2 class="text-base font-bold text-text-primary truncate">
+            Edit price
+          </h2>
+          <p class="text-xs text-text-secondary truncate">
+            {{ serviceName() }}
+          </p>
+        </div>
+        <button
+          type="button"
+          (click)="close()"
+          [disabled]="loading()"
+          class="min-w-9 min-h-9 flex items-center justify-center rounded-full text-text-secondary hover:text-text-primary hover:bg-surface-sunken transition-colors"
+          aria-label="Close"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Price Form -->
+      <div class="py-4">
+        <label for="priceInput" class="block text-xs font-semibold text-text-secondary mb-1.5">
+          Service price ({{ currencySign }})
+        </label>
+        <div class="relative">
+          <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-text-muted select-none">
+            {{ currencySign }}
+          </span>
+          <input
+            id="priceInput"
+            type="text"
+            inputmode="decimal"
+            [formControl]="priceControl"
+            placeholder="0.00"
+            (keydown.enter)="submit()"
+            class="w-full pl-8 pr-4 py-2.5 rounded-2xl border border-border bg-surface text-base font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+            [class.border-red-500]="priceControl.invalid && (priceControl.dirty || priceControl.touched)"
+          />
+        </div>
+        @if (priceControl.invalid && (priceControl.dirty || priceControl.touched)) {
+          <p class="mt-1.5 text-xs text-red-500">
+            Enter a valid price (e.g. 2500 or 2500.50).
+          </p>
+        }
+      </div>
+
+      <!-- Actions -->
+      <div class="pt-2 flex gap-2">
+        <button
+          type="button"
+          (click)="close()"
+          [disabled]="loading()"
+          class="flex-1 min-h-11 rounded-2xl border border-border bg-surface-card text-text-primary font-semibold text-sm hover:bg-surface-sunken transition-colors disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          (click)="submit()"
+          [disabled]="priceControl.invalid || loading()"
+          class="flex-1 min-h-11 rounded-2xl bg-primary text-white font-semibold text-sm hover:bg-primary-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          @if (loading()) {
+            <app-inline-spinner />
+            <span>Saving...</span>
+          } @else {
+            <span>Save price</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+

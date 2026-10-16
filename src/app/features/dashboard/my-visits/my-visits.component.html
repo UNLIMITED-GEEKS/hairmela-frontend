@@ -27,7 +27,7 @@
 
       <span class="shrink-0 text-xs font-medium px-2 py-0.5 rounded-full capitalize"
         [class]="entry.status === 'SERVING' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'">
-        {{ entry.status.toLowerCase() }}
+        {{ entry.status.toLowerCase() === 'NO_SHOW' ? 'no-show' : entry.status.toLowerCase() }}
       </span>
 
       <svg class="shrink-0 w-4 h-4 text-text-disabled" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

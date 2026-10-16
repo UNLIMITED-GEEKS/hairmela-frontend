@@ -17,6 +17,18 @@ import { copyToClipboard } from '../../../core/clipboard/copy-to-clipboard';
 import { AddClientModalComponent } from '../add-client-modal/add-client-modal.component';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { SalonRole } from '../../../core/salon-context/membership.types';
+import { CurrencyNgnPipe } from '../../../shared/pipes/currency-ngn.pipe';
+import { TimelineMemberDto } from '../../../api/models/timeline-member-dto';
+import { TimelineMemberServiceDto } from '../../../api/models/timeline-member-service-dto';
+import {
+  AddMemberServicesModalComponent,
+  SelectableMemberService,
+} from '../../../shared/components/add-member-services-modal/add-member-services-modal.component';
+import { EditMemberServicePriceModalComponent } from '../../../shared/components/edit-member-service-price-modal/edit-member-service-price-modal.component';
+import {
+  calculateTotalMemberPrice,
+  getMemberServiceErrorMessage,
+} from '../../../core/queue/member-services.util';
 
 @Component({
   selector: 'app-queue-list',
@@ -31,6 +43,9 @@ import { SalonRole } from '../../../core/salon-context/membership.types';
     PushPromptComponent,
     IconComponent,
     AddClientModalComponent,
+    CurrencyNgnPipe,
+    AddMemberServicesModalComponent,
+    EditMemberServicePriceModalComponent,
   ],
 })
 export class QueueListComponent implements OnInit {
@@ -42,6 +57,36 @@ export class QueueListComponent implements OnInit {
   private readonly _staffService = inject(StaffService);
   private readonly _salonContext = inject(SalonContextService);
   protected readonly soundPreference = inject(QueueSoundPreferenceService);
+
+  protected readonly salonCurrency = computed(() => this._salonContext.currency() ?? null);
+  protected readonly calculateTotalMemberPrice = calculateTotalMemberPrice;
+  protected readonly selectableStaffServices = computed<SelectableMemberService[]>(() =>
+    this.console.staffServices().map((s) => ({
+      id: s.serviceId,
+      name: s.service.name,
+      duration: s.service.duration,
+      price: s.service.price,
+    })),
+  );
+
+  protected readonly addServiceModalOpen = signal(false);
+  protected readonly addServiceTarget = signal<{ entryId: string; member: TimelineMemberDto } | null>(null);
+  protected readonly addingServices = signal(false);
+
+  protected readonly editPriceModalOpen = signal(false);
+  protected readonly editPriceTarget = signal<{
+    entryId: string;
+    memberId: string;
+    selectionId: string;
+    serviceName: string;
+    currentPrice: string;
+  } | null>(null);
+  protected readonly updatingPrice = signal(false);
+
+  protected readonly canEditPrice = computed(() => {
+    const role = this._salonContext.membership()?.role;
+    return role === SalonRole.OWNER || role === SalonRole.ADMIN;
+  });
 
   protected readonly showAddClientModal = signal(false);
   protected readonly canAddClientForStaff = computed(() => {
@@ -182,5 +227,79 @@ export class QueueListComponent implements OnInit {
 
   protected copyPhone(phone: string): void {
     copyToClipboard(this._toast, phone, 'Phone number');
+  }
+
+  protected openAddService(entry: TimelineEntryDto, member: TimelineMemberDto): void {
+    this.addServiceTarget.set({ entryId: entry.entryId, member });
+    this.addServiceModalOpen.set(true);
+  }
+
+  protected closeAddService(): void {
+    this.addServiceModalOpen.set(false);
+    this.addServiceTarget.set(null);
+  }
+
+  protected submitAddServices(serviceIds: string[]): void {
+    const target = this.addServiceTarget();
+    if (!target) return;
+    this.addingServices.set(true);
+    this.console.addMemberServices(
+      this._salonId,
+      this._queueId,
+      target.entryId,
+      target.member.memberId,
+      serviceIds,
+      () => {
+        this.addingServices.set(false);
+        this.closeAddService();
+      },
+      (err) => {
+        this.addingServices.set(false);
+        this._toast.error(getMemberServiceErrorMessage(err));
+      },
+    );
+  }
+
+  protected openEditPrice(
+    entry: TimelineEntryDto,
+    member: TimelineMemberDto,
+    service: TimelineMemberServiceDto,
+  ): void {
+    if (!this.canEditPrice()) return;
+    this.editPriceTarget.set({
+      entryId: entry.entryId,
+      memberId: member.memberId,
+      selectionId: service.id,
+      serviceName: service.serviceName ?? 'Service',
+      currentPrice: service.priceSnapshot,
+    });
+    this.editPriceModalOpen.set(true);
+  }
+
+  protected closeEditPrice(): void {
+    this.editPriceModalOpen.set(false);
+    this.editPriceTarget.set(null);
+  }
+
+  protected submitEditPrice(price: string): void {
+    const target = this.editPriceTarget();
+    if (!target || !this.canEditPrice()) return;
+    this.updatingPrice.set(true);
+    this.console.updateMemberServicePrice(
+      this._salonId,
+      this._queueId,
+      target.entryId,
+      target.memberId,
+      target.selectionId,
+      price,
+      () => {
+        this.updatingPrice.set(false);
+        this.closeEditPrice();
+      },
+      (err) => {
+        this.updatingPrice.set(false);
+        this._toast.error(getMemberServiceErrorMessage(err));
+      },
+    );
   }
 }

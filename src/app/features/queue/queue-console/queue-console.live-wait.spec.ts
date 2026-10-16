@@ -34,6 +34,7 @@ function member(over: Partial<TimelineMemberDto> = {}): TimelineMemberDto {
     serviceName: 'Cut',
     status: 'WAITING',
     updatedAt: new Date().toISOString(),
+    services: [],
     ...over,
   };
 }

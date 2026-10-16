@@ -18,7 +18,7 @@ export interface SalonsControllerGetCustomers$Params {
   salonId: string;
 
 /**
- * Filter scope: salon, staff, or all (combined)
+ * Filter scope: salon, staff, or all (combined). Includes favourites and registered customers with at least one SERVED entry, including archived entries.
  */
   scope?: 'salon' | 'staff' | 'all';
 

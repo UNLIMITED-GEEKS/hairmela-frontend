@@ -1,0 +1,210 @@
+@if (open()) {
+  <div
+    animate.enter="modal-backdrop-enter"
+    animate.leave="modal-backdrop-leave"
+    class="fixed inset-0 z-50 flex items-center justify-center px-4"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="'Add services for ' + memberName()"
+  >
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-xs" (click)="close()"></div>
+    <div
+      animate.enter="modal-card-enter"
+      animate.leave="modal-card-leave"
+      class="relative w-full max-w-md bg-surface-card rounded-3xl p-5 z-10 max-h-[85vh] flex flex-col shadow-xl border border-border"
+    >
+      <!-- Header -->
+      <div class="shrink-0 flex items-center justify-between pb-3 border-b border-border-subtle">
+        <div class="min-w-0 flex-1 pr-2">
+          <h2 class="text-base font-bold text-text-primary truncate">
+            Add service
+          </h2>
+          <p class="text-xs text-text-secondary truncate">
+            For {{ memberName() }}
+          </p>
+        </div>
+        <button
+          type="button"
+          (click)="close()"
+          [disabled]="loading()"
+          class="min-w-9 min-h-9 flex items-center justify-center rounded-full text-text-secondary hover:text-text-primary hover:bg-surface-sunken transition-colors"
+          aria-label="Close"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Customer allowance hint -->
+      @if (actor() === 'customer') {
+        <div class="shrink-0 mt-3 p-3 rounded-2xl bg-secondary-light/60 border border-primary/20 text-xs text-text-body">
+          @if (remainingCustomerAdditions() <= 0) {
+            <p class="font-medium text-warning">
+              You have reached the limit of 2 extra services for this person. Please ask your stylist to add more.
+            </p>
+          } @else {
+            <p>
+              You can choose up to <span class="font-bold text-primary">{{ remainingCustomerAdditions() }}</span> extra {{ remainingCustomerAdditions() === 1 ? 'service' : 'services' }}.
+            </p>
+          }
+        </div>
+      }
+
+      <!-- Services List -->
+      <div class="flex-1 overflow-y-auto space-y-2 py-3 themed-scrollbar min-h-40">
+        @if (availableServices().length === 0) {
+          <div class="py-10 text-center text-xs text-text-disabled">
+            No services available to add.
+          </div>
+        } @else {
+          @for (service of availableServices(); track service.id) {
+            @if (actor() === 'customer') {
+              <!-- Customer service row -->
+              <button
+                type="button"
+                [disabled]="isCustomerDisabled(service.id) || loading()"
+                (click)="toggleCustomerService(service.id)"
+                class="w-full text-left p-3 rounded-2xl border transition-all flex items-center justify-between gap-3"
+                [class.border-primary]="isCustomerSelected(service.id)"
+                [class.bg-primary/5]="isCustomerSelected(service.id)"
+                [class.border-border]="!isCustomerSelected(service.id)"
+                [class.bg-surface]="!isCustomerSelected(service.id)"
+                [class.opacity-50]="isExisting(service.id) || (isCustomerDisabled(service.id) && !isCustomerSelected(service.id))"
+              >
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-semibold text-text-primary truncate">
+                      {{ service.name }}
+                    </span>
+                    @if (isExisting(service.id)) {
+                      <span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-surface-sunken text-text-disabled shrink-0">
+                        Already added
+                      </span>
+                    }
+                  </div>
+                  <div class="flex items-center gap-2 text-xs text-text-secondary mt-0.5">
+                    <span>{{ service.duration }} mins</span>
+                    @if (showPrice() && service.price) {
+                      <span>·</span>
+                      <span class="font-medium text-text-primary">
+                        {{ service.price | currencyNgn: currencyCode() }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div
+                  class="w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors"
+                  [class.bg-primary]="isCustomerSelected(service.id)"
+                  [class.border-primary]="isCustomerSelected(service.id)"
+                  [class.border-border-strong]="!isCustomerSelected(service.id)"
+                >
+                  @if (isCustomerSelected(service.id)) {
+                    <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
+                  }
+                </div>
+              </button>
+            } @else {
+              <!-- Staff service row with quantity stepper -->
+              <div
+                class="p-3 rounded-2xl border border-border bg-surface flex items-center justify-between gap-3"
+              >
+                <div class="min-w-0 flex-1">
+                  <span class="block text-sm font-semibold text-text-primary truncate">
+                    {{ service.name }}
+                  </span>
+                  <div class="flex items-center gap-2 text-xs text-text-secondary mt-0.5">
+                    <span>{{ service.duration }} mins</span>
+                    @if (showPrice() && service.price) {
+                      <span>·</span>
+                      <span class="font-medium text-text-primary">
+                        {{ service.price | currencyNgn: currencyCode() }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                  @if (getStaffCount(service.id) > 0) {
+                    <button
+                      type="button"
+                      (click)="decrementStaffService(service.id)"
+                      [disabled]="loading()"
+                      class="w-8 h-8 rounded-xl border border-border bg-surface-card flex items-center justify-center text-text-primary hover:bg-surface-sunken transition-colors"
+                      aria-label="Decrease quantity"
+                    >
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                      </svg>
+                    </button>
+                    <span class="w-6 text-center text-sm font-bold text-text-primary">
+                      {{ getStaffCount(service.id) }}
+                    </span>
+                  }
+                  <button
+                    type="button"
+                    (click)="incrementStaffService(service.id)"
+                    [disabled]="loading()"
+                    class="h-8 px-2.5 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary-hover transition-colors flex items-center gap-1"
+                    aria-label="Add service"
+                  >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    @if (getStaffCount(service.id) === 0) {
+                      <span>Add</span>
+                    }
+                  </button>
+                </div>
+              </div>
+            }
+          }
+        }
+      </div>
+
+      <!-- Footer Summary & Actions -->
+      <div class="shrink-0 pt-3 border-t border-border-subtle flex flex-col gap-3">
+        @if (totalCount() > 0) {
+          <div class="flex items-center justify-between text-xs text-text-secondary px-1">
+            <span>
+              {{ totalCount() }} {{ totalCount() === 1 ? 'service' : 'services' }} ({{ totalDuration() }} mins)
+            </span>
+            @if (showPrice()) {
+              <span class="font-bold text-text-primary text-sm">
+                {{ totalPrice() | currencyNgn: currencyCode() }}
+              </span>
+            }
+          </div>
+        }
+
+        <div class="flex gap-2">
+          <button
+            type="button"
+            (click)="close()"
+            [disabled]="loading()"
+            class="flex-1 min-h-11 rounded-2xl border border-border bg-surface-card text-text-primary font-semibold text-sm hover:bg-surface-sunken transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            (click)="submit()"
+            [disabled]="totalCount() === 0 || loading()"
+            class="flex-1 min-h-11 rounded-2xl bg-primary text-white font-semibold text-sm hover:bg-primary-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            @if (loading()) {
+              <app-inline-spinner />
+              <span>Adding...</span>
+            } @else {
+              <span>Add {{ totalCount() > 0 ? '(' + totalCount() + ')' : '' }}</span>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
