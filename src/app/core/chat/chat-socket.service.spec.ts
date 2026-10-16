@@ -40,6 +40,7 @@ describe('ChatSocketService lifecycle', () => {
     vi.mocked(io).mockReturnValue(socket as unknown as ReturnType<typeof io>);
     TestBed.configureTestingModule({
       providers: [
+        ChatSocketService,
         { provide: PLATFORM_ID, useValue: 'browser' },
         { provide: TokenStore, useValue: { getAccessToken: () => token } },
         { provide: AppResumeService, useValue: { resumed } },

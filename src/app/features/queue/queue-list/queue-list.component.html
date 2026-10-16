@@ -87,14 +87,15 @@
       </p>
     </section>
 
-    @if (canAddClientForStaff()) {
+    @if (canAddClient()) {
       <button
         type="button"
         (click)="showAddClientModal.set(true)"
-        class="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary-hover active:scale-[0.99]"
+        class="min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary-hover active:scale-[0.99]"
+        [class]="canAddClientForStaff() ? 'flex' : 'hidden md:flex'"
       >
         <app-icon name="person-add" class="h-5 w-5" />
-        <span>Add client for staff</span>
+        <span>{{ addClientButtonLabel() }}</span>
       </button>
     }
 
@@ -291,8 +292,7 @@
     </div>
   </ng-template>
 
-  <div class="fixed left-0 right-0 above-bottom-nav z-30 grid gap-2 bg-surface px-5 py-2 md:left-(--sidebar-width) md:px-12 transition-[left] duration-250 ease-in-out"
-    [class]="'grid-cols-2'">
+  <div class="fixed left-0 right-0 above-bottom-nav z-30 grid grid-cols-2 gap-2 bg-surface px-5 py-2 md:left-(--sidebar-width) md:px-12 transition-[left] duration-250 ease-in-out">
     <button type="button" (click)="goBack()"
       class="flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-border bg-surface-card text-primary">
       <app-icon name="chevron-left" class="h-4 w-3" />
@@ -308,7 +308,7 @@
     </button>
   </div>
 
-  @if (canAddClientForStaff()) {
+  @if (canAddClient()) {
     <app-add-client-modal
       [open]="showAddClientModal()"
       [salonId]="_salonId"

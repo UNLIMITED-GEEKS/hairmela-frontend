@@ -89,6 +89,17 @@ export class QueueListComponent implements OnInit {
   });
 
   protected readonly showAddClientModal = signal(false);
+  protected readonly canAddClient = computed(() => {
+    const membership = this._salonContext.membership();
+    if (!membership) return false;
+    if (membership.role === SalonRole.OWNER || membership.role === SalonRole.ADMIN) {
+      return true;
+    }
+    const staffId = this.console.queue()?.staffId;
+    const isOwnQueue = (!!membership.queueId && membership.queueId === this._queueId) ||
+                       (!!membership.staffId && !!staffId && membership.staffId === staffId);
+    return isOwnQueue;
+  });
   protected readonly canAddClientForStaff = computed(() => {
     const membership = this._salonContext.membership();
     if (!membership) return false;
@@ -100,6 +111,9 @@ export class QueueListComponent implements OnInit {
                        (!!membership.staffId && membership.staffId === staffId);
     return !isOwnQueue;
   });
+  protected readonly addClientButtonLabel = computed(() =>
+    this.canAddClientForStaff() ? 'Add client for staff' : 'Add client',
+  );
 
   protected readonly barber = computed(() =>
     this._staffService.staffList().find((item) => item.staff.id === this._staffId)?.staff,
@@ -158,7 +172,7 @@ export class QueueListComponent implements OnInit {
   }
 
   protected get _staffId(): string {
-    return this.console.queue()?.staffId ?? '';
+    return this.console.queue()?.staffId ?? this._salonContext.membership()?.staffId ?? '';
   }
 
   protected get currentClientLink(): string[] {
