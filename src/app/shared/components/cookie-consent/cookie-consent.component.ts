@@ -7,6 +7,7 @@ import {
   CookieChoice,
   MetaPixelService,
 } from '../../../core/analytics/meta-pixel.service';
+import { TikTokPixelService } from '../../../core/analytics/tiktok-pixel.service';
 
 interface CookieCategory {
   readonly title: string;
@@ -28,6 +29,7 @@ interface CookieCategory {
 export class CookieConsentComponent {
   private readonly _store = inject(PersistentStore);
   private readonly _metaPixel = inject(MetaPixelService);
+  private readonly _tiktokPixel = inject(TikTokPixelService);
 
   // Visible only when no prior choice is stored.
   protected readonly visible = signal(this._store.get<CookieChoice>(COOKIE_CONSENT_KEY) === null);
@@ -50,7 +52,7 @@ export class CookieConsentComponent {
     {
       title: 'Marketing cookies',
       description: 'Used to measure campaigns and show relevant content.',
-      examples: 'Meta Pixel, ad measurement, retargeting.',
+      examples: 'Meta Pixel, TikTok Pixel, ad measurement, retargeting.',
       locked: false,
     },
   ];
@@ -66,6 +68,7 @@ export class CookieConsentComponent {
   private _choose(choice: CookieChoice): void {
     this._store.set<CookieChoice>(COOKIE_CONSENT_KEY, choice);
     this._metaPixel.init();
+    this._tiktokPixel.init();
     this.visible.set(false);
   }
 }
