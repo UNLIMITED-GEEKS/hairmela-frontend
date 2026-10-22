@@ -100,6 +100,13 @@
 
     <app-pending-invites />
 
+    <!-- Modal, dismissible; "Not now" brings it back after 24h until notifications are decided. -->
+    <app-push-prompt
+      display="modal"
+      [remindAfterHours]="24"
+      title="Turn on notifications?"
+      body="Get told when it's your turn in a queue and when salons you follow send news." />
+
     <!-- Top Categories -->
     <div>
       <div class="flex items-center justify-between mb-3">

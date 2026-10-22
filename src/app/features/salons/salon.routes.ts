@@ -88,6 +88,16 @@ export const salonRoutes: Routes = [
       import('../../features/closures/closures.routes').then((m) => m.closuresRoutes),
   },
   {
+    path: RouteSegment.BROADCASTS,
+    title: 'Automated Broadcasts',
+    canActivate: [salonRoleGuard],
+    data: { roles: [SalonRole.OWNER, SalonRole.ADMIN] },
+    loadComponent: () =>
+      import('./broadcasts/broadcast-automations.component').then(
+        (m) => m.BroadcastAutomationsComponent,
+      ),
+  },
+  {
     path: RouteSegment.SERVICES,
     canActivate: [salonRoleGuard],
     data: { roles: [SalonRole.OWNER, SalonRole.ADMIN, SalonRole.STAFF] },

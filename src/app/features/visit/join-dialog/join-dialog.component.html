@@ -16,7 +16,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        <h2 class="text-sm font-bold text-text-primary">{{ step() === 'fee' ? 'Part payment' : 'Live Queue' }}</h2>
+        <h2 class="text-sm font-bold text-text-primary">{{ step() === 'fee' ? 'Part payment' : 'Joining ' + staff().firstName + '\'s queue' }}</h2>
       </div>
 
       <div class="shrink-0">

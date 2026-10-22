@@ -12,6 +12,7 @@ import { SalonCardComponent } from '../../shared/components/salon-card/salon-car
 import { CategoryPillsComponent } from '../../shared/components/category-pills/category-pills.component';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { JoinBannerComponent } from './join-banner/join-banner.component';
+import { PushPromptComponent } from '../../shared/components/push-prompt/push-prompt.component';
 import { CategoriesService } from '../../core/categories/categories.service';
 import { SalonListingService } from '../../marketing/landing/salon-listing.service';
 import { ToastService } from '../../core/toast/toast.service';
@@ -44,6 +45,7 @@ function timeOfDayGreeting(hour: number): string {
     CategoryPillsComponent,
     IconComponent,
     JoinBannerComponent,
+    PushPromptComponent,
   ],
 })
 export class DashboardComponent implements OnInit {

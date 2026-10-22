@@ -38,6 +38,7 @@ export type SendMessageDto = ApiSendMessageDto;
 export interface SalonBroadcastDto {
   body: string;
   mediaUrl?: string | null;
+  channels?: Array<'IN_APP' | 'SMS' | 'WHATSAPP'>;
 }
 
 export interface MarkReadDto {

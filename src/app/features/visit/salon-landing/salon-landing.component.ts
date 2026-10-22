@@ -388,6 +388,16 @@ export class SalonLandingComponent implements OnInit {
     return `${environment.appBaseUrl}${RoutePath.visitSalon('', this._slug).join('/')}`;
   }
 
+  // Pre-filled so support can identify the salon without a round-trip.
+  protected get reportMailto(): string {
+    const name = this.visit.salon()?.name ?? 'this salon';
+    return 'mailto:hello@contact.hairmela.com' +
+      '?subject=' + encodeURIComponent(`Report salon: ${name}`) +
+      '&body=' + encodeURIComponent(
+        `I would like to report ${name}.\n\nSalon link: ${this.shareUrl}\n\nReason: `,
+      );
+  }
+
   // Native share sheet where the browser has one (the common case here — this
   // is a customer-facing page, mostly opened on a phone), clipboard otherwise.
   // Desktop Chrome/Firefox have no navigator.share, so the fallback isn't an

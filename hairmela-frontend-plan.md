@@ -361,6 +361,7 @@ src/app/
     ├── services/
     ├── schedules/
     ├── closures/
+    (salons/broadcasts/ — automated broadcasts page, mock service until backend ships)
     ├── queue/           (staff console — QueueShellComponent + CurrentClientComponent + QueueListComponent + QueueConsoleService)
     ├── visit/           (SalonShellComponent provides SalonVisitService; child routes shared by auth + guest shells via visitRoutes;
     │                      salon-landing/ services-first + in-place JoinDialogComponent, joining-queue/ transient spinner,
@@ -634,6 +635,11 @@ All password fields use the `appPasswordToggle` directive (eye icon show/hide).
 ### Closures — `features/closures/`
 `ClosuresComponent` — dual-scope: detects whether `staffId` param is present and switches between salon-wide and per-staff API calls. Routes: `/salons/:salonId/closures` and `/salons/:salonId/staff/:staffId/closures`. **Guards:** `salonRoleGuard(OWNER, ADMIN)`.
 
+### Automated broadcasts — `features/salons/broadcasts/`
+`BroadcastAutomationsComponent` at `/salons/:salonId/broadcasts` — list of scheduled broadcasts (schedule sentence, next/last send, run status, pause/resume, edit, delete) plus an inline create/edit form (message, optional image, ONCE/DAILY/WEEKLY/MONTHLY/EVERY_N_DAYS schedule, salon-time picker, live preview sentence). Max 5 active (New/Resume disabled at the limit). **Guards:** `salonRoleGuard(OWNER, ADMIN)`. Linked from the owner's broadcast thread header in chat ("Scheduled") and from `BroadcastModalComponent`.
+
+**Wired to the real API** via the generated `salonBroadcastAutomationsController*` functions (`BroadcastAutomationsService` is a thin wrapper; types are the generated `BroadcastAutomationResponseDto` + schedule union, aliased in `broadcast-automation.types.ts`). Schedule sentences, run-status labels and the same-day overlap check live in `broadcast-schedule.utils.ts` (spec'd). Channels (IN_APP/SMS/WhatsApp) render from the audience endpoint's `availableChannels`; a sent one-time automation shows "Sent" with a "Send again" action (saves a new date and `isActive: true` together).
+
 ### Queue (staff console) — `features/queue/`
 **Route:** `/salons/:salonId/queues/:queueId/console`
 
@@ -753,6 +759,7 @@ All password fields use the `appPasswordToggle` directive (eye icon show/hide).
   /salons/:salonId/analytics        + salonRoleGuard(OWNER,ADMIN) + tierGuard(requiredTier 2)
   /salons/:salonId/media            + salonRoleGuard(OWNER,ADMIN,STAFF)
   /salons/:salonId/closures         + salonRoleGuard(OWNER,ADMIN)
+  /salons/:salonId/broadcasts       + salonRoleGuard(OWNER,ADMIN)
   /salons/:salonId/services         + salonRoleGuard(OWNER,ADMIN,STAFF)
   /salons/:salonId/services/new     + salonRoleGuard(OWNER,ADMIN)
   /salons/:salonId/services/:serviceId/edit + salonRoleGuard(OWNER,ADMIN)

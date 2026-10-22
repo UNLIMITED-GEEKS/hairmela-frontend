@@ -471,7 +471,11 @@ export class SalonSettingsComponent implements OnInit {
 
     if (v.paymentType === 'link') {
       const paymentLink = v.paymentLink?.trim();
-      return paymentLink ? { type: 'link', paymentLink, description } : undefined;
+      // Account name is sent for links too: link receipts usually print the
+      // account/business name rather than the link, and the backend's receipt
+      // check matches on it. Dropping it here left link salons unmatchable.
+      const accountName = v.accountName?.trim() || undefined;
+      return paymentLink ? { type: 'link', paymentLink, accountName, description } : undefined;
     }
 
     const bankName = v.bankName?.trim();

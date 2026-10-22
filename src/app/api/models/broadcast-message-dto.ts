@@ -4,9 +4,14 @@
 export interface BroadcastMessageDto {
 
   /**
-   * Broadcast announcement message sent to all customers who have favourited the salon (1 to 2000 characters)
+   * Broadcast announcement sent to customers who favourited the salon or were served there at least once, minus explicit unfavourites (1 to 2000 characters)
    */
   body: string;
+
+  /**
+   * Channels to send on. Defaults to ["IN_APP"]. Only IN_APP is enabled today.
+   */
+  channels?: Array<'IN_APP' | 'SMS' | 'WHATSAPP'>;
 
   /**
    * Optional promotional image or banner URL attached to broadcast

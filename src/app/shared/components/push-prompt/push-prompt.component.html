@@ -1,4 +1,29 @@
 @if (visible()) {
+  @if (display() === 'modal') {
+    <div
+      animate.enter="modal-backdrop-enter"
+      animate.leave="modal-backdrop-leave"
+      class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-4 pb-4 sm:pb-0"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="title()"
+      (click)="dismiss()"
+    >
+      <div
+        animate.enter="modal-card-enter"
+        animate.leave="modal-card-leave"
+        class="w-full max-w-sm rounded-3xl bg-surface p-3 shadow-xl"
+        (click)="$event.stopPropagation()"
+      >
+        <ng-container [ngTemplateOutlet]="card" />
+      </div>
+    </div>
+  } @else {
+    <ng-container [ngTemplateOutlet]="card" />
+  }
+}
+
+<ng-template #card>
   <div class="rounded-xl border border-primary/20 bg-primary/5 p-4">
     <div class="flex items-start gap-3">
       <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -23,4 +48,4 @@
       </div>
     </div>
   </div>
-}
+</ng-template>

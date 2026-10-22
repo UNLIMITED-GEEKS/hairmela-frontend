@@ -760,6 +760,7 @@ export class ChatService {
       body: {
         body: payload.body,
         mediaUrl: payload.mediaUrl ?? undefined,
+        channels: payload.channels,
       },
     }).pipe(map((res) => res.body));
   }

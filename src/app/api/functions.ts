@@ -373,6 +373,16 @@ export type { SalonChatControllerOpenConversation$Params as SalonChatControllerO
 export { salonChatControllerOpenConversation as salonChatControllerOpenConversation } from './fn/chat/salon-chat-controller-open-conversation';
 export type { SalonChatControllerSendBroadcast$Params as SalonChatControllerSendBroadcast$Params } from './fn/chat/salon-chat-controller-send-broadcast';
 export { salonChatControllerSendBroadcast as salonChatControllerSendBroadcast } from './fn/chat/salon-chat-controller-send-broadcast';
+export type { SalonBroadcastAutomationsControllerGetAudience$Params as SalonBroadcastAutomationsControllerGetAudience$Params } from './fn/chat/salon-broadcast-automations-controller-get-audience';
+export { salonBroadcastAutomationsControllerGetAudience as salonBroadcastAutomationsControllerGetAudience } from './fn/chat/salon-broadcast-automations-controller-get-audience';
+export type { SalonBroadcastAutomationsControllerList$Params as SalonBroadcastAutomationsControllerList$Params } from './fn/chat/salon-broadcast-automations-controller-list';
+export { salonBroadcastAutomationsControllerList as salonBroadcastAutomationsControllerList } from './fn/chat/salon-broadcast-automations-controller-list';
+export type { SalonBroadcastAutomationsControllerCreate$Params as SalonBroadcastAutomationsControllerCreate$Params } from './fn/chat/salon-broadcast-automations-controller-create';
+export { salonBroadcastAutomationsControllerCreate as salonBroadcastAutomationsControllerCreate } from './fn/chat/salon-broadcast-automations-controller-create';
+export type { SalonBroadcastAutomationsControllerRemove$Params as SalonBroadcastAutomationsControllerRemove$Params } from './fn/chat/salon-broadcast-automations-controller-remove';
+export { salonBroadcastAutomationsControllerRemove as salonBroadcastAutomationsControllerRemove } from './fn/chat/salon-broadcast-automations-controller-remove';
+export type { SalonBroadcastAutomationsControllerUpdate$Params as SalonBroadcastAutomationsControllerUpdate$Params } from './fn/chat/salon-broadcast-automations-controller-update';
+export { salonBroadcastAutomationsControllerUpdate as salonBroadcastAutomationsControllerUpdate } from './fn/chat/salon-broadcast-automations-controller-update';
 export type { AnalyticsControllerGetMine$Params as AnalyticsControllerGetMine$Params } from './fn/analytics/analytics-controller-get-mine';
 export { analyticsControllerGetMine as analyticsControllerGetMine } from './fn/analytics/analytics-controller-get-mine';
 export type { AnalyticsControllerGetSummary$Params as AnalyticsControllerGetSummary$Params } from './fn/analytics/analytics-controller-get-summary';
