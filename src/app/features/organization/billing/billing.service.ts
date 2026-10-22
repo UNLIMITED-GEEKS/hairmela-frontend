@@ -115,6 +115,10 @@ export class BillingService {
   readonly acting = this._acting.asReadonly();
   private readonly _iapOffers = signal<readonly IapOffer[]>([]);
   readonly iapOffers = this._iapOffers.asReadonly();
+  private readonly _iapStatus = signal<'loading' | 'ready' | 'unavailable'>('loading');
+  readonly iapStatus = this._iapStatus.asReadonly();
+  private readonly _iapDetail = signal<string | null>(null);
+  readonly iapDetail = this._iapDetail.asReadonly();
   readonly bankTransferPayment = this._bankTransferPayment.asReadonly();
   readonly checkingBankTransfer = this._checkingBankTransfer.asReadonly();
 
@@ -292,9 +296,18 @@ export class BillingService {
   // learns of a purchase from RevenueCat's webhook, so the plan flips a moment
   // after Apple's sheet closes — see _refreshAfterIap.
   loadIapOffers(orgId: string): void {
+    this._iapStatus.set('loading');
+    this._iapDetail.set(null);
     this._iap.loadOffers(orgId).then(
-      (offers) => this._iapOffers.set(offers),
-      () => this._toast.error("Couldn't load plans from the App Store. Please try again."),
+      (offers) => {
+        this._iapOffers.set(offers);
+        this._iapStatus.set(offers.length ? 'ready' : 'unavailable');
+      },
+      (e: unknown) => {
+        // The store's own message says WHY (e.g. products not ready), so keep it.
+        this._iapDetail.set((e as { message?: string }).message ?? null);
+        this._iapStatus.set('unavailable');
+      },
     );
   }
 

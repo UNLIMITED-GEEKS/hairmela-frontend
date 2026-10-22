@@ -20,8 +20,11 @@ export class IapPaymentUiComponent {
   readonly access = input.required<EffectiveAccessDto>();
   readonly offers = input.required<readonly IapOffer[]>();
   readonly acting = input.required<boolean>();
+  readonly status = input.required<'loading' | 'ready' | 'unavailable'>();
+  readonly detail = input<string | null>(null);
   readonly choose = output<Tier>();
   readonly restore = output<void>();
+  readonly retry = output<void>();
   readonly manage = output<void>();
 
   protected readonly tierNames = TIER_NAMES;

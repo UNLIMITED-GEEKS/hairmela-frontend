@@ -28,9 +28,12 @@
         <app-iap-payment-ui
           [access]="access"
           [offers]="iapOffers()"
+          [status]="iapStatus()"
+          [detail]="iapDetail()"
           [acting]="acting()"
           (choose)="purchaseIap($event)"
           (restore)="restoreIap()"
+          (retry)="retryIap()"
           (manage)="manageIap()"
         />
       } @else if (paymentMode() === 'card') {
