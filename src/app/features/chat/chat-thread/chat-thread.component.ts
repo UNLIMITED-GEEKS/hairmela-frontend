@@ -154,6 +154,12 @@ type AudioMime = 'audio/webm' | 'audio/mp4' | 'audio/aac' | 'audio/ogg';
           </div>
         } @else {
           <div class="flex items-center gap-2 shrink-0">
+            <a
+              [routerLink]="broadcastsLink()"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-border-strong text-text-body hover:bg-surface-overlay active:scale-95 transition shrink-0"
+            >
+              <span>Scheduled</span>
+            </a>
             <button
               type="button"
               (click)="showBroadcastModal.set(true)"
@@ -328,7 +334,7 @@ type AudioMime = 'audio/webm' | 'audio/mp4' | 'audio/aac' | 'audio/ogg';
           <div class="px-4 py-3 bg-surface-sunken border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="flex items-center gap-2 text-xs text-text-secondary min-w-0">
               <span class="text-base shrink-0" aria-hidden="true">📢</span>
-              <span class="truncate">Announcements are broadcast to all customers who favourited your salon.</span>
+              <span class="truncate">Announcements are broadcast to customers who favourited your salon or have been served by it.</span>
             </div>
             <button
               type="button"
@@ -659,6 +665,8 @@ export class ChatThreadComponent implements OnDestroy {
       ''
     );
   });
+
+  protected readonly broadcastsLink = computed(() => RoutePath.salonBroadcasts(this.salonId()));
 
   protected onBroadcastSent(): void {
     const id = this.conversationId();

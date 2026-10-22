@@ -1,4 +1,5 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { Component, HostListener, computed, inject, input, signal } from '@angular/core';
 import { PushService } from '../../../core/push/push.service';
 import { ToastService } from '../../../core/toast/toast.service';
 
@@ -15,6 +16,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 @Component({
   selector: 'app-push-prompt',
   templateUrl: './push-prompt.component.html',
+  imports: [NgTemplateOutlet],
 })
 export class PushPromptComponent {
   private readonly _push = inject(PushService);
@@ -24,6 +26,17 @@ export class PushPromptComponent {
   readonly body = input(
     "We'll send a notification when the staff is ready for you, even if this tab is closed.",
   );
+
+  // When set, "Not now" hides the prompt for this many hours and then lets it
+  // back, instead of retiring it for good (the default, used by the one-off
+  // contextual prompts). The permanent "already asked" flag is ignored in this
+  // mode — a recurring prompt would otherwise be silenced by any earlier
+  // one-off dismissal on the same device.
+  // 'modal' floats the same card over the page with a backdrop (tap outside or
+  // Escape = "Not now"); 'inline' renders it in the page flow.
+  readonly display = input<'inline' | 'modal'>('inline');
+
+  readonly remindAfterHours = input<number | null>(null);
 
   private readonly _dismissed = signal(false);
   protected readonly busy = signal(false);
@@ -38,7 +51,9 @@ export class PushPromptComponent {
       !this._dismissed() &&
       this._push.isSupported &&
       this._push.permissionState() === 'default' &&
-      !this._push.hasAsked(),
+      (this.remindAfterHours() === null
+        ? !this._push.hasAsked()
+        : !this._push.isSnoozed(this.remindAfterHours()!)),
   );
 
   protected async enable(): Promise<void> {
@@ -61,8 +76,14 @@ export class PushPromptComponent {
     }
   }
 
+  @HostListener('document:keydown.escape')
+  protected onEscape(): void {
+    if (this.display() === 'modal' && this.visible()) this.dismiss();
+  }
+
   protected dismiss(): void {
-    this._push.markAsked();
+    if (this.remindAfterHours() === null) this._push.markAsked();
+    else this._push.snooze();
     this._dismissed.set(true);
   }
 }

@@ -29,6 +29,7 @@ export type PushEnableResult = 'enabled' | 'denied' | 'unsupported';
 export type PushPermission = NotificationPermission | 'unsupported' | 'unknown';
 
 const ASKED_KEY = 'hm_push_asked';
+const SNOOZED_AT_KEY = 'hm_push_snoozed_at';
 
 // Frontend half of the web-push chain (links 1 & 5). Wraps Angular's SwPush —
 // which owns the generated ngsw-worker.js and re-emits the SW 'push' (auto-
@@ -139,6 +140,16 @@ export class PushService {
 
   markAsked(): void {
     this._store.set<boolean>(ASKED_KEY, true);
+  }
+
+  /** "Not now" for prompts that should come back — unlike markAsked(), which is forever. */
+  snooze(): void {
+    this._store.set<number>(SNOOZED_AT_KEY, Date.now());
+  }
+
+  isSnoozed(hours: number): boolean {
+    const at = this._store.get<number>(SNOOZED_AT_KEY);
+    return typeof at === 'number' && Date.now() - at < hours * 3_600_000;
   }
 
   // Link 1: ask permission (browser prompt), subscribe via the VAPID public

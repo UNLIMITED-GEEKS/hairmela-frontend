@@ -5,7 +5,7 @@
      so the app gets py-8 instead, which on a shorter phone is the
      difference between this form fitting and having to be scrolled. -->
 <div
-  [class]="platform.isAppContext ? 'py-6' : 'py-24'"
+  [class]="platform.isAppContext ? 'pt-[calc(2.5rem+env(safe-area-inset-top))] pb-6' : 'py-24'"
   class="flex items-center justify-center min-h-screen px-6"
 >
   <div class="w-full max-w-sm">

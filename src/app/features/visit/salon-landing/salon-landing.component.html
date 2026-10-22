@@ -104,6 +104,7 @@
 
       <!-- Shared tab panels outlet -->
       <ng-container [ngTemplateOutlet]="tabContent" [ngTemplateOutletContext]="{ $implicit: s }" />
+      <ng-container [ngTemplateOutlet]="reportLink" />
     </div>
   </div>
 
@@ -305,7 +306,17 @@
         </div>
       </div>
     </div>
+    <ng-container [ngTemplateOutlet]="reportLink" />
   </div>
+
+  <!-- Report link (bottom of page, both layouts) -->
+  <ng-template #reportLink>
+    <div class="mt-10 border-t border-border pt-4 text-center">
+      <a [href]="reportMailto" class="text-sm text-text-secondary hover:text-primary transition-colors">
+        Report this salon
+      </a>
+    </div>
+  </ng-template>
 
   <!-- Shared Tab Panels Template -->
   <ng-template #tabContent let-s>

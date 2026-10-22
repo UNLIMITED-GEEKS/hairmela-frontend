@@ -1,16 +1,20 @@
-import { Component, EventEmitter, Output, inject, input, signal } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output, computed, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { ChatService } from '../../../core/chat/chat.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { uploadMedia } from '../../../core/media/media-upload';
+import { RoutePath } from '../../../core/routing/route-paths';
+import { BroadcastChannel, CHANNEL_OPTIONS } from '../broadcasts/broadcast-automation.types';
+import { BroadcastAutomationsService } from '../broadcasts/broadcast-automations.service';
 
 @Component({
   selector: 'app-broadcast-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in"
@@ -43,7 +47,7 @@ import { uploadMedia } from '../../../core/media/media-upload';
 
         <!-- Description -->
         <p class="text-xs text-text-secondary mt-3">
-          Send an announcement or promotion directly into 1-on-1 chats of customers who favourited your salon.
+          Send an announcement or promotion directly into 1-on-1 chats of customers who favourited your salon or have been served by it.
         </p>
 
         <!-- Message Body -->
@@ -108,6 +112,43 @@ import { uploadMedia } from '../../../core/media/media-upload';
           }
         </div>
 
+        <!-- Channels -->
+        <div class="mt-4">
+          <span class="block text-xs font-medium text-text-primary mb-1.5">Send via</span>
+          <div class="flex flex-wrap gap-2">
+            @for (opt of channelOptions; track opt.value) {
+              @let available = availableChannels().includes(opt.value);
+              <button
+                type="button"
+                (click)="toggleChannel(opt.value)"
+                [disabled]="!available"
+                [attr.aria-pressed]="channels().includes(opt.value)"
+                [class]="'px-3 py-1.5 rounded-full border text-xs font-medium transition disabled:cursor-not-allowed ' +
+                  (channels().includes(opt.value)
+                    ? 'bg-primary text-white border-primary'
+                    : available
+                      ? 'bg-surface-sunken text-text-body border-border hover:border-primary/40'
+                      : 'bg-surface-sunken text-text-disabled border-border')"
+              >
+                {{ opt.label }}@if (!available) { · Coming soon }
+              </button>
+            }
+          </div>
+          @if (audience() !== null) {
+            <p class="mt-2 text-xs text-text-secondary">
+              Will reach <span class="font-semibold text-text-primary">{{ audience() }} customers</span>
+            </p>
+          }
+        </div>
+
+        <a
+          [routerLink]="broadcastsLink()"
+          (click)="close()"
+          class="inline-block mt-4 text-xs font-medium text-primary hover:underline"
+        >
+          Schedule automated broadcasts instead
+        </a>
+
         <!-- Modal Actions -->
         <div class="flex items-center justify-end gap-2.5 mt-6 pt-3 border-t border-border">
           <button
@@ -135,8 +176,9 @@ import { uploadMedia } from '../../../core/media/media-upload';
     </div>
   `,
 })
-export class BroadcastModalComponent {
+export class BroadcastModalComponent implements OnInit {
   private readonly _chatService = inject(ChatService);
+  private readonly _automations = inject(BroadcastAutomationsService);
   private readonly _toast = inject(ToastService);
   private readonly _http = inject(HttpClient);
   private readonly _apiConfig = inject(ApiConfiguration);
@@ -145,10 +187,37 @@ export class BroadcastModalComponent {
   @Output() readonly closed = new EventEmitter<void>();
   @Output() readonly sent = new EventEmitter<void>();
 
+  protected readonly broadcastsLink = computed(() => RoutePath.salonBroadcasts(this.salonId()));
+  protected readonly channelOptions = CHANNEL_OPTIONS;
+  protected readonly audience = signal<number | null>(null);
+  // Availability comes from the API; anything not listed shows "Coming soon".
+  protected readonly availableChannels = signal<BroadcastChannel[]>(['IN_APP']);
+  protected readonly channels = signal<BroadcastChannel[]>(['IN_APP']);
   protected readonly body = signal<string>('');
   protected readonly mediaUrl = signal<string | null>(null);
   protected readonly uploadingMedia = signal<boolean>(false);
   protected readonly sending = signal<boolean>(false);
+
+  ngOnInit(): void {
+    this._automations.getAudience(this.salonId()).subscribe({
+      next: (res) => {
+        this.audience.set(res.recipientCount);
+        this.availableChannels.set(res.availableChannels);
+      },
+    });
+  }
+
+  // FIXME: toggleChannel and the channel chips in the template are duplicated in
+  // broadcasts/broadcast-automations.component — extract one shared component.
+  protected toggleChannel(channel: BroadcastChannel): void {
+    if (!this.availableChannels().includes(channel)) return;
+    const current = this.channels();
+    if (current.includes(channel)) {
+      if (current.length > 1) this.channels.set(current.filter((c) => c !== channel));
+    } else {
+      this.channels.set([...current, channel]);
+    }
+  }
 
   protected close(): void {
     this.closed.emit();
@@ -191,6 +260,7 @@ export class BroadcastModalComponent {
       .sendBroadcast(this.salonId(), {
         body: text,
         mediaUrl: this.mediaUrl() || undefined,
+        channels: this.channels(),
       })
       .subscribe({
         next: (res) => {

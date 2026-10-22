@@ -1,0 +1,307 @@
+<app-screen-layout [noPadding]="true">
+  <ng-container slot="header">
+    <app-page-header backVariant="glass" />
+  </ng-container>
+
+  <div class="space-y-5">
+    <app-page-description extraClass="mt-2 mb-6">
+      Schedule messages to go out to your customers automatically — a weekly promo, a
+      monthly reminder, a one-time announcement. They arrive in each customer's chat with
+      your salon, plus a push notification.
+    </app-page-description>
+
+    @if (salonContext.isFrozen()) {
+      <app-frozen-banner />
+    }
+
+    <div class="rounded-xl border border-border bg-surface-card px-4 py-3 text-sm text-text-secondary space-y-1">
+      @if (audience() !== null) {
+        <p>Each message will reach <span class="font-semibold text-text-primary">{{ audience() }} customers</span>
+          — those who favourite your salon or have been served by it.</p>
+      }
+      <p>Times are in your salon's timezone. Only one automated message is sent per day — if two
+        schedules fall on the same day, the later one is skipped.</p>
+    </div>
+
+    @if (showForm()) {
+      <form #formCard [formGroup]="form" (ngSubmit)="submit()" [tierFreeze]="salonContext.isFrozen()"
+        class="bg-surface-card rounded-xl border border-border p-4 sm:p-5 space-y-4 scroll-mt-4">
+        <h2 class="text-sm font-semibold text-text-body">
+          {{ editingId() ? 'Edit automation' : 'New automation' }}
+        </h2>
+
+        <!-- Message -->
+        <div class="space-y-1.5">
+          <label for="auto-body" class="text-sm font-medium text-text-body">Message</label>
+          <textarea id="auto-body" formControlName="body" rows="4" maxlength="2000"
+            placeholder="e.g. Happy Monday! Walk-ins 10% off till noon ✂️"
+            class="w-full px-3 py-2.5 rounded-lg border border-border-strong text-sm resize-none
+                   focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            [class.border-red-400]="form.controls.body.invalid && form.controls.body.touched"></textarea>
+          <div class="flex justify-between gap-3">
+            <app-field-error [control]="form.controls.body" [messages]="{ required: 'Write a message to send.' }" />
+            <span class="ml-auto text-[11px] text-text-disabled">{{ bodyLength() }}/2000</span>
+          </div>
+        </div>
+
+        <!-- Optional image -->
+        <div>
+          @if (mediaUrl()) {
+            <div class="relative inline-block rounded-xl overflow-hidden border border-border">
+              <img [src]="mediaUrl()!" alt="Attached promo image" class="h-28 w-auto max-w-full object-cover" />
+              <button type="button" (click)="mediaUrl.set(null)" aria-label="Remove image"
+                class="absolute top-1.5 right-1.5 p-1 bg-black/70 hover:bg-black text-white rounded-full transition">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          } @else {
+            <input #fileInput type="file" accept="image/*" class="hidden" (change)="onFileSelected($event)" />
+            <button type="button" (click)="fileInput.click()" [disabled]="uploadingMedia()"
+              class="min-h-11 px-3 rounded-lg border border-border-strong text-sm font-medium text-text-body
+                     hover:bg-surface-sunken disabled:opacity-50 transition-colors">
+              {{ uploadingMedia() ? 'Uploading image…' : 'Attach image (optional)' }}
+            </button>
+          }
+        </div>
+
+        <!-- Channels: availability comes from the API -->
+        <div class="space-y-1.5">
+          <span class="text-sm font-medium text-text-body">Send via</span>
+          <div class="flex flex-wrap gap-2">
+            @for (opt of channelOptions; track opt.value) {
+              @let available = availableChannels().includes(opt.value);
+              <button type="button" (click)="toggleChannel(opt.value)" [disabled]="!available"
+                [attr.aria-pressed]="channels().includes(opt.value)"
+                [class]="'min-h-11 px-4 rounded-full border text-sm font-medium transition-colors disabled:cursor-not-allowed ' +
+                  (channels().includes(opt.value)
+                    ? 'bg-primary text-white border-primary'
+                    : available
+                      ? 'bg-surface-sunken text-text-body border-border-strong/30 hover:border-primary/40'
+                      : 'bg-surface-sunken text-text-disabled border-border-strong/20')">
+                {{ opt.label }}@if (!available) { <span class="text-xs font-normal"> · Coming soon</span> }
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Schedule kind -->
+        <div class="space-y-1.5">
+          <span class="text-sm font-medium text-text-body">How often</span>
+          <div class="flex flex-wrap gap-2" role="radiogroup" aria-label="How often">
+            @for (opt of kindOptions; track opt.value) {
+              <button type="button" role="radio" [attr.aria-checked]="kind() === opt.value"
+                (click)="form.controls.kind.setValue(opt.value)"
+                [class]="'min-h-11 px-4 rounded-full border text-sm font-medium transition-colors ' +
+                  (kind() === opt.value
+                    ? 'bg-primary text-white border-primary'
+                    : 'bg-surface-sunken text-text-body border-border-strong/30 hover:border-primary/40')">
+                {{ opt.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Kind-specific fields -->
+        @switch (kind()) {
+          @case ('ONCE') {
+            <div class="space-y-1.5">
+              <label for="auto-date" class="text-sm font-medium text-text-body">Date</label>
+              <input id="auto-date" formControlName="date" type="date" [min]="today"
+                class="w-full min-h-11 px-3 rounded-lg border border-border-strong text-sm
+                       focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                [class.border-red-400]="form.controls.date.invalid && form.controls.date.touched" />
+              <app-field-error [control]="form.controls.date" [messages]="{ required: 'Pick a date.' }" />
+            </div>
+          }
+          @case ('WEEKLY') {
+            <div class="space-y-1.5">
+              <span class="text-sm font-medium text-text-body">On these days</span>
+              <div class="flex flex-wrap gap-2">
+                @for (day of weekdayOptions; track day.n) {
+                  <button type="button" (click)="toggleWeekday(day.n)" [attr.aria-pressed]="weekdays().includes(day.n)"
+                    [class]="'min-h-11 min-w-12 px-3 rounded-lg border text-sm font-medium transition-colors ' +
+                      (weekdays().includes(day.n)
+                        ? 'bg-primary text-white border-primary'
+                        : 'bg-surface-sunken text-text-body border-border-strong/30 hover:border-primary/40')">
+                    {{ day.label }}
+                  </button>
+                }
+              </div>
+              @if (weekdaysTouched() && weekdays().length === 0) {
+                <p class="text-xs text-red-500">Pick at least one day.</p>
+              }
+            </div>
+          }
+          @case ('MONTHLY') {
+            <div class="space-y-1.5">
+              <label for="auto-dom" class="text-sm font-medium text-text-body">Day of the month</label>
+              <input id="auto-dom" formControlName="dayOfMonth" type="number" min="1" max="31" inputmode="numeric"
+                class="w-full min-h-11 px-3 rounded-lg border border-border-strong text-sm
+                       focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                [class.border-red-400]="form.controls.dayOfMonth.invalid && form.controls.dayOfMonth.touched" />
+              <app-field-error [control]="form.controls.dayOfMonth"
+                [messages]="{ required: 'Enter a day.', min: 'Pick a day from 1 to 31.', max: 'Pick a day from 1 to 31.' }" />
+              <p class="text-xs text-text-disabled">Days 29–31 send on the last day of shorter months.</p>
+            </div>
+          }
+          @case ('EVERY_N_DAYS') {
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <label for="auto-interval" class="text-sm font-medium text-text-body">Every how many days</label>
+                <input id="auto-interval" formControlName="intervalDays" type="number" min="2" max="90" inputmode="numeric"
+                  class="w-full min-h-11 px-3 rounded-lg border border-border-strong text-sm
+                         focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  [class.border-red-400]="form.controls.intervalDays.invalid && form.controls.intervalDays.touched" />
+                <app-field-error [control]="form.controls.intervalDays"
+                  [messages]="{ required: 'Enter a number.', min: 'Between 2 and 90 days.', max: 'Between 2 and 90 days.' }" />
+              </div>
+              <div class="space-y-1.5">
+                <label for="auto-start" class="text-sm font-medium text-text-body">First send</label>
+                <input id="auto-start" formControlName="startDate" type="date" [min]="today"
+                  class="w-full min-h-11 px-3 rounded-lg border border-border-strong text-sm
+                         focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  [class.border-red-400]="form.controls.startDate.invalid && form.controls.startDate.touched" />
+                <app-field-error [control]="form.controls.startDate" [messages]="{ required: 'Pick a start date.' }" />
+              </div>
+            </div>
+          }
+        }
+
+        <div class="space-y-1.5">
+          <span class="text-sm font-medium text-text-body">At what time <span class="text-text-disabled font-normal">({{ salonTimeLabel() }})</span></span>
+          <app-time-picker formControlName="time" ariaLabel="Send time" />
+        </div>
+
+        @if (preview(); as sentence) {
+          <p class="rounded-lg bg-secondary-light/20 px-3 py-2 text-sm text-text-body">{{ sentence }}</p>
+        }
+        @if (overlapping().length) {
+          <p class="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700" role="status">
+            This lands on the same day as
+            @for (other of overlapping(); track other.id; let last = $last) {
+              “{{ other.body.length > 30 ? other.body.slice(0, 30) + '…' : other.body }}”{{ last ? '' : ', ' }}
+            }
+            — only one automated message goes out per day, so one of them will be skipped.
+          </p>
+        }
+        @if (scheduleError(); as msg) {
+          <p class="text-sm text-red-500" role="alert">{{ msg }}</p>
+        }
+
+        <div class="flex gap-3">
+          <button type="submit" [disabled]="saving() || uploadingMedia()"
+            class="flex-1 min-h-11 bg-primary text-white text-sm font-medium rounded-lg
+                   hover:bg-primary/90 disabled:opacity-50 transition-colors">
+            {{ saving() ? 'Saving…' : editingId() ? 'Save changes' : 'Create automation' }}
+          </button>
+          <button type="button" (click)="closeForm()"
+            class="flex-1 min-h-11 border border-border text-text-muted text-sm font-medium rounded-lg hover:bg-surface-sunken transition-colors">
+            Cancel
+          </button>
+        </div>
+      </form>
+    }
+
+    <!-- List -->
+    @if (loading()) {
+      <div class="space-y-3">
+        @for (row of [1, 2, 3]; track row) {
+          <div class="bg-surface-card rounded-xl border border-border p-4 space-y-2">
+            <app-skeleton variant="block" height="1rem" width="10rem" rounded="rounded" />
+            <app-skeleton variant="block" height="0.75rem" rounded="rounded" />
+            <app-skeleton variant="block" height="0.75rem" width="8rem" rounded="rounded" />
+          </div>
+        }
+      </div>
+    } @else if (error()) {
+      <div class="py-12 flex flex-col items-center gap-3">
+        <p class="text-sm text-text-secondary">Failed to load automations.</p>
+        <button type="button" (click)="load()"
+          class="px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors">
+          Retry
+        </button>
+      </div>
+    } @else if (automations().length === 0) {
+      <p class="py-10 text-center text-sm text-text-disabled">
+        No automations yet. Create one to send messages on a schedule.
+      </p>
+    } @else {
+      <ul class="space-y-3">
+        @for (a of automations(); track a.id) {
+          <li class="bg-surface-card rounded-xl border border-border p-4 space-y-3">
+            <div class="flex items-start justify-between gap-3">
+              <p class="text-sm font-semibold text-text-primary">{{ describeSchedule(a.schedule) }}</p>
+              <span [class]="'shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ' +
+                (statusOf(a) === 'Active' ? 'bg-green-50 text-green-700' : 'bg-surface-sunken text-text-secondary')">
+                {{ statusOf(a) }}
+              </span>
+            </div>
+
+            <p class="text-sm text-text-body line-clamp-2 whitespace-pre-line">{{ a.body }}</p>
+
+            <dl class="space-y-1 text-xs text-text-secondary">
+              @if (a.nextRunAt) {
+                <div><dt class="inline font-medium">Next send: </dt><dd class="inline">{{ formatRunTime(a.nextRunAt, a.timezone) }}</dd></div>
+              }
+              @if (a.lastRunAt && a.lastRunStatus) {
+                <div>
+                  <dt class="inline font-medium">Last send: </dt>
+                  <dd class="inline">
+                    {{ formatRunTime(a.lastRunAt, a.timezone) }} —
+                    <span [class.text-amber-600]="a.lastRunStatus !== 'SENT'">{{ runStatusLabel[a.lastRunStatus] }}</span>
+                    @if (a.lastRunStatus === 'SENT' && a.lastRecipientCount !== null) {
+                      to {{ a.lastRecipientCount }} customers
+                    }
+                  </dd>
+                </div>
+              }
+            </dl>
+
+            @if (!salonContext.isFrozen()) {
+              <div class="flex flex-wrap gap-2 pt-1">
+                @if (isSentOnce(a)) {
+                  <button type="button" (click)="openEdit(a)" [disabled]="busyId() === a.id"
+                    class="min-h-9 px-3 text-xs font-medium border border-border-strong rounded-lg text-text-body
+                           hover:bg-surface-sunken disabled:opacity-50 transition-colors">
+                    Send again
+                  </button>
+                } @else {
+                <button type="button" (click)="toggleActive(a)"
+                  [disabled]="busyId() === a.id || (!a.isActive && limitReached())"
+                  [attr.title]="!a.isActive && limitReached() ? 'Pause another automation first (max ' + maxActive + ' active)' : null"
+                  class="min-h-9 px-3 text-xs font-medium border border-border-strong rounded-lg text-text-body
+                         hover:bg-surface-sunken disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                  {{ a.isActive ? 'Pause' : 'Resume' }}
+                </button>
+                <button type="button" (click)="openEdit(a)" [disabled]="busyId() === a.id"
+                  class="min-h-9 px-3 text-xs font-medium border border-border-strong rounded-lg text-text-body
+                         hover:bg-surface-sunken disabled:opacity-50 transition-colors">
+                  Edit
+                </button>
+                }
+                <button type="button" (click)="delete(a)" [disabled]="busyId() === a.id"
+                  class="min-h-9 px-3 text-xs font-medium text-red-500 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors">
+                  Delete
+                </button>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+  @if (!salonContext.isFrozen() && !showForm()) {
+    <ng-container slot="actions">
+      <button type="button" (click)="openCreate()" [disabled]="limitReached()"
+        class="w-full md:w-auto md:ml-4 min-h-11 px-4 flex items-center justify-center gap-1.5 bg-secondary-light/20 text-sm font-medium rounded-lg border border-primary text-primary hover:bg-secondary-light disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+        <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        {{ limitReached() ? 'Limit reached (' + maxActive + ' active)' : 'New automation' }}
+      </button>
+    </ng-container>
+  }
+</app-screen-layout>
