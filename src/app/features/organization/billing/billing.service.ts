@@ -35,6 +35,7 @@ import { CachedLoader } from '../../../core/caching/optimistic/cached-loader';
 import { RoutePath } from '../../../core/routing/route-paths';
 import { AppPlatformService } from '../../../core/native/app-platform.service';
 import { AppResumeService } from '../../../core/native/app-resume.service';
+import { IapOffer, IapService } from '../../../core/native/iap.service';
 import { PersistentStore } from '../../../core/storage/persistent-store';
 
 type BillingOption = 'RECURRING_CARD' | 'PREPAID_BANK_TRANSFER';
@@ -61,6 +62,7 @@ export class BillingService {
   private readonly _platform = inject(AppPlatformService);
   private readonly _appResume = inject(AppResumeService);
   private readonly _persistentStore = inject(PersistentStore);
+  private readonly _iap = inject(IapService);
 
   constructor() {
     this._cacheRegistry.register(this);
@@ -111,6 +113,8 @@ export class BillingService {
   readonly access = this._access.asReadonly();
   readonly loading = this._loader.loading;
   readonly acting = this._acting.asReadonly();
+  private readonly _iapOffers = signal<readonly IapOffer[]>([]);
+  readonly iapOffers = this._iapOffers.asReadonly();
   readonly bankTransferPayment = this._bankTransferPayment.asReadonly();
   readonly checkingBankTransfer = this._checkingBankTransfer.asReadonly();
 
@@ -284,6 +288,61 @@ export class BillingService {
   // successful payment status, regardless of whether verify() itself
   // succeeded, so the UI doesn't get stuck on a stale tier if verify failed
   // (or never ran) but the webhook still activated it.
+  // iOS: plans are bought through Apple, not the web checkout. The backend
+  // learns of a purchase from RevenueCat's webhook, so the plan flips a moment
+  // after Apple's sheet closes — see _refreshAfterIap.
+  loadIapOffers(orgId: string): void {
+    this._iap.loadOffers(orgId).then(
+      (offers) => this._iapOffers.set(offers),
+      () => this._toast.error("Couldn't load plans from the App Store. Please try again."),
+    );
+  }
+
+  async purchaseIap(orgId: string, tier: Tier): Promise<void> {
+    const offer = this._iapOffers().find((o) => o.tier === tier);
+    if (!offer || this._acting()) return;
+    this._acting.set(true);
+    try {
+      if (await this._iap.purchase(orgId, offer)) {
+        this._toast.success('Purchase complete. Activating your plan…');
+        this._refreshAfterIap(orgId);
+      }
+    } catch {
+      this._toast.error('The purchase could not be completed. Please try again.');
+    } finally {
+      this._acting.set(false);
+    }
+  }
+
+  async restoreIap(orgId: string): Promise<void> {
+    if (this._acting()) return;
+    this._acting.set(true);
+    try {
+      await this._iap.restore(orgId);
+      this._toast.success('Purchases restored.');
+      this._refreshAfterIap(orgId);
+    } catch {
+      this._toast.error('Could not restore purchases. Please try again.');
+    } finally {
+      this._acting.set(false);
+    }
+  }
+
+  async manageIap(orgId: string): Promise<void> {
+    try {
+      window.location.href = await this._iap.managementUrl(orgId);
+    } catch {
+      this._toast.error('Could not open subscription settings. Please try again.');
+    }
+  }
+
+  // Webhook latency: re-read the plan a few times instead of once.
+  private _refreshAfterIap(orgId: string): void {
+    for (const ms of [2000, 6000, 15000]) {
+      setTimeout(() => this._onSubscriptionChanged(orgId), ms);
+    }
+  }
+
   scheduleDelayedRefresh(orgId: string): void {
     setTimeout(() => this.refresh(orgId), 6000);
   }

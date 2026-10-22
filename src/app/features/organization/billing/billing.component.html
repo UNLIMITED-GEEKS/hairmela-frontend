@@ -24,7 +24,16 @@
     </div>
   } @else if (access(); as access) {
     <div class="mt-3">
-      @if (paymentMode() === 'card') {
+      @if (isIap) {
+        <app-iap-payment-ui
+          [access]="access"
+          [offers]="iapOffers()"
+          [acting]="acting()"
+          (choose)="purchaseIap($event)"
+          (restore)="restoreIap()"
+          (manage)="manageIap()"
+        />
+      } @else if (paymentMode() === 'card') {
         <app-card-payment-ui
           [access]="access"
           [acting]="acting()"

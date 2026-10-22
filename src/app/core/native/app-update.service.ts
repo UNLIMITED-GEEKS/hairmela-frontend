@@ -34,7 +34,7 @@ const FORCE_UPDATE_MIN_PRIORITY = 3;
 const UPDATE_AVAILABLE = 2;
 
 /** HairMela's numeric Apple App Store ID. */
-const IOS_APP_STORE_ID = '6816222315';
+const IOS_APP_STORE_ID = '6825793638';
 
 @Injectable({ providedIn: 'root' })
 export class AppUpdateService {

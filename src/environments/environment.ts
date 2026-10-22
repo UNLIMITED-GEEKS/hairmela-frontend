@@ -3,6 +3,9 @@ export const environment = {
   apiBaseUrl: 'http://localhost:3000',
   socketUrl: 'http://localhost:3000',
   appBaseUrl: 'http://localhost:4200',
+  // RevenueCat public SDK key for the iOS app (appl_…). Only read in the native
+  // build; public by design, like the Google client ID.
+  revenueCatIosApiKey: '',
   googleWebClientId: '78026531104-h6bf90jbplv3mu8ci8fg05q9agna7fp8.apps.googleusercontent.com',
   // apiBaseUrl: 'https://hairmela-backend-development.up.railway.app',
   // socketUrl: 'https://hairmela-backend-development.up.railway.app',

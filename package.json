@@ -36,6 +36,7 @@
     "@capacitor/push-notifications": "^8.1.2",
     "@capawesome/capacitor-app-update": "^8.0.5",
     "@capawesome/capacitor-google-sign-in": "^0.1.4",
+    "@revenuecat/purchases-capacitor": "^13.7.5",
     "chart.js": "^4.5.1",
     "express": "^5.1.0",
     "firebase": "^12.19.0",

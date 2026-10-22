@@ -182,7 +182,7 @@ export class SidebarComponent implements OnInit {
   private NPB_ORG_ID = NPB_ORG_ID;
 
   readonly billingOrgId = computed(() =>
-    !this._platform.isNative && this.isOwner() ? (this._orgContext.ownedOrg()?.id ?? null) : null,
+    this._platform.billingMode !== 'none' && this.isOwner() ? (this._orgContext.ownedOrg()?.id ?? null) : null,
   );
 
   readonly sidebarItems = computed(() => this.navItems().filter((i) => i.sidebar && !i.action));

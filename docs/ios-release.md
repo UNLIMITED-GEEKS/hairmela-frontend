@@ -18,7 +18,7 @@ Continue only if publishing under the account holder's legal name is acceptable.
 The repository already has:
 
 - Capacitor iOS under `ios/`.
-- Bundle identifier `com.hairmela.app`.
+- Bundle identifier `com.unlimitedgeeks.hairmela`.
 - Native configuration from `src/environments/environment.native.ts`.
 - The `ios-app-store` workflow in `codemagic.yaml`.
 - Workspace `ios/App/App.xcworkspace` and scheme `App`.
@@ -70,12 +70,13 @@ Use:
 | -------------- | ------------------ |
 | Description    | HairMela           |
 | Bundle ID type | Explicit           |
-| Bundle ID      | `com.hairmela.app` |
+| Bundle ID      | `com.unlimitedgeeks.hairmela` |
 
 Enable:
 
 - Push Notifications
 - Associated Domains
+- Sign in with Apple
 
 The bundle identifier must exactly match the repository.
 
@@ -92,8 +93,8 @@ Use:
 | Platform         | iOS                                        |
 | Name             | HairMela                                   |
 | Primary language | English                                    |
-| Bundle ID        | `com.hairmela.app`                         |
-| SKU              | `hairmela-ios`                             |
+| Bundle ID        | `com.unlimitedgeeks.hairmela`                         |
+| SKU              | `hairmela-ios-ug`                           |
 | User access      | Full Access unless restrictions are needed |
 
 `HairMela iOS App Store` in Codemagic is only an internal workflow name. Customers see **HairMela**.
@@ -126,7 +127,7 @@ Enter:
 
 | Field            | Value                        |
 | ---------------- | ---------------------------- |
-| Integration name | `hairmela-app-store-connect` |
+| Integration name | `unlimitedgeeks-app-store-connect` |
 | Issuer ID        | Value from Apple             |
 | Key ID           | Value from Apple             |
 | API private key  | Downloaded `.p8`             |
@@ -135,7 +136,7 @@ The integration name must exactly match:
 
 ```yaml
 integrations:
-  app_store_connect: hairmela-app-store-connect
+  app_store_connect: unlimitedgeeks-app-store-connect
 ```
 
 ### 7. Allow Codemagic to sign the app
@@ -146,7 +147,7 @@ The workflow already requests:
 environment:
   ios_signing:
     distribution_type: app_store
-    bundle_identifier: com.hairmela.app
+    bundle_identifier: com.unlimitedgeeks.hairmela
 ```
 
 Codemagic will fetch or create the Apple Distribution certificate and App Store provisioning profile. If it requests `CERTIFICATE_PRIVATE_KEY`, generate a dedicated 2048-bit RSA signing key using Codemagic's automatic iOS-signing instructions and store it as a protected Codemagic variable. Never commit that key.
@@ -170,7 +171,7 @@ Configure the backend deployment:
 APNS_KEY_ID=<APNs key ID>
 APNS_TEAM_ID=<Apple Team ID>
 APNS_PRIVATE_KEY_BASE64=<base64 encoded p8>
-APNS_BUNDLE_ID=com.hairmela.app
+APNS_BUNDLE_ID=com.unlimitedgeeks.hairmela
 APNS_ENVIRONMENT=production
 ```
 
@@ -192,7 +193,7 @@ The app declares:
 Each host must serve an `apple-app-site-association` file containing:
 
 ```text
-YX33SDQLDJ.com.hairmela.app
+86LSMHFG6U.com.unlimitedgeeks.hairmela
 ```
 
 The shared deployment file is `public/.well-known/apple-app-site-association`, and
@@ -204,7 +205,7 @@ curl -i https://dev-hairmela.vercel.app/.well-known/apple-app-site-association
 ```
 
 Both responses must be `200`, must not redirect, and must contain
-`YX33SDQLDJ.com.hairmela.app`. The `hairmela://` custom scheme works independently.
+`86LSMHFG6U.com.unlimitedgeeks.hairmela`. The `hairmela://` custom scheme works independently.
 
 ## Phase 6: App Store information
 
@@ -336,12 +337,12 @@ Monitor both Codemagic logs and App Store Connect. If Apple rejects the submissi
 - [ ] Individual seller name and ownership are acceptable
 - [ ] Apple agreements accepted
 - [ ] Maintainer invited with App Manager access
-- [ ] App ID `com.hairmela.app` created
+- [ ] App ID `com.unlimitedgeeks.hairmela` created
 - [ ] Push Notifications and Associated Domains enabled
 - [ ] HairMela App Store record created
 - [ ] App Store Connect API access enabled
 - [ ] App Manager API key securely stored
-- [ ] Codemagic integration named `hairmela-app-store-connect`
+- [ ] Codemagic integration named `unlimitedgeeks-app-store-connect`
 - [ ] Distribution certificate and provisioning profile available
 - [ ] APNs backend production secrets configured
 - [ ] App Store metadata and screenshots complete

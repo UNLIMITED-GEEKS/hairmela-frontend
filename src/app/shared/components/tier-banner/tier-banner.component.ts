@@ -90,7 +90,7 @@ export class TierBannerComponent {
   private readonly _platform = inject(AppPlatformService);
 
   protected readonly visible = computed(
-    () => !this._platform.isNative && !this._dismissed() && this.banner() !== null,
+    () => this._platform.billingMode !== 'none' && !this._dismissed() && this.banner() !== null,
   );
 
   // The free-plan nudge is soft and dismissible; trial/expired are not — they

@@ -1,6 +1,8 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { BillingService } from './billing.service';
+import { AppPlatformService } from '../../../core/native/app-platform.service';
+import { IapPaymentUiComponent } from './iap-payment-ui/iap-payment-ui.component';
 import { ConfirmDialogService } from '../../../shared/components/confirm-dialog/confirm-dialog.service';
 import { Tier } from '../../../core/tier/tier-limits';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
@@ -20,18 +22,21 @@ import {
     PageHeaderComponent,
     CardPaymentUiComponent,
     BankTransferUiComponent,
+    IapPaymentUiComponent,
   ],
 })
 export class BillingComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
   private readonly _billing = inject(BillingService);
   private readonly _confirm = inject(ConfirmDialogService);
+  protected readonly isIap = inject(AppPlatformService).billingMode === 'iap';
 
   protected readonly access = this._billing.access;
   protected readonly loading = this._billing.loading;
   protected readonly acting = this._billing.acting;
   protected readonly bankTransferPayment = this._billing.bankTransferPayment;
   protected readonly checkingBankTransfer = this._billing.checkingBankTransfer;
+  protected readonly iapOffers = this._billing.iapOffers;
   private readonly _selectedPaymentMode = signal<'card' | 'bank'>('card');
 
   // Active subscriptions determine their own UI. A trial or ended plan has no
@@ -59,11 +64,24 @@ export class BillingComponent implements OnInit {
 
   ngOnInit(): void {
     this._billing.load(this._orgId);
+    if (this.isIap) this._billing.loadIapOffers(this._orgId);
     this._billing.resumeBankTransferStatus(this._orgId);
   }
 
   protected upgrade(tier: Tier): void {
     this._billing.upgrade(this._orgId, tier);
+  }
+
+  protected purchaseIap(tier: Tier): void {
+    this._billing.purchaseIap(this._orgId, tier);
+  }
+
+  protected restoreIap(): void {
+    this._billing.restoreIap(this._orgId);
+  }
+
+  protected manageIap(): void {
+    this._billing.manageIap(this._orgId);
   }
 
   protected selectBankTransfer(): void {

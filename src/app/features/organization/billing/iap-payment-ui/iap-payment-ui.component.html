@@ -1,0 +1,127 @@
+<div class="mt-6 rounded-xl border border-border bg-surface-card p-5">
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <p class="text-xs font-medium uppercase tracking-wide text-text-disabled">Current plan</p>
+      <p class="mt-1 text-lg font-bold text-text-primary">
+        {{ isTrialing() ? 'Free Trial' : tierNames[currentTier()] }}
+      </p>
+      <p class="mt-0.5 text-sm text-text-secondary">
+        Status: <span class="font-medium text-text-body">{{ access().status }}</span>
+      </p>
+    </div>
+    @if (isTrialing() && access().daysLeft !== null) {
+      <div class="shrink-0 rounded-lg bg-blue-50 px-3 py-2 text-center">
+        <p class="text-lg font-bold text-blue-700">{{ access().daysLeft }}</p>
+        <p class="text-xs text-blue-600">{{ access().daysLeft === 1 ? 'day' : 'days' }} left</p>
+      </div>
+    }
+  </div>
+
+  @if (hasLapsed()) {
+    <div class="mt-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2.5 text-sm text-red-800">
+      Your plan has ended, so your salons are hidden. Nothing has been deleted; choose a plan below
+      to get them back.
+    </div>
+  }
+
+  @if (access().pendingTier !== null) {
+    <div
+      class="mt-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800"
+    >
+      @if (access().pendingTier === 0) {
+        Your plan will end
+      } @else {
+        You'll move to {{ tierNames[access().pendingTier!] }}
+      }
+      @if (access().endsAt; as endsAt) {
+        on {{ endsAt | date: 'mediumDate' }}.
+      } @else {
+        at the end of your current billing period.
+      }
+      You keep your current plan until then.
+    </div>
+  }
+</div>
+
+<div class="mt-6 grid gap-4 sm:grid-cols-3">
+  @for (plan of plans(); track plan.tier) {
+    <div
+      class="rounded-xl border bg-surface-card p-5 flex flex-col"
+      [class.border-primary]="plan.tier === currentTier() && !isTrialing()"
+      [class.border-border]="!(plan.tier === currentTier() && !isTrialing())"
+    >
+      <div class="flex items-center justify-between">
+        <h2 class="font-bold text-text-primary">{{ plan.name }}</h2>
+        @if (plan.tier === currentTier() && !isTrialing()) {
+          <span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary"
+            >Current</span
+          >
+        }
+      </div>
+      <p class="mt-1 text-lg font-bold text-text-primary">
+        {{ plan.price }}<span class="text-sm font-medium text-text-secondary"> / month</span>
+      </p>
+      <ul class="mt-3 space-y-1.5 text-sm text-text-muted flex-1">
+        <li>{{ plan.salons }}</li>
+        <li>{{ plan.staff }}</li>
+        @for (feature of plan.features; track feature) {
+          <li>{{ feature }}</li>
+        }
+      </ul>
+      <div class="mt-4">
+        @if (needsPlan()) {
+          <button
+            type="button"
+            [disabled]="acting()"
+            (click)="choose.emit(plan.tier)"
+            class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-colors"
+          >
+            @if (acting()) {
+              <app-inline-spinner sizeClass="w-4 h-4" label="Contacting the App Store" /> Working…
+            } @else {
+              Subscribe
+            }
+          </button>
+        } @else if (plan.tier === currentTier()) {
+          <button
+            type="button"
+            disabled
+            class="w-full rounded-lg bg-surface-overlay px-4 py-2.5 text-sm font-semibold text-text-disabled cursor-default"
+          >
+            Your plan
+          </button>
+        }
+      </div>
+    </div>
+  }
+</div>
+
+<div class="mt-6 flex flex-col items-center gap-3">
+  <button
+    type="button"
+    [disabled]="acting()"
+    (click)="restore.emit()"
+    class="text-sm font-medium text-primary hover:underline disabled:opacity-50"
+  >
+    Restore purchases
+  </button>
+  @if (currentTier() > 0 && !isTrialing()) {
+    <button
+      type="button"
+      (click)="manage.emit()"
+      class="text-sm font-medium text-text-body hover:underline"
+    >
+      Manage subscription
+    </button>
+  }
+</div>
+
+<p class="mt-6 text-xs leading-relaxed text-text-secondary">
+  Subscriptions are billed monthly and renew automatically until cancelled. Payment is charged to
+  your Apple ID account at confirmation of purchase. Your subscription renews unless you cancel at
+  least 24 hours before the end of the current period. You can manage or cancel it in your Apple ID
+  account settings.
+  <a [routerLink]="termsLink" class="font-medium text-primary hover:underline">Terms of Use</a>
+  ·
+  <a [routerLink]="privacyLink" class="font-medium text-primary hover:underline">Privacy Policy</a>
+</p>

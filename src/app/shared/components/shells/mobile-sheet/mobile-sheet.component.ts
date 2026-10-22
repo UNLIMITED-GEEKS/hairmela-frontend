@@ -71,7 +71,7 @@ export class MobileSheetComponent {
   private readonly _platform = inject(AppPlatformService);
   private NPB_ORG_ID = NPB_ORG_ID;
   readonly billingOrgId = computed(() =>
-    !this._platform.isNative && this.isOwner() ? (this._orgContext.ownedOrg()?.id ?? null) : null,
+    this._platform.billingMode !== 'none' && this.isOwner() ? (this._orgContext.ownedOrg()?.id ?? null) : null,
   );
 
   protected sheetItems(): NavItem[] {

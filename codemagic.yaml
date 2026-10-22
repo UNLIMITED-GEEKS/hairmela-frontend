@@ -4,11 +4,11 @@ workflows:
     max_build_duration: 120
     instance_type: mac_mini_m2
     integrations:
-      app_store_connect: hairmela-app-store-connect
+      app_store_connect: unlimitedgeeks-app-store-connect
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.hairmela.app
+        bundle_identifier: com.unlimitedgeeks.hairmela
       vars:
         XCODE_WORKSPACE: ios/App/App.xcworkspace
         XCODE_SCHEME: App

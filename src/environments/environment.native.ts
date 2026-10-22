@@ -39,6 +39,9 @@ export const environment = {
   // claims the apex — so QR payloads and share links must use the host that is
   // actually verified, with no redirect hop.
   appBaseUrl: 'https://hairmela.com',
+  // RevenueCat public SDK key for the iOS app (appl_…). Fill in from the
+  // RevenueCat dashboard: Project → Apps → iOS app → API keys.
+  revenueCatIosApiKey: 'appl_JXoPxDUCSOStXsMNIwNCnmJykIe',
   googleWebClientId: '78026531104-h6bf90jbplv3mu8ci8fg05q9agna7fp8.apps.googleusercontent.com',
 
   cloudinaryCloudName: 'dievyx0ia',

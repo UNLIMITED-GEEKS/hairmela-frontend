@@ -110,7 +110,7 @@ export class MobileTopBarComponent {
     this.closeMenu();
     const url = this._platform.isNative
       ? this._platform.nativePlatform === 'ios'
-        ? 'https://apps.apple.com/app/id6816222315'
+        ? 'https://apps.apple.com/app/id6825793638'
         : 'https://play.google.com/store/apps/details?id=com.hairmela.app'
       : environment.appBaseUrl;
 

@@ -2,10 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CLIENT_ID</key>
-	<string>78026531104-mjdki1piljbg9inv6rro1mtrn3vnosu3.apps.googleusercontent.com</string>
-	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.78026531104-mjdki1piljbg9inv6rro1mtrn3vnosu3</string>
 	<key>ANDROID_CLIENT_ID</key>
 	<string>78026531104-15kgvn7dn9h9lrp7vdou97a2v5tgajak.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
@@ -15,7 +11,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.hairmela.app</string>
+	<string>com.unlimitedgeeks.hairmela</string>
 	<key>PROJECT_ID</key>
 	<string>hairmela-app</string>
 	<key>STORAGE_BUCKET</key>
@@ -31,6 +27,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:78026531104:ios:7615b636faeec663137745</string>
+	<string>1:78026531104:ios:1f668fcaaec78ba3137745</string>
 </dict>
 </plist>

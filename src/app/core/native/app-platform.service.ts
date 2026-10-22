@@ -51,6 +51,17 @@ export class AppPlatformService {
   readonly shell: AppShell = environment.native ? this.nativePlatform : 'web';
 
   /**
+   * Where a plan can be bought: the website's checkout ('web'), Apple in-app
+   * purchase inside the iOS app ('iap'), or nowhere ('none' — Android offers no
+   * purchasing, so its billing UI stays hidden).
+   */
+  readonly billingMode: 'web' | 'iap' | 'none' = !environment.native
+    ? 'web'
+    : this.nativePlatform === 'ios'
+      ? 'iap'
+      : 'none';
+
+  /**
    * Running as an installed app rather than in browser chrome — the Capacitor
    * APK, an installed PWA, or iOS Safari added to the home screen.
    *
