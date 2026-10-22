@@ -299,9 +299,10 @@ export class BillingService {
     this._iapStatus.set('loading');
     this._iapDetail.set(null);
     // StoreKit can hang (rather than fail) when the App Store side isn't set
-    // up, which would leave "Loading plans…" up forever — so give up after 20s.
+    // up, which would leave "Loading plans…" up forever — so give up after 60s,
+    // long enough for RevenueCat to surface its own, more specific error first.
     const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('The App Store did not respond in time.')), 20_000),
+      setTimeout(() => reject(new Error('The App Store did not respond in time.')), 60_000),
     );
     Promise.race([this._iap.loadOffers(orgId), timeout]).then(
       (offers) => {
