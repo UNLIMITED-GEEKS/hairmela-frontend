@@ -22,6 +22,7 @@ import { subscriptionsControllerVerify } from '../../../api/fn/subscriptions/sub
 import { subscriptionsControllerDowngrade } from '../../../api/fn/subscriptions/subscriptions-controller-downgrade';
 import { subscriptionsControllerCancel } from '../../../api/fn/subscriptions/subscriptions-controller-cancel';
 import { subscriptionsControllerGetPaymentStatus } from '../../../api/fn/subscriptions/subscriptions-controller-get-payment-status';
+import { subscriptionsControllerSyncApple } from '../../../api/fn/subscriptions/subscriptions-controller-sync-apple';
 import { EffectiveAccessDto } from '../../../api/models/effective-access-dto';
 import { CheckoutSessionDto } from '../../../api/models/checkout-session-dto';
 import { Subscription } from '../../../api/models/subscription';
@@ -294,7 +295,7 @@ export class BillingService {
   // (or never ran) but the webhook still activated it.
   // iOS: plans are bought through Apple, not the web checkout. The backend
   // learns of a purchase from RevenueCat's webhook, so the plan flips a moment
-  // after Apple's sheet closes — see _refreshAfterIap.
+  // after Apple's sheet closes — see _syncAfterIap.
   loadIapOffers(orgId: string): void {
     this._iapStatus.set('loading');
     this._iapDetail.set(null);
@@ -324,7 +325,7 @@ export class BillingService {
     try {
       if (await this._iap.purchase(orgId, offer)) {
         this._toast.success('Purchase complete. Activating your plan…');
-        this._refreshAfterIap(orgId);
+        this._syncAfterIap(orgId);
       }
     } catch {
       this._toast.error('The purchase could not be completed. Please try again.');
@@ -339,7 +340,7 @@ export class BillingService {
     try {
       await this._iap.restore(orgId);
       this._toast.success('Purchases restored.');
-      this._refreshAfterIap(orgId);
+      this._syncAfterIap(orgId);
     } catch {
       this._toast.error('Could not restore purchases. Please try again.');
     } finally {
@@ -353,6 +354,15 @@ export class BillingService {
     } catch {
       this._toast.error('Could not open subscription settings. Please try again.');
     }
+  }
+
+  // Have the backend re-read the purchase from RevenueCat right away instead
+  // of waiting for the webhook; if that call fails, poll for the webhook.
+  private _syncAfterIap(orgId: string): void {
+    subscriptionsControllerSyncApple(this._http, this._apiConfig.rootUrl, { orgId }).subscribe({
+      next: () => this._onSubscriptionChanged(orgId),
+      error: () => this._refreshAfterIap(orgId),
+    });
   }
 
   // Webhook latency: re-read the plan a few times instead of once.

@@ -37,6 +37,13 @@ export class IapPaymentUiComponent {
     const { isTrialing, status } = this.access();
     return isTrialing || status === 'EXPIRED' || status === 'CANCELLED';
   });
+  // An active plan bought outside the app (the web). Apple can't manage it, and
+  // App Review forbids pointing users to another way to pay, so the UI only
+  // says it isn't App Store billing — no link, no mention of the website.
+  protected readonly billedElsewhere = computed(() => {
+    const { status, billingOption } = this.access();
+    return status === 'ACTIVE' && billingOption !== 'APPLE_IAP';
+  });
   protected readonly hasLapsed = computed(() => {
     const { isTrialing, status } = this.access();
     return !isTrialing && (status === 'EXPIRED' || status === 'CANCELLED');

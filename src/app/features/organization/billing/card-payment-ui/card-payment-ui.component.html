@@ -89,6 +89,13 @@
       You keep your current plan until then.
     </div>
   }
+
+  @if (billedByApple()) {
+    <div class="mt-4 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2.5 text-sm text-blue-800">
+      Billed through Apple. To change or cancel your plan, open HairMela on your iPhone and go to
+      Plan &amp; billing → Manage subscription, or use Subscriptions in your Apple ID settings.
+    </div>
+  }
 </div>
 
 <div class="mt-6 grid gap-4 sm:grid-cols-3">
@@ -161,7 +168,8 @@
   currentTier() > 0 &&
   access().status !== 'CANCELLED' &&
   !isTrialing() &&
-  access().pendingTier === null
+  access().pendingTier === null &&
+  !billedByApple()
 ) {
   <div class="mt-6 text-center">
     <button

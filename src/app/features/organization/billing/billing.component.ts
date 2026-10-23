@@ -53,7 +53,15 @@ export class BillingComponent implements OnInit {
   });
   protected readonly canSwitchToBank = computed(() => {
     const access = this.access();
-    return !(access?.status === 'ACTIVE' && access.billingOption === 'RECURRING_CARD');
+    return !(
+      access?.status === 'ACTIVE' &&
+      (access.billingOption === 'RECURRING_CARD' || access.billingOption === 'APPLE_IAP')
+    );
+  });
+  // Bought in the iOS app: Apple bills it, so the web can't cancel or change it.
+  protected readonly billedByApple = computed(() => {
+    const access = this.access();
+    return access?.status === 'ACTIVE' && access.billingOption === 'APPLE_IAP';
   });
   protected readonly canSwitchToCard = computed(() => {
     const access = this.access();

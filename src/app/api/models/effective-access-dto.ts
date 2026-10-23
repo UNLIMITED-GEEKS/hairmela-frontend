@@ -6,7 +6,7 @@ export interface EffectiveAccessDto {
   /**
    * Null for trials and ended cycles. Legacy active paid cycles use RECURRING_CARD.
    */
-  billingOption: ('RECURRING_CARD' | 'PREPAID_BANK_TRANSFER') | null;
+  billingOption: ('RECURRING_CARD' | 'PREPAID_BANK_TRANSFER' | 'APPLE_IAP') | null;
 
   /**
    * Whole trial days remaining; null when not trialing.

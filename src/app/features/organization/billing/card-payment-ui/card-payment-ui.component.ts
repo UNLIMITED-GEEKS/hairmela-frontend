@@ -13,6 +13,7 @@ import { InlineSpinnerComponent } from '../../../../shared/components/inline-spi
 export class CardPaymentUiComponent {
   readonly access = input.required<EffectiveAccessDto>();
   readonly acting = input.required<boolean>();
+  readonly billedByApple = input(false);
   readonly upgrade = output<Tier>();
   readonly cancel = output<void>();
 

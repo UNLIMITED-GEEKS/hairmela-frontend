@@ -41,6 +41,12 @@
       You keep your current plan until then.
     </div>
   }
+
+  @if (billedElsewhere()) {
+    <p class="mt-4 rounded-lg bg-surface-sunken px-3 py-2.5 text-sm text-text-secondary">
+      Your current plan isn't billed through the App Store.
+    </p>
+  }
 </div>
 
 @if (status() === 'loading') {
@@ -124,7 +130,7 @@
   >
     Restore purchases
   </button>
-  @if (currentTier() > 0 && !isTrialing()) {
+  @if (currentTier() > 0 && !isTrialing() && !billedElsewhere()) {
     <button
       type="button"
       (click)="manage.emit()"
