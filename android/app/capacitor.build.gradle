@@ -18,6 +18,7 @@ dependencies {
     implementation project(':capacitor-push-notifications')
     implementation project(':capawesome-capacitor-app-update')
     implementation project(':capawesome-capacitor-google-sign-in')
+    implementation project(':revenuecat-purchases-capacitor')
 
 }
 
