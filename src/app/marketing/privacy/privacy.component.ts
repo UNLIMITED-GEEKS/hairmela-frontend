@@ -84,7 +84,6 @@ export class PrivacyComponent {
       body: [
         'We do not sell your personal information. When you join a queue, the salon you join sees the information needed to serve you (such as your first name and the service you selected).',
         'We may share information with service providers who help us operate HairMela, and only to the extent needed to provide the service. These include hosting and file storage (for photos and voice notes), Google Firebase (sign-in), Apple and Google (push-notification delivery), and email delivery.',
-        // 'Booking-fee receipt photos are analysed automatically by a third-party AI provider (Anthropic, accessed through OpenRouter) solely to check that the receipt matches the salon’s payment details.',
       ],
     },
     {
