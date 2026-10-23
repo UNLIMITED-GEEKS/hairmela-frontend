@@ -39,6 +39,7 @@ export class BillingComponent implements OnInit {
   protected readonly iapOffers = this._billing.iapOffers;
   protected readonly iapStatus = this._billing.iapStatus;
   protected readonly iapDetail = this._billing.iapDetail;
+  protected readonly iapConfirm = this._billing.iapConfirm;
   private readonly _selectedPaymentMode = signal<'card' | 'bank'>('card');
 
   // Active subscriptions determine their own UI. A trial or ended plan has no
@@ -96,6 +97,10 @@ export class BillingComponent implements OnInit {
 
   protected manageIap(): void {
     this._billing.manageIap(this._orgId);
+  }
+
+  protected checkIapNow(): void {
+    this._billing.checkIapNow();
   }
 
   protected selectBankTransfer(): void {

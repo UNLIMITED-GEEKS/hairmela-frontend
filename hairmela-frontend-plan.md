@@ -590,7 +590,7 @@ All password fields use the `appPasswordToggle` directive (eye icon show/hide).
 | `OrgOverviewComponent` | GET /organizations/:orgId |
 | `OrgSettingsComponent` | PATCH /organizations/:orgId |
 | `PlanExplainerComponent` | — (static teaser; renders from `PLAN_CARDS`, links to billing) |
-| `BillingComponent` | GET/POST `.../subscription/me` `checkout` `verify` `downgrade` `cancel` via `BillingService` |
+| `BillingComponent` | GET/POST `.../subscription/me` `checkout` `verify` `downgrade` `cancel` via `BillingService`; on iOS (`billingMode === 'iap'`) `IapPaymentUiComponent` buys through Apple and confirms via POST `.../subscription/apple/sync`. `BillingService.iapConfirm` (`purchasing` → `confirming` → `delayed`) is deliberately separate from `acting`, which app resume clears, and Apple's sheet triggers a resume |
 | `DummySuccessComponent` | reads `?reference=`, calls verify, redirects to billing |
 
 **Guards:** `authGuard + orgOwnerGuard`. Billing is owner-only (nav hidden for non-owners; backend 403s as safety net). Upgrade = immediate (`checkout`→`verify`→re-fetch `/me`); downgrade/cancel = scheduled at period end (`pendingTier`/`endsAt`).
@@ -644,6 +644,8 @@ All password fields use the `appPasswordToggle` directive (eye icon show/hide).
 **Route:** `/salons/:salonId/queues/:queueId/console`
 
 `QueueShellComponent` provides `QueueConsoleService` via `providers: [QueueConsoleService]` (scoped to the shell — NOT `providedIn: 'root'`). Two child routes: `''` → `CurrentClientComponent`, `'queue'` → `QueueListComponent`. `QueueShellComponent.ngOnInit()` calls `console.init(salonId, queueId)`; `ngOnDestroy` calls `console.destroy(queueId)`.
+
+`AuthShellComponent` also provides its own `QueueConsoleService`, used only to back the add-client modal it opens from outside a queue page. Open that modal through root `AddClientModalService` (`openWalkIn` / `openAppointment`), never a shell-local flag: it routes the request to the queue shell when that shell is showing the same queue (`pageRequest`), otherwise to the auth shell (`shellRequest`). An add paints its optimistic temp row into the hosting shell's console, so hosting it anywhere else leaves the queue page blank until the socket frame lands.
 
 `QueueConsoleService` (~900 lines) grew substantially past its original simple socket-plus-REST design while chasing a production race-condition bug (client name flashing away and reappearing in the current-client circle). The engine it ended up with:
 

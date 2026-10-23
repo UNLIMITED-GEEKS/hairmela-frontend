@@ -1,15 +1,22 @@
-import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { HttpContextToken, HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 import { isApiError } from '../errors/api-error.types';
 import { ErrorCodes } from '../errors/error-codes';
 import { ToastService } from '../toast/toast.service';
 
+// For background requests that retry on their own (e.g. confirming an App
+// Store purchase): one failed attempt is expected and not the user's concern,
+// so it must not toast. The error still reaches the caller.
+export const SILENT_ERRORS = new HttpContextToken<boolean>(() => false);
+
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const toast = inject(ToastService);
 
   return next(req).pipe(
     catchError((err) => {
+      if (req.context.get(SILENT_ERRORS)) return throwError(() => err);
+
       if (!(err instanceof HttpErrorResponse)) {
         toast.error('You appear to be offline. Please check your connection.');
         return throwError(() => err);
@@ -40,6 +47,14 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         // visitor who simply has not joined a queue yet.
         err.status === 401
       ) {
+        return throwError(() => err);
+      }
+
+      // FIXME: hidden, not fixed. Something sends the same encrypted request
+      // twice (likely a retry re-sending the same envelope); the backend
+      // rightly rejects the copy because the original was already processed.
+      // No toast is shown for it; find what re-sends the request.
+      if (body.code === ErrorCodes.ENCRYPTION_REPLAY_DETECTED) {
         return throwError(() => err);
       }
 

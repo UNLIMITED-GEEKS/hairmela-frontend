@@ -58,9 +58,11 @@ export class IapService {
     }
   }
 
-  async restore(orgId: string): Promise<void> {
+  /** Resolves true when the Apple ID has an active HairMela subscription to restore. */
+  async restore(orgId: string): Promise<boolean> {
     const { purchases } = await this._ready(orgId);
-    await purchases.restorePurchases();
+    const { customerInfo } = await purchases.restorePurchases();
+    return Object.keys(customerInfo.entitlements.active).length > 0;
   }
 
   async managementUrl(orgId: string): Promise<string> {

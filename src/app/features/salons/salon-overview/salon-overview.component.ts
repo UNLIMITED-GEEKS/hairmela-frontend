@@ -25,7 +25,7 @@ import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.
 import { FrozenBannerComponent } from '../../../shared/components/frozen-banner/frozen-banner.component';
 import { TierBannerComponent } from '../../../shared/components/tier-banner/tier-banner.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
-import { StaffAppointmentModalService } from '../../queue/staff-appointment-modal/staff-appointment-modal.service';
+import { AddClientModalService } from '../../queue/add-client-modal/add-client-modal.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { RouteParam, RoutePath, RouteQueryParam } from '../../../core/routing/route-paths';
 import { environment } from '../../../../environments/environment';
@@ -74,7 +74,7 @@ export class SalonOverviewComponent implements OnInit {
   private readonly _salonOverviewService = inject(SalonOverviewService);
   private readonly _invitesService = inject(InvitesService);
   private readonly _toast = inject(ToastService);
-  private readonly _staffAppointmentModal = inject(StaffAppointmentModalService);
+  private readonly _addClientModal = inject(AddClientModalService);
   private readonly _analytics = inject(AnalyticsService);
   private readonly _myAnalytics = inject(MyAnalyticsService);
   private readonly _appointments = inject(AppointmentsCalendarService);
@@ -437,7 +437,7 @@ export class SalonOverviewComponent implements OnInit {
   protected openCreateAppointment(queueId: string): void {
     const staffId = this.myStaff()?.id;
     if (!staffId) return;
-    this._staffAppointmentModal.open({ salonId: this._salonId, queueId, staffId });
+    this._addClientModal.openAppointment({ salonId: this._salonId, queueId, staffId });
   }
 
   // The public link customers use to join THIS staff member's queue — same

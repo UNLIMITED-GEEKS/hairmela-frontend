@@ -3,9 +3,13 @@ import {
   Observable,
   Subscription as RxSubscription,
   catchError,
+  concatMap,
   filter,
   finalize,
+  first,
+  from,
   map,
+  of,
   switchMap,
   takeUntil,
   tap,
@@ -13,7 +17,7 @@ import {
 } from 'rxjs';
 import { CacheRegistry } from '../../../core/caching/cache-registry/cache-registry.service';
 import { Injectable, inject, signal, effect, untracked } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { subscriptionsControllerGetMine } from '../../../api/fn/subscriptions/subscriptions-controller-get-mine';
@@ -27,9 +31,11 @@ import { EffectiveAccessDto } from '../../../api/models/effective-access-dto';
 import { CheckoutSessionDto } from '../../../api/models/checkout-session-dto';
 import { Subscription } from '../../../api/models/subscription';
 import { PaymentStatusDto } from '../../../api/models/payment-status-dto';
-import { Tier } from '../../../core/tier/tier-limits';
-import { MembershipStore } from '../../../core/salon-context/membership.store';
+import { Tier, TIER_NAMES } from '../../../core/tier/tier-limits';
 import { OrgContextService } from '../../../core/salon-context/org-context.service';
+import { SalonContextService } from '../../../core/salon-context/salon-context.service';
+import { SalonsStore } from '../../../core/salon-context/salons.store';
+import { SILENT_ERRORS } from '../../../core/interceptors/error.interceptor';
 import { ToastService } from '../../../core/toast/toast.service';
 import { OptimisticService } from '../../../core/caching/optimistic/optimistic.service';
 import { CachedLoader } from '../../../core/caching/optimistic/cached-loader';
@@ -50,12 +56,32 @@ interface PendingBankTransfer {
 
 const PENDING_BANK_TRANSFER_KEY = 'hm_pending_bank_transfer';
 
+/**
+ * Where an App Store purchase is, from the user's side:
+ * - purchasing: Apple's sheet is up, or RevenueCat is finishing the transaction.
+ * - confirming: Apple charged; waiting for the backend to apply the plan.
+ * - delayed: still not applied after the automatic checks; the user can check again.
+ */
+export type IapConfirmState = 'idle' | 'purchasing' | 'confirming' | 'delayed';
+
+// Gaps between automatic checks once Apple's sheet closes (~100s in total).
+// Front-loaded: the sync call usually applies the plan on the first try, and
+// RevenueCat's webhook normally lands within seconds.
+const IAP_CONFIRM_DELAYS_MS = [0, 2_000, 3_000, 5_000, 5_000, 10_000, 10_000, 15_000, 20_000, 30_000];
+
+interface IapConfirmation {
+  readonly orgId: string;
+  readonly isApplied: (access: EffectiveAccessDto) => boolean;
+  readonly successMessage: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class BillingService {
   private readonly _http = inject(HttpClient);
   private readonly _cacheRegistry = inject(CacheRegistry);
   private readonly _apiConfig = inject(ApiConfiguration);
-  private readonly _membershipStore = inject(MembershipStore);
+  private readonly _salonContext = inject(SalonContextService);
+  private readonly _salonsStore = inject(SalonsStore);
   private readonly _orgContext = inject(OrgContextService);
   private readonly _toast = inject(ToastService);
   private readonly _optimistic = inject(OptimisticService);
@@ -120,6 +146,14 @@ export class BillingService {
   readonly iapStatus = this._iapStatus.asReadonly();
   private readonly _iapDetail = signal<string | null>(null);
   readonly iapDetail = this._iapDetail.asReadonly();
+  // Separate from _acting on purpose: _releaseOnResume clears _acting whenever
+  // the app returns to the foreground, and Apple's payment sheet counts as
+  // leaving the app — so "Working…" vanished while the purchase was still
+  // being finished, leaving no feedback until it was applied.
+  private readonly _iapConfirm = signal<IapConfirmState>('idle');
+  readonly iapConfirm = this._iapConfirm.asReadonly();
+  private _iapConfirmation: IapConfirmation | null = null;
+  private _iapPolling?: RxSubscription;
   readonly bankTransferPayment = this._bankTransferPayment.asReadonly();
   readonly checkingBankTransfer = this._checkingBankTransfer.asReadonly();
 
@@ -320,32 +354,53 @@ export class BillingService {
 
   async purchaseIap(orgId: string, tier: Tier): Promise<void> {
     const offer = this._iapOffers().find((o) => o.tier === tier);
-    if (!offer || this._acting()) return;
-    this._acting.set(true);
+    if (!offer || this._iapConfirm() !== 'idle') return;
+    this._iapConfirm.set('purchasing');
     try {
-      if (await this._iap.purchase(orgId, offer)) {
-        this._toast.success('Purchase complete. Activating your plan…');
-        this._syncAfterIap(orgId);
+      if (!(await this._iap.purchase(orgId, offer))) {
+        this._iapConfirm.set('idle');
+        return;
       }
     } catch {
+      this._iapConfirm.set('idle');
       this._toast.error('The purchase could not be completed. Please try again.');
-    } finally {
-      this._acting.set(false);
+      return;
     }
+    this._confirmIap({
+      orgId,
+      isApplied: (a) =>
+        a.billingOption === 'APPLE_IAP' && a.status === 'ACTIVE' && !a.isTrialing && a.tier === tier,
+      successMessage: `Your ${TIER_NAMES[tier]} plan is active.`,
+    });
   }
 
   async restoreIap(orgId: string): Promise<void> {
-    if (this._acting()) return;
-    this._acting.set(true);
+    const state = this._iapConfirm();
+    if (state === 'purchasing' || state === 'confirming') return;
+    this._iapConfirm.set('purchasing');
+    let restored: boolean;
     try {
-      await this._iap.restore(orgId);
-      this._toast.success('Purchases restored.');
-      this._syncAfterIap(orgId);
+      restored = await this._iap.restore(orgId);
     } catch {
+      this._iapConfirm.set(state);
       this._toast.error('Could not restore purchases. Please try again.');
-    } finally {
-      this._acting.set(false);
+      return;
     }
+    if (!restored) {
+      this._iapConfirm.set(state);
+      this._toast.info('No App Store subscription found to restore.');
+      return;
+    }
+    this._confirmIap({
+      orgId,
+      isApplied: (a) => a.billingOption === 'APPLE_IAP' && a.status === 'ACTIVE',
+      successMessage: 'Purchases restored. Your plan is active.',
+    });
+  }
+
+  /** Manual "Check now": restarts the automatic checks for the pending purchase. */
+  checkIapNow(): void {
+    if (this._iapConfirmation) this._pollIapConfirmation();
   }
 
   async manageIap(orgId: string): Promise<void> {
@@ -356,20 +411,48 @@ export class BillingService {
     }
   }
 
-  // Have the backend re-read the purchase from RevenueCat right away instead
-  // of waiting for the webhook; if that call fails, poll for the webhook.
-  private _syncAfterIap(orgId: string): void {
-    subscriptionsControllerSyncApple(this._http, this._apiConfig.rootUrl, { orgId }).subscribe({
-      next: () => this._onSubscriptionChanged(orgId),
-      error: () => this._refreshAfterIap(orgId),
-    });
+  // Apple has charged, but the plan only changes once the backend applies it.
+  // Until then the billing page shows "Confirming your purchase…", so there is
+  // always feedback between Apple's sheet closing and the plan updating.
+  private _confirmIap(confirmation: IapConfirmation): void {
+    this._iapConfirmation = confirmation;
+    this._pollIapConfirmation();
   }
 
-  // Webhook latency: re-read the plan a few times instead of once.
-  private _refreshAfterIap(orgId: string): void {
-    for (const ms of [2000, 6000, 15000]) {
-      setTimeout(() => this._onSubscriptionChanged(orgId), ms);
-    }
+  // Each check asks the backend to re-read the purchase from RevenueCat (the
+  // webhook may not have landed yet) and stops at the first answer showing the
+  // purchase applied. Out of checks → 'delayed', where the user can retry.
+  private _pollIapConfirmation(): void {
+    const { orgId, isApplied, successMessage } = this._iapConfirmation!;
+    this._iapPolling?.unsubscribe();
+    this._iapConfirm.set('confirming');
+    this._iapPolling = from(IAP_CONFIRM_DELAYS_MS)
+      .pipe(
+        concatMap((ms) => timer(ms).pipe(switchMap(() => this._readAppleAccess(orgId)))),
+        first((access): access is EffectiveAccessDto => access !== null && isApplied(access)),
+      )
+      .subscribe({
+        next: () => {
+          this._iapConfirmation = null;
+          this._iapConfirm.set('idle');
+          this._toast.success(successMessage);
+          this._onSubscriptionChanged(orgId);
+        },
+        // first() errors once the checks run out without a match.
+        error: () => this._iapConfirm.set('delayed'),
+      });
+  }
+
+  // Sync first; if the sync call itself fails, the plain read still catches a
+  // plan the webhook already applied. Silent: a failed check is retried, so it
+  // must not toast. Null when neither answered.
+  private _readAppleAccess(orgId: string): Observable<EffectiveAccessDto | null> {
+    const context = new HttpContext().set(SILENT_ERRORS, true);
+    return subscriptionsControllerSyncApple(this._http, this._apiConfig.rootUrl, { orgId }, context).pipe(
+      catchError(() => subscriptionsControllerGetMine(this._http, this._apiConfig.rootUrl, { orgId }, context)),
+      map((res) => res.body as EffectiveAccessDto),
+      catchError(() => of(null)),
+    );
   }
 
   scheduleDelayedRefresh(orgId: string): void {
@@ -407,15 +490,24 @@ export class BillingService {
     });
   }
 
-  // After any subscription change: membership tier/freeze state is now stale,
-  // so drop the cache and re-load the billing view from the fresh truth.
+  // After any subscription change, every cached copy of the plan is stale:
+  // the billing view, the memberships in view (tier banner, sidebar, gates),
+  // the owned org's access (salon limit) and the salons list (a lapsed plan
+  // hides salons; renewing brings them back). Refresh them all in place —
+  // no full reload needed.
   private _onSubscriptionChanged(orgId: string): void {
-    this._membershipStore.invalidateAll();
     this._acting.set(false);
     this.refresh(orgId);
+    this._salonContext.reloadMemberships();
+    this._orgContext.refreshAccess();
+    this._salonsStore.refreshSilent();
   }
 
   clear(): void {
+    this._iapPolling?.unsubscribe();
+    this._iapPolling = undefined;
+    this._iapConfirmation = null;
+    this._iapConfirm.set('idle');
     this._bankTransferPolling?.unsubscribe();
     this._bankTransferPolling = undefined;
     this._bankTransferPayment.set(null);

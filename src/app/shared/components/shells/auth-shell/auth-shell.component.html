@@ -82,24 +82,15 @@
       />
     </div>
 
-    @if (appointmentRequest(); as request) {
+    @if (addClientRequest(); as request) {
       <app-add-client-modal
         [open]="true"
         [salonId]="request.salonId"
         [queueId]="request.queueId"
         [staffId]="request.staffId"
-        [initialMode]="'appointment'"
-        (closed)="closeCreateAppointment()"
-      />
-    }
-
-    @if (quickAddRequest(); as request) {
-      <app-add-client-modal
-        [open]="true"
-        [salonId]="request.salonId"
-        [queueId]="request.queueId"
-        [staffId]="request.staffId"
-        (closed)="closeQuickAdd()"
+        [initialMode]="request.mode"
+        [staffName]="request.staffName"
+        (closed)="closeAddClient()"
       />
     }
   </div>

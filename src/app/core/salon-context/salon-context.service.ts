@@ -21,6 +21,9 @@ export class SalonContextService {
   private readonly _activeSalonId = signal<string | null>(null);
   private readonly _membership = signal<Membership | null>(null);
   private readonly _displayMembership = signal<Membership | null>(null);
+  // Bumped by reloadMemberships() to re-run the membership bindings for the
+  // SAME salon ids, which otherwise only re-fetch when the id changes.
+  private readonly _reload = signal(0);
 
   // Last salon the user was actually in (route-derived), persisted across
   // navigations to pages that carry no salon in their URL at all (Dashboard,
@@ -91,6 +94,7 @@ export class SalonContextService {
   // adding a third membership consumer is a one-line call, not a copy-paste.
   private _bindMembership(salonId: Signal<string | null>, target: WritableSignal<Membership | null>): void {
     effect(() => {
+      this._reload();
       const id = salonId();
       if (!id) {
         target.set(null);
@@ -104,6 +108,15 @@ export class SalonContextService {
         }),
       ).subscribe((m) => target.set(m));
     });
+  }
+
+  // Re-fetches the memberships in view after the org's plan changed. Tier,
+  // trial and freeze state all come from the membership, so without this the
+  // tier banner, sidebar and gates keep the old plan until the user switches
+  // salon.
+  reloadMemberships(): void {
+    this._membershipStore.invalidateAll();
+    this._reload.update((n) => n + 1);
   }
 
   // CacheRegistry.clearAll() hook — logout wipes the persisted last-selected

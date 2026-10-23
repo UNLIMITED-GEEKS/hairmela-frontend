@@ -14,7 +14,7 @@ import { TimelineEntryDto } from '../../../core/socket/socket.types';
 import { StaffService } from '../../staff/staff.service';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { copyToClipboard } from '../../../core/clipboard/copy-to-clipboard';
-import { AddClientModalComponent } from '../add-client-modal/add-client-modal.component';
+import { AddClientModalService } from '../add-client-modal/add-client-modal.service';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { SalonRole } from '../../../core/salon-context/membership.types';
 import { CurrencyNgnPipe } from '../../../shared/pipes/currency-ngn.pipe';
@@ -42,7 +42,6 @@ import {
     RouterLink,
     PushPromptComponent,
     IconComponent,
-    AddClientModalComponent,
     CurrencyNgnPipe,
     AddMemberServicesModalComponent,
     EditMemberServicePriceModalComponent,
@@ -56,6 +55,7 @@ export class QueueListComponent implements OnInit {
   private readonly _toast = inject(ToastService);
   private readonly _staffService = inject(StaffService);
   private readonly _salonContext = inject(SalonContextService);
+  private readonly _addClientModal = inject(AddClientModalService);
   protected readonly soundPreference = inject(QueueSoundPreferenceService);
 
   protected readonly salonCurrency = computed(() => this._salonContext.currency() ?? null);
@@ -88,7 +88,6 @@ export class QueueListComponent implements OnInit {
     return role === SalonRole.OWNER || role === SalonRole.ADMIN;
   });
 
-  protected readonly showAddClientModal = signal(false);
   protected readonly canAddClient = computed(() => {
     const membership = this._salonContext.membership();
     if (!membership) return false;
@@ -146,6 +145,17 @@ export class QueueListComponent implements OnInit {
 
   ngOnInit(): void {
     this._staffService.load(this._salonId);
+  }
+
+  // Hosted by QueueShellComponent on this page's console, like every other
+  // add-client entry point — see AddClientModalService.
+  protected openAddClient(): void {
+    this._addClientModal.openWalkIn({
+      salonId: this._salonId,
+      queueId: this._queueId,
+      staffId: this._staffId,
+      staffName: this.staffDisplayName(),
+    });
   }
 
   // Only one row's Notes accordion open at a time — opening one collapses

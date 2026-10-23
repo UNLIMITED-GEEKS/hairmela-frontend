@@ -1,5 +1,14 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, input, output } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  computed,
+  effect,
+  input,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { EffectiveAccessDto } from '../../../../api/models/effective-access-dto';
 import { IapOffer } from '../../../../core/native/iap.service';
@@ -7,6 +16,7 @@ import { RoutePath } from '../../../../core/routing/route-paths';
 import { Tier, TIER_NAMES } from '../../../../core/tier/tier-limits';
 import { PLAN_CARDS } from '../../../../core/tier/tier-plans';
 import { InlineSpinnerComponent } from '../../../../shared/components/inline-spinner/inline-spinner.component';
+import { IapConfirmState } from '../billing.service';
 
 // iOS billing UI: plans are bought through Apple in-app purchase. Prices come
 // from StoreKit (offers), never from PLAN_CARDS, so they always match what
@@ -19,17 +29,46 @@ import { InlineSpinnerComponent } from '../../../../shared/components/inline-spi
 export class IapPaymentUiComponent {
   readonly access = input.required<EffectiveAccessDto>();
   readonly offers = input.required<readonly IapOffer[]>();
-  readonly acting = input.required<boolean>();
+  readonly confirm = input.required<IapConfirmState>();
   readonly status = input.required<'loading' | 'ready' | 'unavailable'>();
   readonly detail = input<string | null>(null);
   readonly choose = output<Tier>();
   readonly restore = output<void>();
   readonly retry = output<void>();
   readonly manage = output<void>();
+  readonly checkNow = output<void>();
 
   protected readonly tierNames = TIER_NAMES;
   protected readonly termsLink = RoutePath.terms();
   protected readonly privacyLink = RoutePath.privacy();
+
+  // What the user tapped, so only that button shows the App Store spinner.
+  protected readonly pending = signal<Tier | 'restore' | null>(null);
+  protected readonly purchasing = computed(() => this.confirm() === 'purchasing');
+  // Apple charged and the plan is being applied (or is late). The plan cards
+  // give way to a status card: buying again here would be a duplicate.
+  protected readonly awaitingPlan = computed(
+    () => this.confirm() === 'confirming' || this.confirm() === 'delayed',
+  );
+
+  private readonly _statusCard = viewChild<ElementRef<HTMLElement>>('statusCard');
+
+  constructor() {
+    // The user tapped a plan card further down; bring the status into view.
+    effect(() => {
+      this._statusCard()?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }
+
+  protected chooseTier(tier: Tier): void {
+    this.pending.set(tier);
+    this.choose.emit(tier);
+  }
+
+  protected restorePurchases(): void {
+    this.pending.set('restore');
+    this.restore.emit();
+  }
 
   protected readonly currentTier = computed(() => this.access().tier as Tier);
   protected readonly isTrialing = computed(() => this.access().isTrialing);

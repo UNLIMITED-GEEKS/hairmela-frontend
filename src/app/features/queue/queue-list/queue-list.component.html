@@ -90,7 +90,7 @@
     @if (canAddClient()) {
       <button
         type="button"
-        (click)="showAddClientModal.set(true)"
+        (click)="openAddClient()"
         class="min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary-hover active:scale-[0.99]"
         [class]="canAddClientForStaff() ? 'flex' : 'hidden md:flex'"
       >
@@ -307,17 +307,6 @@
       <span class="whitespace-nowrap text-sm font-semibold text-text-primary">End Session</span>
     </button>
   </div>
-
-  @if (canAddClient()) {
-    <app-add-client-modal
-      [open]="showAddClientModal()"
-      [salonId]="_salonId"
-      [queueId]="_queueId"
-      [staffId]="_staffId"
-      [staffName]="staffDisplayName()"
-      (closed)="showAddClientModal.set(false)"
-    />
-  }
 
   @if (addServiceTarget(); as target) {
     <app-add-member-services-modal

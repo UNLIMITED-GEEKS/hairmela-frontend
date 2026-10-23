@@ -295,3 +295,15 @@
     </div>
   }
 }
+
+@if (addClientRequest(); as request) {
+  <app-add-client-modal
+    [open]="true"
+    [salonId]="request.salonId"
+    [queueId]="request.queueId"
+    [staffId]="request.staffId"
+    [initialMode]="request.mode"
+    [staffName]="request.staffName"
+    (closed)="closeAddClient()"
+  />
+}

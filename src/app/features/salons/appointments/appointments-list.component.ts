@@ -19,7 +19,7 @@ import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.
 import { canChatFromHistory, queueEntryHistoryDate } from './queue-entry-history.util';
 import { SalonContextService } from '../../../core/salon-context/salon-context.service';
 import { SalonRole } from '../../../core/salon-context/membership.types';
-import { StaffAppointmentModalService } from '../../queue/staff-appointment-modal/staff-appointment-modal.service';
+import { AddClientModalService } from '../../queue/add-client-modal/add-client-modal.service';
 import { SalonServicesCache } from '../../../core/appointments/salon-services-cache.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CurrencyNgnPipe } from '../../../shared/pipes/currency-ngn.pipe';
@@ -67,7 +67,7 @@ type EntryFilter = 'ALL' | 'APPOINTMENTS' | 'WALK_INS';
 export class AppointmentsListComponent implements OnInit {
   private readonly _route = inject(ActivatedRoute);
   private readonly _salonContext = inject(SalonContextService);
-  private readonly _staffAppointmentModal = inject(StaffAppointmentModalService);
+  private readonly _addClientModal = inject(AddClientModalService);
   private readonly _http = inject(HttpClient);
   private readonly _apiConfig = inject(ApiConfiguration);
   private readonly _destroyRef = inject(DestroyRef);
@@ -340,7 +340,7 @@ export class AppointmentsListComponent implements OnInit {
   protected openCreateAppointment(): void {
     const membership = this._salonContext.membership();
     if (!membership?.queueId || !membership.staffId) return;
-    this._staffAppointmentModal.open({
+    this._addClientModal.openAppointment({
       salonId: membership.salonId,
       queueId: membership.queueId,
       staffId: membership.staffId,

@@ -19,12 +19,21 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { SalonSettingsService } from '../../salons/salon-settings/salon-settings.service';
 import { environment } from '../../../../environments/environment';
 import { AppHeaderService } from '../../../core/routing/app-header.service';
+import { AddClientModalComponent } from '../add-client-modal/add-client-modal.component';
+import { AddClientModalService } from '../add-client-modal/add-client-modal.service';
 
 @Component({
   selector: 'app-queue-shell',
   templateUrl: './queue-shell.component.html',
   providers: [QueueConsoleService],
-  imports: [SkeletonComponent, RouterOutlet, RouterLink, ConnectionBannerComponent, IconComponent],
+  imports: [
+    SkeletonComponent,
+    RouterOutlet,
+    RouterLink,
+    ConnectionBannerComponent,
+    IconComponent,
+    AddClientModalComponent,
+  ],
 })
 export class QueueShellComponent implements OnInit, OnDestroy {
   protected readonly console = inject(QueueConsoleService);
@@ -35,6 +44,11 @@ export class QueueShellComponent implements OnInit, OnDestroy {
   private readonly _salonSettings = inject(SalonSettingsService);
   private readonly _toast = inject(ToastService);
   protected readonly header = inject(AppHeaderService);
+  private readonly _addClientModal = inject(AddClientModalService);
+  // An add-client request for this queue (bottom-nav "+", sidebar, mobile
+  // sheet) is hosted here, on this page's console, so the new client paints
+  // on the page straight away — see AddClientModalService.
+  protected readonly addClientRequest = this._addClientModal.pageRequest;
 
   // True while the active child route is queue-list (.../console/queue), not
   // current-client (the shell's default child, .../console).
@@ -90,11 +104,17 @@ export class QueueShellComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.console.init(this.salonId, this.queueId);
+    this._addClientModal.attachPage(this.queueId);
     this._salonSettings.load(this.salonId);
   }
 
   ngOnDestroy(): void {
+    this._addClientModal.detachPage(this.queueId);
     this.console.destroy(this.queueId);
+  }
+
+  protected closeAddClient(): void {
+    this._addClientModal.close();
   }
 
   protected setStatus(status: 'OPEN' | 'PAUSED' | 'CLOSED'): void {

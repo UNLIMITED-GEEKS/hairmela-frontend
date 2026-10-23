@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, of, map, tap, switchMap, shareReplay, catchError, firstValueFrom } from 'rxjs';
 import { ApiConfiguration } from '../../api/api-configuration';
@@ -9,6 +9,7 @@ import { Organization } from '../../api/models/organization';
 import { EffectiveAccessDto } from '../../api/models/effective-access-dto';
 import { CacheRegistry } from '../caching/cache-registry/cache-registry.service';
 import { CurrentUserStore } from '../auth/current-user.store';
+import { SILENT_ERRORS } from '../interceptors/error.interceptor';
 
 // A user owns at most one org (FRONTEND-TIER-HANDOFF §4a). This resolves and
 // caches it once so the tier banner, the billing page, and orgOwnerGuard all
@@ -86,6 +87,24 @@ export class OrgContextService {
   async goToBilling(): Promise<void> {
     const org = this._ownedOrg() ?? (await firstValueFrom(this.ensureLoaded()));
     void this._router.navigate(org ? ['/org', org.id, 'billing'] : ['/dashboard']);
+  }
+
+  // Re-reads the owned org's access after its plan changed. It is otherwise
+  // cached for the session, so salonLimit (create-salon card, salon overview)
+  // would keep the old plan's limit.
+  refreshAccess(): void {
+    const org = this._ownedOrg();
+    if (!org) return;
+    // Silent: a failed background refresh keeps the old value; nothing to report.
+    subscriptionsControllerGetMine(
+      this._http,
+      this._apiConfig.rootUrl,
+      { orgId: org.id },
+      new HttpContext().set(SILENT_ERRORS, true),
+    ).subscribe({
+      next: (res) => this._access.set(res.body),
+      error: () => undefined,
+    });
   }
 
   clear(): void {

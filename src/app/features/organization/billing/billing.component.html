@@ -30,11 +30,12 @@
           [offers]="iapOffers()"
           [status]="iapStatus()"
           [detail]="iapDetail()"
-          [acting]="acting()"
+          [confirm]="iapConfirm()"
           (choose)="purchaseIap($event)"
           (restore)="restoreIap()"
           (retry)="retryIap()"
           (manage)="manageIap()"
+          (checkNow)="checkIapNow()"
         />
       } @else if (paymentMode() === 'card') {
         <app-card-payment-ui

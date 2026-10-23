@@ -33,7 +33,7 @@ import { RoutePath } from '../../../../core/routing/route-paths';
 import { RouteScrollRestorationService } from '../../../../core/scroll/route-scroll-restoration.service';
 import { AddClientModalComponent } from '../../../../features/queue/add-client-modal/add-client-modal.component';
 import { QueueConsoleService } from '../../../../features/queue/queue-console/queue-console.service';
-import { StaffAppointmentModalService } from '../../../../features/queue/staff-appointment-modal/staff-appointment-modal.service';
+import { AddClientModalService } from '../../../../features/queue/add-client-modal/add-client-modal.service';
 import { ChatService } from '../../../../core/chat/chat.service';
 
 @Component({
@@ -99,7 +99,7 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly _pullToRefresh = inject(PullToRefreshService);
   private readonly _scrollRestoration = inject(RouteScrollRestorationService);
   private readonly _queueConsole = inject(QueueConsoleService);
-  private readonly _staffAppointmentModal = inject(StaffAppointmentModalService);
+  private readonly _addClientModal = inject(AddClientModalService);
   private readonly _chatService = inject(ChatService);
   protected readonly loggingOut = this._auth.loggingOut;
 
@@ -108,12 +108,9 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly _mainEl = viewChild.required<ElementRef<HTMLElement>>('mainScroll');
 
   protected readonly sheetOpen = signal(false);
-  protected readonly appointmentRequest = this._staffAppointmentModal.request;
-  protected readonly quickAddRequest = signal<{
-    salonId: string;
-    queueId: string;
-    staffId: string;
-  } | null>(null);
+  // Null while the queue page showing the requested queue hosts the modal
+  // instead — see AddClientModalService.
+  protected readonly addClientRequest = this._addClientModal.shellRequest;
 
   constructor() {
     this._router.events
@@ -125,10 +122,14 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
         this._animateNextRoute = event.navigationTrigger !== 'popstate';
       });
 
-    effect(() => {
-      const request = this.appointmentRequest();
+    // This shell's console exists only to back a modal it hosts: started when
+    // it takes a request, stopped when the request closes, moves to the queue
+    // page, or the shell is destroyed.
+    effect((onCleanup) => {
+      const request = this.addClientRequest();
       if (!request) return;
       untracked(() => this._queueConsole.init(request.salonId, request.queueId));
+      onCleanup(() => this._queueConsole.destroy(request.queueId));
     });
   }
 
@@ -241,23 +242,18 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    const request = this.appointmentRequest();
-    if (request) this._queueConsole.destroy(request.queueId);
     this._scrollRestoration.unregister(this._mainEl().nativeElement);
     this._pullToRefresh.teardown();
   }
 
-  protected closeCreateAppointment(): void {
-    const request = this.appointmentRequest();
-    if (request) this._queueConsole.destroy(request.queueId);
-    this._staffAppointmentModal.close();
+  protected closeAddClient(): void {
+    this._addClientModal.close();
   }
 
   protected openQuickAdd(): void {
     const membership = this.quickAddMembership();
     if (!membership?.queueId || !membership.staffId || !this.canQuickAdd()) return;
-    this._queueConsole.init(membership.salonId, membership.queueId);
-    this.quickAddRequest.set({
+    this._addClientModal.openWalkIn({
       salonId: membership.salonId,
       queueId: membership.queueId,
       staffId: membership.staffId,
@@ -270,11 +266,5 @@ export class AuthShellComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     void this._router.navigate(RoutePath.search());
-  }
-
-  protected closeQuickAdd(): void {
-    const request = this.quickAddRequest();
-    if (request) this._queueConsole.destroy(request.queueId);
-    this.quickAddRequest.set(null);
   }
 }

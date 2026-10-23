@@ -68,6 +68,40 @@
   </div>
 }
 
+@if (awaitingPlan()) {
+  <div
+    #statusCard
+    role="status"
+    aria-live="polite"
+    class="mt-6 rounded-xl border border-primary/30 bg-surface-card p-5"
+  >
+    @if (confirm() === 'confirming') {
+      <div class="flex items-start gap-3">
+        <app-inline-spinner sizeClass="w-5 h-5" class="mt-0.5 text-primary" label="Confirming your purchase" />
+        <div>
+          <p class="text-sm font-semibold text-text-primary">Confirming your purchase…</p>
+          <p class="mt-1 text-sm text-text-secondary">
+            The App Store has confirmed it. Your plan updates here as soon as it's active, usually
+            within a few seconds.
+          </p>
+        </div>
+      </div>
+    } @else {
+      <p class="text-sm font-semibold text-text-primary">Your plan hasn't updated yet</p>
+      <p class="mt-1 text-sm text-text-secondary">
+        The App Store has confirmed your purchase, but activating it is taking longer than usual.
+        Check again in a moment.
+      </p>
+    }
+    <button
+      type="button"
+      (click)="checkNow.emit()"
+      class="mt-4 w-full rounded-lg border border-primary px-4 py-2.5 text-sm font-semibold text-primary hover:bg-primary/5 transition-colors"
+    >
+      {{ confirm() === 'confirming' ? 'Check now' : 'Check again' }}
+    </button>
+  </div>
+} @else {
 <div class="mt-6 grid gap-4 sm:grid-cols-3">
   @for (plan of plans(); track plan.tier) {
     <div
@@ -97,12 +131,13 @@
         @if (needsPlan()) {
           <button
             type="button"
-            [disabled]="acting()"
-            (click)="choose.emit(plan.tier)"
+            [disabled]="purchasing()"
+            (click)="chooseTier(plan.tier)"
             class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-colors"
           >
-            @if (acting()) {
-              <app-inline-spinner sizeClass="w-4 h-4" label="Contacting the App Store" /> Working…
+            @if (purchasing() && pending() === plan.tier) {
+              <app-inline-spinner sizeClass="w-4 h-4" label="Contacting the App Store" /> Waiting for
+              the App Store…
             } @else {
               Subscribe
             }
@@ -120,15 +155,20 @@
     </div>
   }
 </div>
+}
 
 <div class="mt-6 flex flex-col items-center gap-3">
   <button
     type="button"
-    [disabled]="acting()"
-    (click)="restore.emit()"
-    class="text-sm font-medium text-primary hover:underline disabled:opacity-50"
+    [disabled]="purchasing() || confirm() === 'confirming'"
+    (click)="restorePurchases()"
+    class="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline disabled:opacity-50"
   >
-    Restore purchases
+    @if (purchasing() && pending() === 'restore') {
+      <app-inline-spinner sizeClass="w-4 h-4" label="Contacting the App Store" /> Restoring…
+    } @else {
+      Restore purchases
+    }
   </button>
   @if (currentTier() > 0 && !isTrialing() && !billedElsewhere()) {
     <button

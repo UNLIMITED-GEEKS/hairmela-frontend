@@ -7,7 +7,7 @@ import { Membership, SalonRole } from '../../../../core/salon-context/membership
 import { RouteSegment, RoutePath } from '../../../../core/routing/route-paths';
 import { OrgContextService } from '../../../../core/salon-context/org-context.service';
 import { AppPlatformService } from '../../../../core/native/app-platform.service';
-import { StaffAppointmentModalService } from '../../../../features/queue/staff-appointment-modal/staff-appointment-modal.service';
+import { AddClientModalService } from '../../../../features/queue/add-client-modal/add-client-modal.service';
 import { InlineSpinnerComponent } from '../../inline-spinner/inline-spinner.component';
 
 export interface ControlItem {
@@ -121,7 +121,7 @@ export class SidebarComponent implements OnInit {
 
   private readonly _document = inject(DOCUMENT);
   private readonly _orgContext = inject(OrgContextService);
-  private readonly _staffAppointmentModal = inject(StaffAppointmentModalService);
+  private readonly _addClientModal = inject(AddClientModalService);
 
   // Mirrors the sidebar's current width onto a CSS custom property on <html>
   // so fixed-position elements elsewhere in the app (e.g. a bottom action
@@ -212,7 +212,7 @@ export class SidebarComponent implements OnInit {
   protected openCreateAppointment(): void {
     const membership = this.membership();
     if (!membership?.queueId || !membership.staffId) return;
-    this._staffAppointmentModal.open({
+    this._addClientModal.openAppointment({
       salonId: membership.salonId,
       queueId: membership.queueId,
       staffId: membership.staffId,
