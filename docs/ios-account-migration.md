@@ -78,7 +78,7 @@ Frontend: `IapService`, `IapPaymentUiComponent`, billing page wiring, `billingMo
 
 - [x] Frontend: RevenueCat Capacitor plugin, StoreKit price display, Subscribe / Restore purchases / Manage subscription, auto-renew disclosure with Terms and Privacy links
 - [x] App Store Connect → Subscriptions: create a subscription group (e.g. "HairMela Plans") with three auto-renewing monthly products. Product IDs must be exactly `hairmela_standard_monthly`, `hairmela_pro_monthly`, `hairmela_scale_monthly` (change `IAP_PRODUCT_TIER` in `iap.service.ts` if you use different IDs)
-- [x] Set price, display name and description for each product (prices ₦3,500 / ₦6,900 / ₦12,900). Review screenshot generated from the real iOS component (1170×2532); optionally retake on a real iPhone from TestFlight
+- [x] Set price, display name and description for each product (prices ₦3,500 / ₦6,900 / ₦12,900). Review screenshots retaken on a real iPhone from TestFlight
 - [x] Agreements, Tax and Banking → **Paid Apps Agreement** accepted, bank and tax info filled in (products will not load without it)
 - [x] Create a RevenueCat project; add the iOS app with bundle ID `com.unlimitedgeeks.hairmela`
 - [x] App Store Connect → Users and Access → Integrations → **In-App Purchase** key: generate and upload the `.p8` to RevenueCat (this is a different key from the API key used by Codemagic)
@@ -86,7 +86,7 @@ Frontend: `IapService`, `IapPaymentUiComponent`, billing page wiring, `billingMo
 - [x] RevenueCat: three App Store products, entitlements `hairmela_standard` / `hairmela_pro` / `hairmela_scale`, and the `default` offering with the App Store products in each package. Webhook payloads report these entitlement identifiers, so the backend maps them to tiers 1 / 2 / 3
 - [x] Put the RevenueCat **public iOS SDK key** (`appl_…`) in `revenueCatIosApiKey` in `src/environments/environment.native.ts`. Until it is set, the app shows "Couldn't load plans"
 - [ ] Add the three subscriptions to the app version for review (App Store Connect → the version → In-App Purchases and Subscriptions)
-- [ ] Add a sandbox tester (Users and Access → Sandbox) and test buy, cancel-out of the Apple sheet, restore, and "Manage subscription"
+- [ ] Test on TestFlight (uses your real Apple ID in the sandbox environment; no sandbox tester needed): buy, cancel-out of the Apple sheet, restore, and "Manage subscription". In-app prices may show USD on TestFlight while Apple's sheet shows naira; that is a TestFlight quirk
 - [x] Backend: RevenueCat webhook → set the org's tier from the entitlement (`appUserID` is the org id); migration run, `REVENUECAT_SECRET_API_KEY` / `REVENUECAT_WEBHOOK_AUTH` set, webhook added in RevenueCat
 - [x] Backend: double billing — web checkout refused while an Apple plan is live; an Apple purchase cancels a live Flutterwave card plan (best effort). iOS shows "isn't billed through the App Store" for web-billed plans; web shows "Billed through Apple"
 - [x] Review notes: state that subscriptions are sold through in-app purchase and give sandbox/demo steps

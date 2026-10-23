@@ -19,6 +19,9 @@
       <p class="text-xs font-medium uppercase tracking-wide text-text-disabled">Pricing</p>
       <h1 class="mt-1 text-2xl sm:text-3xl font-bold text-text-primary">Simple plans that grow with you</h1>
       <p class="mt-2 text-sm text-text-secondary">Start with a <span class="font-semibold">3 week</span> free trial, full access, no card required.</p>
+      @if (!showPrices) {
+        <p class="mt-1 text-sm text-text-secondary">Prices are shown in Billing once you set up your salon.</p>
+      }
     </div>
 
     <!-- Plan cards — rendered from PLAN_CARDS (single source of truth).
@@ -36,7 +39,9 @@
             <span class="absolute -top-3 left-6 rounded-full bg-primary px-3 py-0.5 text-xs font-semibold text-white">Most popular</span>
           }
           <h2 class="text-lg font-bold text-text-primary">{{ plan.name }}</h2>
-          <p class="mt-2 text-2xl font-bold text-text-primary">{{ formatPlanPrice(plan.price) }}</p>
+          @if (showPrices) {
+            <p class="mt-2 text-2xl font-bold text-text-primary">{{ formatPlanPrice(plan.price) }}</p>
+          }
           <p class="mt-1 text-sm text-text-secondary">{{ plan.tagline }}</p>
           <ul class="mt-5 space-y-2 text-sm text-text-muted flex-1">
             @for (line of [plan.salons, plan.staff].concat(plan.features); track line) {

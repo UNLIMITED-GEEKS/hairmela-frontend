@@ -131,6 +131,14 @@ type AudioMime = 'audio/webm' | 'audio/mp4' | 'audio/aac' | 'audio/ogg';
               </a>
             }
 
+            <a
+              [href]="reportMailto()"
+              class="px-2 sm:px-2.5 py-1.5 rounded-full text-xs font-medium text-text-secondary hover:text-error hover:bg-error-light/50 transition"
+              title="Report conversation"
+            >
+              Report
+            </a>
+
             @if (isBlocked()) {
               <button
                 type="button"
@@ -606,6 +614,20 @@ export class ChatThreadComponent implements OnDestroy {
       return c.staffName ? `${c.salonName}` : 'General Inquiries';
     }
     return c.customerPhone || (c.staffName ? `with ${c.staffName}` : c.salonName);
+  });
+
+  // App Review 1.2 requires a way to report offensive content alongside Block.
+  // Opens the user's mail app pre-filled with the conversation id, so support
+  // can find the thread without a round-trip — same pattern as the salon
+  // page's "Report salon".
+  protected readonly reportMailto = computed(() => {
+    const name = this.displayName();
+    return 'mailto:hello@contact.hairmela.com' +
+      '?subject=' + encodeURIComponent(`Report conversation with ${name}`) +
+      '&body=' + encodeURIComponent(
+        `I would like to report my conversation with ${name}.\n\n` +
+        `Conversation ID: ${this.conversationId()}\n\nReason: `,
+      );
   });
 
   protected readonly viewTarget = computed<{

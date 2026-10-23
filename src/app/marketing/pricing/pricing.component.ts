@@ -26,4 +26,9 @@ export class PricingComponent {
   // All three plans are paid — Standard, Pro, Scale. No free tier.
   protected readonly plans = PLAN_CARDS;
   protected readonly formatPlanPrice = formatPlanPrice;
+  // The iOS app sells plans through Apple at App Store prices, which differ
+  // from these website prices. Showing the website's lower prices inside the
+  // app reads to App Review as steering users away from in-app purchase
+  // (3.1.1 / 3.1.3), so the iOS app shows plans without them.
+  protected readonly showPrices = this.platform.billingMode !== 'iap';
 }
