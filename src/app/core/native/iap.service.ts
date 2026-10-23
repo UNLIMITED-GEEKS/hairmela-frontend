@@ -38,7 +38,7 @@ export class IapService {
   private _configuredFor: string | null = null;
 
   async loadOffers(orgId: string): Promise<IapOffer[]> {
-    const purchases = await this._ready(orgId);
+    const { purchases } = await this._ready(orgId);
     const { current } = await purchases.getOfferings();
     return (current?.availablePackages ?? []).flatMap((pkg) => {
       const tier = IAP_PRODUCT_TIER[pkg.product.identifier];
@@ -48,7 +48,7 @@ export class IapService {
 
   /** Resolves true once bought, false if the user backed out of the Apple sheet. */
   async purchase(orgId: string, offer: IapOffer): Promise<boolean> {
-    const purchases = await this._ready(orgId);
+    const { purchases } = await this._ready(orgId);
     try {
       await purchases.purchasePackage({ aPackage: offer.pkg });
       return true;
@@ -59,18 +59,24 @@ export class IapService {
   }
 
   async restore(orgId: string): Promise<void> {
-    const purchases = await this._ready(orgId);
+    const { purchases } = await this._ready(orgId);
     await purchases.restorePurchases();
   }
 
   async managementUrl(orgId: string): Promise<string> {
-    const purchases = await this._ready(orgId);
+    const { purchases } = await this._ready(orgId);
     const { customerInfo } = await purchases.getCustomerInfo();
     return customerInfo.managementURL ?? APPLE_SUBSCRIPTIONS_URL;
   }
 
   // Configures once, then re-identifies if a different org is ever billed from
   // the same session.
+  //
+  // Returns the plugin WRAPPED in an object, never bare. A Capacitor plugin is
+  // a Proxy that answers every property with a function — including `then` —
+  // so returning it from an async function makes the promise adopt it as a
+  // thenable and call a native "then" that never calls back: every await of
+  // this method hung forever (plans stuck on "Loading plans…").
   private async _ready(orgId: string) {
     if (this._platform.billingMode !== 'iap' || !environment.revenueCatIosApiKey) {
       throw new Error('In-app purchase is not available in this build.');
@@ -82,6 +88,6 @@ export class IapService {
       await Purchases.logIn({ appUserID: orgId });
     }
     this._configuredFor = orgId;
-    return Purchases;
+    return { purchases: Purchases };
   }
 }
